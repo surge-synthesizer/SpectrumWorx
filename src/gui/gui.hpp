@@ -163,7 +163,11 @@ juce::File const &rootPath();
 
 /// \brief The browser's most-recently-used preset folder, which starts at the
 /// user's preset directory and which the browser writes back when it closes.
-juce::File &presetsFolder();
+/// \note Const: this is where the user's presets live, not where the browser
+/// last was. The browser used to assign to it, which moved the anchor
+/// `goToParent()` stops at and the folder `createUserPresetsFolder()` makes;
+/// where it was is its own business now (`PresetBrowser::Place`).
+juce::File const &presetsFolder();
 
 /// \brief Creates the user preset directory if it is not there.
 /// \note Not done by presetsFolder(); see the note at the definition.

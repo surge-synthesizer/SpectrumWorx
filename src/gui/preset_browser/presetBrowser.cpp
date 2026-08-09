@@ -77,11 +77,11 @@ PresetBrowser::PresetBrowser()
     /// to make a folder is not a usable answer to "you have no presets yet".
     GUI::createUserPresetsFolder();
 
-    /// \note Opens at the root -- "Factory" and "User" -- rather than on the
-    /// user's folder. A new installation's user folder is empty, and a browser
-    /// that opens on nothing while 303 presets sit in the binary is the state
-    /// this was reported in.
-    setRoot();
+    /// \note Where it was last left, and the root -- "Factory" and "User" --
+    /// the first time, rather than the user's folder. A new installation's user
+    /// folder is empty, and a browser that opens on nothing while 303 presets
+    /// sit in the binary is the state this was reported in.
+    restoreLastPlace();
 
     browseArrow_.setTopLeftPosition(174, 10);
     save_.setTopLeftPosition(17, 33);
@@ -142,16 +142,50 @@ PresetBrowser::PresetBrowser()
 
 #pragma warning(pop)
 
+PresetBrowser::Place &PresetBrowser::lastPlace()
+{
+    LE_ASSERT(isThisTheGUIThread());
+    static Place place;
+    return place;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Validated rather than trusted. A remembered folder is a path from a
+/// previous run of the host and the user may have moved or deleted it since, and
+/// a remembered bank is a name that a later build need not still ship. Either
+/// way the answer is the root, which is the one place that is always there.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void PresetBrowser::restoreLastPlace()
+{
+    auto const &place(lastPlace());
+
+    switch (place.location)
+    {
+    case Location::Root:
+        break;
+
+    case Location::Factory:
+        return setFactoryBank(place.factoryBank);
+
+    case Location::User:
+        if (place.folder.isDirectory())
+            return setNewFolder(place.folder);
+        break;
+    }
+
+    setRoot();
+}
+
 PresetBrowser::~PresetBrowser()
 {
     //...mrmlj...fade out does not work for 'on desktop components'
     //this->fadeOutComponent( 600, 0, 0, 0.2f );
     //juce::Point<int> const centre( this->getBounds().getCentre() );
     //juce::Desktop::getInstance().getAnimator().animateComponent( this, juce::Rectangle<int>( centre, centre ), 0, 600, true, 0, 0 );
-    /// \note Only a real folder is worth remembering; the factory banks are
-    /// where they always are.
-    if (location_ == Location::User)
-        GUI::presetsFolder() = currentDirectory_;
+    lastPlace() = Place{location_, factoryBank_, currentDirectory_};
 }
 
 /// \note A factory bank is compiled into the binary, so there is nothing to save
@@ -227,13 +261,31 @@ PresetBrowser::Item const &PresetBrowser::item(unsigned int const index) const
 
 PresetBrowser::Item const &PresetBrowser::selectedItem() const { return item(selectedIndex()); }
 
-/// \note Only meaningful for a preset on disk; a factory bank has no file. See
-/// selectedPresetData(), which is what the load path uses.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The row's file, or an empty `juce::File` when the row does not have
+/// one. See selectedPresetData(), which is what the load path uses.
+///
+/// \note The two conditions were `LE_ASSERT`s, which a shipped build does not
+/// compile -- so what stood between a factory bank and a delete or an overwrite
+/// was that the buttons were disabled. Enablement is a statement about the
+/// interface and this is a statement about the file system, and the two are only
+/// as equal as every path that sets one of them. Now they cannot disagree:
+/// anywhere but `User` there is no file to return, and every caller of this
+/// treats an empty one as nothing to do.
+///                                           (08.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
 juce::File PresetBrowser::file(unsigned int const index) const
 {
+    if (location_ != Location::User)
+        return {};
+
     Item const &item(this->item(index));
-    LE_ASSERT(!item.isDirectory());
-    LE_ASSERT(location_ == Location::User);
+    if (item.isDirectory())
+        return {};
+
     return currentDirectory_.getChildFile(item.name + presetExtension);
 }
 
@@ -404,7 +456,9 @@ void PresetBrowser::textEditorReturnKeyPressed(juce::TextEditor &editor)
     }
 
     juce::File const sourceFile(selectedFile());
-    if (sourceFile == targetFile)
+    /// \note An empty source is a row with no file behind it -- a factory
+    /// preset, or the root's two section entries. Nothing to rename.
+    if ((sourceFile == juce::File()) || (sourceFile == targetFile))
         return;
 
     auto const rename([self, sourceFile, targetFile, userEntry] {
@@ -551,14 +605,23 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
 {
     if (pButton == &save_)
     {
-        saveCurrentPreset(selectedItem().name, selectedFile());
+        /// \note Asked rather than assumed. These two used to run on the
+        /// strength of the button being enabled; `file()` says why that is not
+        /// the same thing.
+        juce::File const target(selectedFile());
+        if (target != juce::File())
+            saveCurrentPreset(selectedItem().name, target);
     }
     else if (pButton == &delete_)
     {
-        selectedFile().deleteFile();
-        refresh();
-        delete_.setEnabled(false);
-        deselectAllRows();
+        juce::File const target(selectedFile());
+        if (target != juce::File())
+        {
+            target.deleteFile();
+            refresh();
+            delete_.setEnabled(false);
+            deselectAllRows();
+        }
     }
     else if (pButton == &saveAs_)
     {
@@ -613,14 +676,27 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
         /// \note Asynchronous, and the chooser is a member: JUCE 8 has no
         /// browseForDirectory(), and launchAsync() reports through a callback
         /// that the chooser has to still be alive to make.
+        ///
+        /// \note Opened where the list is, and `currentDirectory_` is only that
+        /// at `User` -- from the root or a factory bank it is stale or empty,
+        /// which starts a native dialog wherever that resolves to.
+        ///                                   (08.08.2026.) (SW port)
+        juce::File const startFrom((location_ == Location::User) && currentDirectory_.isDirectory()
+                                       ? currentDirectory_
+                                       : GUI::presetsFolder());
         folderChooser_ = std::make_unique<juce::FileChooser>(
-            "Please select a folder with SW presets...", currentDirectory_);
+            "Please select a folder with SW presets...", startFrom);
         folderChooser_->launchAsync(juce::FileBrowserComponent::openMode |
                                         juce::FileBrowserComponent::canSelectDirectories,
                                     [self = juce::Component::SafePointer<PresetBrowser>(this)](
                                         juce::FileChooser const &chooser) {
                                         auto const chosen(chooser.getResult());
-                                        if (self && (chosen != juce::File()))
+                                        /// \note A cancelled chooser reports an
+                                        /// empty file, and a directory that has
+                                        /// gone away between the dialog opening
+                                        /// and closing reports one that is not
+                                        /// there.
+                                        if (self && chosen.isDirectory())
                                             self->setNewFolder(chosen);
                                     });
     }
@@ -945,12 +1021,39 @@ void PresetBrowser::deselectAllRows()
     save_.setEnabled(false);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note `currentDirectory_.getFullPathName()`, unconditionally. That member
+/// only means anything at `User`: at `Root` it is whatever the last visited
+/// folder was -- empty on a fresh browser -- and at `Factory` it names a
+/// directory the list is not showing, so the strip described somewhere the user
+/// was not.
+///                                           (08.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+juce::String PresetBrowser::locationLabel() const
+{
+    switch (location_)
+    {
+    case Location::Root:
+        return _T( "Presets" );
+
+    case Location::Factory:
+        return factoryBank_.isEmpty() ? juce::String(_T( "Factory" ))
+                                      : _T( "Factory/" ) + factoryBank_;
+
+    case Location::User:
+        return currentDirectory_.getFullPathName();
+    }
+    LE_UNREACHABLE_CODE();
+}
+
 void PresetBrowser::paint(juce::Graphics &graphics)
 {
     BackgroundImage::paint(graphics);
     graphics.setColour(juce::Colours::white);
-    graphics.drawFittedText(currentDirectory_.getFullPathName(), 9, 8, 162, 17,
-                            juce::Justification::centredLeft, 1);
+    graphics.drawFittedText(locationLabel(), 9, 8, 162, 17, juce::Justification::centredLeft, 1);
 }
 
 bool PresetBrowser::Item::operator==(Item const &other) const { return name == other.name; }

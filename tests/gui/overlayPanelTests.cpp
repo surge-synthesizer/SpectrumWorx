@@ -662,3 +662,98 @@ TEST_CASE("A bank that is not there leaves the browser drawable", "[gui][overlay
     editor.showFactoryBank(banks.front());
     CHECK(differenceOver(open, rendered(editor), overlayRectangle()) > 0);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The browser is built and destroyed with the editor, so "where it was"
+/// has to survive a window being closed and reopened -- which is the only way a
+/// user meets this. It did not: the destructor wrote `currentDirectory_` into a
+/// global and nothing recorded which of the three locations was showing, and
+/// that is a member initialiser, so every browser opened at the root whatever
+/// the user had last been looking at.
+///
+/// \note Measured off the picture rather than off the member, for the reason at
+/// the top of this file: what was wrong is what was on the screen. A bank's
+/// listing and the root's two entries are not the same picture.
+///                                           (08.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+/// \note Two banks and no assumption about where the browser starts. Where it
+/// was last left is process-wide -- it has to be, since the browser does not
+/// outlive the window -- so a case that opened one and called the first picture
+/// "the root" would be reading whatever the previous case left behind. Asking it
+/// to follow *two* different banks in turn says it is remembering rather than
+/// defaulting, from any starting point.
+TEST_CASE("The preset browser reopens where it was left", "[gui][overlay][presets]")
+{
+    SWTest::HostSideJuce const juce;
+
+    auto const banks(LE::SW::FactoryPresets::banks());
+    REQUIRE(banks.size() >= 2);
+
+    auto const pictureAfterLeavingItAt([](std::string const &bank) {
+        juce::Image left;
+        {
+            SWTest::Instance instance;
+            auto &editor(overlayEditor(instance));
+            editor.showFactoryBank(bank);
+            left = rendered(editor);
+            instance.closeEditor();
+        }
+
+        SWTest::Instance instance;
+        auto &editor(overlayEditor(instance));
+        editor.showPresetBrowser(true);
+        return std::pair{left, rendered(editor)};
+    });
+
+    auto const [leftAtFirst, reopenedAtFirst](pictureAfterLeavingItAt(banks.front()));
+    auto const [leftAtSecond, reopenedAtSecond](pictureAfterLeavingItAt(banks.back()));
+
+    // The premise: the two banks are distinguishable at all.
+    REQUIRE(differenceOver(leftAtFirst, leftAtSecond, overlayRectangle()) > 0);
+
+    // Each reopened where it was left.
+    CHECK(differenceOver(leftAtFirst, reopenedAtFirst, overlayRectangle()) == 0);
+    CHECK(differenceOver(leftAtSecond, reopenedAtSecond, overlayRectangle()) == 0);
+
+    // Which is not the same as always opening on one fixed thing.
+    CHECK(differenceOver(reopenedAtFirst, reopenedAtSecond, overlayRectangle()) > 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note A remembered bank is a name from a previous run and a later build need
+/// not still ship it, so restoring one has to survive the name matching nothing.
+/// The browser must still open and still be navigable -- the failure this guards
+/// is a browser that reopens onto a location it cannot show and stays there.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A remembered bank that is no longer shipped still opens", "[gui][overlay][presets]")
+{
+    SWTest::HostSideJuce const juce;
+
+    {
+        SWTest::Instance instance;
+        auto &editor(overlayEditor(instance));
+        editor.showPresetBrowser(true);
+        editor.showFactoryBank("No Such Bank");
+        instance.closeEditor();
+    }
+
+    SWTest::Instance instance;
+    auto &editor(overlayEditor(instance));
+    editor.showPresetBrowser(true);
+
+    // It painted rather than leaving a hole, which is this file's measure.
+    CHECK(drawnFractionOver(rendered(editor), overlayRectangle()) > 0);
+
+    // And it is not stuck there: a bank that does exist still lists.
+    auto const banks(LE::SW::FactoryPresets::banks());
+    REQUIRE_FALSE(banks.empty());
+    auto const empty(rendered(editor));
+    editor.showFactoryBank(banks.front());
+    CHECK(differenceOver(empty, rendered(editor), overlayRectangle()) > 0);
+}

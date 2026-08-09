@@ -97,20 +97,6 @@ are in the page cache. Whatever happens at scan time is worth reducing, and the
 measurement needs a cold-cache protocol before it can say so in either
 direction.
 
-### The preset browser
-
-Three drifts, all visible to a user, all in
-`src/gui/preset_browser/presetBrowser.cpp`:
-
-- The header strip prints `currentDirectory_.getFullPathName()` unconditionally
-  (`:923-929`), so `Root` and `Factory` show a stale or empty path.
-- It does not remember where it was: `~PresetBrowser` persists
-  `currentDirectory_` but not `location_`, so it always reopens at `Root`.
-- Four file paths — `file()`, `selectedFile()`, the rename path and
-  `browseArrow_`'s folder chooser — are gated only by button enablement, and the
-  chooser will happily walk into the on-disk `assets/presets` and present a
-  factory bank as writable.
-
 ### Collapse `vector.cpp`'s three interfaces to one
 
 The `LE_` macro strip is finished: 184 names down to 83, around 8,700 lines

@@ -232,7 +232,7 @@ juce::File const &rootPath()
 /// \note Mutable, and by reference: this is the browser's most-recently-used
 /// folder, which it writes back when it closes. It starts at the user's preset
 /// directory.
-juce::File &presetsFolder()
+juce::File const &presetsFolder()
 {
     static juce::File folder(rootPath().getChildFile("Presets"));
     return folder;

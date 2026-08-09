@@ -120,6 +120,39 @@ class PresetBrowser final : public BackgroundImage,
     /// \brief Up one level, wherever "up" is from here.
     void goToParent();
 
+    /// \brief What the header strip says, for whichever of the three it is
+    /// showing. Only `User` has a path to print.
+    juce::String locationLabel() const;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \struct Place
+    ///
+    /// \brief Where the browser was when it last closed.
+    ///
+    /// \note Process-wide and main thread only, because the browser is built
+    /// and destroyed every time the overlay opens and closes -- so where it was
+    /// has to outlive it. It used to be half remembered: the destructor wrote
+    /// `currentDirectory_` into `GUI::presetsFolder()` and nothing recorded
+    /// `location_`, which is a member initialiser, so the browser reopened at
+    /// `Root` whatever the user had been looking at. Writing the user's
+    /// wanderings into `presetsFolder()` also moved the anchor `goToParent()`
+    /// stops at and the folder `createUserPresetsFolder()` makes; that global
+    /// means the preset root now and nothing writes to it.
+    ///                                       (08.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    struct Place
+    {
+        Location location{Location::Root};
+        juce::String factoryBank; ///< when location is Factory
+        juce::File folder;        ///< when location is User
+    };
+
+    static Place &lastPlace();
+    void restoreLastPlace();
+
     void refresh();
     void refreshRoot();
     void refreshFactory();
