@@ -47,8 +47,6 @@ struct Freqnamics
     /// \typedef NoisegateThreshold
     /// \brief Noise gate threshold.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

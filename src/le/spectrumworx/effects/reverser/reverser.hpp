@@ -41,8 +41,6 @@ struct Reverser
     /// \typedef Length
     /// \brief The length of the chunks to be reversed.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

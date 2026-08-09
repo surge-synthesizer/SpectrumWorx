@@ -54,8 +54,6 @@ struct PitchSpringBase ///<
     /// \typedef Period
     /// \brief Period of the pitch oscillation.
 
-    static bool const usesSideChannel = false;
-
     static char const description[];
 };
 } // namespace Detail

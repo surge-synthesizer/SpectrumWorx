@@ -42,8 +42,6 @@ struct TonalBase ///<
     /// detected.
     /// \typedef Attenuation
     /// \brief Intensity of attenuation to apply to non-tonal parts.
-
-    static bool const usesSideChannel = false;
 };
 } // namespace Detail
 

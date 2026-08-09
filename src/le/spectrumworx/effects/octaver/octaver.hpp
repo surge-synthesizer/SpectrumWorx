@@ -72,8 +72,6 @@ struct Octaver
     /// \typedef CutoffFrequency
     /// \brief Controls the cut-off frequency for both octaves.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

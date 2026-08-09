@@ -462,22 +462,6 @@ New entries go at the top of their area.
   `silentDefaultsTests.cpp`, and every one of the 57 in `sideChainTests.cpp` —
   which has to name Smoother as its single exception for exactly this reason.
 
-- **`usesSideChannel` is metadata nothing consumes, and it is wrong.**
-  (01.08.2026, measured 05.08.2026) Every effect declares
-  `static bool const usesSideChannel` and `effects.hpp:61` documents it as part
-  of the effect contract, but a grep of `src/` and `tests/` finds **no reader**
-  — dispatch is by parameter type, so what decides is whether the effect's
-  `process()` overload takes a `MainSideChannelData`.
-
-  Driving the side chain with a signal of its own settles how wrong: the
-  constant says **seven** effects, the engine's behaviour says **fifteen**. It
-  names Colorifer, Blender, Burrito, Inserter, Talking Wind and both Pitch
-  Followers, and misses Slicer, Convolver, Denoiser, Ethereal, Vaxateer,
-  Shapeless, Merger and Sumo Pitch. `convolver.hpp` declares `false` while
-  `convolverImpl.hpp` takes `MainSideChannelData_AmPh`, which is the same fault
-  seen from the other end. It should go; `sideChainTests.cpp` holds the measured
-  set and does not read it.
-
 - **Four side-chain effects are indistinguishable from deaf at their defaults.**
   (05.08.2026, from `sideChainTests.cpp`) Which is why the side-chain fixtures
   configure them, and it is worth reading as a *user*-facing observation rather

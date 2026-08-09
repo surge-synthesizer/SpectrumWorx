@@ -168,7 +168,6 @@ class StandaloneEffect : private PVDEffect,
 
     using SDKBaseClass::description;
     using SDKBaseClass::title;
-    using SDKBaseClass::usesSideChannel;
 
     using PVDEffect::parameters;
 

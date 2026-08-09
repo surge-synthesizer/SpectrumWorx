@@ -54,8 +54,6 @@ struct Frecho
     /// \typedef EchoPitch
     /// \brief Specifies how much is each echo pitch-shifted.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };
@@ -87,8 +85,6 @@ struct Frevcho
     typedef Frecho::EchoPitch EchoPitch;
     ///@}
     typedef Frecho::Parameters Parameters;
-
-    static bool const usesSideChannel = false;
 
     static char const title[];
     static char const description[];

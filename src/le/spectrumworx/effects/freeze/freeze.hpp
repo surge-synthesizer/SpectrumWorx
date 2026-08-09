@@ -50,8 +50,6 @@ struct Freeze
     /// \typedef TransitionTime
     /// \brief Transition time between two states.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

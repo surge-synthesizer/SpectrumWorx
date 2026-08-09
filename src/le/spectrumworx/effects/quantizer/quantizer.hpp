@@ -49,8 +49,6 @@ struct Quantizer
     /// \typedef Origami
     /// \brief Amount of linear ascending towards the end of the band.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

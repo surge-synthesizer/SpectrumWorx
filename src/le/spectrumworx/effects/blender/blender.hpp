@@ -41,8 +41,6 @@ struct Blender
     /// \typedef Amount
     /// \brief Controls how much of each channel is sent to the output.
 
-    static bool const usesSideChannel = true;
-
     static char const title[];
     static char const description[];
 };

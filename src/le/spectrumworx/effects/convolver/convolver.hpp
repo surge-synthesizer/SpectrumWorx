@@ -60,8 +60,6 @@ struct Convolver
     ///   - Side: forward side channel phases output
     ///   - Main: forward main channel phases output
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

@@ -32,8 +32,6 @@ namespace LE::SW::Effects
 
 struct Whisperer
 {
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

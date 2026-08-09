@@ -55,8 +55,6 @@ struct TalkBox
     /// \typedef Whispering
     /// \brief .
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 }; // struct TalkBox

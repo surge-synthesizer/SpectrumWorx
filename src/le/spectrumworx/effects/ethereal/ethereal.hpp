@@ -62,8 +62,6 @@ struct Ethereal
     ///   - Magnitudes: replace only magnitudes.
     ///   - Phases    : replace only phases.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

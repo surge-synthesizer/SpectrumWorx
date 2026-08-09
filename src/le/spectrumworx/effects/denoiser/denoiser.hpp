@@ -52,8 +52,6 @@ struct Denoiser
     /// \typedef Intensity
     /// \brief Controls the intensity of the de-noising algorithm.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

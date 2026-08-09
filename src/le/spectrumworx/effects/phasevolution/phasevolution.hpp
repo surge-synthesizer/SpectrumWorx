@@ -43,8 +43,6 @@ struct Phasevolution
     /// \typedef PhasePeriod
     /// \brief Controls the rate at which the phase comes full circle.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

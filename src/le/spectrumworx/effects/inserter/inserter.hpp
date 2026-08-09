@@ -65,8 +65,6 @@ struct Inserter
     /// \typedef InsertSize
     /// \brief Controls how much of the spectrum is copied.
 
-    static bool const usesSideChannel = true;
-
     static char const title[];
     static char const description[];
 };

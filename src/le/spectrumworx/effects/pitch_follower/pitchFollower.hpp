@@ -31,8 +31,6 @@ struct PitchFollowerBase
     /// \brief Determines how fast the pitch is followed (in semitones per
     /// second).
 
-    static bool const usesSideChannel = true;
-
     static char const description[];
 };
 } // namespace Detail

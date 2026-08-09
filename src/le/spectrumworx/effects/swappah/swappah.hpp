@@ -69,8 +69,6 @@ struct Swappah
     /// \typedef BandMidHigh
     /// \brief Determines the border between mid and high band.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

@@ -51,8 +51,6 @@ struct SumoPitch
     /// \typedef Speed
     /// \brief Controls the speed of the shift in semitones per second.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

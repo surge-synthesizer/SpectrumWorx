@@ -42,8 +42,6 @@ struct Smoother
     /// \typedef AveragingWidth
     /// \brief Width of the region to be smoothed.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

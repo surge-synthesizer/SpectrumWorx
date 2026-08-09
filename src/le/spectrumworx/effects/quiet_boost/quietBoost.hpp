@@ -50,8 +50,6 @@ struct QuietBoost
     /// \typedef NoiseGateThreshold
     /// \brief Threshold below which the effect will not be applied.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

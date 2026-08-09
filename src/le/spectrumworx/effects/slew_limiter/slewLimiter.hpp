@@ -52,8 +52,6 @@ struct SlewLimiter
     /// \typedef SlewRate
     /// \brief Limit in decibels per second.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

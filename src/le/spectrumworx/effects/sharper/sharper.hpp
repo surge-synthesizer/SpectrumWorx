@@ -49,8 +49,6 @@ struct Sharper
     /// \typedef Limiter
     /// \brief Hard limiter maintains stability.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

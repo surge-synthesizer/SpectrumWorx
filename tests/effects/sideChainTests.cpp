@@ -34,12 +34,14 @@
 /// fixture that cannot fail, and `engage` below is each effect's smallest
 /// parameter change that makes it listen. See doc/tech/tech_debt.md.
 ///
-/// \note **`usesSideChannel` is not what decides**, and is not used here. Every
-/// effect class carries one; the tree has 55 mentions of it and **all of them
-/// are definitions** -- nothing reads it. It is also wrong, naming seven of these
-/// fifteen. What actually decides is whether the effect's `process()` overload
-/// takes a `MainSideChannelData`, so the set below is what the effects were
-/// observed to do rather than what they claim.
+/// \note **What decides is the `process()` overload**, not any declaration. An
+/// effect reads the side channel exactly when its `process()` takes a
+/// `MainSideChannelData`, so the set below is what the effects were observed to
+/// do rather than what they claim. Every effect used to carry a
+/// `usesSideChannel` constant beside its title; nothing ever read it and it
+/// named seven of these fifteen, so it was deleted on 08.08.2026 rather than
+/// corrected -- a second answer to this question is a second answer to get
+/// wrong.
 ///
 /// \note Properties rather than fixtures, for the reason amplifyingEffectsTests
 /// gives: the goldens render in Release only and these run in both build types.
@@ -162,9 +164,9 @@ enum BurritoParameter : std::uint8_t
 /// \brief The fifteen, and what each needs.
 ///
 /// \note Measured on 05.08.2026 by rendering all 57 both ways and reading off
-/// which moved -- the numbers are in the case below -- not taken from
-/// `usesSideChannel`. Adding a row should mean the same work: render it both
-/// ways and look at the number. A row without one is an effect nobody drove.
+/// which moved -- the numbers are in the case below -- rather than read off any
+/// declaration. Adding a row should mean the same work: render it both ways and
+/// look at the number. A row without one is an effect nobody drove.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

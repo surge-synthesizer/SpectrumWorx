@@ -64,8 +64,6 @@ struct Shifter
     ///   - Clear: shifted tail samples are cleared.
     ///   - Circular: shifted samples are circularly fed to the beginning.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

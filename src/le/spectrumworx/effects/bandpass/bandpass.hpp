@@ -30,8 +30,6 @@ struct BandGain
     /// \typedef Attenuation
     /// \brief Amount of signal attenuation (within the selected frequency
     /// band).
-
-    static bool const usesSideChannel = false;
 };
 } // namespace Detail
 

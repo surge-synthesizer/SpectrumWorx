@@ -170,8 +170,6 @@ struct TuneWorxBase ///<
     /// effect").
     /// \typedef PitchShift
     /// \brief Pitch shifts output by the specified number of cents.
-
-    static bool const usesSideChannel = false;
     static char const description[];
 };
 } // namespace Detail

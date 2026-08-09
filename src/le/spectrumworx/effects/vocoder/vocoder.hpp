@@ -54,8 +54,6 @@ struct Vocoder
     /// \typedef FilterMethod
     /// \brief
 
-    static bool const usesSideChannel = true;
-
     static char const title[];
     static char const description[];
 };

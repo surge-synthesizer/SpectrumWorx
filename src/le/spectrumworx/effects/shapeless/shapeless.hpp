@@ -42,8 +42,6 @@ struct Shapeless
     /// \typedef Width
     /// \brief Width of the region to collect the shape from.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

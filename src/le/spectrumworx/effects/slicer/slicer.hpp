@@ -56,8 +56,6 @@ struct Slicer
     ///   - Silence: fills the slice with silence.
     ///   - Side: fills the slice with Side channel.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

@@ -34,8 +34,6 @@ struct PitchMagnetBase
     /// \typedef Speed
     /// \brief Speed of the pitch-shifting in semitones per second.
 
-    static bool const usesSideChannel = false;
-
     static char const description[];
 };
 } // namespace Detail

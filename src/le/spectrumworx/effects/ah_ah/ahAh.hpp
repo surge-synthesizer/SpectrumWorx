@@ -51,8 +51,6 @@ struct AhAh
     /// \typedef Strength
     /// \brief Amplification of the moving region.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 }; // struct AhAh

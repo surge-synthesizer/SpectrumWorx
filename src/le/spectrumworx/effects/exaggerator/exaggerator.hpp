@@ -44,8 +44,6 @@ struct Exaggerator
     /// \typedef Exaggerate
     /// \brief Controls the amount and direction of peak exaggeration.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

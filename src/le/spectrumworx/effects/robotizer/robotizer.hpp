@@ -32,8 +32,6 @@ namespace LE::SW::Effects
 
 struct Robotizer
 {
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

@@ -44,8 +44,6 @@ struct Armonizer
     /// \typedef Interval
     /// \brief Controls the amount of pitch shifting.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

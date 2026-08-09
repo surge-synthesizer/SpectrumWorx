@@ -58,7 +58,6 @@ namespace Effects
 //    member type called "Parameters" that contains all the parameters and
 //    models a Boost.Fusion associative container (either the parameters factory
 //    macros or the Parameters and Parameter class templates can be used)
-//  - defines a boolean 'usesSideChannel' static constant
 //  - defines 'title' and 'description' static C strings
 //
 // * define an AnEffectImpl implementation class that

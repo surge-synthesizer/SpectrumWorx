@@ -89,11 +89,6 @@ class FrevchoImpl : private FrechoImpl, public Frevcho
 
     using Frevcho::description;
     using Frevcho::title;
-#if defined(__GNUC__) && !defined(__clang__)
-    static bool const usesSideChannel = Frevcho::usesSideChannel;
-#else
-    using Frevcho::usesSideChannel;
-#endif // __GNUC__
 }; // class FrevchoImpl
 
 } // namespace LE::SW::Effects

@@ -56,8 +56,6 @@ struct Merger
     /// \typedef Threshold
     /// \brief Threshold used for comparisons.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

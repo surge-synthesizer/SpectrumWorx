@@ -34,8 +34,6 @@ struct PitchShifterBase
     /// \brief Specifies the number of cents to pitch shift (adds to
     /// semitones).
 
-    static bool const usesSideChannel = false;
-
     static char const description[];
 };
 } // namespace Detail

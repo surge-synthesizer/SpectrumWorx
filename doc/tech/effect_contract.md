@@ -54,8 +54,6 @@ namespace LE::SW::Effects
 {
 struct Gain
 {
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };
@@ -68,8 +66,10 @@ That is the whole of `gain/gain.hpp`, and it is a legal effect. Required:
 |---|---|
 | `title[]` | The menu entry and **the preset key**. Defined in the `Impl.cpp`. Must be unique across all 57 — `effectsListTests.cpp:97` checks. |
 | `description[]` | One sentence, shown in the UI. Defined in the `Impl.cpp`. |
-| `usesSideChannel` | A `static bool const`. See the warning in §1.8 — declare it, do not trust it. |
 | `Parameters` | Optional. A `LE_DEFINE_PARAMETERS(...)` list. Absent means the effect has no user controls. |
+
+There is no member declaring whether the effect reads the side chain. There used
+to be, and §1.8 says what happened to it.
 
 ### The implementation class
 
@@ -190,7 +190,6 @@ struct Shifter
 
     LE_DEFINE_PARAMETERS( ShiftTarget, Offset, Tail );
 
-    static bool const usesSideChannel = false;
     static char const title[];
     static char const description[];
 };
@@ -428,15 +427,19 @@ restates it: **all processing is in place, side-channel data is read only.**
 plugged in. Silence is what you get when it is not, so an effect that multiplies
 by the side chain goes silent rather than misbehaving.
 
-> **`usesSideChannel` is metadata nothing consumes, and it is wrong.**
-> `effects.hpp:61` documents it as part of the contract and every effect declares
-> it, but a grep of `src/` and `tests/` finds no reader: what decides is the
-> `process()` overload. Measured on 05.08.2026, the constant says **seven**
-> effects use the side chain and the engine's behaviour says **fifteen** —
-> `convolver.hpp` declares `false` while `convolverImpl.hpp` takes
-> `MainSideChannelData_AmPh`. `tests/effects/sideChainTests.cpp` holds the
-> measured set and does not read the flag. Declare it, declare it correctly, and
-> do not infer anything from anyone else's. See `tech_debt.md`.
+> **Nothing declares that an effect reads the side chain, and nothing should.**
+> The `process()` overload is the declaration: take a `MainSideChannelData` and
+> you read the side chain, do not and you cannot. There is no second place to
+> say so and therefore no second place to be wrong.
+>
+> There was one until 08.08.2026 — a `static bool const usesSideChannel` on every
+> effect class, documented as part of this contract. No code ever read it, and by
+> the time it was measured it named **seven** effects where the engine's
+> behaviour said **fifteen**: `convolver.hpp` declared `false` while
+> `convolverImpl.hpp` took `MainSideChannelData_AmPh`. It was deleted rather than
+> corrected, because a constant that has to agree with an overload signature is a
+> second answer to a question that already has one.
+> `tests/effects/sideChainTests.cpp` holds the measured set of fifteen.
 
 ## 1.9 Registering it
 
@@ -655,7 +658,6 @@ struct BandGain
     LE_DEFINE_PARAMETER( Attenuation, LinearFloat, Minimum<0>, Maximum<60>,
                                       Default<0>, Unit<" dB"> );
     LE_DEFINE_PARAMETERS( Attenuation );
-    static bool const usesSideChannel = false;
 };
 }
 
@@ -862,7 +864,7 @@ Columns: **P** = effect-specific parameters (plus the five base ones every modul
 has). **State** = per-channel memory — `—` none, `S` static, `MC` modulo counter,
 `D` dynamic (engine-allocated buffers), `PV` phase-vocoder state, `PD` pitch
 detector. **SC** = reads the side chain, per the measured set in
-`sideChainTests.cpp` (not per `usesSideChannel`, which is wrong — §1.8).
+`sideChainTests.cpp` — measured by rendering, not read off a declaration (§1.8).
 
 ### Pitch — indices 0–6
 
@@ -1112,7 +1114,7 @@ say was wrong with it".
 | `DEFINE_PARAMETERS( (( Name )( float )( MinimumValue<0> )…) )` | `LE_DEFINE_PARAMETER( Name, LinearFloat, Minimum<0>, … )` + one `LE_DEFINE_PARAMETERS( … )` |
 | `DISCRETE_VALUES_PARAMETER` / `DISCRETE_VALUE_STRING` | `LE_ENUMERATED_PARAMETER` + `EFFECT_ENUMERATED_PARAMETER_STRINGS` — **no mechanical equivalent; read a shipped one** |
 | `UIElements<X>::name_[]`, or `UI_NAME( X ) = "…"` | `EFFECT_PARAMETER_NAME( X, "…" )` — note the two arguments |
-| `canUseTwoInputs` / `canSwapChannels` | `usesSideChannel` |
+| `canUseTwoInputs` / `canSwapChannels` | nothing — a `MainSideChannelData` in the `process()` signature (§1.8) |
 | `setup( EngineSetup const &, Parameters const & )` | `setup( IndexRange const &, Engine::Setup const & )` |
 | `process( ChannelData_AmPh & )` | `process( [ChannelState &,] Engine::ChannelData_AmPh, Engine::Setup const & ) const` |
 | `ChannelState::clear()` | `reset()`, plus `resize()` / `requiredStorage()` |

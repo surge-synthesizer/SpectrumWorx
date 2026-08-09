@@ -39,8 +39,6 @@ namespace LE::SW::Effects
 
 struct PhaseVocoderAnalysis
 {
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

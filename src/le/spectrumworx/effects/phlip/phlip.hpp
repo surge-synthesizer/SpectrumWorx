@@ -49,8 +49,6 @@ struct Phlip
     ///   - Even: targets only even harmonics.
     ///   - Odd: targets only odd harmonics.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

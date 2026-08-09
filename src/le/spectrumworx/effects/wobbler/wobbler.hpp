@@ -51,8 +51,6 @@ struct Wobbler
     /// \details It might be advisable to start with a negative PreGain value
     /// that reflects the positive setting of the Amplitude setting.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

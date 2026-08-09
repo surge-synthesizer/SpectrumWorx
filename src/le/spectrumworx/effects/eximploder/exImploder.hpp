@@ -36,8 +36,6 @@ struct ExImPloder ///<
     /// Used by all ExImploder effects which is only conveniently
     /// renamed to a more intuitive name for Exploder and Imploder effects
     /// (Growth and Decay respectively).
-
-    static bool const usesSideChannel = false;
 };
 } // namespace Detail
 /// \brief parameters shared by all ExImploder effects

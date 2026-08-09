@@ -59,8 +59,6 @@ struct Burrito
     /// \typedef SideGain
     /// \brief Gain applied to side-channel.
 
-    static bool const usesSideChannel = true;
-
     static char const title[];
     static char const description[];
 };

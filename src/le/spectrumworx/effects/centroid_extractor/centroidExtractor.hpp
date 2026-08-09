@@ -59,8 +59,6 @@ struct CentroidExtractor
     /// \typedef Attenuation
     /// \brief Intensity of attenuation.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

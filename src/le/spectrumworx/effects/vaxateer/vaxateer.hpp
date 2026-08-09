@@ -61,8 +61,6 @@ struct Vaxateer
     ///   - M7 (Side: <Thr >Main): Side should be lower than threshold and higher than Main.
     ///   - M8 (Side: <Thr <Main): Side should be lower than threshold and lower than Main.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

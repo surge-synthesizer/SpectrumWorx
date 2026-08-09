@@ -60,8 +60,6 @@ struct Freqverb
     /// \typedef HFAbsorbtion
     /// \brief Increase to absorb high-frequencies faster than low frequencies.
 
-    static bool const usesSideChannel = false;
-
     static char const title[];
     static char const description[];
 };

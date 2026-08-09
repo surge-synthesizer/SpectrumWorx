@@ -50,8 +50,6 @@ struct TalkingWind
     /// \typedef EnvelopeGain
     /// \brief Adds gain to envelope to amplify the effect.
 
-    static bool const usesSideChannel = true;
-
     static char const title[];
     static char const description[];
 };

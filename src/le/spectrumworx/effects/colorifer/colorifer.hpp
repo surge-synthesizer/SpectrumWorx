@@ -57,8 +57,6 @@ struct Colorifer
     /// \typedef ReplacePhase
     /// \brief Specifies if input should take over side channel's phases.
 
-    static bool const usesSideChannel = true;
-
     static char const title[];
     static char const description[];
 };
