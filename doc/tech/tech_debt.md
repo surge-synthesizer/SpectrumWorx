@@ -42,6 +42,11 @@ New entries go at the top of their area.
   The exclusion carries the cost in a comment (`build-plugin.yml:96-109`) so that
   putting it back is a decision somebody makes rather than one that gets lost.
 
+  Still excluded as of run `31287823776` (08.08.2026), where the five remaining
+  legs are green and `Test - windows-x64 Release` is the only Windows one.
+  **Asked and deferred on 08.08.2026**: retrying it is one job and a raised
+  timeout, and it is not worth a release slipping for.
+
 - **The factory samples decode to different lengths on different macOS
   versions.** (05.08.2026) `MW-Metallica1.mp3` holds, by `afinfo`, "21454 valid
   frames + 576 priming + 1010 remainder = 23040" at 44.1 kHz. At 48 kHz it
@@ -105,7 +110,8 @@ New entries go at the top of their area.
   now runs MSVC 19.51 on every push, so turning it on is a line in
   `sw-our-sources.cmake` and one red square that lists them. It is still a
   decision — the count is unknown and could be large — but it is no longer a
-  decision that costs anybody a day to *learn the size of*.
+  decision that costs anybody a day to *learn the size of*. **Asked and deferred
+  on 08.08.2026**: worth doing, not worth doing before a release.
 
   `-Wno-unknown-pragmas` covers 288 `#pragma warning(...)` lines — 3772 of the
   3902 warnings the baseline first produced, all of them MSVC diagnostic control
@@ -167,7 +173,10 @@ New entries go at the top of their area.
   construction) but it was not the intent and nothing says so.
   - The cheap fix is to stop shipping MP3: the samples are 1.4 MB as MP3 and the
     only reason for the format is that 2016 chose it. FLAC is registered on every
-    platform, ahead of all of these, and would delete this entry.
+    platform, ahead of all of these, and would delete this entry and the
+    decode-length one above it. **Asked and deferred on 08.08.2026**: it is a
+    re-encode of seventeen files and a size increase, and nothing is waiting on
+    it.
   - The `sampleTests.cpp` cases would catch a decoder that fails outright. They
     would not catch one that is a few samples out of alignment with another
     platform's — encoder delay is exactly where MP3 decoders disagree — which is
@@ -234,18 +243,6 @@ New entries go at the top of their area.
   finished. Benign in the output, which is why both files are release-build
   artifacts and why the release run renders all 303 finite. It is a weakness in
   the vector primitives, and a skip list would need a dozen names and would grow.
-
-- **The Exaggerator's behaviour next to an empty bin is a cliff.**
-  (02.08.2026, from `presetRenderTests.cpp`) Its intensity maps to an exponent
-  over [-1, 4] and it raises every normalised bin to it, so with a negative
-  intensity the gain applied to a bin grows without bound as that bin approaches
-  zero. The NaN this produced is fixed — `pow( 0, negative )` is `+inf`, one
-  infinity zeroed the normaliser and the whole spectrum followed, in four shipped
-  presets — but the fix is "an empty bin stays empty", which is a discontinuity
-  rather than a rounding of one: a bin at 1e-30 is still boosted enormously and a
-  bin at exactly zero is not boosted at all. A floor on the input would be the
-  honest shape, and choosing one is a DSP decision with an audible answer.
-  The unexplained `/ 2` in its normaliser is worth the same look.
 
 - **The LFO panel does not follow the host's tempo.** (02.08.2026)
   `SpectrumWorxEditor::updateForNewTimingInfo()` is correct and unreachable: its
@@ -347,14 +344,6 @@ New entries go at the top of their area.
   the reason it failed instead of showing it, and the only caller that raises a
   box is the editor's file menu, where a user picked the file a moment ago.
 
-- **Host automation of the six global parameters does not move the editor's
-  knobs.** (01.08.2026) `updateGlobalParameterWidget<>` and
-  `updateForGlobalParameterChange()` have no callers — their only caller was the
-  deleted 2016 plugin class. A live UX bug with no owner, and one where the
-  naive fix (call them from the parameter path) recreates the audio-thread
-  violation `threading_model.md` §1 exists to forbid. The answer is a `ToUI`
-  message, the same as the LFO panel above.
-
 - **An unconnected side-chain port is indistinguishable from a connected one.**
   (03.08.2026) `runEngine` falls back to the main input only when
   `audio_inputs[1].data32` is *null* (`spectrumWorxCLAP.cpp:876`), and no real
@@ -403,6 +392,19 @@ New entries go at the top of their area.
 
 ## DSP and effects
 
+- **The Exaggerator's behaviour next to an empty bin is a cliff.**
+  (02.08.2026, from `presetRenderTests.cpp`) Its intensity maps to an exponent
+  over [-1, 4] and it raises every normalised bin to it, so with a negative
+  intensity the gain applied to a bin grows without bound as that bin approaches
+  zero. The NaN this produced is fixed — `pow( 0, negative )` is `+inf`, one
+  infinity zeroed the normaliser and the whole spectrum followed, in four shipped
+  presets — but the fix is "an empty bin stays empty", which is a discontinuity
+  rather than a rounding of one: a bin at 1e-30 is still boosted enormously and a
+  bin at exactly zero is not boosted at all. A floor on the input would be the
+  honest shape, and choosing one is a DSP decision with an audible answer.
+  The unexplained `/ 2` in its normaliser is worth the same look. Deferred with
+  the three parameters below; see that entry.
+
 - **A phase-vocoder pitch shift's accuracy depends on the FFT size, and not
   monotonically.** (01.08.2026) Measured, with Pitch Magnet asked to
   move a 220 Hz partial to 880 Hz and the output's dominant frequency read back:
@@ -442,7 +444,11 @@ New entries go at the top of their area.
 
   None of these is a regression — all three are 2016 behaviour, now pinned by
   tests. Changing any of them changes what a 2011 preset sounds like, which is
-  why none of them is in a plan.
+  why none of them is in a plan. **Asked and deferred on 08.08.2026**, together
+  with the Exaggerator's cliff below: the four of them are the standing list of
+  effects that behave defensibly and read as broken, and a release is the worst
+  moment to silently change what an existing preset sounds like. Documenting the
+  Octaver's cutoff and the Exploder's Limit is worth more than moving either.
 
 - **The goldens skip in a checked build because `Smoother` asserts.**
   (01.08.2026, from `goldenTests.cpp:331`) `Math::symmetricMovingAverage` carries
@@ -664,52 +670,29 @@ New entries go at the top of their area.
 The decision itself is settled and written down in
 [`LICENSING.md`](../../LICENSING.md): source GPL-3.0-or-later, released binary
 AGPL-3.0-or-later because JUCE 8 is AGPLv3-or-commercial. The 452 file headers
-are right as they stand. What is below is packaging.
+are right as they stand, and `assets/installer/License.txt` is the AGPL-3.0 text
+verbatim, so the file both installers show can be compared against upstream
+rather than trusted. What is below is packaging.
 
-- **The standalone ships under an identifier that is not ours.** (07.08.2026)
-  clap-wrapper hardcodes `"<name>.standalone"` in its own `Info.plist.in` and no
-  CMake property overrides that key; `src/clap-first/CMakeLists.txt` says so at
-  length. This was queued as a shipping blocker on the theory that notarisation
-  would object. Notarisation does not object — signing, submission and stapling
-  all succeed — so what is left is a released application carrying a bundle
-  identifier that belongs to the wrapper rather than to SpectrumWorx. Cosmetic
-  until something keys off it, and the sort of thing that is far cheaper to fix
-  before a release than after one, because an identifier is what a user's
-  settings and a host's plugin cache are filed under.
+- **The standalone ships under an identifier that is not ours, and the fix is
+  written but not upstream.** (07.08.2026, patched locally 08.08.2026) The
+  standalone was the only wrapper in clap-wrapper that accepted a
+  `BUNDLE_IDENTIFIER` argument and then ignored it: `wrap_standalone.cmake`
+  parsed it, nothing read it, and `Info.plist.in` hardcoded
+  `${MACOSX_BUNDLE_BUNDLE_NAME}.standalone` — so a bundle *name* with a suffix
+  where every sibling format sets `MACOSX_BUNDLE_GUI_IDENTIFIER` from the
+  argument. Notarisation does not object, so this was never a blocker; it
+  matters because an identifier is what a user's settings and a host's plugin
+  cache are filed under, and it is far cheaper to change before a release.
 
-- **The duplicate licence file, and the dead reference to it.**
-  (03.08.2026) `doc/manual/EULA.txt` is a byte-for-byte duplicate of `LICENSE`
-  under a filename that means the opposite of what it contains — 2016's
-  commercial agreement was replaced before the port began and only the name
-  survived. `doc/manual/readme.txt:110` still tells whoever packages a release to
-  name the licence `EULA.txt` and drop it in `installer/ProgramFolder/Licences`,
-  a path outside this repository. Neither is reachable from a live target and
-  neither is urgent: the installer that ships reads
-  `assets/installer/License.txt`, which is the AGPL statement followed by the
-  GPL-3.0 text it refers to. What is left is a file and an instruction that say
-  otherwise, in a release nobody runs that way.
+  Three lines in the submodule fix it — honour the argument, default it to the
+  old value so no existing caller moves, read it in the plist, and pass it from
+  `make_clapfirst.cmake` the way the other six formats already are. Measured
+  here: the standalone's `CFBundleIdentifier` goes from `SpectrumWorx.standalone`
+  to `org.surge-synth-team.spectrumworx.standalone`, joining `.clap`, `.vst3` and
+  `.auv2.component`, none of which moved.
 
-- **The licence file is assembled by hand and nothing checks it.**
-  (05.08.2026) `assets/installer/License.txt` is a notice written for the
-  installer with `LICENSE` appended verbatim, and the append is a `cat` somebody
-  ran once. If `LICENSE` were ever replaced the installer would keep showing the
-  old text, silently. It is the GPL-3.0, which does not change, so this is a
-  hazard rather than a problem — but it is the reason the file is 674 lines
-  longer than anything anyone will edit.
-
-- **The AGPL text is linked, not shipped.** (05.08.2026) That licence file
-  states the binary is AGPL-3.0-or-later, gives the URL for the text, and then
-  reproduces GPL-3.0 — which is the source's licence and the AGPL's own body
-  bar section 13. Whether a released installer should carry the AGPL in full is
-  a question for whoever ships it; nothing here fabricated a licence text to
-  avoid asking it.
-
-- **The standalone's `CFBundleIdentifier` is clap-wrapper's
-  `SpectrumWorx.standalone`.** (01.08.2026) A bundle *name* with a suffix rather
-  than a reverse-DNS identifier, hardcoded in clap-wrapper's own `Info.plist.in`,
-  and no CMake property overrides that one key. Notarisation is the step that
-  cares. The only local remedy is to carry a whole copy of their template to
-  change one line, so the fix belongs upstream — a `BUNDLE_IDENTIFIER` the
-  standalone wrapper honours the way the plugin wrappers already do.
-  `src/clap-first/CMakeLists.txt` carries the note so the next person to look does
-  not re-derive it.
+  **The debt is that it lives in a dirty submodule.** It is not committed there
+  and this repository pins a clap-wrapper commit that does not have it, so a
+  fresh clone still builds the old identifier. It closes when it is upstream and
+  the submodule pointer moves.

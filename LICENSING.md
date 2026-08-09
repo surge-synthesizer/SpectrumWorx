@@ -104,19 +104,9 @@ answer.
 ## What the installer shows
 
 `assets/installer/License.txt` — the same file for the macOS `.pkg` and the
-Windows Inno Setup `.exe`, and copied into the Linux zip. It says what this
-document says, in the words somebody installing a plugin needs: that what they
-are installing is AGPL-3.0-or-later, that its source is GPL-3.0-or-later and
-where to get it, and that every other dependency is permissive and changes none
-of it. Then the GPL-3.0 text itself, which the AGPL differs from in one section.
-
-## One loose end, recorded rather than hidden
-
-**`doc/manual/EULA.txt` is not a contradiction, and three tech documents used to
-say it was.** It was Little Endian's commercial end-user agreement in 2016; the
-file in the tree today is a plain-text copy of the GPL-3.0 licence — 218 lines,
-byte-for-byte the terms in `LICENSE`, with no proprietary wording anywhere in it.
-So there is no "licence contradiction"; what survives is a filename from a
-shipping model that does not. It is a duplicate of `LICENSE` under a name that
-means the opposite, and the packaging step should rename or drop it rather than
-ship it.
+Windows Inno Setup `.exe`, and copied into the Linux zip. It is the AGPL-3.0
+text verbatim, because AGPL-3.0-or-later is what the thing being installed is
+under. Nothing is prepended to it and nothing is appended: the file is
+byte-comparable against <https://www.gnu.org/licenses/agpl-3.0.txt>, which is
+the property that makes it checkable. The reasoning for *why* the binary is
+AGPL while the source is GPL is this document's job, not the installer's.

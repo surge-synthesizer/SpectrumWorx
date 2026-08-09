@@ -22,7 +22,7 @@ cannot be held to a number off the machine that minted their fixtures.
 | Runs | **In DAWs, on macOS, Windows and Linux, driven by testers rather than by us** (07.08.2026). The deadlocks that motivated the threading redesign are gone, and the plugin works. That closes the question the redesign was an argument about: it is an observation now. |
 | Tests | **Green on 08.08.2026** — 371 registered cases, Debug and Release. Two binaries, `sw-dsp-tests` and `sw-plugin-tests`, plus 66 `sw-show-ui` renders. Goldens run in Release only. The count went 333 → 371 over the response to the code review in [`old/fable_review.md`](old/fable_review.md); the goldens and the 303-preset corpus digests did not move. |
 | Validators | `clap-cpp-validator` **22 of 22 with zero failures** and `vst3-validator` **47/47**, both re-run on 07.08.2026 against `text_to_value`. `auval` was 5 runs of 5 on 06.08.2026 and **has not been re-run since**: it reads `~/Library/Audio/Plug-Ins/Components`, so running it means installing over whatever is there. The one `scan-time` warning comes and goes with the page cache (below). All by hand on this machine; CI runs none of them. |
-| CI | `.github/workflows/build-plugin.yml`. **Green on 06.08.2026** — ten jobs (gates, five test legs, four builds) over three platforms, run `31112026299`. Windows Debug is the sixth test leg and is excluded; `tech_debt.md` says why. |
+| CI | `.github/workflows/build-plugin.yml`. **Green on 08.08.2026** — ten jobs (gates, five test legs, four builds) over three platforms, run `31287823776`, which is also what verifies the `LE_` macro strip on MSVC. Windows Debug is the sixth test leg and is excluded; `tech_debt.md` says why. |
 | Warnings | **Two**, both deliberate `#pragma message` build banners. Our own sources compile under `-Wall -Wextra -Werror` on Apple Clang, GCC 12.4 and GCC 11 — CI passes `-DSW_WERROR=ON` to every leg. MSVC gets nothing and compiles warning-blind — `tech_debt.md`. |
 | Sanitizers | **tsan, ASan and rtsan all clean over `[threading]` as of 08.08.2026**, with one expected rtsan report: `ModuleFactory::create` allocating inside `process()`, which is the concession [`tech_debt.md`](tech_debt.md) records. Each of those three instruments pinned a different Tier 2 fix by reversion — see the table at the end of [`old/fable_review.md`](old/fable_review.md). The full tsan sweep of both binaries was clean on 06.08.2026 and has not been re-run since; note that the rtsan recipe now needs `-D CMAKE_OSX_DEPLOYMENT_TARGET=14.0` for that tree only, Homebrew's libc++ 22 having dropped 10.15 ([`threading_model.md`](threading_model.md) §8). |
 
@@ -32,7 +32,7 @@ cannot be held to a number off the machine that minted their fixtures.
 
 | # | What | Size |
 |---|---|---|
-| 1 | **Ship** — the manual, and somebody installing the result | 1–2 weeks |
+| 1 | **Ship** — the packaging that goes before a release | days |
 
 Two items came off this list on 07.08.2026. *Give the main thread its own
 `Program`* landed whole; what it built is a property of the design now and
@@ -53,8 +53,10 @@ contact and for which instrument pinned which fix.
 The licence is settled — [`LICENSING.md`](../../LICENSING.md): source
 GPL-3.0-or-later, released binary AGPL-3.0-or-later because JUCE 8 is
 AGPLv3-or-commercial. The 452 file headers are right as they stand and no `sed`
-is needed. `assets/installer/License.txt` is what both installers show: that
-statement, then the GPL-3.0 text it refers to.
+is needed. `assets/installer/License.txt` is what both installers show, and as
+of 08.08.2026 it is the AGPL-3.0 text verbatim — the licence the thing being
+installed is actually under, and a file that can be checked against upstream
+rather than assembled by hand.
 
 **The installers build, on all three platforms, on every push.**
 `spectrumworx-installer` makes a `.pkg` in a `.dmg` on macOS, a `.zip` and an
@@ -63,15 +65,20 @@ Inno Setup `.exe` on Windows, and a `.zip` on Linux; the icons all come from
 bundles and no installer; a push to `main` builds the installer and signs it,
 with the seven `MAC_*` secrets and the `Nightly` tag all in place. **Signing and
 notarisation both succeed** as of 07.08.2026 — a push to `main` produces a
-signed, notarised, stapled build without hand-holding. What is left here:
+signed, notarised, stapled build without hand-holding — and **the `.pkg`
+installs and runs on a machine that did not build it** (08.08.2026), which was
+the installer's own acceptance test. Both halves of the shipping path have an
+observation behind them now: the plugin has been driven in DAWs on three
+platforms, and the thing that puts it there has been run.
 
-- **Nobody has installed the result.** The `.pkg` has never been run on a
-  machine that did not build it. That is the acceptance test for the installer,
-  and it is now the only part of the shipping path with no observation behind
-  it — the plugin's own acceptance test, driving it in a DAW, has been done.
-- **The manual**, and the four loose ends `tech_debt.md` records under "Licence
-  and shipping" — one of which, the standalone's bundle identifier, is much
-  cheaper to settle before a release than after one.
+What is left here is **the standalone's bundle identifier**, which is much
+cheaper to settle before a release than after one because an identifier is what
+a user's settings and a host's plugin cache are filed under. `tech_debt.md` has
+it under "Licence and shipping".
+
+**The user manual is not part of this.** It is the Word document and the PDF in
+[`doc/manual`](../manual), it is updated when there is a release to describe,
+and it does not gate one.
 
 ---
 
@@ -144,70 +151,34 @@ Three drifts, all visible to a user, all in
   chooser will happily walk into the on-disk `assets/presets` and present a
   factory bank as writable.
 
-### The `LE_` macro layer: a Windows log, and one decision
+### Collapse `vector.cpp`'s three interfaces to one
 
-The strip ran on 07.08.2026 and is done on macOS: 184 `LE_` names down to 83,
-around 8,700 lines deleted over two branches, goldens bit-identical throughout.
-What survives is what C++20 genuinely cannot express — the assert family,
+The `LE_` macro strip is finished: 184 names down to 83, around 8,700 lines
+deleted over two branches, goldens bit-identical throughout, and verified on
+every compiler in the matrix — the MSVC legs of run `31287823776` build and test
+the whole strip at head, which is what the assertion handler's
+`OutputDebugStringA` write and the six `float &LE_RESTRICT` sites were waiting
+on. What survives is what C++20 genuinely cannot express: the assert family,
 `LE_RESTRICT`, `LE_ASSUME`, the alloca buffers, and the effect and resource
-X-macro tables. Two things are left over.
+X-macro tables.
 
-**A Windows log is still owed.** The first came back on 07.08.2026 and stopped
-in `sw-dsp` on the secure-CRT shim's removal, which is fixed. Nothing after that
-target compiled, so most of the strip remains unseen by an MSVC and these two are
-still unverified:
+One macro is left, and it is a refactor rather than a sweep.
+`LE_MATH_NATIVE_POINTER_SIZE_INTERFACE`, 37 sites in `vector.cpp`, is not a dead
+arm: the file publishes every primitive three ways — Span, `(begin, end)` and
+`(pointer, count)` — and exactly one of the latter two can hold the
+implementation while the other forwards, or they recurse. The macro picks which.
+It is defined on Apple, where the vDSP and vvv calls are naturally
+`(pointer, count)`, and undefined elsewhere, where the `(begin, end)` forms hold
+the loops. Both arms have a live reason, which is why the NT2 strip did not
+settle it.
 
-- The assertion handler writes to `OutputDebugStringA` itself now, rather than
-  through the deleted tracer.
-- `float &LE_RESTRICT` replaced `LE_GNU_SPECIFIC` at six sites in `vector.hpp`
-  and `phase_vocoder/shared.cpp`, where a 2012 comment says MSVC could not take
-  a restricted reference; three of those also changed MSVC from pass-by-value to
-  pass-by-const-reference.
-
-**`LE_MATH_NATIVE_POINTER_SIZE_INTERFACE` is the one decision left**, 37 sites
-in `vector.cpp`. It is not a dead arm. `vector.cpp` publishes each primitive
-three ways — Span, `(begin, end)`, and `(pointer, count)` — and exactly one of
-the latter two can hold the implementation while the other forwards, or they
-recurse. This macro picks which. It is defined on Apple, where the vDSP and vvv
-calls are naturally `(pointer, count)`, and undefined elsewhere, where the
-`(begin, end)` forms hold the loops.
-
-So both arms have a live reason, which is why the NT2 strip did not settle it.
-The question worth answering is whether the three-way interface is wanted at all
-now that there is exactly one vectorised backend: collapsing to Span plus one
-forwarding pair would delete the macro and about a third of the file's surface.
-That is a refactor of the vector math, so it belongs beside the entry below
-rather than in a macro sweep.
-
-### Dead code that needs a decision rather than a sweep
-
-Roughly 5,800 lines across 45 files are in the tree and in no target. Every one
-of them needs somebody to decide rather than somebody to sweep, which is why
-each is a paragraph and not a line on a list.
-
-- **`src/le/spectrumworx/effects/_unfinished/`** — 16 effects, 33 files, 3,908
-  lines. `old/initial_scan.md` says read before deleting. A branch or an
-  `attic/` gets it out of `git ls-files 'src/**'` without losing it.
-- **Four finished effects that were never shipped** — `vocoder`, `synth`,
-  `talk_box`, `dissonancizer`, 12 files, 1,859 lines. **Not port leftovers**:
-  the 2016 `effectsList.cmake` already had three of them commented out.
-  `effectsList.hpp` fixes the count at 57 and the order is ABI, so appending
-  them is legal and reordering is not.
-
-  **Nothing compiles these, so nothing checks them.** They are in no target and
-  `allEffectImpls.hpp` does not name them, so an edit here is checked by reading
-  and by nothing else — which is a live hazard, not a hypothetical one: their
-  Matlab scaffolding was removed by hand and no compiler has seen the result.
-  Whoever revives one starts by getting it into a target.
-- **`le/math/vector.cpp`'s three interfaces.** The NT2 arm is gone as of
-  07.08.2026 and the file is 1,126 lines rather than 2,002, but it still
-  publishes every primitive three times — Span, `(begin, end)` and
-  `(pointer, count)` — with `LE_MATH_NATIVE_POINTER_SIZE_INTERFACE` choosing
-  which pair holds the implementation and which forwards. That made sense with
-  two vector backends. With one, collapsing to Span plus a single forwarding
-  pair would take about a third of the file's surface and the last live
-  configuration macro in the math layer with it. It is the vector math the whole
-  engine runs on, so it is a decision and not a sweep.
+**The decision is taken: collapse to Span plus one forwarding pair.** There is
+one vectorised backend now, so the three-way interface is describing a choice
+nobody makes any more. That takes about a third of the file's surface — it is
+1,126 lines since the NT2 arm went — and the last live configuration macro in
+the math layer with it. It is the vector math the whole engine runs on and the
+goldens are the net, which is why it is its own piece of work and not a line in
+a macro commit.
 
 ---
 

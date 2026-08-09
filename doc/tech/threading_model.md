@@ -388,7 +388,7 @@ The inventory the model is measured by.
 | Which thread is which | `Threading::{isMainThread,isAudioThread}` | ✅ |
 | Who owns the engine | `engineIsRunning()`: the audio thread while activated, the main thread otherwise | ✅ |
 | The module chain | `ToEngine::{SetSlot,MoveModule,SwapChain}` + `ToUI::Retire`; built on the main thread, linked on the audio thread, and every route out of it retires | ✅ |
-| The six global parameters | `ToEngine::SetBaseParameter` while audio runs, written directly when it does not; `setGlobalParameter()` asserts which | ✅ |
+| The six global parameters | `ToEngine::SetBaseParameter` while audio runs, written directly when it does not; `setGlobalParameter()` asserts which. The other direction — a host automating one, or the engine declining a spectral size — reaches the knobs through `parameterChangedElsewhere()` and never from the audio thread | ✅ |
 | `Engine::Setup` and the spectral storage | `spectralSetupPending_` (`std::atomic`) + `clap_host::request_restart()`, applied in `deactivate()` after the queue is drained | ✅ |
 | An outstanding restart request | `restartRequested_`, `std::atomic`, test-and-set through `exchange` — both threads reach it | ✅ |
 | The `Sample` | `ToEngine::SwapSample` + `ToUI::Retire`; the main thread keeps the file name and the decoded rate | ✅ |

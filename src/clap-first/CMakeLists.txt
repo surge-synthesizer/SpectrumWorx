@@ -51,13 +51,14 @@ make_clapfirst_plugins(
 set_target_properties(${SW_CLAPFIRST_TARGET}_all PROPERTIES
         ARTEFACT_DIRECTORY ${CMAKE_BINARY_DIR}/sw_assets)
 
-# \note The standalone's macOS bundle identifier is *not* ours. clap-wrapper
-# hardcodes it in its own Info.plist.in as "${MACOSX_BUNDLE_BUNDLE_NAME}
-# .standalone" -- so "SpectrumWorx.standalone", a bundle name with a suffix
-# rather than a reverse DNS identifier -- and no CMake property overrides that
-# one key. The only local remedy is to carry a whole copy of their template,
-# which is a fork of a third-party file to change one line. Fix it upstream
-# instead; it matters at notarisation and nowhere before.
+# \note The standalone's macOS bundle identifier is *not* ours, until the
+# clap-wrapper fix for it lands upstream. The standalone is the one wrapper that
+# takes a BUNDLE_IDENTIFIER argument and ignores it: wrap_standalone.cmake parses
+# it, nothing reads it, and its Info.plist.in hardcodes
+# "${MACOSX_BUNDLE_BUNDLE_NAME}.standalone" where every sibling format sets
+# MACOSX_BUNDLE_GUI_IDENTIFIER from the argument. Nothing here can override that
+# one key, so the fix belongs upstream rather than in a fork of their template;
+# tech_debt.md carries the patch and what it measures.
 
 # Four -Wdeprecated-declarations from std::wstring_convert, deprecated in C++17
 # and removed in C++26, in the VST3 SDK's own string conversion. Not ours and not

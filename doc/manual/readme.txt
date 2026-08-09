@@ -4,7 +4,7 @@
 SpectrumWorx project main documentation.
 ----------------------------------------
 
-  Copyright © 2009 - 2016. Little Endian Ltd. All rights reserved.
+  Copyright ï¿½ 2009 - 2016. Little Endian Ltd. All rights reserved.
 
 ================================================================================
 
@@ -106,8 +106,6 @@ Contents:
         * Generate the PDF version of the user's manual. Name it
           "User's Guide.pdf" and place it in the
           installer/ProgramFolder/Documents folder.
-        * Copy/place the appropriate licence in the
-          installer/ProgramFolder/Licences folder and name it "EULA.txt"
     * Windows specific:
         * The PACKAGE build step will currently fail (due to incomplete WiX
           support in CMake) but is required nonetheless.
