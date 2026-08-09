@@ -11,7 +11,6 @@
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
 #define LE_MATH_USE_ACC
-#define LE_MATH_NATIVE_POINTER_SIZE_INTERFACE
 /// \note The text named OS X 10.4, an OS from 2005 and the one thing in the
 /// message that had stopped being worth saying. What it is for -- telling you at
 /// build time which backend the vector primitives were compiled against -- is
@@ -107,6 +106,21 @@ unsigned int alignIndex(unsigned int const index)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Range based interfaces.
+///
+/// \note Forwarders, all of them. Every primitive is implemented once, in the
+/// "pointers + size" section at the bottom of this file, and the two interfaces
+/// above it turn their arguments into a pointer and a count.
+///
+///   It used to be a choice. `LE_MATH_NATIVE_POINTER_SIZE_INTERFACE` was defined
+/// on Apple and undefined everywhere else, and it decided which of the pointer
+/// forms held the implementation and which forwarded -- because with two
+/// vectorised backends the natural shape of the call differed: vDSP and vvv take
+/// a pointer and a count, NT2's loops took a pair of iterators. Exactly one of
+/// the two could hold the body; the other had to forward, or they recursed.
+///
+///   There is one backend now, so the macro was describing a choice nobody
+/// makes. It is gone, and with it the second body of every primitive it guarded.
+///                                           (08.08.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 void copy(InputRange const &input, OutputRange const &output)
@@ -117,20 +131,12 @@ void copy(InputRange const &input, OutputRange const &output)
 
 void clear(InputOutputRange const data)
 {
-#ifdef LE_MATH_NATIVE_POINTER_SIZE_INTERFACE
     clear(data.begin(), static_cast<unsigned int>(data.size()));
-#else
-    clear(data.begin(), data.end());
-#endif
 }
 
 void fill(InputOutputRange const data, float const value)
 {
-#ifdef LE_MATH_NATIVE_POINTER_SIZE_INTERFACE
     fill(data.begin(), value, static_cast<unsigned int>(data.size()));
-#else
-    fill(data.begin(), data.end(), value);
-#endif
 }
 
 /// \note vector.hpp declared this alongside the strided overload but nothing
@@ -159,20 +165,12 @@ void negate(InputOutputRange data, unsigned int const stride)
 
 float const &min(InputRange const &data)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     return min(data.begin(), static_cast<unsigned int>(data.size()));
-#else
-    return min(data.begin(), data.end());
-#endif
 }
 
 float const &max(InputRange const &data)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     return max(data.begin(), static_cast<unsigned int>(data.size()));
-#else
-    return max(data.begin(), data.end());
-#endif
 }
 
 void add(InputRange const &input, InputOutputRange const &inputOutput)
@@ -343,11 +341,7 @@ void symmetricMovingAverage(InputRange const &input, OutputRange const output,
 void swap(InputOutputRange const &range1, InputOutputRange const &range2)
 {
     LE_ASSERT_MSG(range1.size() == range2.size(), "Buffer sizes mismatch.");
-#ifdef LE_MATH_NATIVE_POINTER_SIZE_INTERFACE
     swap(range1.begin(), range2.begin(), static_cast<unsigned int>(range1.size()));
-#else
-    swap(range1.begin(), range1.end(), range2.begin());
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -369,212 +363,80 @@ void clear(float *const pBegin, float const *const pEnd)
 void fill(float *const pBegin, float const *const pEnd, float const value)
 {
     LE_ASSERT_MSG(pBegin <= pEnd, "Invalid range.");
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     fill(pBegin, value, static_cast<unsigned int>(pEnd - pBegin));
-#else
-    std::fill<float *>(pBegin, const_cast<float *>(pEnd), value);
-#endif
 }
 
-void negate(float *pBegin, float const *const pEnd)
+void negate(float *const pBegin, float const *const pEnd)
 {
     LE_ASSERT_MSG(pBegin <= pEnd, "Invalid range.");
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     negate(pBegin, static_cast<unsigned int>(pEnd - pBegin));
-#else
-    while (pBegin != pEnd)
-    {
-        *pBegin = -*pBegin;
-        ++pBegin;
-    }
-#endif
 }
 
 void reverse(float *LE_RESTRICT const pBegin, float const *const pEnd)
 {
     LE_ASSERT_MSG(pBegin <= pEnd, "Invalid range.");
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE) &&                                              \
-    !defined(LE_MATH_USE_ACC) /*not really vectorized*/
-    reverse(pBegin, pEnd - pBegin);
-#else
-    std::reverse /*<float * LE_RESTRICT>*/ (pBegin, const_cast<float *LE_RESTRICT>(pEnd));
-#endif
+    reverse(pBegin, static_cast<unsigned int>(pEnd - pBegin));
 }
 
 void swap(float *LE_RESTRICT const pBegin, float const *const pEnd,
           float *LE_RESTRICT const pDestination)
 {
     LE_ASSERT_MSG(pBegin <= pEnd, "Invalid range.");
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    swap(pBegin, pDestination, pEnd - pBegin);
-#else
-    std::swap_ranges<float *LE_RESTRICT>(pBegin, const_cast<float *LE_RESTRICT>(pEnd),
-                                         pDestination);
-#endif
+    swap(pBegin, pDestination, static_cast<unsigned int>(pEnd - pBegin));
 }
 
 float const &min(float const *const pBegin, float const *const pEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     return min(pBegin, static_cast<unsigned int>(pEnd - pBegin));
-#else
-    return *std::min_element(pBegin, pEnd);
-#endif
 }
 
-#if !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-LE_NOINLINE
-#endif
 float const &max(float const *const pBegin, float const *const pEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     return max(pBegin, static_cast<unsigned int>(pEnd - pBegin));
-#else
-    return *std::max_element(pBegin, pEnd);
-#endif
 }
 
 void add(float const *const pInputData, float *const pInputOutput, float const *const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     add(pInputData, pInputOutput, static_cast<unsigned int>(pOutputEnd - pInputOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float const *LE_RESTRICT pInput(pInputData);
-    float *LE_RESTRICT pOutput(pInputOutput);
-    while (pOutput != pOutputEnd)
-        *pOutput++ += *pInput++;
-#endif
 }
 
 void add(float const *const pInputData, float const scalar, float *const pOutput,
          float const *const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     add(pInputData, scalar, pOutput, static_cast<unsigned int>(pOutputEnd - pOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float const *LE_RESTRICT pInput(pInputData);
-    float *LE_RESTRICT pOutputValue(pOutput);
-    while (pOutputValue != pOutputEnd)
-        *pOutputValue++ = *pInput++ + scalar;
-#endif
 }
 
 void multiply(float const *const pFirstArray, float const *const pSecondArray, float *const pOutput,
               float const *const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     multiply(pFirstArray, pSecondArray, pOutput, static_cast<unsigned int>(pOutputEnd - pOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float const *LE_RESTRICT pInput1(pFirstArray);
-    float const *LE_RESTRICT pInput2(pSecondArray);
-    float *LE_RESTRICT pOutputValue(pOutput);
-    while (pOutputValue != pOutputEnd)
-        *pOutputValue++ = *pInput1++ * *pInput2++;
-#endif
 }
 
 void multiply(float const *const pInputData, float *const pInputOutput,
               float const *const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     multiply(pInputData, pInputOutput, static_cast<unsigned int>(pOutputEnd - pInputOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float const *LE_RESTRICT pInput(pInputData);
-    float *LE_RESTRICT pOutput(pInputOutput);
-    while (pOutput != pOutputEnd)
-        *pOutput++ *= *pInput++;
-#endif
 }
 
 void multiply(float const scalar, float const *LE_RESTRICT const pInputData,
               float *LE_RESTRICT const pOutput, float const *LE_RESTRICT const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     multiply(pInputData, scalar, pOutput, static_cast<unsigned int>(pOutputEnd - pOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    /// \note No scalar == 0 / scalar == 1 short circuits: vDSP_vsmul has none
-    /// either, and the difference is observable on a non-finite input.
-    float const *LE_RESTRICT pInput(pInputData);
-    float *LE_RESTRICT pOutputValue(pOutput);
-    while (pOutputValue != pOutputEnd)
-        *pOutputValue++ = scalar * *pInput++;
-#endif
 }
 
 void multiply(float const scalar, float *LE_RESTRICT const pInputOutput,
               float const *LE_RESTRICT const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     multiply(pInputOutput, scalar, static_cast<unsigned int>(pOutputEnd - pInputOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float *LE_RESTRICT pOutput(pInputOutput);
-    while (pOutput != pOutputEnd)
-        *pOutput++ *= scalar;
-#endif
 }
 
 void addProduct(float const *LE_RESTRICT const pInputData1,
-                float const *LE_RESTRICT const pInputData2, float *LE_RESTRICT pInput3AndOutput,
+                float const *LE_RESTRICT const pInputData2,
+                float *LE_RESTRICT const pInput3AndOutput,
                 float const *LE_RESTRICT const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     addProduct(pInputData1, pInputData2, pInput3AndOutput,
                static_cast<unsigned int>(pOutputEnd - pInput3AndOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float const *LE_RESTRICT pInput1(pInputData1);
-    float const *LE_RESTRICT pInput2(pInputData2);
-    while (pInput3AndOutput != pOutputEnd)
-        *pInput3AndOutput++ += *pInput1++ * *pInput2++;
-#endif
 }
 
 void rectangular2polar(float const *LE_RESTRICT const pReals, float const *LE_RESTRICT const pImags,
@@ -587,123 +449,33 @@ void rectangular2polar(float const *LE_RESTRICT const pReals, float const *LE_RE
 
 void ln(float *LE_RESTRICT const pInputOutput, float const *LE_RESTRICT const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     ln(pInputOutput, static_cast<unsigned int>(pOutputEnd - pInputOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float *LE_RESTRICT pOutput(pInputOutput);
-    while (pOutput != pOutputEnd)
-    {
-        *pOutput = std::log(*pOutput);
-        ++pOutput;
-    }
-#endif
 }
 
 void ln(float const *LE_RESTRICT const pInput, float *LE_RESTRICT const pOutput,
         float const *LE_RESTRICT const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     ln(pInput, pOutput, static_cast<unsigned int>(pOutputEnd - pOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float const *LE_RESTRICT pInputValue(pInput);
-    float *LE_RESTRICT pOutputValue(pOutput);
-    while (pOutputValue != pOutputEnd)
-        *pOutputValue++ = std::log(*pInputValue++);
-#endif
 }
 
 void exp(float *LE_RESTRICT const pInputOutput, float const *LE_RESTRICT const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     exp(pInputOutput, static_cast<unsigned int>(pOutputEnd - pInputOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float *LE_RESTRICT pOutput(pInputOutput);
-    while (pOutput != pOutputEnd)
-    {
-        *pOutput = std::exp(*pOutput);
-        ++pOutput;
-    }
-#endif
 }
 
 void square(float *const pInputOutput, float const *const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     square(pInputOutput, static_cast<unsigned int>(pOutputEnd - pInputOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float *LE_RESTRICT pOutput(pInputOutput);
-    while (pOutput != pOutputEnd)
-    {
-        float const value(*pOutput);
-        *pOutput++ = value * value;
-    }
-#endif
 }
 
 void squareRoot(float *const pInputOutput, float const *const pOutputEnd)
 {
-#if defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
     squareRoot(pInputOutput, static_cast<unsigned int>(pOutputEnd - pInputOutput));
-#else
-    /// \note The portable arm, replacing what was an unreachable stub: with
-    /// neither Accelerate nor NT2 these had no implementation at all in
-    /// either interface -- the pointer-pair form fell through to here and the
-    /// count form delegated straight back to it. Elementwise and in the
-    /// caller's order, so both GCC and Clang vectorise them at -O2 and above
-    /// without needing reassociation, and the rounding is the scalar loop's.
-    ///                                   (29.07.2026.) (SW port)
-    float *LE_RESTRICT pOutput(pInputOutput);
-    while (pOutput != pOutputEnd)
-    {
-        *pOutput = std::sqrt(*pOutput);
-        ++pOutput;
-    }
-#endif
 }
 
 float rms(float const *const pData, float const *const pDataEnd)
 {
-#if defined(LE_MATH_USE_ACC)
     return rms(pData, static_cast<unsigned int>(pDataEnd - pData));
-#else
-    float const *LE_RESTRICT pValue(pData);
-    float result(0);
-    while (pValue != pDataEnd)
-    {
-        result += *pValue * *pValue;
-        ++pValue;
-    }
-    result = std::sqrt(result / convert<float>(pDataEnd - pData));
-    return result;
-#endif
 }
 
 void LE_NOINLINE
@@ -770,7 +542,7 @@ void fill(float *const pArray, float const value, unsigned int const numberOfEle
 #ifdef LE_MATH_USE_ACC
     vDSP_vfill(const_cast<float *>(&value), pArray, 1, numberOfElements);
 #else
-    fill(pArray, pArray + numberOfElements, value);
+    std::fill_n(pArray, numberOfElements, value);
 #endif
 }
 
@@ -779,7 +551,8 @@ void negate(float *const pArray, unsigned int const numberOfElements)
 #ifdef LE_MATH_USE_ACC
     negate(pArray, 1, numberOfElements);
 #else
-    negate(pArray, pArray + numberOfElements);
+    for (float &value : LE::Utility::makeSpan(pArray, numberOfElements))
+        value = -value;
 #endif
 }
 
@@ -797,7 +570,7 @@ void reverse(float *const pArray, unsigned int const numberOfElements)
 #if defined(LE_MATH_USE_ACC)
     vDSP_vrvrs(pArray, 1, numberOfElements);
 #else
-    reverse(pArray, pArray + numberOfElements);
+    std::reverse(pArray, pArray + numberOfElements);
 #endif
 }
 
@@ -806,7 +579,7 @@ void swap(float *const pFirstArray, float *const pSecondArray, unsigned int cons
 #if defined(LE_MATH_USE_ACC)
     vDSP_vswap(pFirstArray, 1, pSecondArray, 1, numberOfElements);
 #else
-    swap(pFirstArray, pFirstArray + numberOfElements, pSecondArray);
+    std::swap_ranges(pFirstArray, pFirstArray + numberOfElements, pSecondArray);
 #endif
 }
 
@@ -819,7 +592,7 @@ float const &min(float const *const pArray, unsigned int const numberOfElements)
     LE_ASSERT(pArray[resultIndex] == result);
     return pArray[resultIndex];
 #else
-    return min(pArray, pArray + numberOfElements);
+    return *std::min_element(pArray, pArray + numberOfElements);
 #endif
 }
 
@@ -832,16 +605,24 @@ float const &max(float const *const pArray, unsigned int const numberOfElements)
     LE_ASSERT(pArray[resultIndex] == result);
     return pArray[resultIndex];
 #else
-    return max(pArray, pArray + numberOfElements);
+    return *std::max_element(pArray, pArray + numberOfElements);
 #endif
 }
+
+/// \note The portable arms below are elementwise and in the caller's order, so
+/// both GCC and Clang vectorise them at -O2 and above without needing
+/// reassociation, and the rounding is the scalar loop's. They used to sit in the
+/// iterator section; they are here because this is where the one implementation
+/// of each primitive lives.
+///                                           (29.07.2026, moved 08.08.2026.)
 
 void add(float const *const pInput, float *const pInputOutput, unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     vDSP_vadd(pInput, 1, pInputOutput, 1, pInputOutput, 1, numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    add(pInput, pInputOutput, pInputOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pInputOutput[element] += pInput[element];
 #endif // LE_MATH_USE_ACC
 }
 
@@ -851,18 +632,22 @@ void add(float const *const pInput, float const constant, float *const pOutput,
 #if defined(LE_MATH_USE_ACC)
     vDSP_vsadd(const_cast<float *>(pInput), 1, const_cast<float *>(&constant), pOutput, 1,
                numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    add(pInput, constant, pOutput, pOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pOutput[element] = pInput[element] + constant;
 #endif // LE_MATH_USE_ACC
 }
 
+/// \note Deliberately not restrict-qualified: the in-place overloads below call
+/// these with the same pointer for two arguments.
 void multiply(float const *const pFirstArray, float const *const pSecondArray, float *const pOutput,
               unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     vDSP_vmul(pFirstArray, 1, pSecondArray, 1, pOutput, 1, numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    multiply(pFirstArray, pSecondArray, pOutput, pOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pOutput[element] = pFirstArray[element] * pSecondArray[element];
 #endif // LE_MATH_USE_ACC
 }
 
@@ -871,18 +656,25 @@ void multiply(float const *const pInput, float *const pInputOutput,
 {
 #if defined(LE_MATH_USE_ACC)
     multiply(pInput, pInputOutput, pInputOutput, numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    multiply(pInput, pInputOutput, pInputOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pInputOutput[element] *= pInput[element];
 #endif // LE_MATH_USE_ACC
 }
 
+/// \note No scalar == 0 / scalar == 1 short circuits: vDSP_vsmul has none
+/// either, and the difference is observable on a non-finite input.
+///
+/// \note Not restrict-qualified: the in-place overload below passes the same
+/// pointer as both the input and the output.
 void multiply(float const *const pInput, float const scalar, float *const pOutput,
               unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     vDSP_vsmul(pInput, 1, &scalar, pOutput, 1, numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    multiply(scalar, pInput, pOutput, pOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pOutput[element] = scalar * pInput[element];
 #endif // LE_MATH_USE_ACC
 }
 
@@ -890,8 +682,9 @@ void multiply(float *const pInputOutput, float const scalar, unsigned int const 
 {
 #if defined(LE_MATH_USE_ACC)
     multiply(pInputOutput, scalar, pInputOutput, numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    multiply(scalar, pInputOutput, pInputOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pInputOutput[element] *= scalar;
 #endif // LE_MATH_USE_ACC
 }
 
@@ -901,8 +694,9 @@ void addProduct(float const *const pInput1, float const *const pInput2,
 #if defined(LE_MATH_USE_ACC)
     vDSP_vma(const_cast<float *>(pInput1), 1, const_cast<float *>(pInput2), 1, pInput3AndOutput, 1,
              pInput3AndOutput, 1, numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    addProduct(pInput1, pInput2, pInput3AndOutput, pInput3AndOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pInput3AndOutput[element] += pInput1[element] * pInput2[element];
 #endif // LE_MATH_USE_ACC
 }
 
@@ -990,57 +784,57 @@ void polar2rectangular(float const *LE_RESTRICT const pAmplitudes,
 #endif // Math impl
 }
 
-void ln(float const *LE_RESTRICT pInput, float *LE_RESTRICT pOutput,
+void ln(float const *LE_RESTRICT const pInput, float *LE_RESTRICT const pOutput,
         unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     ::vvlogf(pOutput, pInput, &reinterpret_cast<int const &>(numberOfElements));
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    ln(pInput, pOutput, pOutput + numberOfElements);
 #else
-    LE_UNREACHABLE_CODE();
-#endif
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pOutput[element] = std::log(pInput[element]);
+#endif // LE_MATH_USE_ACC
 }
 
-void ln(float *pInputOutput, unsigned int numberOfElements)
+void ln(float *const pInputOutput, unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     ::vvlogf(pInputOutput, pInputOutput, &reinterpret_cast<int const &>(numberOfElements));
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    ln(pInputOutput, pInputOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pInputOutput[element] = std::log(pInputOutput[element]);
 #endif // LE_MATH_USE_ACC
 }
 
-void exp(float *pInputOutput, unsigned int numberOfElements)
+void exp(float *const pInputOutput, unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     ::vvexpf(pInputOutput, pInputOutput, &reinterpret_cast<int const &>(numberOfElements));
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    exp(pInputOutput, pInputOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pInputOutput[element] = std::exp(pInputOutput[element]);
 #endif // LE_MATH_USE_ACC
 }
 
-void square(float *LE_RESTRICT pInputOutput, unsigned int const numberOfElements)
+void square(float *LE_RESTRICT const pInputOutput, unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     vDSP_vsq(pInputOutput, 1, pInputOutput, 1, numberOfElements);
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    square(pInputOutput, pInputOutput + numberOfElements);
 #else
-    while (numberOfElements--)
+    for (unsigned int element(0); element < numberOfElements; ++element)
     {
-        float const inputValue(*pInputOutput);
-        *pInputOutput++ = inputValue * inputValue;
+        float const value(pInputOutput[element]);
+        pInputOutput[element] = value * value;
     }
-#endif // math impl
+#endif // LE_MATH_USE_ACC
 }
 
 void squareRoot(float *const pInputOutput, unsigned int const numberOfElements)
 {
 #if defined(LE_MATH_USE_ACC)
     vvsqrtf(pInputOutput, pInputOutput, &reinterpret_cast<int const &>(numberOfElements));
-#elif !defined(LE_MATH_NATIVE_POINTER_SIZE_INTERFACE)
-    squareRoot(pInputOutput, pInputOutput + numberOfElements);
+#else
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pInputOutput[element] = std::sqrt(pInputOutput[element]);
 #endif // LE_MATH_USE_ACC
 }
 
@@ -1051,7 +845,10 @@ float rms(float const *const pData, unsigned int const numberOfElements)
     vDSP_rmsqv(const_cast<float *>(pData), 1, &result, numberOfElements);
     return result;
 #else
-    return rms(pData, pData + numberOfElements);
+    float sumOfSquares(0);
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        sumOfSquares += pData[element] * pData[element];
+    return std::sqrt(sumOfSquares / convert<float>(numberOfElements));
 #endif // LE_MATH_USE_ACC
 }
 
