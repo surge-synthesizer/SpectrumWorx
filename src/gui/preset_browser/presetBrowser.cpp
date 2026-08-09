@@ -940,6 +940,27 @@ void PresetBrowser::refreshFactory()
             files_.add(Item{preset.c_str(), Item::Kind::Preset});
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// PresetBrowser::refreshUserDirectory()
+// -------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note `fromUTF8()`, for the same reason `rootPath()` needs it -- see the long
+/// note in gui.cpp. What `directory_iterator` hands back is whatever bytes the
+/// file system holds, and `juce::String( char const *, size_t )` would read them
+/// through `CharPointer_ASCII` and widen each one into its own code point. A
+/// preset named in anything but ASCII would list under a mangled name here, and
+/// then fail to be found again by it.
+///
+///   `nameLength` stays as it is: it is a count of bytes, and `bufferSizeBytes`
+/// is what the second parameter of `fromUTF8()` wants too. It is only the
+/// *interpretation* of those bytes that changes.
+///                                       (09.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void PresetBrowser::refreshUserDirectory()
 {
     files_.add(Item{"..", Item::Kind::Parent});
@@ -962,7 +983,7 @@ void PresetBrowser::refreshUserDirectory()
         if (isDirectory || std::_tcscmp(fileName.c_str() + nameLength, presetExtension) == 0)
         {
             item.kind = isDirectory ? Item::Kind::Folder : Item::Kind::Preset;
-            item.name = juce::String(fileName.c_str(), nameLength);
+            item.name = juce::String::fromUTF8(fileName.c_str(), static_cast<int>(nameLength));
             files_.add(item);
         }
     }

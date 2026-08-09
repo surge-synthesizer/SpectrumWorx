@@ -24,13 +24,27 @@
 //------------------------------------------------------------------------------
 #include "gui/gui.hpp"
 
+#include <sst/plugininfra/paths.h>
+
 #include <catch2/catch_test_macros.hpp>
+
+#include <string>
 //------------------------------------------------------------------------------
 namespace
 {
 //------------------------------------------------------------------------------
 
 using namespace LE::SW;
+
+/// \note "Documents" in Japanese -- the reporter's locale in issue #28 -- written
+/// as the bytes rather than as the characters. The rest of this tree is ASCII
+/// but for an em dash and an acute accent, the case is about the bytes anyway,
+/// and this way it does not depend on the encoding of the file it is in. Six
+/// code points, three bytes each: `U+30C9 U+30AD U+30E5 U+30E1 U+30F3 U+30C8`.
+constexpr char const japaneseDocuments[]{"\xE3\x83\x89\xE3\x82\xAD\xE3\x83\xA5"
+                                         "\xE3\x83\xA1\xE3\x83\xB3\xE3\x83\x88"};
+
+constexpr int japaneseDocumentsCharacters{6};
 
 //------------------------------------------------------------------------------
 } // anonymous namespace
@@ -85,4 +99,90 @@ TEST_CASE("The user preset paths answer without an initialisation step", "[paths
     /// nor passes or fails depending on whether one is already there.
     CHECK(presets.getFileName() == "Presets");
     CHECK(presets.getParentDirectory() == root);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Issue #28, and the reason this file gained a second case. On a
+/// `ja_JP.UTF-8` desktop the plugin created `~/<mojibake>/SpectrumWorx` instead
+/// of finding the localised Documents folder XDG had correctly pointed it at.
+/// Nothing was wrong with the XDG lookup -- `paths_linux.cpp` parses
+/// `user-dirs.dirs` a byte at a time and hands the bytes back untouched. What
+/// was wrong was one conversion at the end of `rootPath()`: `juce::String`'s
+/// `char const *` constructor reads through `CharPointer_ASCII`, which widens
+/// each *byte* into its own code point and re-encodes the result as UTF-8. The
+/// long note in gui.cpp has why the `char8_t` overload that would have saved it
+/// is not there (`-fno-char8_t`, from sst-plugininfra's `filesystem` target --
+/// and this translation unit is built with it too, so what is checked here is
+/// what ships).
+///
+/// \note The character count is the assertion that actually bites. Byte
+/// equality catches it as well, but "six characters, not eighteen" is the
+/// difference between the two constructors stated directly: `CharPointer_ASCII`
+/// cannot produce six out of eighteen bytes, whatever else it does.
+///
+/// \note Still no side effect, in keeping with the case above -- these paths are
+/// built and parsed, never created, and none of them needs to exist. The last
+/// section is the one that would have failed on the reporter's machine and
+/// passes everywhere else, which is precisely why the first two are here: they
+/// fail on any machine, in any locale, the moment the conversion goes back.
+///                                       (09.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A non-ASCII documents folder survives the trip into juce::File", "[paths]")
+{
+    SECTION("UTF-8 bytes decode as characters rather than as Latin-1")
+    {
+        std::string const documents(japaneseDocuments);
+        auto const decoded(juce::String::fromUTF8(documents.c_str()));
+
+        INFO("decoded " << decoded);
+        CHECK(decoded.length() == japaneseDocumentsCharacters);
+        CHECK(decoded.toStdString() == documents);
+
+        /// \note The length parameter is a count of *bytes* -- which is what the
+        /// preset browser passes it, having measured a file name -- and not a
+        /// count of characters. Getting that wrong would truncate mid-sequence.
+        auto const counted(
+            juce::String::fromUTF8(documents.c_str(), static_cast<int>(documents.size())));
+        CHECK(counted == decoded);
+    }
+
+#ifndef _WIN32
+    SECTION("The whole of rootPath()'s conversion, on a path that has to be built")
+    {
+        /// \note The expression below is `rootPath()`'s, with a hand-made path
+        /// standing in for the one XDG answers with: a machine that runs this
+        /// almost certainly has an ASCII home directory, and ASCII is a fixed
+        /// point of the widening that was wrong. The bug only shows on bytes
+        /// above 0x7F, so the test has to bring its own.
+        std::string const expected(std::string("/home/tester/") + japaneseDocuments +
+                                   "/SpectrumWorx");
+
+        juce::File const file(juce::String::fromUTF8(fs::path{expected}.u8string().c_str()));
+
+        INFO("file " << file.getFullPathName());
+        CHECK(file.getFullPathName().toStdString() == expected);
+        CHECK(file.getFileName() == "SpectrumWorx");
+        CHECK(file.getParentDirectory().getFileName().length() == japaneseDocumentsCharacters);
+    }
+#endif // _WIN32
+
+#ifndef _WIN32
+    SECTION("rootPath() is byte for byte what sst-plugininfra answered")
+    {
+        /// \note The end-to-end invariant, and the one the reporter's machine
+        /// broke: whatever the waterfall picks, `rootPath()` must hand back those
+        /// bytes and no others. It says nothing on an ASCII machine, which is the
+        /// whole reason the two sections above exist -- but it is the only check
+        /// here that would have caught the bug in situ.
+        auto const answered(sst::plugininfra::paths::bestDocumentsVendorFolderPathFor(
+                                "Surge Synth Team", "SpectrumWorx")
+                                .u8string());
+
+        INFO("answered " << answered);
+        CHECK(GUI::rootPath().getFullPathName().toStdString() == answered);
+    }
+#endif // _WIN32
 }

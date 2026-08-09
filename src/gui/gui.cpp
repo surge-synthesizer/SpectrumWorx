@@ -219,13 +219,36 @@ void warningOkCancelBox(TCHAR const *const title, TCHAR const *const question,
 /// convention, and the getters cannot be called too early because there is no
 /// "too early".
 ///                                       (31.07.2026.) (SW port)
+///
+/// \note **fromUTF8(), not the `char const *` constructor**, and that one word is
+/// the whole of issue #28. `u8string()` ought to be unambiguous -- JUCE has a
+/// `String( char8_t const * )` overload that decodes UTF-8 -- but sst-plugininfra's
+/// `filesystem` target carries `-fno-char8_t` in its INTERFACE compile options
+/// (libs/sst/sst-plugininfra/libs/filesystem/CMakeLists.txt), and it propagates
+/// here. So `std::u8string` *is* `std::string`, `.c_str()` is a plain
+/// `char const *`, the `char8_t` overload does not exist to be chosen, and the
+/// call lands on `String( char const * )` -- which builds through
+/// `CharPointer_ASCII`, widening every *byte* to a code point before re-encoding
+/// the lot as UTF-8.
+///
+///   ASCII is a fixed point of that widening, which is why it survived to a
+/// release: it takes a home directory whose localised Documents folder is not
+/// ASCII. Under `ja_JP.UTF-8` the XDG answer came back as its own mojibake --
+/// `e3 83 89 ...` in, `c3 a3 c2 83 c2 89 ...` out -- which then matched no
+/// directory that existed, so the plugin helpfully created that one instead. The
+/// XDG lookup is byte-exact and was never at fault; only this conversion was.
+///
+///   Note that `String( char const * )` carries a `jassert` for precisely this,
+/// so a debug build on such a machine would have said so outright. Nobody had one.
+///                                       (09.08.2026.) (SW port)
 
 juce::File const &rootPath()
 {
-    static juce::File const path(sst::plugininfra::paths::bestDocumentsVendorFolderPathFor(
-                                     "Surge Synth Team", "SpectrumWorx")
-                                     .u8string()
-                                     .c_str());
+    static juce::File const path(
+        juce::String::fromUTF8(sst::plugininfra::paths::bestDocumentsVendorFolderPathFor(
+                                   "Surge Synth Team", "SpectrumWorx")
+                                   .u8string()
+                                   .c_str()));
     return path;
 }
 
