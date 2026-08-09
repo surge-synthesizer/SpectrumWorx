@@ -20,7 +20,7 @@ being executed or a record of how the port got where it is; that is in
 
 | | What it is |
 |---|---|
-| [`todo.md`](todo.md) | **The work queue.** One ordered item — shipping — and a page of smaller things. An item that closes comes out of the file. |
+| [`todo.md`](todo.md) | **The work queue.** No ordered item left — shipping was the last and is a decision now — and a page of smaller things. An item that closes comes out of the file. |
 | [`tech_debt.md`](tech_debt.md) | What finished work left behind — the half-fix, the correct-but-unsatisfying answer, the finding with no owner. An entry that is remediated comes out too. |
 | [`future_items_to_revive.md`](future_items_to_revive.md) | Capabilities deliberately deleted rather than carried, and what reviving one would cost. The cost is usually compatibility, not code. |
 

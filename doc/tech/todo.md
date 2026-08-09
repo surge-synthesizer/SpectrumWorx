@@ -28,57 +28,17 @@ cannot be held to a number off the machine that minted their fixtures.
 
 ---
 
-## The ordered list
+## There is no ordered item left
 
-| # | What | Size |
-|---|---|---|
-| 1 | **Ship** — the packaging that goes before a release | days |
+Shipping was the last one and it is a decision now rather than a task: the
+installers build and are signed, notarised and stapled on every push to `main`,
+the `.pkg` has been installed on a machine that did not build it, the licence is
+settled and shipped, and every bundle carries an identifier under
+`org.surge-synth-team.spectrumworx`. The user manual — the Word document and the
+PDF in [`doc/manual`](../manual) — is updated when there is a release to
+describe and does not gate one.
 
-Two items came off this list on 07.08.2026. *Give the main thread its own
-`Program`* landed whole; what it built is a property of the design now and
-[`threading_model.md`](threading_model.md) states it — rule 2, the diagram, and
-the recomputation table. *Drive it in a DAW* was the acceptance test for that
-work and testers have now run it on all three platforms.
-
-A third came off on 08.08.2026: **responding to the code review**. Every finding
-in it is fixed, one commit each, and what the work turned into is stated in the
-documents that own the mechanisms rather than in the review — `threading_model.md`
-§1/§3/§5/§7/§8, `parameter_system.md` §3 and §6, `streaming_format.md` §5. The
-review itself moved to [`old/`](old/fable_review.md), which is where a record of
-how the tree was read belongs; read it for the two claims that did not survive
-contact and for which instrument pinned which fix.
-
-### 1 — Ship
-
-The licence is settled — [`LICENSING.md`](../../LICENSING.md): source
-GPL-3.0-or-later, released binary AGPL-3.0-or-later because JUCE 8 is
-AGPLv3-or-commercial. The 452 file headers are right as they stand and no `sed`
-is needed. `assets/installer/License.txt` is what both installers show, and as
-of 08.08.2026 it is the AGPL-3.0 text verbatim — the licence the thing being
-installed is actually under, and a file that can be checked against upstream
-rather than assembled by hand.
-
-**The installers build, on all three platforms, on every push.**
-`spectrumworx-installer` makes a `.pkg` in a `.dmg` on macOS, a `.zip` and an
-Inno Setup `.exe` on Windows, and a `.zip` on Linux; the icons all come from
-`assets/LOGO.png` through `scripts/make_icons.sh`. A pull request builds the
-bundles and no installer; a push to `main` builds the installer and signs it,
-with the seven `MAC_*` secrets and the `Nightly` tag all in place. **Signing and
-notarisation both succeed** as of 07.08.2026 — a push to `main` produces a
-signed, notarised, stapled build without hand-holding — and **the `.pkg`
-installs and runs on a machine that did not build it** (08.08.2026), which was
-the installer's own acceptance test. Both halves of the shipping path have an
-observation behind them now: the plugin has been driven in DAWs on three
-platforms, and the thing that puts it there has been run.
-
-What is left here is **the standalone's bundle identifier**, which is much
-cheaper to settle before a release than after one because an identifier is what
-a user's settings and a host's plugin cache are filed under. `tech_debt.md` has
-it under "Licence and shipping".
-
-**The user manual is not part of this.** It is the Word document and the PDF in
-[`doc/manual`](../manual), it is updated when there is a release to describe,
-and it does not gate one.
+What is below is the smaller work, in no order.
 
 ---
 

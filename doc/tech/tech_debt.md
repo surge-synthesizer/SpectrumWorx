@@ -649,34 +649,3 @@ New entries go at the top of their area.
   `TestHost` for the duration of a case and assert on it too, or rename the case
   to what it actually checks. The first is worth more and is not hard.
 
-## Licence and shipping
-
-The decision itself is settled and written down in
-[`LICENSING.md`](../../LICENSING.md): source GPL-3.0-or-later, released binary
-AGPL-3.0-or-later because JUCE 8 is AGPLv3-or-commercial. The 452 file headers
-are right as they stand, and `assets/installer/License.txt` is the AGPL-3.0 text
-verbatim, so the file both installers show can be compared against upstream
-rather than trusted. What is below is packaging.
-
-- **The standalone ships under an identifier that is not ours, and the fix is
-  written but not upstream.** (07.08.2026, patched locally 08.08.2026) The
-  standalone was the only wrapper in clap-wrapper that accepted a
-  `BUNDLE_IDENTIFIER` argument and then ignored it: `wrap_standalone.cmake`
-  parsed it, nothing read it, and `Info.plist.in` hardcoded
-  `${MACOSX_BUNDLE_BUNDLE_NAME}.standalone` — so a bundle *name* with a suffix
-  where every sibling format sets `MACOSX_BUNDLE_GUI_IDENTIFIER` from the
-  argument. Notarisation does not object, so this was never a blocker; it
-  matters because an identifier is what a user's settings and a host's plugin
-  cache are filed under, and it is far cheaper to change before a release.
-
-  Three lines in the submodule fix it — honour the argument, default it to the
-  old value so no existing caller moves, read it in the plist, and pass it from
-  `make_clapfirst.cmake` the way the other six formats already are. Measured
-  here: the standalone's `CFBundleIdentifier` goes from `SpectrumWorx.standalone`
-  to `org.surge-synth-team.spectrumworx.standalone`, joining `.clap`, `.vst3` and
-  `.auv2.component`, none of which moved.
-
-  **The debt is that it lives in a dirty submodule.** It is not committed there
-  and this repository pins a clap-wrapper commit that does not have it, so a
-  fresh clone still builds the old identifier. It closes when it is upstream and
-  the submodule pointer moves.
