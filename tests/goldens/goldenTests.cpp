@@ -73,9 +73,10 @@ constexpr std::uint32_t renderedFrames{sampleRate / 2};
 ///
 ///   Two seconds rather than "just over 583 ms", for two measured reasons:
 ///
-///     - `Signal::Impulse` puts its transient at `frames / 4`, so the transient
-///       moves with the render and its echo lands at `frames / 4 + 583 ms`. The
-///       render has to reach 777 ms before that is inside the buffer at all.
+///     - `Signal::Impulse` puts its transient roughly a quarter of the way in,
+///       so the transient moves with the render and its echo lands about
+///       `frames / 4 + 583 ms` in. The render has to reach 777 ms before that is
+///       inside the buffer at all.
 ///     - Frevcho is a reverser in front of the same delay, and needs more than
 ///       one round trip: measured, its impulse rows are silent at 1000 ms, are
 ///       4e-9 at 1050, and only land properly at **1100 ms**.

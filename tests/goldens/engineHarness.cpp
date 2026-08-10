@@ -39,9 +39,33 @@ void generate(Signal const signal, std::span<float> const mono, float const samp
     case Signal::Impulse:
     {
         std::fill(mono.begin(), mono.end(), 0.0f);
-        // Not at zero: the engine's latency means an impulse in the first frame
-        // is still inside the first analysis window when the tail is measured.
-        mono[frames / 4] = 1.0f;
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \note A quarter of the way in, rounded down onto the analysis grid.
+        ///
+        ///   Not at zero, because the engine's latency means an impulse in the
+        /// first frame is still inside the first analysis window when the tail
+        /// is measured. And not at an arbitrary offset, because an impulse that
+        /// straddles a hop boundary is split across two analysis windows, and
+        /// the bin decisions the spectral effects make off that split sit on a
+        /// knife edge.
+        ///
+        ///   Measured, one machine, Accelerate against pffft: Atonal's peak
+        /// agrees to 1e-7 at every offset that is a whole number of hops and
+        /// differs by 8 % one sample off it. Octaver does the same, and does it
+        /// at 21.5 hops -- which is why the alignment has to cover the *hop*
+        /// rather than the FFT size. The golden matrix runs 512/4 and 2048/8, so
+        /// hops of 128 and 256; 1024 covers both with room for a wider matrix.
+        ///
+        /// \note Rounding down rather than to nearest keeps every power-of-two
+        /// render exactly where it was -- 16384/4 is already 4096 -- so this
+        /// moves the impulse only for the lengths that are not powers of two.
+        ///                                   (10.08.2026.) (SW port)
+        ///
+        ////////////////////////////////////////////////////////////////////////
+        constexpr std::size_t hopAlignment{1024};
+        auto const quarter(frames / 4);
+        mono[(quarter >= hopAlignment) ? (quarter / hopAlignment * hopAlignment) : quarter] = 1.0f;
         break;
     }
 
