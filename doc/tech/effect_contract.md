@@ -531,8 +531,8 @@ enrols the effect and — for the two snapshot files — obliges you to regenera
 | `effects/effectsListTests.cpp` | count, uniqueness of `title[]`, index↔name round trip, distinct impl type, group membership | no — but bump the count asserts |
 | `effects/sideChainTests.cpp` | renders **all 57** with and without a side chain and checks whether the output moves | see the trap below |
 | `effects/amplifyingEffectsTests.cpp` | finite/bounded output, determinism (same render twice), bypass equals the empty chain — plus hand-written per-effect properties | no |
-| `effects/silentDefaultsTests.cpp` | pins the effects legitimately silent at defaults and asserts that set may not grow (`:232`) | **yes if yours is silent** — and prefer fixing the defaults |
-| `goldens/goldenTests.cpp` | 8 rows per effect — 2 FFT/overlap configurations × 4 signals — into `goldens/data/goldens.txt` | **yes** — `SW_GOLDEN_UPDATE=1`, and read the diff before committing it |
+| `effects/silentDefaultsTests.cpp` | pins the effects legitimately silent at defaults and asserts that set may not grow | **yes if yours is silent** — and prefer fixing the defaults |
+| `goldens/goldenTests.cpp` | 8 rows per effect — 2 FFT/overlap configurations × 4 signals — into `goldens/data/goldens.txt`. 500 ms each, except the effects `needsALongRender()` names, which get 2 s | **yes** — `SW_GOLDEN_UPDATE=1`, and read the diff before committing it |
 | `parameters/parameterTableTests.cpp` | puts every effect into slot 0 in turn and dumps its parameter table | **yes** — `SW_PARAMETER_TABLE_UPDATE=1` |
 | `parameters/streamingNameTests.cpp` | effect and per-parameter streaming names, non-empty and round-tripping | **yes** — `SW_STREAMING_NAMES_UPDATE=1` |
 | `parameters/parameterLayoutTests.cpp` | writes one parameter through the offset table, reads every other back | no |

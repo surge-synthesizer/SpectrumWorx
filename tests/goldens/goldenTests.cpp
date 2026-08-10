@@ -53,10 +53,58 @@ constexpr Configuration configurations[]{{512, 4}, {2048, 8}};
 constexpr SWTest::Signal signals[]{SWTest::Signal::Impulse, SWTest::Signal::Sweep,
                                    SWTest::Signal::PinkNoise, SWTest::Signal::Voice};
 
-constexpr std::uint32_t renderedFrames{16384};
 constexpr std::uint32_t sampleRate{44100};
 constexpr std::uint32_t blockSize{256};
 constexpr std::uint8_t channels{2};
+
+/// Half a second, which is everything all but two of these effects have to say.
+constexpr std::uint32_t renderedFrames{sampleRate / 2};
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The effects whose own delay is longer than the matrix renders for.
+///
+///   The matrix rendered 16384 frames -- 371 ms -- until 10.08.2026, and Frecho
+/// and Frevcho delay by the round trip of their `Distance` at 343 m/s: **583 ms**
+/// at the 100 m default (`frechoImpl.cpp`). All sixteen of their rows were
+/// therefore pure silence, and a silent render hashes identically on every
+/// machine with zeroes in every numeric column -- so those rows agreed with any
+/// build ever made. Sixteen fixtures that could not fail.
+///
+///   Two seconds rather than "just over 583 ms", for two measured reasons:
+///
+///     - `Signal::Impulse` puts its transient at `frames / 4`, so the transient
+///       moves with the render and its echo lands at `frames / 4 + 583 ms`. The
+///       render has to reach 777 ms before that is inside the buffer at all.
+///     - Frevcho is a reverser in front of the same delay, and needs more than
+///       one round trip: measured, its impulse rows are silent at 1000 ms, are
+///       4e-9 at 1050, and only land properly at **1100 ms**.
+///
+///   1100 ms would be sitting on that boundary. 2 s puts the transient at 500 ms
+/// and its echo around 1.1 s, leaving most of a second of tail.
+///
+/// \note Two effects and not the whole matrix, because the cost is per render:
+/// 464 rows at half a second is about a minute, and two seconds for all of them
+/// would be four. The sixteen long rows add a handful of seconds.
+///
+/// \note This is the *length* half of the silent-fixture problem and not the
+/// whole of it. Convolver and Freqnamics are silent for reasons of their own --
+/// ordinary parameter defaults, not fixture length -- and stay that way;
+/// `silentDefaultsTests.cpp` states each and holds the count, now 9 rather
+/// than 25.
+///                                       (10.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+constexpr std::uint32_t longRenderedFrames{sampleRate * 2};
+
+bool needsALongRender(std::int8_t const effectIndex)
+{
+    static constexpr std::string_view slow[]{"Frecho", "Frevcho"};
+    if (effectIndex < 0) // the bypassed chain
+        return false;
+    std::string_view const effect(Effects::effectName(effectIndex));
+    return std::find(std::begin(slow), std::end(slow), effect) != std::end(slow);
+}
 
 std::string fixturePath() { return std::string(SW_GOLDEN_DATA_DIR) + "/goldens.txt"; }
 
@@ -82,8 +130,11 @@ std::vector<SWTest::Fixture> renderAll()
             {
                 SWTest::RenderSetup const setup{configuration.fftSize, configuration.overlapFactor,
                                                 channels, sampleRate, blockSize};
-                auto const output(SWTest::render(setup, static_cast<std::int8_t>(effect), signal,
-                                                 renderedFrames));
+                auto const frames(needsALongRender(static_cast<std::int8_t>(effect))
+                                      ? longRenderedFrames
+                                      : renderedFrames);
+                auto const output(
+                    SWTest::render(setup, static_cast<std::int8_t>(effect), signal, frames));
                 fixtures.push_back(
                     {keyFor(static_cast<std::int8_t>(effect), signal, configuration),
                      SWTest::Digest::of(output, channels, static_cast<float>(sampleRate))});
@@ -100,6 +151,11 @@ constexpr char const *fixturePreamble[]{
     "",
     "One row per effect/signal/fftSize/overlapFactor. Columns:",
     "  key  hash  peak  rms  dcOffset  nonFinite  band0..band7 (dB)",
+    "",
+    "Every row renders 500 ms at 44100 except Frecho and Frevcho, which",
+    "render 2 s because their default delay is a 583 ms round trip and a",
+    "shorter render catches only the silence before it -- see",
+    "needsALongRender() in goldenTests.cpp.",
     "",
     "hash is FNV-1a over the raw sample bits and is a same-platform",
     "contract only; the numeric columns are what a different",
