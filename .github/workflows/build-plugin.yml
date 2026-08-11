@@ -1,30 +1,50 @@
 # SpectrumWorx CI.
 #
-# Three things happen here, and they are separate jobs because they fail for
+# Four things happen here, and they are separate jobs because they fail for
 # separate reasons and a red square should say which:
 #
-#   gates          the two checks that need no compiler -- formatting and the
-#                  Boost allowlist. Under a minute, and first to tell you.
-#   test           ctest, on three platforms, in **both** Debug and Release --
-#                  except Windows, which runs Release only, and the matrix says
-#                  why. Neither configuration alone runs the whole suite: the
-#                  goldens SKIP under !NDEBUG, so Release is the only one that
-#                  renders DSP, and Debug is the only one that runs the ~1200
-#                  asserts. Built with SW_BUILD_PLUGIN_BUNDLES=OFF, which leaves
-#                  out the per-format wrapping and with it the VST3 and
-#                  AudioUnit SDK fetches -- the test binaries link sw-dsp and
-#                  sw-impl and want none of it (verified: that configuration
-#                  writes no _deps/ at all). Two of the legs are a compiler
-#                  rather than a configuration, and so cost a matrix entry
-#                  rather than a job: Linux Debug again under GCC 15, and
-#                  Windows Release again under clang-cl.
-#   build_plugin   the four bundles, and on anything but a pull request the
-#                  installer as well. Windows builds twice, MSVC and clang-cl;
-#                  the second is compiler coverage and ships nothing.
+#   gates              the two checks that need no compiler -- formatting and
+#                      the Boost allowlist. Under a minute, and first to tell
+#                      you.
+#   test               ctest, on three platforms, in **both** Debug and Release
+#                      -- except Windows, which runs Release only, and the
+#                      matrix says why. Neither configuration alone runs the
+#                      whole suite: the goldens SKIP under !NDEBUG, so Release
+#                      is the only one that renders DSP, and Debug is the only
+#                      one that runs the ~1200 asserts. Built with
+#                      SW_BUILD_PLUGIN_BUNDLES=OFF, which leaves out the
+#                      per-format wrapping and with it the VST3 and AudioUnit
+#                      SDK fetches -- the test binaries link sw-dsp and sw-impl
+#                      and want none of it (verified: that configuration writes
+#                      no _deps/ at all). One leg is a compiler rather than a
+#                      configuration, and so costs a matrix entry rather than a
+#                      job: Linux Debug again under GCC 15.
+#   build_plugin       the four bundles, and on anything but a pull request the
+#                      installer as well.
+#   build_plugin_msvc  a pull request only, and a compile check only. It builds
+#                      the Windows bundles with MSVC, runs nothing and uploads
+#                      nothing.
 #
 # A pull request builds and tests but makes no installer: what a PR has to
 # answer is whether the code compiles and the suite passes on all three
 # platforms, and packaging it answers nothing that merging will not.
+#
+# Windows ships clang-cl, and has since 10.08.2026. The front end that builds
+# the download is now the one macOS and Linux already use, so the Windows binary
+# is read by the same compiler as the other two rather than by the one nothing
+# else in the project sees.
+#
+#   MSVC keeps a job, and only on a pull request: the tree still has to compile
+# with it, because it is what anyone who opens this in Visual Studio gets, and
+# learning that it does not from a bug report is worse than learning it from a
+# PR. It tests nothing -- the suite runs under the shipping compiler now, which
+# is where a test result is worth having.
+#
+#   Both Windows jobs use Visual Studio's own clang-cl, under VC/Tools/Llvm:
+# `-TClangCL` selects it in build_plugin, and the "Locate Visual Studio's
+# clang-cl" step below finds it for the Ninja test leg. The runner image also
+# carries a standalone LLVM, on PATH and older; that step's note says why naming
+# `clang-cl` bare is the wrong answer.
 #
 # Every leg of `test` is Ninja. Windows joined them on 10.08.2026, and bought
 # much less by it than the argument for doing it said it would.
@@ -33,10 +53,11 @@
 # parallelism across *projects*, and nothing in this tree sets /MP to get it
 # within one -- so sw-juce, one project holding the ten translation units that
 # are all of JUCE, compiled them strictly serially. All true, and most of the way
-# to irrelevant. The MSVC leg went from 579 s to 549 s: 5 %, and that is the
-# honest number because it is the leg where only the generator and the job count
-# moved. MSBuild was evidently getting enough parallelism across the dozen-odd
-# other projects to hide most of it.
+# to irrelevant. The MSVC test leg -- since retired, along with MSVC's testing --
+# went from 579 s to 549 s: 5 %, and that is the honest number because it is the
+# leg where only the generator and the job count moved. MSBuild was evidently
+# getting enough parallelism across the dozen-odd other projects to hide most of
+# it.
 #
 #   The clang leg fell 545 s to 315 s over the same change and is **not** evidence
 # for the generator: leaving the Visual Studio generator also changed which
@@ -45,9 +66,9 @@
 #
 #   `build_plugin` stays MSBuild on Windows, and 5 % is the reason. It is the job
 # that produces the installer people download, and that is not enough to buy a
-# generator change underneath it. It did take the --parallel 4, which is a flag
-# and not a generator: MSBuild gets /m:4 and still parallelises across projects
-# only.
+# generator change underneath it -- less so now that it is also the job that
+# changed compilers. It did take the --parallel 4, which is a flag and not a
+# generator: MSBuild gets /m:4 and still parallelises across projects only.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -120,47 +141,40 @@ jobs:
       # two would have said.
       fail-fast: false
       # Written out rather than a config x os product with an exclude taking one
-      # back: these six are not a grid -- Windows runs one configuration and
+      # back: these five are not a grid -- Windows runs one configuration and
       # Linux runs three -- and a product would also merge any new leg into the
       # combination it collides with instead of adding it, which is how the GCC
       # 15 entry below would have quietly replaced the GCC 12 one.
       matrix:
         include:
-          # Release only. The Windows Debug job hangs rather than fails -- it
+          # clang-cl, which is the compiler the Windows download is built with,
+          # and the only one Windows is tested under. It ran alongside an MSVC leg
+          # for as long as it took to answer whether it could ship: the whole
+          # suite, agreeing with MSVC on all of it, 386 of 386, under two
+          # different clang-cls (22.1.3 and, for one run before the step below
+          # pinned it back, 20.1.8). No golden could see a difference, so the MSVC
+          # leg had nothing left to say and MSVC stopped being tested.
+          #
+          #   Release only. The Windows Debug job hangs rather than fails -- it
           # runs to the step timeout instead of reporting anything -- and the
           # standing guess is that a checked build of this suite wants more time
           # or more memory than that runner has. The guess is untested: nothing
           # here has reproduced it, and what was removed is a red square nobody
-          # could read, not a diagnosis.
+          # could read, not a diagnosis. It is a property of the runner and not of
+          # a compiler; it outlived the MSVC leg it was first seen on. Release is
+          # also the configuration that renders the goldens anyway.
           #
           #   It is the ~1200 asserts that go with it, and only on Windows: macOS
           # and Linux still run both configurations, so the checked build is still
           # exercised on every push -- but a Windows-only assertion failure has
           # nowhere to fire. Worth putting back the day the hang is understood.
           #                                   (06.08.2026.) (SW port)
-          - name: windows-x64
-            os: windows-latest
-            config: Release
-            cmake_args: -GNinja
-            use_gcc15: false
-
-          # The same runner and the same configuration, a different front end.
-          # It runs the whole suite and agrees with MSVC on all of it: 386 of 386,
-          # and under two different clang-cls now (22.1.3 and, for one run before
-          # the step below pinned it back, 20.1.8), so the codegen does not differ
-          # anywhere a golden can see. That is what this leg is for -- the question
-          # has to stay answered if clang-cl is ever to be the shipping compiler,
-          # and a bundle that merely compiles does not answer it.
-          #
-          #   Release only, for both of the reasons the MSVC leg is: the Debug
-          # hang noted above is a property of this runner and not of MSVC, and
-          # Release is the configuration that renders the goldens anyway.
           #
           # \note $SW_CLANG_CL rather than `clang-cl`, and it is a shell variable
           # rather than a matrix one: this string is pasted into the Configure
           # step's script, so bash expands it there. The "Locate Visual Studio's
           # clang-cl" step below sets it, and says why PATH is the wrong answer.
-          - name: windows-x64-clang
+          - name: windows-x64
             os: windows-latest
             config: Release
             cmake_args: -GNinja -DCMAKE_C_COMPILER="$SW_CLANG_CL" -DCMAKE_CXX_COMPILER="$SW_CLANG_CL"
@@ -248,18 +262,18 @@ jobs:
       # silently picked a different and older compiler the first time this ran:
       # 20.1.8 against the 22.1.3 the MSBuild leg had been using.
       #
-      #   Which is the wrong one to test. build_plugin below still builds the
-      # Windows bundles with -TClangCL, so testing the standalone LLVM would have
-      # left the suite green on a compiler that ships nothing, and the leg exists
-      # precisely to say whether clang-cl is fit to ship. This keeps the two the
-      # same compiler; the day build_plugin moves to Ninja it needs this step too.
+      #   Which is the wrong one to test, and more so now that clang-cl ships:
+      # build_plugin below builds the Windows bundles with -TClangCL, so testing
+      # the standalone LLVM would leave the suite green on a compiler nobody
+      # downloads. This keeps the two the same compiler; the day build_plugin
+      # moves to Ninja it needs this step too.
       #
       # \note vswhere bare, and -latest -prerelease to match how the action above
       # chose its instance -- asking a second question a different way is how the
       # two end up on different installs. Backslashes to forward slashes because
       # CMake takes a path and bash takes a backslash for an escape.
       - name: Locate Visual Studio's clang-cl
-        if: matrix.name == 'windows-x64-clang'
+        if: runner.os == 'Windows'
         run: |
           vs=$(vswhere -latest -prerelease -products '*' -property installationPath)
           clang="${vs//\\//}/VC/Tools/Llvm/x64/bin/clang-cl.exe"
@@ -345,32 +359,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            name: windows-x64
-            cmake_args: -Ax64
-            target: spectrumworx-installer
-            upload: true
-
-          # The same runner, the same headers, a different front end. It reads
-          # our code the way the macOS and Linux compilers do and reports it the
-          # way MSVC's command line does, which is the combination that finds
-          # what neither side alone has found.
-          #
-          # It ships nothing: the Windows download is MSVC's, so this leg stops
-          # at the four bundles and skips the installer and the artifact. The
-          # suite runs under clang-cl too, but in the test job above -- this one
-          # is the per-format wrapping, which that one turns off.
+          # The Windows download, and clang-cl builds it: -TClangCL is Visual
+          # Studio's own LLVM, the same compiler the test job runs the suite
+          # under, so what ships here is what was tested there.
           #
           # Quiet, for now. The warning baseline is empty under MSVC -- and
           # clang-cl is MSVC as far as CMake's `if (MSVC)` is concerned -- so
-          # this is a compile check, not a warning gate. It is also the leg on
-          # which a Windows baseline could first be tried; see issue #8 and the
-          # note at the top of cmake/sw-our-sources.cmake.
+          # -Werror buys nothing on this leg yet. It is where a Windows baseline
+          # would first be tried; see issue #8 and the note at the top of
+          # cmake/sw-our-sources.cmake.
           - os: windows-latest
-            name: windows-x64-clang
+            name: windows-x64
             cmake_args: -Ax64 -TClangCL
-            target: spectrumworx_clapfirst_all
-            upload: false
+            target: spectrumworx-installer
+            upload: true
 
           - os: macos-latest
             name: macos
@@ -454,6 +456,47 @@ jobs:
         with:
           path: build/installer
           name: dawplugin-${{ matrix.name }}
+
+  # Everything that is left of MSVC, which is the question "does it still
+  # compile". Not a matrix entry on build_plugin above, because what makes it
+  # different from that job's legs is *when it runs*, and a matrix cannot say
+  # that: a job-level `if` can, and a leg that produced nothing on every push
+  # would be a green square standing for a checkout and no compiler.
+  #
+  #   No Inno Setup step and no signing certificates: it builds the bundles and
+  # stops. basic_installer_clapfirst.cmake guards the installer target on
+  # `if (TARGET n::compiler)`, so a configure without iscc on PATH is quiet
+  # rather than fatal.
+  #
+  # \note Debug, matching what build_plugin's pull request legs use. The point is
+  # the front end reading the headers, and MSVC objects to the same code either
+  # way; Debug is the cheaper of the two to link.
+  build_plugin_msvc:
+    name: Build - windows-x64-msvc
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Prepare for JUCE
+        uses: surge-synthesizer/sst-githubactions/prepare-for-juce@main
+        with:
+          os: ${{ runner.os }}
+
+      - name: Build pull request version
+        run: |
+          cmake -S . -B ./build -Ax64 \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DSW_BUILD_TESTS=OFF \
+            -DSW_BUILD_TOOLS=OFF \
+            -DSW_WERROR=ON \
+            -DGITHUB_ACTIONS_BUILD=TRUE
+          cmake --build ./build --config Debug \
+            --target spectrumworx_clapfirst_all --parallel 4
 
   build_plugin_docker:
     name: Build - Docker Ubuntu 20
