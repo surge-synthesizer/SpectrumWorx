@@ -61,6 +61,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -103,6 +104,28 @@ std::vector<std::pair<std::string, std::filesystem::path>> corpus()
 
     std::ranges::sort(found, {}, &std::pair<std::string, std::filesystem::path>::first);
     return found;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Every directory under the preset root that has a preset somewhere
+/// below it, sorted, relative to the root -- which is what banks() must answer
+/// with, row for row.
+///
+/// \note Ancestors included, and that is the whole point of it. `Martin Walker`
+/// holds no preset of its own, only `Martin Walker/Gamma Shift`, and a listing
+/// that leaves the parent out leaves the browser no row to open the child by.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+std::vector<std::string> bankDirectories()
+{
+    std::set<std::string> found;
+    for (auto const &[key, path] : corpus())
+        for (auto separator(key.find('/')); separator != std::string::npos;
+             separator = key.find('/', separator + 1))
+            found.insert(key.substr(0, separator));
+    return {found.begin(), found.end()};
 }
 
 /// \note One engine per preset, not one reused across all 303. Loading a preset
@@ -375,6 +398,20 @@ TEST_CASE("The embedded factory banks are the committed files", "[preset-corpus]
         embeddedCount += FactoryPresets::presets(bank).size();
     }
     CHECK(embeddedCount == files.size()); // no bank quietly left out of the glob
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And the directories themselves, set against set. The count above
+    /// cannot see this one: a bank that holds nothing but a sub-folder
+    /// contributes no presets to it, so all three of them could go missing from
+    /// the listing with the total still reading 303 -- which is exactly what
+    /// happened. 110 of these presets were in the binary, byte-for-byte correct,
+    /// and unreachable from the browser, because banks() named
+    /// `Martin Walker/Gamma Shift` and never `Martin Walker`.
+    ///                                       (10.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    CHECK(FactoryPresets::banks() == bankDirectories());
 
     for (auto const &[key, path] : files)
     {

@@ -947,10 +947,15 @@ void PresetBrowser::refreshRoot()
 //
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note FactoryPresets::banks() is every directory that holds presets, as a
-/// path relative to the root, so the children of the current bank are the ones
-/// that start with it and have no further separator. Three of the fifteen banks
-/// have a sub-folder, which is why this is a filter rather than a lookup.
+/// \note FactoryPresets::banks() is every directory under the preset root, as a
+/// path relative to it, so the children of the current bank are the ones that
+/// start with it and have no further separator. Three of the fifteen banks have
+/// a sub-folder, which is why this is a filter rather than a lookup.
+///
+/// \note What this reads from banks() has to include the directories that lead
+/// to presets without holding any -- a grandchild is skipped here on the
+/// understanding that its parent is a row the user can open, and for those three
+/// banks there was no such row. See collectBanks() in factoryPresets.cpp.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -61,23 +61,41 @@ std::optional<std::string> presetName(std::string const &fileName)
 
 namespace
 {
-/// Depth-first, appending every directory below \p path that holds presets.
-void collectBanks(cmrc::embedded_filesystem const &filesystem, std::string const &path,
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Depth-first, appending every directory below \p path that holds
+/// presets **or leads to one**.
+///
+/// \return whether \p path has any preset under it, at any depth.
+///
+/// \note The second half of that is not a nicety. This listed only the
+/// directories that hold a `.swp` themselves, and `Martin Walker`,
+/// `CinningBao` and `Syndicate Synthetique` hold nothing but a sub-folder -- so
+/// the list named `Martin Walker/Gamma Shift` and never `Martin Walker`, and the
+/// browser shows a child only once its parent has been opened. There was no row
+/// to open: three of the fifteen banks, 110 of the 303 presets, were in the
+/// binary and unreachable from the interface.
+///                                           (10.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+bool collectBanks(cmrc::embedded_filesystem const &filesystem, std::string const &path,
                   std::string const &relative, std::vector<std::string> &found)
 {
-    bool holdsPresets{false};
+    bool leadsToPresets{false};
     for (auto const &entry : filesystem.iterate_directory(path))
     {
         if (entry.is_directory())
-            collectBanks(filesystem, path + '/' + entry.filename(),
-                         relative.empty() ? entry.filename() : relative + '/' + entry.filename(),
-                         found);
+            leadsToPresets |= collectBanks(
+                filesystem, path + '/' + entry.filename(),
+                relative.empty() ? entry.filename() : relative + '/' + entry.filename(), found);
         else if (presetName(entry.filename()))
-            holdsPresets = true;
+            leadsToPresets = true;
     }
 
-    if (holdsPresets && !relative.empty())
+    if (leadsToPresets && !relative.empty())
         found.push_back(relative);
+    return leadsToPresets;
 }
 } // anonymous namespace
 

@@ -592,8 +592,13 @@ TEST_CASE("Every factory bank draws, and draws something of its own", "[gui][ove
 
     auto const closed(rendered(editor));
 
+    /// \note Eighteen, not fifteen. It read `>= 15` while banks() was answering
+    /// with exactly the fifteen directories that hold a `.swp` -- so the sweep
+    /// passed over a listing three banks short of what the plugin ships, which is
+    /// the shape of failure this case was written to catch.
+    ///                                       (10.08.2026.) (SW port)
     auto const banks(LE::SW::FactoryPresets::banks());
-    REQUIRE(banks.size() >= 15);
+    REQUIRE(banks.size() >= 18);
 
     /// \note Hashed rather than kept: eighteen 563 x 376 ARGB images is 15 MB,
     /// and what is being asked is only whether any two agree.
