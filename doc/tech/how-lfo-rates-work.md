@@ -114,8 +114,32 @@ The *meter* is a different matter and is not fixed, because it is not broken: a
 synced period snaps to the divisions the meter has, so the same preset genuinely
 loads to a different period in three four. `snapSyncedPeriodScale()` reads
 `Timer::measureNumerator()` and that is still a process-global static, which
-makes it a hazard for a test binary in the way the tempo used to be. Nothing
-drives a meter other than 4/4 outside `lfoTests.cpp`'s scope guard.
+makes it a hazard for a test binary in the way the tempo used to be. Every case
+that drives another meter therefore puts 4/4 back on the way out — the
+`ScopedHostTiming` guard in `lfoTests.cpp`, and a block with no transport at all
+in the two CLAP cases.
+
+The meters those cases drive are 3/4, 6/8 and 5/4, which is issue #14. What each
+of them can hold falls out of "a whole number of beats that divides the bar":
+
+| meter | synced periods, in bars |
+|---|---|
+| 4/4 | ¼, ½, 1 |
+| 3/4 | ⅓, 1 |
+| 6/8 | ⅙, ⅓, ½, 1 |
+| 5/4 | ⅕, 1 |
+
+Five is prime, so 5/4 has a beat and a bar and nothing between them. And a bar of
+3/4 and a bar of 6/8 are both six eighth notes, but only one of them can hold a
+half-bar period — which is the shortest statement of why the numerator is not a
+detail.
+
+**The denominator reaches nothing.** `updateLFOTiming()` builds the bar out of
+`tsig_num` beats of `60 / tempo` seconds, and CLAP's tempo is quarter notes per
+minute, so a 6/8 bar is three seconds at 120 BPM where a musician counting it
+would say a second and a half. The *ratios* a 6/8 LFO snaps to are right; the bar
+they are ratios of is twice as long as the written one. Nothing depends on
+changing it and nothing has asked, so it is written down rather than fixed.
 
 Two more things the format does that are easy to trip over:
 
@@ -188,6 +212,16 @@ tempo. Issue #11 has it. The parameter layer no longer reads them for
 anything but the snap grid, which is what made the corpus digests order-dependent
 and is the half that mattered most.
 
+**A meter change resnaps one of the two Programs.**
+`Processor::updateModuleLFOs()` walks the modules the audio thread owns;
+`programMain_` — what `paramsValue` and `stateSave` answer from, and what the LFO
+panel draws — is not among them and nothing else resnaps it. So after a meter
+change the engine runs a period the host cannot read and the host reads a period
+the meter cannot hold: a session saved then stores the old number, and loading it
+back is what finally reconciles them. Measured by `A host that opens in five four
+does not move the period it was given` (`tests/clap/pluginTests.cpp`), which pins
+it as behaviour rather than endorsing it.
+
 ## 8. Reading order
 
 1. `le/parameters/lfo.hpp` — the enums, and the SDK-facing interface
@@ -195,4 +229,7 @@ and is the half that mattered most.
 3. `le/parameters/lfoImpl.cpp` — `getValue()`, `snapSyncedPeriodScale()`, and the
    two preset conversions
 4. `tests/parameters/lfoTests.cpp` — the waveform table, the snapping, the clock
-5. `tests/gui/lfoDisplayTests.cpp` — that an edit in the panel reaches the engine
+   and the four meters
+5. `tests/clap/pluginTests.cpp`, `[clap][lfo]` — the same clock with the meter
+   arriving as a `clap_event_transport`
+6. `tests/gui/lfoDisplayTests.cpp` — that an edit in the panel reaches the engine

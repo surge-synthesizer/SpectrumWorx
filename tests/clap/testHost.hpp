@@ -937,13 +937,30 @@ inline clap_param_info lfoPeriodParameter(clap_plugin const &plugin,
     return {};
 }
 
-/// \brief A host's transport, at \p tempo in 4/4, parked at \p positionInBeats.
+/// \brief A host's transport, at \p tempo in \p beatsPerBar / \p beatUnit,
+/// parked at \p positionInBeats.
 ///
 /// \note Shared rather than per file since 03.08.2026: `pluginTests.cpp` had it,
 /// and the LFO cases need one too -- and need it at a tempo that is *not* the
 /// engine's assumed 120, which is where the periods stop being rescaled.
+///
+/// \note The meter is a parameter rather than a hardcoded 4/4 since 10.08.2026,
+/// which is issue #14: `tsig_num` is what reaches the engine as the measure
+/// numerator, and every division a synced LFO period can land on is a divisor of
+/// it -- so an arm of `updateForNewTimingInformation()` and the meter half of
+/// `Timer::establishedChange()` had nothing in the suite driving them. The
+/// default is still 4/4, so a caller that does not care reads as it always did.
+///
+/// \note `beatUnit` reaches nothing: the engine's bar is `tsig_num` beats of
+/// `60 / tempo` seconds, and CLAP's tempo is in quarter notes per minute
+/// whatever the denominator says. It is set anyway because a transport that
+/// announced `CLAP_TRANSPORT_HAS_TIME_SIGNATURE` with a zero denominator would
+/// be describing no meter at all -- 6/8 has to arrive as 6/8 rather than as 6/4
+/// for the case naming it to be about anything.
 inline clap_event_transport transportAt(double const tempo, double const positionInBeats,
-                                        std::uint32_t const extraFlags)
+                                        std::uint32_t const extraFlags,
+                                        std::uint16_t const beatsPerBar = 4,
+                                        std::uint16_t const beatUnit = 4)
 {
     clap_event_transport transport{};
     transport.header.size = sizeof(transport);
@@ -952,8 +969,8 @@ inline clap_event_transport transportAt(double const tempo, double const positio
     transport.flags = CLAP_TRANSPORT_HAS_TEMPO | CLAP_TRANSPORT_HAS_TIME_SIGNATURE |
                       CLAP_TRANSPORT_HAS_BEATS_TIMELINE | extraFlags;
     transport.tempo = tempo;
-    transport.tsig_num = 4;
-    transport.tsig_denom = 4;
+    transport.tsig_num = beatsPerBar;
+    transport.tsig_denom = beatUnit;
     transport.song_pos_beats = static_cast<clap_beattime>(positionInBeats * CLAP_BEATTIME_FACTOR);
     return transport;
 }

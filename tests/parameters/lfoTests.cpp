@@ -20,8 +20,11 @@
 ///       snap and clamps instead.
 ///     - **`LowerBound > UpperBound`**, which is not an error -- the setter
 ///       drags the other bound with it and says that it did.
-///     - **a meter that is not 4/4**, which nothing in the suite has ever driven
-///       and which issue #14 records as the unmeasured half of a landed fix.
+///     - **the meters that are not 4/4** -- 3/4, 6/8 and 5/4, which nothing in
+///       the suite drove until 10.08.2026 and which issue #14 is about: the
+///       meter decides the grid a synced period snaps to, and the claim that a
+///       host merely *stating* its meter must not resnap anything was reasoned
+///       rather than measured.
 ///
 /// \note The waveform table is a golden in the shape `parameterTableTests.cpp`
 /// established, and for the same reason: eleven small functions whose output is
@@ -244,6 +247,57 @@ bool updateRequested()
 {
     auto const *const requested(std::getenv("SW_LFO_TABLE_UPDATE"));
     return requested && (*requested != '\0') && (*requested != '0');
+}
+
+//------------------------------------------------------------------------------
+// Meters
+//------------------------------------------------------------------------------
+
+/// \brief A bar of \p beatsPerBar beats at the reference 120 BPM, where a beat
+/// is half a second whatever the meter says.
+///
+/// \note Which is also what the plugin computes from a CLAP transport --
+/// `tsig_num` beats of `60 / tempo` -- and it is the whole of what the meter is
+/// to the engine. The *denominator* reaches nothing, so a bar of six eight is six
+/// beats here rather than the three quarter notes a musician counts. See the
+/// note on `The LFO clock follows the host into three four, six eight and five
+/// four` in `tests/clap/pluginTests.cpp`, which is where that arrives.
+constexpr float barOf(std::uint8_t const beatsPerBar)
+{
+    return 0.5f * static_cast<float>(beatsPerBar);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Every distinct period a quarter-note-synced LFO can hold in the meter
+/// currently in force, sweeping requests from one beat up to one bar.
+///
+/// \note A sweep rather than a handful of requests with their answers written
+/// next to them: what is being asked is which periods are *reachable*, and an
+/// implementation that answered three chosen requests correctly and everything
+/// else with the request itself would pass the second kind of case.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+std::vector<float> snapGridOfTheCurrentMeter()
+{
+    auto const beatsPerBar(LFOImpl::Timer::measureNumeratorFloat());
+    constexpr unsigned int steps{200};
+
+    std::vector<float> grid;
+    for (unsigned int step(0); step <= steps; ++step)
+    {
+        auto const oneBeat(1 / beatsPerBar);
+        auto const wanted(oneBeat +
+                          (1 - oneBeat) * static_cast<float>(step) / static_cast<float>(steps));
+        auto const snapped(LFOImpl::snapPeriodScale(wanted, LFO::Quarter).first);
+        if (std::ranges::none_of(grid, [snapped](float const already) {
+                return std::abs(already - snapped) < 1e-4f;
+            }))
+            grid.push_back(snapped);
+    }
+    std::ranges::sort(grid);
+    return grid;
 }
 
 //------------------------------------------------------------------------------
@@ -641,11 +695,10 @@ TEST_CASE("The snapped period follows the host's meter", "[lfo]")
 
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note **Nothing in the suite had ever driven a meter other than 4/4**,
-    /// which issue #14 records as the unmeasured half of a landed fix. It
-    /// matters here more than anywhere: `snapSyncedPeriodScale()` divides by
-    /// `measureNumerator()` throughout, so a period scale is bars and the beats
-    /// it can land on are the ones the meter has.
+    /// \note Where the meter first mattered, and the shortest form of it:
+    /// `snapSyncedPeriodScale()` divides by `measureNumerator()` throughout, so a
+    /// period scale is bars and the beats it can land on are the ones the meter
+    /// has. The case below takes the same claim over four meters at once.
     ///
     ///   In 3/4 a bar is three beats, so one beat is a third of a bar and there
     /// is no such thing as the quarter-of-a-bar that 4/4 snaps to.
@@ -674,6 +727,148 @@ TEST_CASE("The snapped period follows the host's meter", "[lfo]")
     /// behind would change what every later case in the binary measures. See
     /// ScopedHostTiming.
     CHECK(LFOImpl::Timer::measureNumerator() == 4);
+}
+
+TEST_CASE("Three four, six eight and five four each snap to a grid of their own", "[lfo]")
+{
+    ScopedHostTiming const timing;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Issue #14 asks for a meter other than 4/4 somewhere in the suite;
+    /// this is the half of it that is about the *grid*. `snapSyncedPeriodScale()`
+    /// asks which whole numbers of beats divide the bar, so the meter decides the
+    /// set of periods a synced LFO can hold at all -- and the case above says
+    /// that of three four while leaving the impression that a meter is a meter.
+    ///
+    ///   The three below say it is not. Five four is the sharp one: five is
+    /// prime, so a bar holds exactly two synced periods -- one beat and the whole
+    /// bar -- and every request between them lands on one or the other. And the
+    /// pair worth having next to each other is three four against six eight: a
+    /// bar of each is six eighth notes, and only one of them can hold a half-bar
+    /// period, which is what makes them two meters rather than one written twice.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    auto const gridIn([](std::uint8_t const beatsPerBar) {
+        ScopedHostTiming const meter(barOf(beatsPerBar), beatsPerBar);
+        REQUIRE(LFOImpl::Timer::measureNumerator() == beatsPerBar);
+        return snapGridOfTheCurrentMeter();
+    });
+
+    auto const isTheGrid([](std::vector<float> const &grid, std::vector<float> const &expected) {
+        INFO("reachable: " << row(grid) << "  --  expected: " << row(expected));
+        REQUIRE(grid.size() == expected.size());
+        for (std::size_t index(0); index < grid.size(); ++index)
+            CHECK(grid[index] == Catch::Approx(expected[index]).margin(1e-4));
+    });
+
+    constexpr float sixth{1.0f / 6}, fifth{1.0f / 5}, third{1.0f / 3};
+
+    // Four four, which everything else in the suite drives, for comparison.
+    isTheGrid(gridIn(4), {0.25f, 0.5f, 1.0f});
+    // Three: a beat or a bar, and nothing between them.
+    isTheGrid(gridIn(3), {third, 1.0f});
+    // Six: the richest of the four, and the only one with a half bar and a third.
+    isTheGrid(gridIn(6), {sixth, third, 0.5f, 1.0f});
+    // Five: prime, so a beat or a bar. Not an oversight -- there is no whole
+    // number of beats between one and five that divides five.
+    isTheGrid(gridIn(5), {fifth, 1.0f});
+
+    /// \note And the same request read in each meter, which is the statement the
+    /// four grids above are made of but is worth having on one line: asking for
+    /// half a bar gets half a bar in four four and six eight, a third of one in
+    /// three four, and a fifth in five four.
+    auto const halfABarIn([](std::uint8_t const beatsPerBar) {
+        ScopedHostTiming const meter(barOf(beatsPerBar), beatsPerBar);
+        return LFOImpl::snapPeriodScale(0.5f, LFO::Quarter).first;
+    });
+    CHECK(halfABarIn(4) == Catch::Approx(0.5f));
+    CHECK(halfABarIn(6) == Catch::Approx(0.5f));
+    CHECK(halfABarIn(3) == Catch::Approx(third).margin(1e-4));
+    CHECK(halfABarIn(5) == Catch::Approx(fifth).margin(1e-4));
+
+    // Every guard above went out of scope with the statement that made it.
+    CHECK(LFOImpl::Timer::measureNumerator() == 4);
+}
+
+TEST_CASE("A host that opens in five four is stating its meter rather than changing it", "[lfo]")
+{
+    ScopedHostTiming const timing;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The other half of issue #14, and the one it was filed about.
+    /// `establishedChange()` reports no meter change on the first update after a
+    /// reset, on the argument that there was nothing to change *from* -- the same
+    /// argument the bar duration makes, and reasoned rather than measured because
+    /// nothing in the suite drove a meter other than 4/4.
+    ///
+    ///   What it protects is what the tempo half protects. A synced period is
+    /// resnapped when the numerator changes, so treating "the host has finally
+    /// said five four" as a change would move a stored, host-visible parameter on
+    /// the first block of every session that is not in four four -- which is the
+    /// exact shape of the four `clap-cpp-validator` state failures the tempo half
+    /// fixed, one meter over.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    LFOImpl::Timer timer;
+    timer.reset();
+
+    LFOImpl synced;
+    synced.parameters().get<LFOImpl::SyncTypes>().setValue(LFO::Quarter);
+    /// A quarter of a bar: on four four's grid, and on neither of the two meters
+    /// below. So a resnap that should not happen is visible, and one that should
+    /// has somewhere to go.
+    synced.setPeriodScale(0.25f);
+
+    /// \note And a free one alongside it, at the same period, told the same three
+    /// things: its period is a duration and the host's meter is none of its
+    /// business, in either direction. The case below says that of a meter
+    /// *change*; nothing said it of the update that establishes one.
+    LFOImpl free;
+    free.parameters().get<LFOImpl::SyncTypes>().setValue(LFO::Free);
+    free.setPeriodScale(0.25f);
+
+    // The first thing this host ever says, and it is in five four.
+    auto const established(timer.updatePositionAndTimingInformation(0, barOf(5), 5));
+    CHECK_FALSE(established.measureNumeratorChanged());
+    CHECK_FALSE(established.timingInfoChanged());
+
+    synced.updateForNewTimingInformation(established);
+    free.updateForNewTimingInformation(established);
+    CHECK(synced.periodScale() == Catch::Approx(0.25f));
+    CHECK(free.periodScale() == Catch::Approx(0.25f));
+
+    // The same meter again is not a change either.
+    auto const again(timer.updatePositionAndTimingInformation(1, barOf(5), 5));
+    CHECK_FALSE(again.timingInfoChanged());
+    synced.updateForNewTimingInformation(again);
+    free.updateForNewTimingInformation(again);
+    CHECK(synced.periodScale() == Catch::Approx(0.25f));
+    CHECK(free.periodScale() == Catch::Approx(0.25f));
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And the other direction, on the numerator *alone*: six eight over a
+    /// bar of the same 2.5 seconds is 144 BPM, so the bar duration does not move
+    /// and only the grid does. Written that way deliberately -- a meter change
+    /// that also changed the tempo would leave `barDurationChanged()` true, and
+    /// `updateForNewTimingInformation()` would then be resnapping for a reason
+    /// this case could not tell apart from the one it is about.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    auto const meterOnly(timer.updatePositionAndTimingInformation(2, barOf(5), 6));
+    CHECK_FALSE(meterOnly.barDurationChanged());
+    CHECK(meterOnly.measureNumeratorChanged());
+    CHECK(meterOnly.timingInfoChanged());
+
+    synced.updateForNewTimingInformation(meterOnly);
+    free.updateForNewTimingInformation(meterOnly);
+    CAPTURE(synced.periodScale(), free.periodScale());
+    CHECK(synced.periodScale() == Catch::Approx(1.0f / 3).margin(1e-4));
+    CHECK(free.periodScale() == Catch::Approx(0.25f));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

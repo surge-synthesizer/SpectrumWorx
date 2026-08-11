@@ -731,9 +731,13 @@ LFOImpl::Timer::Timer() { reset(); }
 /// \note Reported for the measure numerator as well as the bar duration, not just
 /// the arm that was failing: the same sentence is true of both -- there was
 /// nothing to change *from* -- and the synced arm resnaps the period on a
-/// numerator change for the same reason the free arm rescales it. Nothing in the
-/// suite drives a meter other than 4/4, so that half is reasoned rather than
-/// measured; see issue #14.
+/// numerator change for the same reason the free arm rescales it. That half was
+/// reasoned rather than measured until 10.08.2026, nothing in the suite having
+/// driven a meter other than 4/4; `A host that opens in five four is stating its
+/// meter rather than changing it` (`tests/parameters/lfoTests.cpp`) and its twin
+/// through the plugin in `tests/clap/pluginTests.cpp` are what measure it. Both
+/// go red on a revert of this line, dragging a quarter-of-a-bar period onto the
+/// new meter's grid on the first block.
 ///                                           (03.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////

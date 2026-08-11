@@ -125,6 +125,27 @@ float liveModuleParameter(clap_plugin const &plugin, std::uint8_t const moduleIn
     return pModule->getBaseParameter(parameterIndex);
 }
 
+/// \brief The period, in bars, that the *engine's* LFO \p lfoIndex on module
+/// \p moduleIndex is running at.
+///
+/// \note The engine's copy rather than `clap_plugin_params::get_value`, which
+/// answers from the main thread's Program. A meter change resnaps the LFOs the
+/// audio thread owns -- `Processor::updateModuleLFOs()`, once per block -- and
+/// reaches nothing else, so asking the host-facing side whether a resnap happened
+/// is asking the copy it did not happen to. \see liveModuleParameter, which
+/// reaches the same object for the same reason.
+float engineLFOPeriodScale(clap_plugin const &plugin, std::uint8_t const moduleIndex,
+                           std::uint8_t const lfoIndex)
+{
+    auto *const pHelper(static_cast<LE::SW::PluginHelper *>(plugin.plugin_data));
+    REQUIRE(pHelper != nullptr);
+    auto &implementation(*static_cast<LE::SW::SpectrumWorxCLAP *>(pHelper));
+    auto const pModule(
+        implementation.program().moduleChain().moduleAs<LE::SW::Module>(moduleIndex));
+    REQUIRE(pModule);
+    return pModule->lfo(lfoIndex).periodScale();
+}
+
 /// \brief A module parameter's static description, for a value inside its range.
 LE::Parameters::RuntimeInformation const &moduleParameterInfo(clap_plugin const &plugin,
                                                               std::uint8_t const moduleIndex,
@@ -1296,6 +1317,208 @@ TEST_CASE("A playing transport drives the LFO from song position", "[clap][lfo]"
 
     CHECK(midBar != barZero);
     CHECK(barOne == barZero);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Meters other than four four
+// ---------------------------
+//
+//   Issue #14: `SWTest::transportAt()` hardcoded `tsig_num = 4`, so every case
+// that drove a transport at all drove the one meter in which a beat is a quarter
+// of a bar. Two things go unmeasured that way -- the bar the clock counts, and
+// the grid a synced period snaps to -- and the second of them is a *stored,
+// host-visible parameter* that `updateForNewTimingInformation()` will move.
+//
+//   `tests/parameters/lfoTests.cpp` has the unit half, over four meters and both
+// directions of the change. These two are the same claims through the plugin,
+// where the meter arrives as a `clap_event_transport` rather than as an argument.
+//
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The LFO clock follows the host into three four, six eight and five four", "[clap][lfo]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **The denominator reaches nothing.** `updateLFOTiming()` builds the
+    /// bar out of `tsig_num` beats of `60 / tempo` seconds each, and CLAP's tempo
+    /// is quarter notes per minute -- so six eight arrives as six beats to the
+    /// bar and its bar is three seconds at 120 BPM, where a musician counting it
+    /// would say a second and a half. The numbers below are what the engine does
+    /// today rather than an endorsement of it; three four and five four, whose
+    /// beat *is* a quarter note, have no such question about them.
+    ///
+    ///   It matters less than it looks: what the meter decides is the LFO grid,
+    /// and six divisions of a bar is what a bar of six eight has however long the
+    /// bar is. A host in six eight gets the right *ratios* and a bar of twice the
+    /// length.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    constexpr float sampleRate{48000};
+    constexpr std::uint32_t blockSize{512};
+    constexpr double tempo{120};
+
+    Entry const entry;
+
+    struct Meter
+    {
+        std::uint16_t beatsPerBar;
+        std::uint16_t beatUnit;
+    };
+
+    for (auto const meter : {Meter{3, 4}, Meter{6, 8}, Meter{5, 4}})
+    {
+        auto const beatsPerBar(meter.beatsPerBar);
+        CAPTURE(beatsPerBar, meter.beatUnit);
+
+        ActivePlugin plugin(sampleRate, blockSize);
+        auto const &params(parameters(*plugin));
+
+        OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), 0);
+        params.flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
+        plugin.pumpMainThread();
+
+        OneParameterEvent const enable(lfoParameterID(0, 0, lfoEnabled), 1);
+        params.flush(&*plugin, &*enable, &discardedOutputEvents());
+        plugin.pumpMainThread();
+
+        std::vector<float> leftIn(blockSize, 0.0f), rightIn(blockSize, 0.0f);
+        std::vector<float> leftOut(blockSize), rightOut(blockSize);
+
+        /// \brief What the LFO reads with the song parked at \p beats, in this
+        /// meter. \see the four four case above, which this is the shape of.
+        auto const valueAtBeat([&](double const beats) {
+            auto const playing(transportAt(tempo, beats, CLAP_TRANSPORT_IS_PLAYING,
+                                           meter.beatsPerBar, meter.beatUnit));
+            plugin.process(leftIn, rightIn, leftOut, rightOut, &playing);
+            return liveModuleParameter(*plugin, 0, 1 /*Gain*/);
+        });
+
+        // A default LFO is a one-bar sine, and a bar is as many beats as the
+        // host says -- three, six, five -- rather than always four.
+        auto const barLine(valueAtBeat(0));
+        auto const midBar(valueAtBeat(beatsPerBar / 2.0));
+        auto const nextBarLine(valueAtBeat(beatsPerBar));
+
+        CHECK(midBar != barLine);
+        CHECK(nextBarLine == barLine);
+
+        // ...and the clock the rest of the engine reads says the same thing.
+        using Timer = LE::Parameters::LFOImpl::Timer;
+        CHECK(Timer::measureNumerator() == beatsPerBar);
+        CHECK_THAT(Timer::basePeriod(), Catch::Matchers::WithinAbs(beatsPerBar * 60 / tempo, 1e-6));
+
+        /// \note And back to the assumed 120 BPM 4/4 before the next meter, which
+        /// is what a block with no transport at all *is*. `Timer`'s tempo and
+        /// meter are process-wide statics -- issue #11 -- so a case that left five
+        /// four behind would change what every later case in the binary measures.
+        plugin.process(leftIn, rightIn, leftOut, rightOut, nullptr);
+    }
+
+    CHECK(LE::Parameters::LFOImpl::Timer::measureNumerator() == 4);
+}
+
+TEST_CASE("A host that opens in five four does not move the period it was given", "[clap][lfo]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Issue #14's own paragraph, through the plugin: the meter half of
+    /// `Timer::establishedChange()` was reasoned rather than measured. A session
+    /// that opens in five four is not a host *changing* the meter, so the stored
+    /// period stays where the user left it -- and a genuine change, later in the
+    /// same session, resnaps it.
+    ///
+    /// \note A quarter of a bar is the period to store, because it is on four
+    /// four's grid and on neither of the two below: five four has a beat and a
+    /// bar and nothing between them, six eight has a third. So a resnap that
+    /// should not happen is visible and one that should has somewhere to go.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    constexpr float sampleRate{48000};
+    constexpr std::uint32_t blockSize{512};
+    constexpr double tempo{120};
+    constexpr float quarterOfABar{0.25f};
+
+    Entry const entry;
+    ActivePlugin plugin(sampleRate, blockSize);
+    auto const &params(parameters(*plugin));
+
+    OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), 0);
+    params.flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
+    plugin.pumpMainThread();
+
+    /// \note The editor's route, which is how a user sets a period: applied to the
+    /// main thread's Program and queued for the engine, the flush below being what
+    /// lands it there. Written *before any block has run*, so the plugin has never
+    /// seen a transport and the snapping this write does is against the engine's
+    /// assumed four four -- which the REQUIRE is the check of, not an aside.
+    editorHostOf(*plugin).editParameter(
+        LE::SW::ParameterID{LE::Plugins::ParameterID{lfoParameterID(0, 0, lfoPeriodScale)}},
+        quarterOfABar);
+    params.flush(&*plugin, &noInputEvents(), &discardedOutputEvents());
+    plugin.pumpMainThread();
+    REQUIRE_THAT(engineLFOPeriodScale(*plugin, 0, 0),
+                 Catch::Matchers::WithinAbs(quarterOfABar, 1e-6));
+
+    double hostVisibleBefore{-1};
+    REQUIRE(params.get_value(&*plugin, lfoParameterID(0, 0, lfoPeriodScale), &hostVisibleBefore));
+
+    std::vector<float> leftIn(blockSize, 0.0f), rightIn(blockSize, 0.0f);
+    std::vector<float> leftOut(blockSize), rightOut(blockSize);
+
+    // The first block this plugin ever processes, and the host is in five four.
+    auto const inFiveFour(transportAt(tempo, 0, CLAP_TRANSPORT_IS_PLAYING, 5, 4));
+    plugin.process(leftIn, rightIn, leftOut, rightOut, &inFiveFour);
+
+    REQUIRE(LE::Parameters::LFOImpl::Timer::measureNumerator() == 5);
+    CHECK_THAT(engineLFOPeriodScale(*plugin, 0, 0),
+               Catch::Matchers::WithinAbs(quarterOfABar, 1e-6));
+
+    // ...and more of the same meter is still not a change.
+    for (unsigned block(0); block < 4; ++block)
+    {
+        auto const later(transportAt(tempo, block + 1.0, CLAP_TRANSPORT_IS_PLAYING, 5, 4));
+        plugin.process(leftIn, rightIn, leftOut, rightOut, &later);
+    }
+    CHECK_THAT(engineLFOPeriodScale(*plugin, 0, 0),
+               Catch::Matchers::WithinAbs(quarterOfABar, 1e-6));
+
+    // A meter change in the middle of the session is one, and six eight has a
+    // third of a bar for a quarter of one to land on.
+    auto const inSixEight(transportAt(tempo, 5, CLAP_TRANSPORT_IS_PLAYING, 6, 8));
+    plugin.process(leftIn, rightIn, leftOut, rightOut, &inSixEight);
+
+    REQUIRE(LE::Parameters::LFOImpl::Timer::measureNumerator() == 6);
+    CAPTURE(engineLFOPeriodScale(*plugin, 0, 0));
+    CHECK_THAT(engineLFOPeriodScale(*plugin, 0, 0), Catch::Matchers::WithinAbs(1.0 / 3, 1e-4));
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **And what the host reads is still the period before the resnap.**
+    /// `Processor::updateModuleLFOs()` walks the modules the *audio thread* owns;
+    /// `programMain_` -- which is what `paramsValue` and `stateSave` answer from
+    /// -- is not among them, and nothing else resnaps it. So a meter change
+    /// leaves the two copies holding two different periods, and it is the
+    /// engine's that is heard.
+    ///
+    ///   Pinned as what the code does rather than asserted as what it should do.
+    /// It is arguably wrong in both directions -- a session saved after a meter
+    /// change stores a period the meter cannot hold, and the LFO panel draws that
+    /// stored one rather than the one running -- and pinning it is what makes a
+    /// decision about it visible when somebody makes one. \see
+    /// `doc/tech/threading_model.md` on the two copies, and
+    /// `doc/tech/how-lfo-rates-work.md` §4 on what a meter does to a stored
+    /// period.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    double hostVisibleAfter{-1};
+    REQUIRE(params.get_value(&*plugin, lfoParameterID(0, 0, lfoPeriodScale), &hostVisibleAfter));
+    CAPTURE(hostVisibleBefore, hostVisibleAfter);
+    CHECK(hostVisibleAfter == hostVisibleBefore);
+
+    // Back to the assumed 120 BPM 4/4 for whatever runs next; see the case above.
+    plugin.process(leftIn, rightIn, leftOut, rightOut, nullptr);
+    CHECK(LE::Parameters::LFOImpl::Timer::measureNumerator() == 4);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
