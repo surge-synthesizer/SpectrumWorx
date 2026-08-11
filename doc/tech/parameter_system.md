@@ -465,12 +465,31 @@ shape the parameter system has, and two properties of it outlive the switch:
    edition still exposed 5 slots × 10 parameters.
 
 Related: the LE framework served more than one product from this tree — see the
-`TuneWorx` special-cases (`plugin2Host.cpp:114-119`,
-`src/le/spectrumworx/effects/tune_worx/`). Tune Worx also had a cut-down
-13-parameter edition, selected by a switch this tree never set; it was deleted on
-07.08.2026 and the full 34-parameter version is the only one there has ever been
-here. That is the sense in which "several plugins of different shapes" is true of
-the *framework*. This repo builds one plugin.
+`TuneWorx` special-case (`plugin2Host.cpp:85-90`,
+`src/le/spectrumworx/effects/tune_worx/`). That is the sense in which "several
+plugins of different shapes" is true of the *framework*. This repo builds one
+plugin, and the one it builds takes the cut-down Tune Worx: **13 parameters, not
+the framework's 34.**
+
+The 2016 build selected that with `-DLE_SIMPLE_TUNEWORX`, set in
+`source/core/configuration.cmake` under the note "SW plugin uses the old/'simple'
+version of TuneWorx". The clap-first build stopped including that file, the arm
+the define selected was deleted on 07.08.2026 as unreachable, and 21 parameters
+the shipping plugin never had came back with it — `Direction`, `Bypass 1`…`12`,
+the vibrato section, the pitch range, `Retune time` and `Pitch shift`. All 21
+were inert: `tuneWorxImpl.cpp` reads `Key` and the twelve semitones and nothing
+else, because the *implementation's* half of the split was guarded by a second
+macro, `LE_SW_SDK_BUILD`, and that half correctly did not come across. They
+reached a release and were reported from the field before the mismatch was
+spotted; the 13-parameter set is unconditional as of 11.08.2026, and
+`tuneWorx.hpp` says why beside the declaration.
+
+Two properties of the parameter system made a header-only mistake visible in a
+DAW, and both are worth keeping in mind when adding parameters anywhere:
+the module strip renders however many an effect declares, over the module's own
+name if there are too many; and a host addresses at most the first ten
+(`maxNumberOfParametersPerModule`), so a parameter inserted in the middle pushes
+a later one out of reach — `Direction` at index 6 cost `Semi04` its automation.
 
 ---
 

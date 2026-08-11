@@ -250,9 +250,10 @@ and `numberOfParameters()` is `effectSpecific + numberOfBaseParameters`
 (`moduleParameters.hpp:59-62`), where the base block is the five below. Past
 index 10 the host never hears about the parameter:
 `Plugin2HostInteropControler::automatedParameterChanged` returns early
-(`plugin2Host.cpp:117-118`), under a `\todo` from 2012 saying the check is
-"currently needed only for TuneWorx". TuneWorx declares 29 and is the only
-effect that does; the engine runs them, automation does not reach them.
+(`plugin2Host.cpp:89-90`), under a `\todo` from 2012 saying the check is
+"currently needed only for TuneWorx". TuneWorx declares 13 and is still the only
+effect past the ceiling: `Semi05`…`Semi12` are the eight the engine runs and
+automation does not reach.
 
 Of the 57 shipped effects the largest is Octaver at five.
 
@@ -881,7 +882,7 @@ detector. **SC** = reads the side chain, per the measured set in
 |---:|---|---|---:|---|:-:|---|
 | 0 | Pitch Shifter | `pitch_shifter` | 2 | PV | | Semitones + cents through the full analysis/shift/synthesis chain. Declares only `setup()`; `process()` is inherited from `PhaseVocoderShared::PitchShifter`. |
 | 1 | Pitch Follower | `pitch_follower` | 1 | PD+PV | ✔ | Detects the pitch of main and side, shifts main to match, slew-limited by `Speed` semitones/second. |
-| 2 | TuneWorx | `tune_worx` | 29 | PD+PV | | Snaps the detected pitch to a user-selected chromatic scale. **21 of its 29 parameters are dead** — see the note below. |
+| 2 | TuneWorx | `tune_worx` | 13 | PD+PV | | Snaps the detected pitch to a user-selected chromatic scale. The only effect past the ten-parameter host ceiling — see the note below. |
 | 3 | Pitch Magnet | `pitch_magnet` | 2 | PD+PV | | Pitch Follower with a constant target frequency instead of a detected one. Carries a `\todo` about the duplication. |
 | 4 | Sumo Pitch | `sumo_pitch` | 2 | PD+PV(×2) | ✔ | Detects both channels' pitch, drags each toward their mean, mixes. The only effect that builds a whole scratch `ChannelData_AmPhStorage` on the stack. |
 | 5 | Pitch Spring | `pitch_spring` | 3 | MC+PV | | Sinusoidal pitch LFO via the `VibratoEffect` mixin. |
@@ -966,7 +967,7 @@ analysis and synthesis have already been paid for.
 | 43 | PVD start | `phase_vocoder_analysis` | 0 | analysis | | `PhaseVocoderShared::analysis` over `data.full()`. After it, `phases()` holds frequencies. |
 | 44 | Pitch Shifter (pvd) | `pitch_shifter` | 2 | — | | Shift only. No channel state at all. |
 | 45 | Pitch Follower (pvd) | `pitch_follower` | 1 | PD | ✔ | |
-| 46 | TuneWorx (pvd) | `tune_worx` | 29 | PD | | |
+| 46 | TuneWorx (pvd) | `tune_worx` | 13 | PD | | |
 | 47 | Pitch Magnet (pvd) | `pitch_magnet` | 2 | PD | | |
 | 48 | Pitch Spring (pvd) | `pitch_spring` | 3 | MC | | |
 | 49 | Imploder (pvd) | `eximploder` | 4 | D | | The standalone Imploder is this wrapped in `StandaloneEffect`. |
@@ -985,16 +986,23 @@ analysis and synthesis have already been paid for.
 
 ### Two notes on the shipped set
 
-**TuneWorx is a registered effect that is not finished.** Of its 29 parameters,
-`setup()` reads only `Semi01`…`Semi12`. `findNewPitchScale()` opens with the
-literal placeholders `unsigned int const vibratoPitch( 1 ); unsigned int const pitchShift_( 1 );`,
-hardcodes the pitch search to 70 Hz over five octaves (ignoring `PitchMinFreq`
-and `PitchMaxFreq`), passes `userBypassedTones( 0 )` (ignoring all twelve
-`BypassSemi*`), and never consults `TuneTolerance`, `RetuneTime`, `Vibrato*`,
-`SpringType` or `PitchShift`. `float findVibratoPitch( ChannelState & ) const;`
-is declared at `tuneWorxImpl.hpp:34` and defined nowhere. It is also the only
-effect that exceeds the ten-parameter host ceiling (§1.4), so nineteen of those
-parameters would not reach automation even if they worked.
+**TuneWorx is the cut-down edition, and the implementation is what says so.**
+It declares `Key` and `Semi01`…`Semi12`, which is exactly what `setup()` and
+`findNewPitchScale()` read. The framework's Tune Worx had 21 more — `SpringType`
+("Direction"), twelve `BypassSemi*`, the vibrato section, the pitch range,
+`TuneTolerance`, `RetuneTime` and `PitchShift` — behind `LE_SIMPLE_TUNEWORX` in
+the header and `LE_SW_SDK_BUILD` in the implementation, neither of which the
+plugin ever set. Between 27.07 and 11.08.2026 the header's half came across and
+the implementation's did not, and the result shipped: 21 parameters no DSP reads,
+a second family of controls named "Bypass" next to the module's own, and
+`Direction` at index 6 costing `Semi04` its automation. \see `tuneWorx.hpp`.
+
+What remains from that edition is still visible in the code: `findNewPitchScale()`
+opens with the literal placeholders `unsigned int const vibratoPitch(1); unsigned int const pitchShift_(1);`,
+hardcodes the pitch search to 70 Hz over five octaves, and passes
+`userBypassedTones(0)`. TuneWorx is also the only effect that exceeds the
+ten-parameter host ceiling (§1.4): `Semi05`…`Semi12` work and cannot be
+automated.
 
 **Four of the fifteen side-chain effects hear nothing at their defaults.**
 Slicer, Denoiser and Convolver each have an enumerated `Mode` whose *first*

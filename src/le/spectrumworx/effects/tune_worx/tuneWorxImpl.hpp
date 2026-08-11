@@ -31,7 +31,6 @@ class TuneWorxBaseImpl : public EffectImpl<TuneWorxBase>
   protected:
     float findNewPitchScale(Engine::ChannelData_AmPh const &, Engine::Setup const &,
                             ChannelState &) const;
-    float findVibratoPitch(ChannelState &) const;
 
     void setup(IndexRange const &, Engine::Setup const &);
 

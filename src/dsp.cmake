@@ -181,6 +181,11 @@ target_compile_definitions(sw-dsp PUBLIC LE_ENABLE_ASSERT_HANDLER)
 # std::uint16_t window size at the maximum FFT size, so the factor could not
 # exceed one anyway; the fold and unfold have since been collapsed to that
 # single-frame case.
+#
+# LE_SIMPLE_TUNEWORX is gone the other way: it was *set* here in 2016, and both
+# of the arms it and LE_SW_SDK_BUILD selected have been resolved to the plugin's
+# in the source. Dropping it silently is how the extra Tune Worx parameters
+# reached a release -- see the note in tuneWorx.hpp.
 
 # rtsan_support.h, for the RealtimeSanitizer region ScopedAudioThreadEntry opens, and
 # for the RTSAN_DISABLE guards the conceded audio-thread allocations will carry.

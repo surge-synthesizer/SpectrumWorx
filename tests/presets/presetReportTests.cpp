@@ -127,13 +127,9 @@ TEST_CASE("What the factory presets do not mention is exactly this much",
     ///
     /// \note The number that makes suppressing `MissingParameter` safe.
     ///
-    ///   All 722 of these are the same thing: an effect that grew a parameter
+    ///   All 106 of these are the same thing: an effect that grew a parameter
     /// after the preset was written. Freqverb gained `HF absorb` (104 presets --
-    /// every one that uses it); TuneWorx gained twelve per-semitone bypasses,
-    /// the whole vibrato section, the pitch range, the retune time and the
-    /// tuning direction (28 presets, 22 parameters each); two presets predate a
-    /// `Phase`. tuneWorx.hpp still carries the pre-growth parameter list beside
-    /// the current one, which is the same fact from the other end.
+    /// every one that uses it); two presets predate a `Phase`.
     ///
     ///   The value defaults, which is what the format is for. What would *not*
     /// be fine is this number going **up**: that is a parameter the reader
@@ -143,8 +139,17 @@ TEST_CASE("What the factory presets do not mention is exactly this much",
     /// if it moves, something is wrong, and refreshing it is not the fix.
     ///                                       (02.08.2026.) (SW port)
     ///
+    ///   Was 722. The other 616 were TuneWorx: twelve per-semitone bypasses, the
+    /// vibrato section, the pitch range, the retune time and the tuning
+    /// direction, over 28 presets at 22 parameters each -- parameters the 2016
+    /// plugin never had either, restored to it by a build that stopped defining
+    /// LE_SIMPLE_TUNEWORX. Removing them took the count down, which is the safe
+    /// direction: every one of the 28 presets now mentions every parameter its
+    /// effect has. \see tuneWorx.hpp.
+    ///                                       (11.08.2026.) (SW port)
+    ///
     ////////////////////////////////////////////////////////////////////////////
-    constexpr unsigned int knownMissingParameters{722};
+    constexpr unsigned int knownMissingParameters{106};
 
     auto const summary(loadEveryFactoryPreset());
 

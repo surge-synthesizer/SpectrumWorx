@@ -7,20 +7,20 @@
 #     a 2009-2011 file against a 2016 effect, and a number that must not
 #     grow. The digest is FNV-1a over the full parameter dump, values at six
 #     significant figures; SW_PRESET_DUMP=<substring> prints those dumps.
-Autotune/LE Aeolian.swp | 1 | TuneWorx | 40 | 22 | 99464ff47eefcca3
-Autotune/LE Dorian.swp | 1 | TuneWorx | 40 | 22 | d291121aa0eec839
-Autotune/LE Gypsy.swp | 1 | TuneWorx | 40 | 22 | 998d41711aaf82b9
-Autotune/LE Ionian.swp | 1 | TuneWorx | 40 | 22 | 1dd3342c2833477f
-Autotune/LE Locrian.swp | 1 | TuneWorx | 40 | 22 | c45ce07f54085683
-Autotune/LE Lydian.swp | 1 | TuneWorx | 40 | 22 | a731857b05e44357
-Autotune/LE Mixolydian.swp | 1 | TuneWorx | 40 | 22 | 19f4020a14b75fc1
-Autotune/LE Pentatonic major.swp | 1 | TuneWorx | 40 | 22 | b734e88605a58355
-Autotune/LE Pentatonic minor.swp | 1 | TuneWorx | 40 | 22 | 817672af960bf1e3
-Autotune/LE Phrygrian.swp | 1 | TuneWorx | 40 | 22 | bad23f0ba9b7fe4b
-Autotune/LE Triad augmented.swp | 1 | TuneWorx | 40 | 22 | e10c7206e36b6f7b
-Autotune/LE Triad diminished.swp | 1 | TuneWorx | 40 | 22 | 8d3e98f8f58015a3
-Autotune/LE Triad major.swp | 1 | TuneWorx | 40 | 22 | 80c93a1117906d23
-Autotune/LE Triad minor.swp | 1 | TuneWorx | 40 | 22 | 42aff5269f2ad36b
+Autotune/LE Aeolian.swp | 1 | TuneWorx | 18 | 0 | 25dceb7f6a39ecb2
+Autotune/LE Dorian.swp | 1 | TuneWorx | 18 | 0 | 3e0b0632e43a3d14
+Autotune/LE Gypsy.swp | 1 | TuneWorx | 18 | 0 | 79c63ff545ccfbac
+Autotune/LE Ionian.swp | 1 | TuneWorx | 18 | 0 | 0f56eaf7a1f3e9fe
+Autotune/LE Locrian.swp | 1 | TuneWorx | 18 | 0 | b16391502a326d02
+Autotune/LE Lydian.swp | 1 | TuneWorx | 18 | 0 | b3fee0a8ab6512e6
+Autotune/LE Mixolydian.swp | 1 | TuneWorx | 18 | 0 | 8610d0e3cdf64e4c
+Autotune/LE Pentatonic major.swp | 1 | TuneWorx | 18 | 0 | 9c1c8313f1e83f40
+Autotune/LE Pentatonic minor.swp | 1 | TuneWorx | 18 | 0 | 9f0bde146cc07222
+Autotune/LE Phrygrian.swp | 1 | TuneWorx | 18 | 0 | 18d6de7709e1308a
+Autotune/LE Triad augmented.swp | 1 | TuneWorx | 18 | 0 | 634583acc9e9ded2
+Autotune/LE Triad diminished.swp | 1 | TuneWorx | 18 | 0 | f5cc4f0efbf3c0fa
+Autotune/LE Triad major.swp | 1 | TuneWorx | 18 | 0 | 39a5de62a51ddf8a
+Autotune/LE Triad minor.swp | 1 | TuneWorx | 18 | 0 | c0df36b6dfa3f082
 CinningBao/SideChainables/(drums 104bpm) Drum Battle.swp | 1 | Merger | 7 | 0 | 857887c5eb1e272c
 CinningBao/SideChainables/(drums 104bpm) DrumCoder.swp | 1 | Talking Wind | 7 | 0 | f2975f3dc320b7f7
 CinningBao/SideChainables/(drums 104bpm) DrumLongerer.swp | 2 | Slew Limiter,Colorifer | 15 | 0 | 3666927f360075fb
@@ -49,7 +49,7 @@ ESS/ESS Sirup Freeze.swp | 2 | Robotizer,Freeze | 13 | 0 | 66a8e8d98aaf109f
 ESS/ESS Stomper.swp | 2 | Slew Limiter,Exaggerator | 13 | 0 | 6048d7413e60f5e9
 ESS/ESS Swoosh.swp | 2 | Exploder,Frecho | 17 | 0 | 2896f266f9ed0af3
 ESS/ESS Tears in Heaven.swp | 2 | Exaggerator,Freqverb | 15 | 1 | 9f73891410951ddf
-ESS/ESS Triad major Autotune.swp | 1 | TuneWorx | 40 | 22 | 80c93a1117906d23
+ESS/ESS Triad major Autotune.swp | 1 | TuneWorx | 18 | 0 | 39a5de62a51ddf8a
 ESS/ESS Windy Days.swp | 2 | Whisperer,Frecho | 13 | 0 | 9ed209a6ca0d0a7f
 Echoes/LE Basement Voices.swp | 2 | Quantizer,Frecho | 15 | 0 | 9fd0117e698e4e7e
 Echoes/LE Boiler.swp | 2 | Frecho,Whisperer | 13 | 0 | 15e4411fd9f57aed
@@ -67,7 +67,7 @@ Echoes/LE Nervous Perls.swp | 3 | Pitch Shifter,Frecho,Robotizer | 20 | 0 | 3d2a
 Echoes/LE Ruby Chamber.swp | 2 | Frecho,Phlip | 14 | 0 | fb3cac3588197aa7
 Echoes/LE Skokomish.swp | 2 | Bandpass,Frecho | 14 | 0 | b16742b89d4e85c6
 Echoes/LE Small Wall.swp | 1 | Frecho | 8 | 0 | e3726bbbcc2d67f2
-Echoes/LE Space Race.swp | 2 | Freqverb,TuneWorx (pvd) | 49 | 23 | 95225f65496b3f65
+Echoes/LE Space Race.swp | 2 | Freqverb,TuneWorx (pvd) | 27 | 1 | 3080c7430c3f1f26
 Echoes/LE Spiner.swp | 2 | Pitch Spring (pvd),Frecho | 16 | 0 | e5ac4926abfc3cc5
 Echoes/LE Stomper.swp | 2 | Slew Limiter,Exaggerator | 13 | 0 | 6048d7413e60f5e9
 Echoes/LE Windy Days.swp | 2 | Whisperer,Frecho | 13 | 0 | b5a1af5148d40481
@@ -220,7 +220,7 @@ Techno/LE Lazzzers.swp | 2 | Freqverb,Pitch Shifter | 16 | 1 | f76bb3d2888a094a
 Techno/LE Lulu.swp | 1 | Phasevolution | 6 | 0 | 1335cde80604e6c7
 Techno/LE Random Trains.swp | 2 | Whisperer,Pitch Magnet | 12 | 0 | d7a9b9ca6ab117e3
 Techno/LE Retreat.swp | 3 | Pitch Magnet,Freqverb,Pitch Shifter | 23 | 1 | aab36de8d8620fe7
-Techno/LE Technologic.swp | 2 | TuneWorx,Slicer | 48 | 22 | 1b63f464ef67d48d
+Techno/LE Technologic.swp | 2 | TuneWorx,Slicer | 26 | 0 | 24d2c62d46eb3b78
 Techno/LE Through the Barricades.swp | 1 | Sumo Pitch | 7 | 0 | 7f84eb37d6051919
 Tumbi Umbi/LE Adaminaby.swp | 2 | Blender,Reverser | 12 | 0 | ef180bd33039a63b
 Tumbi Umbi/LE Angurugu.swp | 3 | Quantizer,Imploder,Gain | 21 | 0 | a9480c193bde1e2d
@@ -236,24 +236,24 @@ Tumbi Umbi/LE Dandenong.swp | 3 | Pitch Magnet,Slew Limiter,Gain | 19 | 0 | 65ee
 Tumbi Umbi/LE Dowerin.swp | 2 | Slew Limiter,Whisperer | 12 | 0 | b50ab6af70c7687c
 Tumbi Umbi/LE Dubbo.swp | 3 | Exploder,Exaggerator,Phlip | 21 | 0 | 4f722626d530e8d1
 Tumbi Umbi/LE Echuca.swp | 2 | Centroid,Freqverb | 17 | 1 | 116ea2a7bd9e04a3
-Tumbi Umbi/LE Eneabba.swp | 1 | TuneWorx | 40 | 22 | f84c6a364b5c0aca
+Tumbi Umbi/LE Eneabba.swp | 1 | TuneWorx | 18 | 0 | bd65cacffda824b9
 Tumbi Umbi/LE Gilgandra.swp | 4 | Reverser,Freqverb,Reverser,Gain | 26 | 1 | 93991b4b5de6f9d1
 Tumbi Umbi/LE Gingin.swp | 2 | Smoother,Reverser | 12 | 0 | 5a2f44152bcaabef
 Tumbi Umbi/LE Gulgong.swp | 2 | Robotizer,Talking Wind | 12 | 0 | d948ee305e65b061
 Tumbi Umbi/LE Illawarra.swp | 2 | Freqverb,Wobbler | 17 | 1 | 9caaa40b4fae44c3
-Tumbi Umbi/LE Indooroopilly.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 130 | 66 | e9f38a427aec70a6
+Tumbi Umbi/LE Indooroopilly.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 64 | 0 | 6cc8823b01e7d9c5
 Tumbi Umbi/LE Jeparit.swp | 2 | Inserter,Pitch Spring | 17 | 0 | 5cfece7d3546bdb2
-Tumbi Umbi/LE Joondalup.swp | 5 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop,Freqverb | 67 | 23 | 5f756aeb2da0b8e3
+Tumbi Umbi/LE Joondalup.swp | 5 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop,Freqverb | 45 | 1 | a0ec5bd26d541aa8
 Tumbi Umbi/LE Kalamunda.swp | 2 | Ah-ah,Pitch Magnet | 15 | 0 | 303b9abf3b0b92c1
 Tumbi Umbi/LE Kangy Angy.swp | 2 | Slicer,Pitch Spring | 16 | 0 | 73d52fa651f932af
 Tumbi Umbi/LE Karumba.swp | 2 | Slew Limiter,Whisperer | 12 | 0 | fd3842652d22d815
 Tumbi Umbi/LE Koo Wee Rup.swp | 3 | Slew Limiter,Whisperer,Slicer | 20 | 0 | 2b6ee01eea0a1788
 Tumbi Umbi/LE Mandurah.swp | 3 | Exploder,Phasevolution,Phasevolution | 21 | 0 | 2477dc4d6cd50cf6
-Tumbi Umbi/LE Mareeba.swp | 4 | Slew Limiter,Sharper,TuneWorx,Slicer | 63 | 22 | 17ffa8e7ec33235c
+Tumbi Umbi/LE Mareeba.swp | 4 | Slew Limiter,Sharper,TuneWorx,Slicer | 41 | 0 | 398d52d2a1cbd0fd
 Tumbi Umbi/LE Millaa Millaa.swp | 3 | Quantizer,Imploder,Gain | 21 | 0 | 23355a184911fa0f
 Tumbi Umbi/LE Moe.swp | 3 | Centroid,Gain,Pitch Shifter | 20 | 0 | 9d6f4ef1a89d9798
 Tumbi Umbi/LE Ngunnawal.swp | 2 | Wobbler,Pitch Magnet | 15 | 0 | 8a4d2e9b3bf0cd6b
-Tumbi Umbi/LE Nhulunbuy.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 130 | 66 | dcf1a5bc43fcd1c2
+Tumbi Umbi/LE Nhulunbuy.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 64 | 0 | c5e6ce64e5915cf1
 Tumbi Umbi/LE Noosa.swp | 2 | Slew Limiter,Pitch Spring | 15 | 0 | ab06af8d5063677e
 Tumbi Umbi/LE Nowra.swp | 3 | Frecho,Frecho,Frecho | 24 | 0 | fccd1e0077e69085
 Tumbi Umbi/LE Onkaparinga.swp | 3 | Quiet Boost,Whisperer,Armonizer | 19 | 0 | ddc5bf9225dd989f
@@ -286,7 +286,7 @@ Verbs/LE Slewerb.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | c0ba7296508b8e13
 Verbs/LE Werby.swp | 1 | Freqverb | 9 | 1 | 0a49583bead2a45a
 Verbs/LE Wetwerb.swp | 1 | Freqverb | 9 | 1 | 4663deb22993a073
 Voices/LE Adorno.swp | 2 | Talking Wind,Whisperer | 12 | 0 | 02cb52226cfc7c0e
-Voices/LE Autotalk.swp | 2 | Talking Wind,TuneWorx | 47 | 22 | 86830c44844d7f48
+Voices/LE Autotalk.swp | 2 | Talking Wind,TuneWorx | 25 | 0 | c273bd536cc6e211
 Voices/LE Broken Robot.swp | 2 | Swappah,Pitch Spring | 17 | 0 | cba85849caba3ea5
 Voices/LE Closed Doors.swp | 3 | Bandpass,Robotizer,Gain | 16 | 0 | bd3aea4e5870f83d
 Voices/LE Friendly Voice.swp | 2 | Frecho,Pitch Spring | 16 | 0 | 7375a41f8a680cae
@@ -294,7 +294,7 @@ Voices/LE Frobot.swp | 4 | Talking Wind,PVD start,Slicer,PVD stop | 25 | 0 | 5cd
 Voices/LE Megnetic Collapse.swp | 3 | Bandpass,Reverser,Pitch Shifter | 19 | 0 | 8696e4be5beb8a45
 Voices/LE No Safety.swp | 2 | Pitch Shifter,Bandstop | 13 | 0 | 0b8d1552f2b5d2db
 Voices/LE Robokid.swp | 3 | Freqverb,Armonizer,Robotizer | 20 | 1 | 5646b85c45745135
-Voices/LE Rostfrei.swp | 4 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop | 58 | 22 | ec062f324a271d53
+Voices/LE Rostfrei.swp | 4 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop | 36 | 0 | 1f105d7ca6edf4d2
 Voices/LE The Fabric of Sound.swp | 2 | Armonizer,Slew Limiter | 13 | 0 | 101f3c190f441a4d
 Voices/LE Totalbot.swp | 2 | Talking Wind,Robotizer | 12 | 0 | d64c098873434036
 Voices/LE WhisperMe.swp | 3 | Bandstop,Whisperer,Gain | 16 | 0 | 63ac1d5fa9eafb61

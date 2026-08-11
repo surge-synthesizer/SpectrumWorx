@@ -229,8 +229,9 @@ and the only thing keeping its reader honest.
 One thing the split touches that is not a grammar: `savePreset` and
 `Preset::saveTo` return a `std::string`. They wrote into a caller's
 `std::span<char>` and every shipping caller passed the same
-`std::array<char, 4096>` — which five TuneWorx modules breach, as the 2016
-sources record, so a preset that large simply could not be saved. The writer
+`std::array<char, 4096>` — which five TuneWorx modules breach, as a 2011 note in
+`presets.cpp` records (TuneWorx being the framework's 40-parameter one at the
+time, not the 18 it has here), so a preset that large simply could not be saved. The writer
 builds the whole document in a string of its own regardless, so the buffer
 bounded nothing except what was possible. Session state, which has no size to be
 limited to, is what made keeping it indefensible.
