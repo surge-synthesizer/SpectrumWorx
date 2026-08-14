@@ -118,7 +118,11 @@ Theme::~Theme() = default;
 
 void Theme::drawPopupMenuBackground(juce::Graphics &graphics, int const width, int const height)
 {
-    if (juce::Desktop::canUseSemiTransparentWindows())
+    bool cut = juce::Desktop::canUseSemiTransparentWindows();
+#if JUCE_LINUX
+    cut = false;
+#endif
+    if (cut)
     {
         graphics.setColour(juce::Colour(0x10, 0x10, 0x12).withAlpha(0.9f));
         graphics.fillRoundedRectangle(0.f, 0.f, static_cast<float>(width),
