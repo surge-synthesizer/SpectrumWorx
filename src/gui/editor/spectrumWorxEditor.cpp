@@ -104,7 +104,7 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
 
       in_(*this, 18, 37), out_(*this, 18, 110), mix_(*this, 18, 185),
 
-      moduleMenuButton_(*this), gradient_(*this),
+      moduleMenuButton_(*this), dropIndicator_(mainArea_),
 
       /// \todo Reimplement these Alex's widgets.
       ///                                       (22.09.2009.) (Domagoj Saric)
@@ -112,8 +112,8 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
       //cSpectrumDisplay( CRect( 0, 0, 235, 129 ).offset( 222, 17 ), this, SpectrumDisplay, 0, capture ),
 
       // buttons...
-      preset_(*this, resourceArtwork<PresetOn>(), resourceArtwork<PresetOff>()),
-      settingsButton_(*this, resourceArtwork<SettingsOn>(), resourceArtwork<SettingsOff>())
+      preset_(mainArea_, resourceArtwork<PresetOn>(), resourceArtwork<PresetOff>()),
+      settingsButton_(mainArea_, resourceArtwork<SettingsOn>(), resourceArtwork<SettingsOff>())
 {
     using LE::Parameters::IndexOf;
     using namespace GlobalParameters;
@@ -147,14 +147,11 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
     // http://www.kvraudio.com/forum/viewtopic.php?t=141313
     // http://lists.steinberg.net:8100/Lists/vst-plugins/Message/17785.html
     // http://www.u-he.com/vstsource
-    setSizeFromImage(*this, resourceArtwork<EditorBackground>());
-    LE_ASSERT_MSG(getWidth() == estimatedWidth && getHeight() == artworkHeight,
+    LE_ASSERT_MSG(mainArea_.getWidth() == estimatedWidth && mainArea_.getHeight() == artworkHeight,
                   "the skin and the editor's constants disagree");
-    // ...and the strip under the skin that says when this binary was built.
-    setSize(getWidth(), getHeight() + buildStampHeight);
+    // The skin, and the strip under it that says when this binary was built.
+    setSize(mainArea_.getWidth(), mainArea_.getHeight() + buildStampHeight);
 
-    gradient_.setInvisible();
-    gradient_.setSize(ModuleUI::width, ModuleUI::height);
     moduleMenuButton_.moveToSlot(0);
 
     sampleArea_.setBounds(75, 307, 115, 20);
@@ -408,6 +405,11 @@ void SpectrumWorxEditor::layOutPanels()
                           ((panelPlacement_ == PanelPlacement::expandContract) && pPanel));
 
     auto const ownColumn(setPanelColumnVisible(wantColumn));
+
+    /// \note The skin moves and the panel does not follow it: the column is at
+    /// the left edge either way, and an overlay is a position *in* the skin --
+    /// which is the editor's own coordinates only while there is no column.
+    mainArea_.setTopLeftPosition(ownColumn ? mainAreaX : 0, 0);
     if (pPanel)
         pPanel->setTopLeftPosition(ownColumn ? panelColumnX : overlayX, overlayY);
 }
@@ -555,72 +557,201 @@ void SpectrumWorxEditor::parentHierarchyChanged()
         grabKeyboardFocus();
 }
 
-void SpectrumWorxEditor::moduleDrag(ModuleUI &moduleUI, juce::MouseEvent const &event)
+////////////////////////////////////////////////////////////////////////////////
+//
+// Reordering the rack
+// -------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   A strip can be dropped in two ways and they do different things. On another
+/// strip it changes places with it, and nothing else moves; between two of them,
+/// or at either end, it is inserted there and everything from there on shifts
+/// along. Which of the two a given point means is moduleDropAt()'s answer, drawn
+/// by DropIndicator and carried out by applyModuleDrop() -- one function each, so
+/// that what the user is shown while dragging and what happens when they let go
+/// cannot disagree.
+///
+/// \note The middle half of a strip is a swap and its outer quarters are inserts,
+/// which is what makes both reachable without aiming: an insert is a gap, and a
+/// gap with no width to it is a target nobody can hit. The zone also runs half a
+/// strip past each end of the rack, so dropping at the front or the back does not
+/// need the strip to be over the rack at all.
+///
+/// \note And the point all of that is measured at is the **dragged strip's own
+/// middle**, not the pointer. \see draggedStripCentre().
+///                                           (14.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
 {
-    if (isDragAndDropActive())
-    {
-        unsigned int const halfModuleWidth(ModuleUI::width / 2);
+constexpr int slotWidth{ModuleUI::width + ModuleUI::distance};
 
-        juce::Rectangle<int> const &sourceRect(moduleUI.getBounds());
+/// How far outside the rack a drop still counts: far enough to reach the gaps at
+/// either end, not so far that a drag let go across the editor lands one.
+constexpr int dropMargin{ModuleUI::width / 2};
 
-        juce::Rectangle<int> const leftRect(ModuleUI::horizontalOffset, ModuleUI::verticalOffset,
-                                            sourceRect.getX() -
-                                                (halfModuleWidth + ModuleUI::distance) - 1 -
-                                                ModuleUI::horizontalOffset,
-                                            ModuleUI::height);
+/// How much of each end of a strip means "between this one and its neighbour".
+constexpr int insertZone{slotWidth / 4};
+} // anonymous namespace
 
-        unsigned int const emptyModuleSpaceBegin(moduleMenuButton_.getX() - 4);
-        unsigned int const rightRectStart(sourceRect.getRight() + ModuleUI::distance +
-                                          halfModuleWidth + 1);
-        unsigned int const rightRectEnd(emptyModuleSpaceBegin + halfModuleWidth);
-        juce::Rectangle<int> const rightRect(rightRectStart, ModuleUI::verticalOffset,
-                                             rightRectEnd - rightRectStart, ModuleUI::height);
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::draggedStripCentre()
+// ----------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   A drag is aimed with the strip, not with the pointer. Somebody who picked a
+/// strip up by its left edge is carrying the whole thing, and what they are
+/// lining up against the rack is the middle of what they can see -- which is the
+/// column the eject `X` is drawn in, that marker being centred on the strip. It
+/// is also where JUCE's drag image is: `startDragging()` snapshots the strip and
+/// offsets the ghost by the grab, so the ghost sits where the strip would be.
+///
+///   Deciding the drop from the pointer instead put the answer out by however far
+/// from the middle it was picked up -- up to half a strip, which is exactly the
+/// width of a swap zone. Carrying a strip until it covered another one and being
+/// told "insert to the left of it" is what that looked like, and which way it was
+/// wrong depended on which edge had been grabbed.
+///                                           (14.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
 
-        juce::Point<int> const mousePosition(
-            this->getLocalPoint(nullptr, event.getScreenPosition()));
+juce::Point<int> SpectrumWorxEditor::draggedStripCentre(juce::Point<int> const pointer,
+                                                        juce::Point<int> const grabbedAt)
+{
+    /// \note The strip itself has not moved -- it stays in its slot for the whole
+    /// drag -- so this is where it *would* be: the pointer, less where in the
+    /// strip it was picked up, plus half a strip.
+    return pointer - grabbedAt + juce::Point<int>(ModuleUI::width / 2, ModuleUI::height / 2);
+}
 
-        bool const showGradient(leftRect.contains(mousePosition) ||
-                                rightRect.contains(mousePosition));
+/// \brief The above, with the two coordinate conversions a mouse event needs.
+///
+/// \note `grabbedAt` is put through the strip rather than taken off the event,
+/// because `MouseEvent::getMouseDownPosition()` is relative to whichever
+/// component the event was delivered to.
+juce::Point<int> SpectrumWorxEditor::draggedStripCentre(ModuleUI const &moduleUI,
+                                                        juce::MouseEvent const &event) const
+{
+    return draggedStripCentre(
+        mainArea_.getLocalPoint(nullptr, event.getScreenPosition()),
+        moduleUI.getLocalPoint(event.eventComponent, event.getMouseDownPosition()));
+}
 
-        if (showGradient)
-        {
-            unsigned int const firstGradientOffset(ModuleUI::horizontalOffset -
-                                                   (halfModuleWidth + (ModuleUI::distance / 2)));
+SpectrumWorxEditor::ModuleDrop
+SpectrumWorxEditor::moduleDropAt(std::uint8_t const sourceSlot,
+                                 juce::Point<int> const position) const
+{
+    ModuleDrop drop;
 
-            unsigned int const gradientIndex((mousePosition.getX() - firstGradientOffset) /
-                                             (ModuleUI::width + ModuleUI::distance));
-            LE_ASSERT(gradient_.getHeight() == ModuleUI::height);
-            LE_ASSERT(gradient_.getWidth() == ModuleUI::width);
+    auto const strips(nextAvailableModuleSlot_);
+    if ((strips < 2) || (sourceSlot >= strips))
+        return drop; // Nothing to reorder, or a strip that is on its way out.
 
-            unsigned int const gradientOffset(
-                firstGradientOffset + (gradientIndex * (ModuleUI::width + ModuleUI::distance)));
-            gradient_.setTopLeftPosition(gradientOffset, ModuleUI::verticalOffset);
-            LE_ASSERT(!gradient_.getBounds().intersects(sourceRect));
-        }
-        gradient_.setIsVisible(showGradient);
-    }
+    juce::Rectangle<int> const rack(ModuleUI::horizontalOffset, ModuleUI::verticalOffset,
+                                    strips * slotWidth, ModuleUI::height);
+    if (!rack.expanded(dropMargin).getIntersection(mainArea_.getLocalBounds()).contains(position))
+        return drop;
+
+    auto const alongTheRack(position.getX() - ModuleUI::horizontalOffset);
+
+    /// \note The two margins first: past either end of the rack there is no strip
+    /// to be over, so the only thing a drop there can mean is the gap it is past.
+    if (alongTheRack < 0)
+        drop = {ModuleDrop::insert, 0};
+    else if (alongTheRack >= (strips * slotWidth))
+        drop = {ModuleDrop::insert, strips};
     else
     {
-        gradient_.toFront(true);
-        gradient_.setAlwaysOnTop(true);
+        auto const slot(static_cast<std::uint8_t>(alongTheRack / slotWidth));
+        auto const acrossTheStrip(alongTheRack % slotWidth);
 
+        if (acrossTheStrip < insertZone)
+            drop = {ModuleDrop::insert, slot};
+        else if (acrossTheStrip >= (slotWidth - insertZone))
+            drop = {ModuleDrop::insert, static_cast<std::uint8_t>(slot + 1)};
+        else
+            drop = {ModuleDrop::swap, slot};
+    }
+
+    /// \note And the drops that would change nothing, which are three: swapping a
+    /// strip with itself, and the two gaps either side of it -- it is already in
+    /// both. Answering "nothing" for those is what stops the indicator offering a
+    /// move the user would not see happen.
+    bool const pointless(
+        (drop.action == ModuleDrop::swap)
+            ? (drop.slot == sourceSlot)
+            : ((drop.slot == sourceSlot) || (drop.slot == std::uint8_t(sourceSlot + 1))));
+    if (pointless)
+        return {};
+
+    return drop;
+}
+
+void SpectrumWorxEditor::moduleDrag(ModuleUI &moduleUI, juce::MouseEvent const &event)
+{
+    if (!isDragAndDropActive())
+    {
         startDragging(juce::var(), &moduleUI);
+        return;
+    }
+
+    showModuleDrop(moduleDropAt(moduleUI.slot(), draggedStripCentre(moduleUI, event)));
+}
+
+void SpectrumWorxEditor::showModuleDrop(ModuleDrop const drop)
+{
+    switch (drop.action)
+    {
+    case ModuleDrop::swap:
+        dropIndicator_.showSwap(drop.slot);
+        break;
+    case ModuleDrop::insert:
+        dropIndicator_.showInsert(drop.slot);
+        break;
+    case ModuleDrop::nothing:
+        dropIndicator_.hide();
+        break;
     }
 }
 
 void SpectrumWorxEditor::moduleDragEnd(ModuleUI &moduleUI, juce::MouseEvent const &event)
 {
-    juce::Point<int> const mousePosition(this->getLocalPoint(nullptr, event.getScreenPosition()));
+    /// \note Asked again rather than remembered from the last moduleDrag(): the
+    /// two answers are the same function of the same point, and a click that never
+    /// became a drag has no last answer to remember. Such a click leaves the strip
+    /// exactly where it was, which moduleDropAt() calls "nothing".
+    auto const drop(moduleDropAt(moduleUI.slot(), draggedStripCentre(moduleUI, event)));
 
-    bool const dragAborted(!gradient_.isVisible() ||
-                           !gradient_.getBounds().contains(mousePosition));
-    gradient_.setInvisible();
-    /// \note moduleDrag() raises this to always-on-top and nothing lowered it,
-    /// so a panel opened after any drag painted underneath it. Only matters now
-    /// the panels are children rather than desktop windows.
-    ///                                       (01.08.2026.) (SW port)
-    gradient_.setAlwaysOnTop(false);
-    if (dragAborted)
+    dropIndicator_.hide();
+
+    applyModuleDrop(moduleUI.slot(), drop);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::applyModuleDrop()
+// -------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The rack is told first and the engine second, which is the order every
+/// edit takes now: the strips move here so the drag ends where the user let go,
+/// and resyncModuleRack() puts them where the chain says once the engine has
+/// caught up. They agree either way -- this is the same permutation, applied to
+/// the same two orderings. The host is told last, because what it is told is read
+/// back out of the rack.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::applyModuleDrop(std::uint8_t const sourceSlot, ModuleDrop const drop)
+{
+    LE_ASSERT(isThisTheGUIThread());
+
+    if (drop.action == ModuleDrop::nothing)
         return;
 
     /// \note We have to block automation here because of FMOD's MVC
@@ -634,49 +765,83 @@ void SpectrumWorxEditor::moduleDragEnd(ModuleUI &moduleUI, juce::MouseEvent cons
     Host2PluginInteropControler::AutomationBlocker const automationBlocker(
         /*host*/ moduleChainOwner /*mrmlj*/ ());
 
-    LE_ASSERT(!gradient_.getBounds().intersects(moduleUI.getBounds()));
-    unsigned int const slotWidth(ModuleUI::width + ModuleUI::distance);
-    unsigned int const sourceX(moduleUI.getX());
-    unsigned int targetX(gradient_.getX());
-    bool const moveLeft(static_cast<unsigned int>(gradient_.getRight()) < sourceX);
-    int const gradientToTargetOffset((ModuleUI::width + ModuleUI::distance) / 2);
-    targetX -= moveLeft ? -gradientToTargetOffset : +gradientToTargetOffset;
-    LE_ASSERT((signed(targetX - sourceX) % signed(slotWidth)) == 0);
+    if (drop.action == ModuleDrop::swap)
+        swapModuleSlots(sourceSlot, drop.slot);
+    else
+    {
+        /// \note A gap index is one more than the slot to its left, and taking the
+        /// source strip out closes every gap after it -- so a gap beyond the
+        /// source names a slot one lower once the strip has left.
+        moveModuleSlot(sourceSlot, static_cast<std::uint8_t>(
+                                       (drop.slot > sourceSlot) ? (drop.slot - 1) : drop.slot));
+    }
 
-    std::uint8_t const sourceIndex((sourceX - ModuleUI::horizontalOffset) / slotWidth);
-    std::uint8_t const targetIndex((targetX - ModuleUI::horizontalOffset) / slotWidth);
-    if (sourceIndex == targetIndex)
-        return;
+    refreshModuleRackAsync();
+}
 
-    /// \note The rack is told first and the engine second, which is the order
-    /// every edit takes now: the strips move here so the drag ends where the
-    /// user let go, and resyncModuleRack() puts them where the chain says once
-    /// the engine has caught up. They agree either way -- this is the same
-    /// permutation, applied to the same two orderings.
-    ///                                       (02.08.2026.) (SW port)
-    std::int8_t const from(static_cast<std::int8_t>(sourceIndex));
-    std::int8_t const to(static_cast<std::int8_t>(targetIndex));
-    std::int8_t const step(from < to ? -1 : +1);
+void SpectrumWorxEditor::moveModuleSlot(std::uint8_t const from, std::uint8_t const to)
+{
+    LE_ASSERT(from != to);
+
+    auto const first(static_cast<std::int8_t>(from));
+    auto const last(static_cast<std::int8_t>(to));
+    std::int8_t const step(first < last ? -1 : +1);
     for (auto &pRegion : moduleRegions_)
     {
         if (!pRegion)
             continue;
         auto const slot(static_cast<std::int8_t>(pRegion->slot()));
-        if (slot == from)
-            pRegion->moveToSlot(static_cast<std::uint8_t>(to));
-        else if ((slot >= std::min(from, to)) && (slot <= std::max(from, to)))
+        if (slot == first)
+            pRegion->moveToSlot(to);
+        else if ((slot >= std::min(first, last)) && (slot <= std::max(first, last)))
             pRegion->moveToSlot(static_cast<std::uint8_t>(slot + step));
     }
 
-    editorHost().editModuleMove(sourceIndex, targetIndex);
+    editorHost().editModuleMove(from, to);
 
     host().gestureBegin("Drag module");
-    for (std::uint8_t slot(std::min(sourceIndex, targetIndex));
-         slot <= std::max(sourceIndex, targetIndex); ++slot)
+    for (std::uint8_t slot(std::min(from, to)); slot <= std::max(from, to); ++slot)
         host().moduleChangedByUser(slot, effectInRackSlot(slot));
     host().gestureEnd();
+}
 
-    refreshModuleRackAsync();
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Two moves, because a move is the only reordering primitive the chain
+/// has and a swap of two strips that are not neighbours is not one. Taking the
+/// first to where the second is drags the second back one place -- everything
+/// between them shifted left to close the gap -- so bringing it from there to
+/// where the first was puts the block between them back where it started. For
+/// neighbours the first move is already the swap and the second is a no-op, which
+/// is why it is skipped rather than special-cased.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::swapModuleSlots(std::uint8_t const a, std::uint8_t const b)
+{
+    LE_ASSERT(a != b);
+
+    auto const first(std::min(a, b));
+    auto const second(std::max(a, b));
+
+    auto *const pFirst(regionInRackSlot(first));
+    auto *const pSecond(regionInRackSlot(second));
+    LE_ASSERT_MSG(pFirst && pSecond, "A swap of a slot with no strip in it.");
+    if (!pFirst || !pSecond)
+        return;
+
+    pFirst->moveToSlot(second);
+    pSecond->moveToSlot(first);
+
+    editorHost().editModuleMove(first, second);
+    if (auto const displaced(static_cast<std::uint8_t>(second - 1)); displaced != first)
+        editorHost().editModuleMove(displaced, first);
+
+    /// \note Only the two, unlike a move: nothing between them changed slots.
+    host().gestureBegin("Swap modules");
+    host().moduleChangedByUser(first, effectInRackSlot(first));
+    host().moduleChangedByUser(second, effectInRackSlot(second));
+    host().gestureEnd();
 }
 
 void SpectrumWorxEditor::setLastModulePosition(std::uint_fast8_t const slotIndex)
@@ -733,47 +898,107 @@ void drawMainAreaText(juce::Graphics &graphics, EditorMainAreaText const &text)
 }
 } //anonymous namespace
 
-void SpectrumWorxEditor::paint(juce::Graphics &graphics)
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::MainArea
+// ----------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+SpectrumWorxEditor::MainArea::MainArea()
 {
-    auto const &background(resourceArtwork<EditorBackground>());
-    GUI::paintImage(graphics, background);
+    setSizeFromImage(*this, resourceArtwork<EditorBackground>());
+    setOpaque(true);
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note The skin is 563 px wide and an editor with a panel column is not,
-    /// so the column is the bitmap's last pixel column stretched across it.
-    /// That column is the skin's outer surround -- flat, top to bottom, because
-    /// the rounded rectangle holding the module strips ends ten pixels before
-    /// it -- so stretching it is what "the panel sits on the same chrome" looks
-    /// like, and it stays right for a skin that changes the colour. The
-    /// alternative was a constant here that a new skin would silently disagree
-    /// with. This component is opaque, so something has to cover it.
-    ///                                       (06.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note Neither wanted nor grabbed: this is a background, and the component
+    /// a click on it should focus is the editor. JUCE walks up to the first
+    /// parent that wants the keyboard, which is what this being transparent to
+    /// both flags leaves in place.
+    setWantsKeyboardFocus(false);
+    setMouseClickGrabsKeyboardFocus(false);
 
-    /// \note background.getHeight() rather than getHeight(): the editor is taller
-    /// than its artwork by the build-stamp bar, and that bar runs the full width
-    /// in one piece.
-    if (auto const extra(getWidth() - background.getWidth()); extra > 0)
-        background.drawScaled(graphics, {background.getWidth(), 0, extra, background.getHeight()},
-                              {background.getWidth() - 1, 0, 1, background.getHeight()});
+    addToParentAndShow(editor(), *this);
+}
+
+SpectrumWorxEditor &SpectrumWorxEditor::MainArea::editor()
+{
+    return Utility::ParentFromMember<SpectrumWorxEditor, MainArea,
+                                     &SpectrumWorxEditor::mainArea_>()(*this);
+}
+
+SpectrumWorxEditor const &SpectrumWorxEditor::MainArea::editor() const
+{
+    return const_cast<MainArea &>(*this).editor();
+}
+
+void SpectrumWorxEditor::MainArea::paint(juce::Graphics &graphics)
+{
+    auto &editor(this->editor());
+
+    GUI::paintImage(graphics, resourceArtwork<EditorBackground>());
 
     juce::Font const &moduleNameFont(Theme::singleton().blueFont());
     juce::Font const &sampleNameFont(DrawableText::defaultFont());
     juce::Font const &controlTextFont(Theme::singleton().whiteFont());
 
-    mainAreaTexts[0].pText = &string(activeModuleName);
+    mainAreaTexts[0].pText = &editor.string(activeModuleName);
     mainAreaTexts[0].pFont = &moduleNameFont;
-    mainAreaTexts[1].pText = &string(activeControlName);
+    mainAreaTexts[1].pText = &editor.string(activeControlName);
     mainAreaTexts[1].pFont = &controlTextFont;
-    mainAreaTexts[2].pText = &string(activeControlValue);
+    mainAreaTexts[2].pText = &editor.string(activeControlValue);
     mainAreaTexts[2].pFont = &controlTextFont;
-    mainAreaTexts[3].pText = &string(currentSampleName);
+    mainAreaTexts[3].pText = &editor.string(currentSampleName);
     mainAreaTexts[3].pFont = &sampleNameFont;
 
     for (auto const &text : mainAreaTexts)
         drawMainAreaText(graphics, text);
+}
+
+/// \note The logo, and it is this component's rather than the editor's because
+/// the rectangle is a position in the skin -- which is what this component's
+/// coordinates are and what the editor's stopped being when the panel column
+/// went to the left.
+void SpectrumWorxEditor::MainArea::mouseDown(juce::MouseEvent const &event)
+{
+    juce::Rectangle<int> const logoArea(12, 290, 51, 63);
+    if (logoArea.contains(event.x, event.y))
+    {
+        /// \note Was 3, and there are three tabs. JUCE clamps an out of range
+        /// index to -1, so clicking the logo raised the panel with *no* page
+        /// selected -- an empty transparent window over the desktop, which is
+        /// why nobody saw it, and an empty panel over the editor now. The About
+        /// page this means is index 2.
+        ///                                   (01.08.2026.) (SW port)
+        editor().showSettings(aboutPageIndex);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note What is left of the editor once the skin is a child of it: the column
+/// the panel sits in, and the build-stamp bar.
+///
+///   The column is the bitmap's *first* pixel column stretched across it. That
+/// column is the skin's outer surround -- flat, top to bottom, because the
+/// rounded rectangle holding the knobs starts a few pixels inside it -- so
+/// stretching it is what "the panel sits on the same chrome" looks like, and it
+/// stays right for a skin that changes the colour. The alternative was a constant
+/// here that a new skin would silently disagree with. This component is opaque,
+/// so something has to cover it.
+///                                           (06.08.2026, mirrored 14.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::paint(juce::Graphics &graphics)
+{
+    auto const &background(resourceArtwork<EditorBackground>());
+
+    /// \note background.getHeight() rather than getHeight(): the editor is taller
+    /// than its artwork by the build-stamp bar, and that bar runs the full width
+    /// in one piece.
+    if (auto const column(mainArea_.getX()); column > 0)
+        background.drawScaled(graphics, {0, 0, column, background.getHeight()},
+                              {0, 0, 1, background.getHeight()});
 
     paintBuildStamp(graphics);
 }
@@ -838,7 +1063,8 @@ void LE_NOINLINE SpectrumWorxEditor::updateString(String const stringID,
     string(stringID) = updatedString;
 
     using namespace Constants::Layout;
-    repaint(textBoxHorizontalOffset, stringVerticalOffset, textBoxWidth, stringHeight);
+    /// \note The skin's coordinates, which are the main area's. \see MainArea.
+    mainArea_.repaint(textBoxHorizontalOffset, stringVerticalOffset, textBoxWidth, stringHeight);
 }
 
 void SpectrumWorxEditor::setActiveModuleName(juce::String const &newName)
@@ -1432,21 +1658,6 @@ void SpectrumWorxEditor::destroyChainGUIs()
     setLastModulePosition(0);
 }
 
-void SpectrumWorxEditor::mouseDown(juce::MouseEvent const &event)
-{
-    juce::Rectangle<int> const logoArea(12, 290, 51, 63);
-    if (logoArea.contains(event.x, event.y))
-    {
-        /// \note Was 3, and there are three tabs. JUCE clamps an out of range
-        /// index to -1, so clicking the logo raised the panel with *no* page
-        /// selected -- an empty transparent window over the desktop, which is
-        /// why nobody saw it, and an empty panel over the editor now. The About
-        /// page this means is index 2.
-        ///                                   (01.08.2026.) (SW port)
-        showSettings(aboutPageIndex);
-    }
-}
-
 /// \note `settings_` may already be up without the user having opened it -- it is
 /// what alwaysVisible rests on -- so this only builds a panel when there is none,
 /// and lights the button either way.
@@ -1637,7 +1848,7 @@ void SpectrumWorxEditor::createModuleRegion(LE::Utility::IntrusivePtr<Module> co
             LE_ASSERT_MSG(false, "Module region construction threw; the slot has no strip.");
             return;
         }
-        addToParentAndShow(*this, *pRegion);
+        addToParentAndShow(mainArea_, *pRegion);
         return;
     }
 
@@ -1880,7 +2091,7 @@ void SpectrumWorxEditor::updateModuleParameterAndNotifyHost(ModuleUI &moduleUI,
 }
 
 SpectrumWorxEditor::ModuleMenuButton::ModuleMenuButton(SpectrumWorxEditor &parent)
-    : BitmapButton(parent, resourceArtwork<AddModule>(), resourceArtwork<AddModule>(),
+    : BitmapButton(parent.mainArea(), resourceArtwork<AddModule>(), resourceArtwork<AddModule>(),
                    Theme::singleton().blueColour())
 {
 }
@@ -1896,8 +2107,9 @@ void SpectrumWorxEditor::ModuleMenuButton::moveToSlot(std::uint8_t const slotInd
 
 void SpectrumWorxEditor::ModuleMenuButton::clicked()
 {
-    SpectrumWorxEditor &editor(
-        *LE::Utility::polymorphicDowncast<SpectrumWorxEditor *>(this->getParentComponent()));
+    /// \note fromChild() rather than a downcast of the parent: the parent is the
+    /// main area now, not the editor. \see MainArea.
+    SpectrumWorxEditor &editor(SpectrumWorxEditor::fromChild(*this));
     LE_ASSERT(editor.nextAvailableModuleSlot_ < SW::Constants::maxNumberOfModules);
     /// \note The menu no longer blocks, so the editor can be torn down while it
     /// is open -- a host closing the window under it. A SafePointer to it, and
@@ -1913,18 +2125,79 @@ void SpectrumWorxEditor::ModuleMenuButton::clicked()
         });
 }
 
-SpectrumWorxEditor::Gradient::Gradient(juce::Component &parent)
-    : gradient_(juce::Colours::transparentWhite, 0, 0, juce::Colours::transparentWhite,
-                static_cast<float>(ModuleUI::width), 0, false)
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::DropIndicator
+// ---------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+SpectrumWorxEditor::DropIndicator::DropIndicator(juce::Component &parent)
 {
-    gradient_.addColour(0.5, juce::Colours::darkgrey);
+    /// \note Neither focusable nor clickable: it is drawn over the rack during a
+    /// drag, and a drag is delivered to the strip it started on.
+    setWantsKeyboardFocus(false);
+    setInterceptsMouseClicks(false, false);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And on top for good, rather than raised and lowered around each
+    /// drag. It has to be above the module strips or a swap's fill is painted
+    /// over by the strip it is marking -- and it is built before any strip
+    /// exists, so ordinary z-order puts it underneath every one of them.
+    ///
+    ///   The raise-and-lower this replaces was there because the thing being
+    /// raised was a child of the *editor*, alongside the panels, so a stale
+    /// always-on-top left it painting over an open preset browser. It is a child
+    /// of the main area now and a panel is a sibling of that, so there is nothing
+    /// left for it to rise above.
+    ///                                       (14.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    setAlwaysOnTop(true);
+
     addToParentAndShow(parent, *this);
+    setInvisible();
 }
 
-void SpectrumWorxEditor::Gradient::paint(juce::Graphics &graphics)
+void SpectrumWorxEditor::DropIndicator::showSwap(std::uint8_t const slotIndex)
 {
-    graphics.setGradientFill(gradient_);
-    graphics.fillAll();
+    insert_ = false;
+    setBounds(ModuleUI::horizontalOffset + (slotIndex * slotWidth), ModuleUI::verticalOffset,
+              ModuleUI::width, ModuleUI::height);
+    setVisible();
+}
+
+/// \note Taller than a strip, by a few pixels at each end. A strip is already
+/// outlined in the skin's blue, so a line exactly as tall as one reads as a
+/// thicker border on whichever strip the eye assigns it to; overrunning both is
+/// what makes it a divider between them instead.
+void SpectrumWorxEditor::DropIndicator::showInsert(std::uint8_t const gapIndex)
+{
+    insert_ = true;
+    setBounds(ModuleUI::horizontalOffset + (gapIndex * slotWidth) - (lineWidth / 2),
+              ModuleUI::verticalOffset - lineOverrun, lineWidth,
+              ModuleUI::height + (2 * lineOverrun));
+    setVisible();
+}
+
+/// \note The skin's own blue for both, brightened for the line so that four
+/// pixels of it read as an edge against the rack rather than as part of it, and
+/// laid over the target strip for a swap so that what is underneath still shows
+/// through -- which is what says *which* strip is being pointed at.
+void SpectrumWorxEditor::DropIndicator::paint(juce::Graphics &graphics)
+{
+    auto const blue(Theme::blueColour());
+
+    if (insert_)
+    {
+        graphics.fillAll(blue.brighter(0.85f));
+        return;
+    }
+
+    graphics.fillAll(blue.withAlpha(0.35f));
+    graphics.setColour(blue);
+    graphics.drawRect(getLocalBounds(), 2);
 }
 
 namespace
@@ -2056,7 +2329,7 @@ void SpectrumWorxEditor::LFODisplay::setupForControl(ModuleControlBase &control,
 
     updateAllControls();
 
-    addToParentAndShow(editor(), *this);
+    addToParentAndShow(editor().mainArea(), *this);
 
     repaint();
 }
@@ -2250,7 +2523,7 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
     LE_ASSERT(editor().activeControl() != nullptr);
     LE_ASSERT(editor().activeControl() == &control());
     LE_ASSERT(control().isActive());
-    LE_ASSERT(getParentComponent() == &editor());
+    LE_ASSERT(getParentComponent() == &editor().mainArea());
 
     {
         graphics.setFont(DrawableText::defaultFont());
@@ -2551,7 +2824,7 @@ SpectrumWorxEditor &SpectrumWorxEditor::LFODisplay::editor()
     SpectrumWorxEditor &editor(
         Utility::ParentFromOptionalMember<SpectrumWorxEditor, LFODisplay,
                                           &SpectrumWorxEditor::lfoDisplay_, false>()(*this));
-    LE_ASSERT((&editor == this->getParentComponent()) || !this->getParentComponent());
+    LE_ASSERT((&editor.mainArea() == this->getParentComponent()) || !this->getParentComponent());
     return editor;
 }
 
@@ -2589,7 +2862,7 @@ SpectrumWorxEditor::LFODisplay const &SpectrumWorxEditor::LFODisplay::Period::pa
 SpectrumWorxEditor::SampleArea::SampleArea()
 {
     setMouseCursor(juce::MouseCursor::PointingHandCursor);
-    addToParentAndShow(editor(), *this);
+    addToParentAndShow(editor().mainArea(), *this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

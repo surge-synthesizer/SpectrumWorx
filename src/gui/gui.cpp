@@ -1026,7 +1026,7 @@ Knob::param_type Knob::getNormalisedValue() const
 }
 
 EditorKnob::EditorKnob(SpectrumWorxEditor &parent, unsigned int const x, unsigned int const y)
-    : Knob(parent, x, y, 0, 0), parameterIndex_(0)
+    : Knob(parent.mainArea(), x, y, 0, 0), parameterIndex_(0)
 {
     setScrollWheelEnabled(true);
     setWantsKeyboardFocus(false);
@@ -1126,10 +1126,9 @@ void EditorKnob::stoppedDragging() noexcept
     Knob::stoppedDragging();
 }
 
-SpectrumWorxEditor &EditorKnob::editor()
-{
-    return *LE::Utility::polymorphicDowncast<SpectrumWorxEditor *>(this->getParentComponent());
-}
+/// \note fromChild() rather than a downcast of the parent, which is the main
+/// area rather than the editor. \see SpectrumWorxEditor::MainArea.
+SpectrumWorxEditor &EditorKnob::editor() { return SpectrumWorxEditor::fromChild(*this); }
 
 TitledComboBox::TitledComboBox(juce::Component &parent, unsigned int const x, unsigned int const y,
                                char const *const title)

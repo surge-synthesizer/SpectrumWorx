@@ -203,7 +203,10 @@ class EditorPage final : public juce::Component
         setSize(zoomed_->getWidth(), zoomed_->getHeight());
 
         if (withModuleInFirstSlot)
+        {
             fillFirstSlot();
+            showModuleDrop();
+        }
 
         if (openPresetBrowser)
         {
@@ -360,6 +363,47 @@ class EditorPage final : public juce::Component
         ///
         ////////////////////////////////////////////////////////////////////////
         editor_->resyncModuleRack();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief SW_SHOW_UI_MODULE_DROP -- what dragging a strip over the rack
+    /// looks like. "swap:<slot>" fills the strip a drop would change places
+    /// with; "insert:<gap>" draws the line a drop would open the rack at.
+    ///
+    /// \note Which of the two indications is right is a question for an eye.
+    /// tests/gui/moduleDragTests.cpp can say that a swap fills its target and an
+    /// insert draws a sliver between two, and cannot say whether either reads as
+    /// an invitation to let go of the mouse.
+    ///
+    /// \note Through showModuleDrop() rather than a real drag, for the same
+    /// reason that file gives: a JUCE drag needs a window, and this page renders
+    /// offscreen.
+    ///                                       (14.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    void showModuleDrop()
+    {
+        auto const *const requested(std::getenv("SW_SHOW_UI_MODULE_DROP"));
+        if (!requested)
+            return;
+
+        auto const *const pIndex(std::strchr(requested, ':'));
+        LE_ASSERT_MSG(pIndex, "SW_SHOW_UI_MODULE_DROP: swap:<slot> or insert:<gap>.");
+        if (!pIndex)
+            return;
+
+        // Something to drop between: the page fills one slot, this fills two more.
+        for (std::uint8_t effect(1); effect < 3; ++effect)
+            editor_->addUserAddedModule(effect);
+        editor_->resyncModuleRack();
+
+        using Drop = GUI::SpectrumWorxEditor::ModuleDrop;
+        bool const swap(std::strncmp(requested, "swap", 4) == 0);
+        std::fprintf(stderr, "sw-show-ui: %s at %s\n", swap ? "swap" : "insert", pIndex + 1);
+        editor_->showModuleDrop(
+            {swap ? Drop::swap : Drop::insert, static_cast<std::uint8_t>(std::atoi(pIndex + 1))});
     }
 
     HarnessHost host_;

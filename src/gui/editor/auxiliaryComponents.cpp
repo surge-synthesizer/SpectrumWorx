@@ -77,7 +77,7 @@ SharedModuleControls::SharedModuleControls()
     addToParentAndShow(*this, frequencyRange_);
 
     setBounds(77, 80, 116, 79);
-    addToParentAndShow(editor(), *this);
+    addToParentAndShow(editor().mainArea(), *this);
 
     updateForEngineSetupChanges(editor().engineSetup());
 }

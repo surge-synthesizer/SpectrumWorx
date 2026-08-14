@@ -337,6 +337,11 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     /// \brief Which slot this strip is drawn in, as last set by moveToSlot().
     std::uint8_t slot() const { return slot_; }
 
+    /// \brief Whether \p position -- in this strip's coordinates -- is somewhere
+    /// it can be picked up by: the row the eject `X` is in, or the name under the
+    /// blue rule. Public because it is also what the cursor says.
+    bool isDragHandle(juce::Point<int> position) const;
+
     /// \note Was `static ModuleUI *selectedModule()` over a file-scope pointer,
     /// with a 2011 note arguing that a static was safe "even if there are multiple
     /// effect editor instances open" because no two windows can have focus at
@@ -384,12 +389,20 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     void deactivate();
     bool selectionTracksMouseMovements() const;
 
+  private:
+    /// \brief A hand over a drag handle and the arrow everywhere else. \see
+    /// isDragHandle().
+    void updateCursorFor(juce::Point<int> position);
+
   private: // JUCE Component overrides.
     void paint(juce::Graphics &) override;
 
     void mouseDrag(juce::MouseEvent const &) override;
     void mouseEnter(juce::MouseEvent const &) override;
     void mouseExit(juce::MouseEvent const &) noexcept override;
+    /// \note Only the cursor. JUCE reveals it right after delivering this, which
+    /// is what lets one component carry two.
+    void mouseMove(juce::MouseEvent const &) override;
     void mouseUp(juce::MouseEvent const &) noexcept override;
 
     void focusGained(FocusChangeType) override;
@@ -426,6 +439,14 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     static std::uint8_t const width = 68;
     static std::uint8_t const distance = 0;
     static std::uint8_t const border = 4;
+
+    /// \brief The blue rule across the bottom of a strip: the effect's controls
+    /// are above it and its name is below.
+    ///
+    /// \note Was `height - 30` written out in paint(), twice. It is a boundary two
+    /// things now depend on -- what is drawn, and where the strip can be picked up
+    /// -- so it is a name.
+    static std::uint16_t const nameRule = height - 30;
 
     static std::uint8_t const baseWidgets = 2;
 

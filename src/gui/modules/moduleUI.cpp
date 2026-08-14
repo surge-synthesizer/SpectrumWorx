@@ -372,7 +372,7 @@ ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Mod
     /// createGUI() did the same thing with an `editor.addChildComponent()` under
     /// `#ifndef NDEBUG`, for the same reason and only in a checked build.
     ///                                       (02.08.2026.) (SW port)
-    editor_.addChildComponent(this);
+    editor_.mainArea().addChildComponent(this);
 
     pWidgets_ = createModuleWidgets(module().effectTypeIndex(), *this);
     LE_ASSERT_MSG(pWidgets_ != nullptr, "No widgets for this effect index.");
@@ -456,30 +456,57 @@ void ModuleUI::paint(juce::Graphics &graphics)
     paintImage(graphics,
                isActive ? resourceArtwork<ModuleBgSelected>() : resourceArtwork<ModuleBg>());
     graphics.setColour(Theme::singleton().blueColour());
-    graphics.drawHorizontalLine(height - 30, static_cast<float>(ModuleUI::border),
+    graphics.drawHorizontalLine(nameRule, static_cast<float>(ModuleUI::border),
                                 Math::convert<float>(getWidth() - ModuleUI::border));
 
     graphics.setFont(Theme::singleton().whiteFont());
-    graphics.drawFittedText(getName(), 3, height - 30, width - 6, 28, juce::Justification::centred,
-                            3, 0.6f);
+    graphics.drawFittedText(getName(), 3, nameRule, width - 6, 28, juce::Justification::centred, 3,
+                            0.6f);
+}
+
+/// \note It was every pixel no control happened to cover, which made a drag of
+/// the gaps between knobs: a slip off a knob moved the module instead of the
+/// value. The eject button's own bottom edge rather than a constant, so a skin
+/// that resizes the `X` moves the band with it.
+bool ModuleUI::isDragHandle(juce::Point<int> const position) const
+{
+    if (!getLocalBounds().contains(position))
+        return false;
+    return (position.getY() < eject_.getBottom()) || (position.getY() >= nameRule);
+}
+
+/// \note The open flat hand, not the pointing finger: the finger is the web-link
+/// cursor and means "click this".
+void ModuleUI::updateCursorFor(juce::Point<int> const position)
+{
+    setMouseCursor(isDragHandle(position) ? juce::MouseCursor::DraggingHandCursor
+                                          : juce::MouseCursor::NormalCursor);
 }
 
 void ModuleUI::mouseDrag(juce::MouseEvent const &event)
 {
-    if (event.mods.isLeftButtonDown())
+    /// \note Where the mouse went *down*, not where it is: a drag that began on a
+    /// handle stays a drag wherever it is carried, and one that began anywhere
+    /// else never becomes one.
+    if (event.mods.isLeftButtonDown() && isDragHandle(event.getMouseDownPosition()))
         editor().moduleDrag(*this, event);
 }
 
 void ModuleUI::mouseUp(juce::MouseEvent const &event) noexcept
 {
-    editor().moduleDragEnd(*this, event);
+    if (isDragHandle(event.getMouseDownPosition()))
+        editor().moduleDragEnd(*this, event);
 }
 
-void ModuleUI::mouseEnter(juce::MouseEvent const &)
+void ModuleUI::mouseEnter(juce::MouseEvent const &event)
 {
+    updateCursorFor(event.getPosition());
+
     if (selectionTracksMouseMovements())
         activate();
 }
+
+void ModuleUI::mouseMove(juce::MouseEvent const &event) { updateCursorFor(event.getPosition()); }
 
 void ModuleUI::mouseExit(juce::MouseEvent const &event) noexcept
 {

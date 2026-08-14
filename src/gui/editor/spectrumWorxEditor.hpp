@@ -147,6 +147,10 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// panelColumnX below for the two places it can be.
     ///                                       (06.08.2026.) (SW port)
     ///
+    /// \note The column is on the **left** and the skin moves right to make room
+    /// for it. \see MainArea, which is what moves.
+    ///                                       (14.08.2026.) (SW port)
+    ///
     ////////////////////////////////////////////////////////////////////////////
 
     enum class PanelPlacement : std::uint8_t
@@ -484,10 +488,22 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// The skin's right margin, the module strips ending at overlayX + overlayWidth.
     static constexpr unsigned short panelMargin{estimatedWidth - (overlayX + overlayWidth)};
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
     /// \brief The editor with a column of its own for the panel, and where the
-    /// panel goes in it: the same margin either side as the strips have.
-    static constexpr unsigned short expandedWidth{estimatedWidth + panelMargin + overlayWidth};
-    static constexpr unsigned short panelColumnX{estimatedWidth};
+    /// two things in it go: the panel against the left edge, the skin to the
+    /// right of it, each with the margin the strips already have.
+    ///
+    /// \note The column used to be on the right, which cost nothing to lay out --
+    /// every offset in the skin is measured from an origin that did not move --
+    /// and put the panel a user opens the plugin for at the far edge of the
+    /// window. It is on the left now and the skin is what moves. \see mainArea().
+    ///                                       (14.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static constexpr unsigned short panelColumnX{panelMargin};
+    static constexpr unsigned short mainAreaX{panelColumnX + overlayWidth};
+    static constexpr unsigned short expandedWidth{mainAreaX + estimatedWidth};
 
   private:
     void newSampleFileSelected(fs::path const &);
@@ -540,7 +556,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
     void paintBuildStamp(juce::Graphics &) const;
 
   private: // JUCE Component overrides.
-    void mouseDown(juce::MouseEvent const &) override;
+    /// \note Only what is outside the skin: the panel column's chrome and the
+    /// build-stamp bar. The skin itself is MainArea's. \see the definition.
     void paint(juce::Graphics &) override;
     void parentHierarchyChanged() override;
 
@@ -661,6 +678,47 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     SharedModuleControls &sharedModuleControls() { return *sharedModuleControls_; }
 
+  public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The skin, and every widget laid out in its pixels.
+    ///
+    ///   Everything but a panel is parented here rather than to the editor, and
+    /// that is the whole of what moving the panel column to the left cost: the
+    /// skin's 563 x 376 coordinate system is this component's, so no offset in it
+    /// moved and none of them has to know whether there is a column. The editor
+    /// slides this right by mainAreaX when there is one and paints what is left of
+    /// itself -- the column's chrome and the build-stamp bar.
+    ///
+    /// \note It is also the component the zoom note above wants: one content child
+    /// carrying everything, which is where a transform would go.
+    ///                                       (14.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    class MainArea final : public WidgetBase<>
+    {
+      public:
+        MainArea();
+
+      private: // JUCE Component overrides.
+        void paint(juce::Graphics &) override;
+        /// \brief The logo, which opens the About page. \see the definition.
+        void mouseDown(juce::MouseEvent const &) override;
+
+      private:
+        SpectrumWorxEditor &editor();
+        SpectrumWorxEditor const &editor() const;
+    }; // class MainArea
+
+    /// \brief Where every widget but a panel lives. \see MainArea.
+    ///
+    /// \note Public because a strip, the shared controls and the LFO display are
+    /// all built outside this class and parent themselves to it -- and because a
+    /// test that means to click the skin has to click this rather than the editor.
+    MainArea &mainArea() { return mainArea_; }
+    MainArea const &mainArea() const { return mainArea_; }
+
   private:
     ////////////////////////////////////////////////////////////////////////////
     /// \internal
@@ -679,23 +737,138 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     ////////////////////////////////////////////////////////////////////////////
     /// \internal
-    /// \class Gradient
+    /// \class DropIndicator
+    ///
+    /// \brief Where a dragged strip would land: over the strip it would change
+    /// places with, or in the gap it would be inserted into.
+    ///
+    /// \note One component for both, because only one of the two can be showing
+    /// and because the two are answers to the same question -- which is asked
+    /// once, by moduleDropAt(), and drawn here.
+    ///
+    /// \note What replaced a `Gradient`: a 68 px block of transparent-to-grey
+    /// straddling a slot boundary, which was the only drop this editor had and
+    /// so did not have to say which of two it was.
+    ///                                       (14.08.2026.) (SW port)
     ////////////////////////////////////////////////////////////////////////////
 
-    /// \note Holds a ColourGradient rather than deriving from one: JUCE 8 marks
-    /// it final.
-    class Gradient final : public WidgetBase
+    class DropIndicator final : public WidgetBase<>
     {
       public:
-        Gradient(juce::Component &parent);
-        ~Gradient() {}
+        explicit DropIndicator(juce::Component &parent);
+
+        /// \brief Over the strip in \p slotIndex, which a drop would exchange the
+        /// dragged one with.
+        void showSwap(std::uint8_t slotIndex);
+
+        /// \brief In the gap before \p gapIndex, 0 to maxNumberOfModules, which a
+        /// drop would shift the strips apart at.
+        void showInsert(std::uint8_t gapIndex);
+
+        void hide() { setInvisible(); }
+
+        /// The insert line's width -- even, so that it straddles the gap -- and
+        /// how far past the strips it runs at each end. \see showInsert().
+        static constexpr int lineWidth{6};
+        static constexpr int lineOverrun{5};
 
       private: // JUCE component overrides.
         void paint(juce::Graphics &) override;
 
       private:
-        juce::ColourGradient gradient_;
-    }; // class Gradient
+        bool insert_{false};
+    }; // class DropIndicator
+
+  public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What letting go of a dragged strip somewhere would do.
+    ///
+    /// \note A value rather than a state the drag keeps, so that the question is
+    /// asked the same way twice: moduleDrag() asks it to draw the indicator and
+    /// moduleDragEnd() asks it again to act. What the user is shown and what
+    /// happens are then the same function of the same point, rather than a
+    /// drawing and an interpretation of that drawing -- which is what the code
+    /// this replaced did, recovering the target slot from where it had put a
+    /// gradient block.
+    ///                                       (14.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    struct ModuleDrop
+    {
+        enum Action : std::uint8_t
+        {
+            /// Outside the drop zone, or a drop that would not move anything.
+            nothing,
+            /// Exchange the dragged strip with the one in `slot`.
+            swap,
+            /// Put the dragged strip in the gap `slot`, shifting the rest along.
+            insert
+        }; // enum Action
+
+        Action action{nothing};
+
+        /// A slot index for `swap`; a gap index, 0 to the number of strips, for
+        /// `insert`.
+        std::uint8_t slot{0};
+    }; // struct ModuleDrop
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Where the strip a drag is carrying would be: \p pointer, in the
+    /// skin's coordinates, less where in the strip it was \p grabbedAt, plus half
+    /// a strip.
+    ///
+    ///   Which is the column the eject `X` is drawn in, that marker being centred
+    /// on the strip -- and it is what a drop is aimed with rather than the
+    /// pointer. \see the definition.
+    ///
+    /// \note Public and static so that a test can compose it with moduleDropAt():
+    /// what went wrong here is that the two disagreed, and that is a question
+    /// about the pair rather than about either.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static juce::Point<int> draggedStripCentre(juce::Point<int> pointer,
+                                               juce::Point<int> grabbedAt);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What a drop with the dragged strip's middle at \p position -- in
+    /// the skin's coordinates, which are mainArea()'s -- would do to the strip in
+    /// \p sourceSlot. \see draggedStripCentre() for what \p position is.
+    ///
+    /// \note Public so that a test can ask it. Driving this by mouse needs a real
+    /// drag, which needs a window and a `MouseInputSource` that a synthesised
+    /// event does not touch (see tests/gui/moduleControlFocusTests.cpp), and the
+    /// geometry is the half of a drop that can be wrong in a way nobody notices.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    ModuleDrop moduleDropAt(std::uint8_t sourceSlot, juce::Point<int> position) const;
+
+    /// \brief Shows what \p drop would do -- a filled target strip for a swap, a
+    /// line in a gap for an insert -- or takes the indication away.
+    ///
+    /// \note Public for the same reason as moduleDropAt(): the only other way to
+    /// this is a live JUCE drag, and what a drag *draws* is the half of it a user
+    /// reads before committing to anything.
+    void showModuleDrop(ModuleDrop drop);
+
+    /// \brief Carries \p drop out on the strip in \p sourceSlot: the rack first,
+    /// then the engine, then the host. Public for the same reason as
+    /// moduleDropAt(). \see the definition.
+    void applyModuleDrop(std::uint8_t sourceSlot, ModuleDrop drop);
+
+  private:
+    /// \brief The above, with the two coordinate conversions a mouse event needs.
+    juce::Point<int> draggedStripCentre(ModuleUI const &, juce::MouseEvent const &) const;
+
+    /// \brief Exchanges the strips in two slots, which is two moves. \see the
+    /// definition.
+    void swapModuleSlots(std::uint8_t a, std::uint8_t b);
+
+    /// \brief Moves the strip in \p from to \p to, shifting everything between.
+    void moveModuleSlot(std::uint8_t from, std::uint8_t to);
 
   public:
     ////////////////////////////////////////////////////////////////////////////
@@ -1018,11 +1191,14 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     std::uint8_t nextAvailableModuleSlot_;
 
+    /// \note Before every widget below, all of which parent themselves to it.
+    MainArea mainArea_;
+
     EditorKnob in_, out_, mix_;
 
     ModuleMenuHolder const moduleMenu_;
     ModuleMenuButton moduleMenuButton_;
-    Gradient gradient_;
+    DropIndicator dropIndicator_;
 
     /// \note Was public, for the 2016 loader thread's completion callback to
     /// reach. There is no loader thread now, so it is nobody's but the editor's

@@ -107,26 +107,58 @@ juce::Image rendered(Editor &editor)
     return image;
 }
 
-/// \brief What fraction of \p area two renders disagree about.
+////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note The two need not be the same size, only both big enough to hold \p area:
-/// the placement cases compare the left 563 px of a grown editor against the
+/// \brief What fraction of two equally sized rectangles two renders disagree
+/// about.
+///
+/// \note A rectangle each, because the skin is not in the same place in both. An
+/// editor that has grown a column draws the skin mainAreaX to the right of where
+/// an unexpanded one draws it -- the panel is on the left -- so "is the rack the
+/// same" is a question about one rectangle *of the skin* at two positions on
+/// screen. \see withColumn() below.
+///
+/// \note The two images need not be the same size, only each big enough to hold
+/// its own rectangle: the placement cases compare a grown editor against the
 /// editor it grew from, which is the whole question those cases ask.
-double differenceOver(juce::Image const &left, juce::Image const &right,
-                      juce::Rectangle<int> const &area)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+double differenceOver(juce::Image const &left, juce::Rectangle<int> const &leftArea,
+                      juce::Image const &right, juce::Rectangle<int> const &rightArea)
 {
-    REQUIRE(right.getBounds().contains(area));
-    REQUIRE(left.getBounds().contains(area));
+    REQUIRE(leftArea.getWidth() == rightArea.getWidth());
+    REQUIRE(leftArea.getHeight() == rightArea.getHeight());
+    REQUIRE(left.getBounds().contains(leftArea));
+    REQUIRE(right.getBounds().contains(rightArea));
 
     juce::Image::BitmapData const leftPixels(left, juce::Image::BitmapData::readOnly);
     juce::Image::BitmapData const rightPixels(right, juce::Image::BitmapData::readOnly);
 
-    std::size_t different{0};
-    for (int y(area.getY()); y < area.getBottom(); ++y)
-        for (int x(area.getX()); x < area.getRight(); ++x)
-            different += (leftPixels.getPixelColour(x, y) != rightPixels.getPixelColour(x, y));
+    auto const offset(rightArea.getPosition() - leftArea.getPosition());
 
-    return double(different) / double(area.getWidth() * area.getHeight());
+    std::size_t different{0};
+    for (int y(leftArea.getY()); y < leftArea.getBottom(); ++y)
+        for (int x(leftArea.getX()); x < leftArea.getRight(); ++x)
+            different += (leftPixels.getPixelColour(x, y) !=
+                          rightPixels.getPixelColour(x + offset.x, y + offset.y));
+
+    return double(different) / double(leftArea.getWidth() * leftArea.getHeight());
+}
+
+/// The same rectangle in both, which is every case where neither editor moved.
+double differenceOver(juce::Image const &left, juce::Image const &right,
+                      juce::Rectangle<int> const &area)
+{
+    return differenceOver(left, area, right, area);
+}
+
+/// \brief Where an editor with a panel column draws \p skinArea: the panel takes
+/// the left edge and the skin moves right by mainAreaX to make room.
+/// \see SpectrumWorxEditor::MainArea.
+juce::Rectangle<int> withColumn(juce::Rectangle<int> const &skinArea)
+{
+    return skinArea.translated(Editor::mainAreaX, 0);
 }
 
 /// \brief The smallest rectangle holding every pixel two renders disagree about
@@ -276,12 +308,15 @@ TEST_CASE("Clicking the logo opens the About page, not an empty panel", "[gui][o
     REQUIRE(differenceOver(closed, rendered(editor), overlayRectangle()) == 0);
 
     /// \note (37, 321) is the middle of the logo's hit area, which
-    /// `SpectrumWorxEditor::mouseDown` spells as {12, 290, 51, 63}.
+    /// `MainArea::mouseDown` spells as {12, 290, 51, 63} -- and the main area is
+    /// what the click goes to, because the logo is a position in the skin and the
+    /// skin is that component rather than the editor.
     juce::Point<float> const logo(37, 321);
-    static_cast<juce::Component &>(editor).mouseDown(juce::MouseEvent(
-        juce::Desktop::getInstance().getMainMouseSource(), logo,
-        juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-        &editor, &editor, juce::Time(), logo, juce::Time(), 1, false));
+    auto &skin(static_cast<juce::Component &>(editor.mainArea()));
+    skin.mouseDown(juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), logo,
+                                    juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier),
+                                    1.0f, 0.0f, 0.0f, 0.0f, 0.0f, &skin, &skin, juce::Time(), logo,
+                                    juce::Time(), 1, false));
 
     auto const clicked(rendered(editor));
 
@@ -388,7 +423,8 @@ TEST_CASE("What a plugin opens with is the column, with presets in it", "[gui][o
     CHECK(drawnFractionOver(opened, panelColumnRectangle()) > 0);
 
     SWTest::Instance bare;
-    CHECK(differenceOver(opened, rendered(overlayEditor(bare)), moduleRack()) == 0);
+    CHECK(differenceOver(opened, withColumn(moduleRack()), rendered(overlayEditor(bare)),
+                         moduleRack()) == 0);
 
     /// \note And the same picture as asking for the browser by hand, which is
     /// what says the resting panel is the browser rather than something that
@@ -426,9 +462,9 @@ TEST_CASE("A panel gets a column of its own rather than the module strips", "[gu
 
     // The browser is in the new column...
     CHECK(drawnFractionOver(open, panelColumnRectangle()) > 0);
-    CHECK(differenceOver(closed, open, overlayRectangle()) == 0);
+    CHECK(differenceOver(closed, overlayRectangle(), open, withColumn(overlayRectangle())) == 0);
     // ...and the rack the user was working on is untouched, which is the point.
-    CHECK(differenceOver(closed, open, moduleRack()) == 0);
+    CHECK(differenceOver(closed, moduleRack(), open, withColumn(moduleRack())) == 0);
 
     // Shutting it gives the space back and asks for that too.
     editor.showPresetBrowser(false);

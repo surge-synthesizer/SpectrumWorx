@@ -79,6 +79,7 @@ add_executable(sw-plugin-tests
         gui/buildStampTests.cpp
         gui/lfoDisplayTests.cpp
         gui/moduleControlFocusTests.cpp
+        gui/moduleDragTests.cpp
         gui/overlayPanelTests.cpp
         gui/pathsTests.cpp
         gui/skinTests.cpp
