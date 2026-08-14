@@ -190,7 +190,7 @@ TEST_CASE("A preset loaded on top of another is the preset, not a blend", "[pres
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const files(corpus());
-    REQUIRE(files.size() >= 300);
+    REQUIRE(files.size() >= 288);
 
     Fixture reused;
     unsigned int loaded{0};
@@ -227,7 +227,7 @@ TEST_CASE("Loading the same preset twice changes nothing the second time", "[pre
     /// merge that mutated what it moved would show up here on the second load
     /// and nowhere else.
     auto const files(corpus());
-    REQUIRE(files.size() >= 300);
+    REQUIRE(files.size() >= 288);
 
     /// The first preset holding three or more modules, so the merge has a real
     /// chain to reuse rather than one slot.
@@ -719,7 +719,7 @@ TEST_CASE("A file too large to be a preset is refused before it is read", "[pres
 TEST_CASE("A host's locale does not change what a preset file loads as", "[preset-file][locale]")
 {
     auto const files(corpus());
-    REQUIRE(files.size() >= 300);
+    REQUIRE(files.size() >= 288);
 
     std::vector<Loaded> asWritten;
     asWritten.reserve(files.size());

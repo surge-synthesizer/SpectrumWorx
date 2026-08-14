@@ -7,306 +7,291 @@
 #     a 2009-2011 file against a 2016 effect, and a number that must not
 #     grow. The digest is FNV-1a over the full parameter dump, values at six
 #     significant figures; SW_PRESET_DUMP=<substring> prints those dumps.
-Autotune/LE Aeolian.swp | 1 | TuneWorx | 18 | 0 | 25dceb7f6a39ecb2
-Autotune/LE Dorian.swp | 1 | TuneWorx | 18 | 0 | 3e0b0632e43a3d14
-Autotune/LE Gypsy.swp | 1 | TuneWorx | 18 | 0 | 79c63ff545ccfbac
-Autotune/LE Ionian.swp | 1 | TuneWorx | 18 | 0 | 0f56eaf7a1f3e9fe
-Autotune/LE Locrian.swp | 1 | TuneWorx | 18 | 0 | b16391502a326d02
-Autotune/LE Lydian.swp | 1 | TuneWorx | 18 | 0 | b3fee0a8ab6512e6
-Autotune/LE Mixolydian.swp | 1 | TuneWorx | 18 | 0 | 8610d0e3cdf64e4c
-Autotune/LE Pentatonic major.swp | 1 | TuneWorx | 18 | 0 | 9c1c8313f1e83f40
-Autotune/LE Pentatonic minor.swp | 1 | TuneWorx | 18 | 0 | 9f0bde146cc07222
-Autotune/LE Phrygrian.swp | 1 | TuneWorx | 18 | 0 | 18d6de7709e1308a
-Autotune/LE Triad augmented.swp | 1 | TuneWorx | 18 | 0 | 634583acc9e9ded2
-Autotune/LE Triad diminished.swp | 1 | TuneWorx | 18 | 0 | f5cc4f0efbf3c0fa
-Autotune/LE Triad major.swp | 1 | TuneWorx | 18 | 0 | 39a5de62a51ddf8a
-Autotune/LE Triad minor.swp | 1 | TuneWorx | 18 | 0 | c0df36b6dfa3f082
-CinningBao/SideChainables/(drums 104bpm) Drum Battle.swp | 1 | Merger | 7 | 0 | 857887c5eb1e272c
-CinningBao/SideChainables/(drums 104bpm) DrumCoder.swp | 1 | Talking Wind | 7 | 0 | f2975f3dc320b7f7
-CinningBao/SideChainables/(drums 104bpm) DrumLongerer.swp | 2 | Slew Limiter,Colorifer | 15 | 0 | 3666927f360075fb
-CinningBao/SideChainables/(drums 104bpm) DrumThreshFun.swp | 2 | Wobbler,Merger | 15 | 0 | 65d76750cdbef26a
-CinningBao/SideChainables/(drums 104bpm) Hat Battle.swp | 3 | Exaggerator,Pitch Shifter,Ethereal | 21 | 0 | 7d0f7bbec0fbd8c6
-CinningBao/SideChainables/(drums) Convolvevolve.swp | 1 | Convolver | 8 | 0 | e4bee368e9dbb55a
-CinningBao/SideChainables/(rich) Standard Lovely.swp | 1 | Shapeless | 6 | 0 | a08159f82048f3af
-CinningBao/SideChainables/(voc) Gender Wobbles.swp | 4 | PVD start,Pitch Shifter (pvd),PVD stop,Inserter | 26 | 0 | 1cb24053fdb94dfe
-CinningBao/SideChainables/(voc) Rewrite The Mel.swp | 1 | Ethereal | 8 | 0 | fcbbfb76cbfd6686
-CinningBao/SideChainables/(voc) Vocal To Vocal.swp | 3 | Reverser,Reverser,Colorifer | 20 | 0 | 0bc5e8d1ba37efb0
-ESS/ESS Claw.swp | 3 | Freqverb,Exaggerator,Armonizer | 21 | 1 | 76b164f0e64ecfd4
-ESS/ESS Colonel Kurtz.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | 43b8618790c22245
-ESS/ESS Digital March.swp | 2 | Pitch Shifter,Frecho | 15 | 0 | adfd77a0215a7ccd
-ESS/ESS Ghost in the Opera.swp | 2 | Freeze,Frecho | 16 | 0 | e4b00f56847f57fb
-ESS/ESS Gilgandra.swp | 3 | Reverser,Freqverb,Reverser | 21 | 1 | fb6a211d3bb92c8c
-ESS/ESS Glass Rain.swp | 3 | Slew Limiter,Freqverb,Exaggerator | 22 | 1 | f38194574352320a
-ESS/ESS Illawarra.swp | 2 | Freqverb,Wobbler | 17 | 1 | 9caaa40b4fae44c3
-ESS/ESS Jao.swp | 2 | Whisperer,Freeze | 13 | 0 | 3eb74d730f21a161
-ESS/ESS Lazzzers.swp | 2 | Freqverb,Pitch Shifter | 16 | 1 | f76bb3d2888a094a
-ESS/ESS Nervous Perls.swp | 3 | Pitch Shifter,Frecho,Robotizer | 20 | 0 | bccc37910d6bddd8
-ESS/ESS Once Upon a Time.swp | 2 | Freqverb,Reverser | 15 | 1 | 2877d1fbda5cfb1c
-ESS/ESS Ribar.swp | 3 | Wobbler,Freeze,Frecho | 24 | 0 | ae5971cb3cc4db10
-ESS/ESS Robokid.swp | 3 | Freqverb,Armonizer,Robotizer | 20 | 1 | 5646b85c45745135
-ESS/ESS Shelve.swp | 2 | Freeze,Pitch Shifter | 15 | 0 | d229c26e8ba9d8ba
-ESS/ESS Sirup Freeze.swp | 2 | Robotizer,Freeze | 13 | 0 | 66a8e8d98aaf109f
-ESS/ESS Stomper.swp | 2 | Slew Limiter,Exaggerator | 13 | 0 | 6048d7413e60f5e9
-ESS/ESS Swoosh.swp | 2 | Exploder,Frecho | 17 | 0 | 2896f266f9ed0af3
-ESS/ESS Tears in Heaven.swp | 2 | Exaggerator,Freqverb | 15 | 1 | 9f73891410951ddf
-ESS/ESS Triad major Autotune.swp | 1 | TuneWorx | 18 | 0 | 39a5de62a51ddf8a
-ESS/ESS Windy Days.swp | 2 | Whisperer,Frecho | 13 | 0 | 9ed209a6ca0d0a7f
-Echoes/LE Basement Voices.swp | 2 | Quantizer,Frecho | 15 | 0 | 9fd0117e698e4e7e
-Echoes/LE Boiler.swp | 2 | Frecho,Whisperer | 13 | 0 | 15e4411fd9f57aed
-Echoes/LE Creepy Deepy.swp | 2 | Pitch Shifter,Freqverb | 16 | 1 | 9f2da3a1e4cb565a
-Echoes/LE Digital March.swp | 2 | Pitch Shifter,Frecho | 15 | 0 | adfd77a0215a7ccd
-Echoes/LE Flying Saucer.swp | 3 | Pitch Shifter,Frecho,Slew Limiter | 22 | 0 | 40ff1e39ed98a1bf
-Echoes/LE Great Escape.swp | 3 | Freqverb,Frecho,Gain | 22 | 1 | 08c64ce125a730d7
-Echoes/LE Jumbo Jet Down Total.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | 0be1a57d86c8b699
-Echoes/LE Jumbo Jet Down.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | f899ac99827f81f3
-Echoes/LE Jumbo Jet Total.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | 64763f2c7f91efa0
-Echoes/LE Jumbo Jet Up Total.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | cb46f8469cd95cd9
-Echoes/LE Jumbo Jet Up.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | 9ac9491b144d4afb
-Echoes/LE Jumbo Jet.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | a7ee667221011e48
-Echoes/LE Nervous Perls.swp | 3 | Pitch Shifter,Frecho,Robotizer | 20 | 0 | 3d2a61b2a60e9861
-Echoes/LE Ruby Chamber.swp | 2 | Frecho,Phlip | 14 | 0 | fb3cac3588197aa7
-Echoes/LE Skokomish.swp | 2 | Bandpass,Frecho | 14 | 0 | b16742b89d4e85c6
-Echoes/LE Small Wall.swp | 1 | Frecho | 8 | 0 | e3726bbbcc2d67f2
-Echoes/LE Space Race.swp | 2 | Freqverb,TuneWorx (pvd) | 27 | 1 | 3080c7430c3f1f26
-Echoes/LE Spiner.swp | 2 | Pitch Spring (pvd),Frecho | 16 | 0 | e5ac4926abfc3cc5
-Echoes/LE Stomper.swp | 2 | Slew Limiter,Exaggerator | 13 | 0 | 6048d7413e60f5e9
-Echoes/LE Windy Days.swp | 2 | Whisperer,Frecho | 13 | 0 | b5a1af5148d40481
-Echoes/LE Wiper.swp | 2 | Pitch Spring,Freqverb | 17 | 1 | 200f075ba162f411
-Extreme/LE Anything but Silence.swp | 2 | Slicer,Quantizer | 15 | 0 | 759dae439f03c3cd
-Extreme/LE Blood Group A.swp | 2 | Swappah,Frecho | 17 | 0 | 4f8d5bc471cc1c1b
-Extreme/LE Bullet Escape.swp | 3 | Imploder,Sumo Pitch,Freqnamics | 23 | 0 | 75c35f4f445bfe39
-Extreme/LE Bulletdodger.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | be6e1c642609ffea
-Extreme/LE Fight Club.swp | 2 | Slicer,Sumo Pitch | 15 | 0 | 9381be6dc3023668
-Extreme/LE Haircut.swp | 3 | Exploder,Freqnamics,Phlip | 22 | 0 | 3c6ab1205bb8ea2e
-Extreme/LE High Lines.swp | 2 | Swappah,Frecho | 17 | 0 | 003c6035dceeb7d3
-Extreme/LE Laugh Track.swp | 2 | Exploder,Bandpass | 15 | 0 | f35a8e350de13bca
-Extreme/LE Look Who's Talking.swp | 2 | Merger,Reverser | 13 | 0 | 135ee9f8afbca795
-Extreme/LE Low and Slow.swp | 1 | Frecho | 8 | 0 | 6c4bffce9f50fa98
-Extreme/LE Mad Max.swp | 2 | Imploder (pvd),Sumo Pitch | 16 | 0 | 5950633c7d029e93
-Extreme/LE Squeaking.swp | 2 | Slicer,Quantizer | 15 | 0 | e4d7a3f2566daa3e
-Extreme/LE Turntables.swp | 1 | Reverser | 6 | 0 | 4321e9c38fab20f9
-Extreme/LE Where It's At.swp | 2 | Freqnamics,Reverser | 13 | 0 | 3e7f8b06ff0626ae
-Frozen/LE Alias.swp | 3 | Freeze,Pitch Spring,Frecho | 24 | 0 | 77f7558bade2c181
-Frozen/LE Shelve.swp | 2 | Freeze,Pitch Spring | 16 | 0 | 6d719ae6ed2c9e53
-Martin Walker/Gamma Shift/Angry Tendrils.swp | 2 | Pitch Shifter,Exploder | 16 | 0 | 7949f12c275bc232
-Martin Walker/Gamma Shift/Antique Syncopated.swp | 2 | Frecho,Pitch Shifter | 15 | 0 | 301c6063bf24f3f2
-Martin Walker/Gamma Shift/Big Bottom.swp | 3 | Phlip,Gain,Freqnamics | 18 | 0 | 324078059784b91e
-Martin Walker/Gamma Shift/Bird Song.swp | 5 | Exaggerator,Swappah,Freqverb,Bandpass,Frecho | 38 | 1 | 8eb84ca604791f0b
-Martin Walker/Gamma Shift/Bojangles.swp | 4 | PVD start,Imploder (pvd),PVD stop,Bandstop | 25 | 0 | 157f3efa1cb2224b
-Martin Walker/Gamma Shift/Chime Dancing.swp | 4 | Sharper,Exaggerator,Imploder,Bandpass | 29 | 0 | 45b43131edc6dbb6
-Martin Walker/Gamma Shift/Chopper Machine.swp | 3 | Pitch Shifter,Slicer,Blender | 21 | 0 | f9c40d1251604f99
-Martin Walker/Gamma Shift/Chunky Strike.swp | 5 | Sharper,Exploder,Pitch Shifter (pvd),PVD stop,Exaggerator | 35 | 0 | 5a211fcd15dd0a9d
-Martin Walker/Gamma Shift/Clutter Dropout.swp | 2 | Frecho,Imploder | 17 | 0 | f1d389f3aeaea8b2
-Martin Walker/Gamma Shift/Crystalline.swp | 2 | Imploder,Pitch Shifter | 16 | 0 | 2154aac3d0a87c84
-Martin Walker/Gamma Shift/Cyclic Destruction.swp | 4 | PVD start,Ethereal,Pitch Magnet (pvd),PVD stop | 25 | 0 | 1236b53f3be6caad
-Martin Walker/Gamma Shift/Delayed Harmonics.swp | 5 | PVD start,Imploder (pvd),Pitch Spring (pvd),Bandstop,Ethereal | 36 | 0 | 3400410d2c184091
-Martin Walker/Gamma Shift/Delicate Shimmers.swp | 4 | Tonal,Frecho,Bandpass,Gain | 28 | 0 | 115199ec1f292904
-Martin Walker/Gamma Shift/Dimensional Interface.swp | 5 | Slicer,Pitch Shifter,Bandpass,Freqnamics,Bandpass | 34 | 0 | 53bb5207b97bdb2e
-Martin Walker/Gamma Shift/Disappearing Glass.swp | 2 | Imploder,Frecho | 17 | 0 | c1961663baf6b5bd
-Martin Walker/Gamma Shift/Doom Slider.swp | 4 | Pitch Shifter,Swappah,Freqverb,Exaggerator | 31 | 1 | 30d130248769405e
-Martin Walker/Gamma Shift/Engine Klang.swp | 1 | Ethereal | 8 | 0 | 2e6e73f89e8a99dc
-Martin Walker/Gamma Shift/Fine Whine.swp | 3 | Exploder,Phlip,Slicer | 23 | 0 | 7610d0f516280f4e
-Martin Walker/Gamma Shift/Giggles.swp | 4 | Pitch Shifter,Tonal,Exaggerator,Frecho | 30 | 0 | 58999e489387760b
-Martin Walker/Gamma Shift/Glass Landscape.swp | 5 | Sharper,Exaggerator,Imploder,Frecho,Denoiser | 38 | 0 | 51c6a491956ee6a9
-Martin Walker/Gamma Shift/Glitch City.swp | 4 | Ah-ah,Exaggerator,Quiet Boost,Gain | 27 | 0 | 0e0ddc556cbb55aa
-Martin Walker/Gamma Shift/Gong Drones.swp | 3 | PVD start,Exploder (pvd),PVD stop | 19 | 0 | 5ba55973cb3671da
-Martin Walker/Gamma Shift/Harmonica Player.swp | 2 | Sumo Pitch,Shapeless | 13 | 0 | b15576f5b9bfc5eb
-Martin Walker/Gamma Shift/Howling Wind.swp | 4 | Exaggerator,Imploder,Frecho,Bandpass | 29 | 0 | d07c0ceeb06602eb
-Martin Walker/Gamma Shift/Interwarp.swp | 3 | Atonal,Whisperer,Pitch Shifter | 21 | 0 | 0bed20183b34b322
-Martin Walker/Gamma Shift/Metallic Slicer.swp | 3 | Freqverb,Robotizer,Quiet Boost | 22 | 1 | d8d51c4e70a2c892
-Martin Walker/Gamma Shift/Metallophone.swp | 2 | Imploder,Phasevolution | 15 | 0 | ca8fc3e5cb6e13ac
-Martin Walker/Gamma Shift/Moan Rising.swp | 2 | Frecho,Bandpass | 14 | 0 | 84474a2afe31aa9f
-Martin Walker/Gamma Shift/Monster Battle.swp | 3 | Slicer,Pitch Shifter (pvd),Whisperer | 20 | 0 | 20ac5ec455eeab8d
-Martin Walker/Gamma Shift/Motor Drone.swp | 2 | Exploder,Phlip | 15 | 0 | f54a8c85aab8c36c
-Martin Walker/Gamma Shift/Pipework Solo.swp | 4 | Sharper,Imploder,Bandpass,Exaggerator | 29 | 0 | a00656f7c554eea7
-Martin Walker/Gamma Shift/Puffing & Panting.swp | 3 | Pitch Follower,Armonizer,Frecho | 20 | 0 | da5ba84ea6296fa4
-Martin Walker/Gamma Shift/Punch Drunk.swp | 2 | Freqverb,Exaggerator | 15 | 1 | 4f993a3ebcd147d0
-Martin Walker/Gamma Shift/Random Chaos.swp | 2 | Frecho,Freqnamics | 15 | 0 | 9d0407ca90603e76
-Martin Walker/Gamma Shift/Resonant Thunk.swp | 3 | Imploder (pvd),Vaxateer,Centroid | 25 | 0 | 4c03e6d1ed2feff4
-Martin Walker/Gamma Shift/Return Of The Thud.swp | 2 | Exaggerator,Quantizer | 13 | 0 | 3d7c3b74ee56d549
-Martin Walker/Gamma Shift/Shudders.swp | 2 | Frecho,Quiet Boost | 16 | 0 | 28dae337d93706ca
-Martin Walker/Gamma Shift/Simple Sweep.swp | 2 | Bandstop,Gain | 11 | 0 | f6ccf7aebf7661d7
-Martin Walker/Gamma Shift/Sore Throat.swp | 5 | PVD start,Imploder (pvd),Pitch Spring (pvd),Blender,PVD stop | 33 | 0 | 7ee79dd9cd0e56a3
-Martin Walker/Gamma Shift/Spring Sync.swp | 2 | Pitch Spring,Pitch Shifter | 15 | 0 | 7d6d4358c3b7b304
-Martin Walker/Gamma Shift/Static Stutter.swp | 2 | Slicer,Slew Limiter | 15 | 0 | 6ec857de230b6f4c
-Martin Walker/Gamma Shift/Stereo Slicer.swp | 3 | Quantizer,Exaggerator,Pitch Follower (pvd) | 19 | 0 | 031b9063b359bb98
-Martin Walker/Gamma Shift/Tinkletoes.swp | 2 | Exploder (pvd),Exaggerator | 15 | 0 | 1ee8fd558fd0c1cd
-Martin Walker/Gamma Shift/Train Sub.swp | 2 | Imploder (pvd),Pitch Shifter | 16 | 0 | 837c442edca81b95
-Martin Walker/Gamma Shift/Universal Translator.swp | 4 | Ah-ah,Ethereal,Quiet Boost,Pitch Shifter | 31 | 0 | 66741987703cbb08
-Martin Walker/Gamma Shift/Whip Sync.swp | 3 | Inserter,Phlip,Quantizer | 22 | 0 | db5c96b6ed709059
-Martin Walker/Gamma Shift/Whispers.swp | 3 | Exaggerator,Swappah,Freqverb | 24 | 1 | b6e37be89d54c025
-Martin Walker/Gamma Shift/Whistle A Tune.swp | 3 | Pitch Spring,Freqverb,Swappah | 26 | 1 | 0d163ecd402e5328
-Martin Walker/Gamma Shift/Wind Harmonies.swp | 3 | Reverser,Ethereal,Pitch Shifter | 21 | 0 | 3861b796d9ecceab
-Martin Walker/Gamma Shift/Woodpecker.swp | 3 | Slicer,Whisperer,Bandpass | 19 | 0 | f4c7adb273ef0e10
-Noise/LE Crickets.swp | 2 | Swappah,Freqverb | 18 | 1 | a0144c7193275a18
-Noise/LE Glass Rain.swp | 3 | Slew Limiter,Freqverb,Exaggerator | 22 | 1 | f38194574352320a
-Noise/LE Leaps.swp | 2 | Colorifer,Denoiser | 15 | 0 | 952363af02cfbcfb
-Noise/LE Noise Follower.swp | 1 | Pitch Follower | 6 | 0 | 700d4a3fe7bedcb3
-Noise/LE Swoosh.swp | 2 | Exploder,Frecho | 17 | 0 | 94a71f305d4d0ad4
-Noise/LE Total Eliminator.swp | 2 | Centroid,Imploder | 17 | 0 | eb5358903e8991e4
-Random/LE Assembly Lines.swp | 3 | Slew Limiter,Freqnamics,Pitch Shifter | 21 | 0 | 1fb19a02767b9b51
-Random/LE Caffe Break.swp | 2 | Inserter,Phlip | 15 | 0 | 59c4bcbd7682af10
-Random/LE Chicken Cage.swp | 1 | Exploder | 9 | 0 | fe7ed80fd2c15a52
-Random/LE Claw.swp | 3 | Freqverb,Exaggerator,Armonizer | 21 | 1 | 76b164f0e64ecfd4
-Random/LE Hectic.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | 3e032db3a6153b9f
-Random/LE Intervention.swp | 1 | Slicer | 8 | 0 | 1bb23718489de94f
-Random/LE Invention.swp | 1 | Slew Limiter | 7 | 0 | fa2d8282a6789f53
-Random/LE Miaow Storm.swp | 2 | Imploder (pvd),Sumo Pitch | 16 | 0 | 59a58208731f54f3
-Random/LE Plastic.swp | 3 | Freqverb,Exaggerator,Armonizer | 21 | 1 | b32fcfde8debde8f
-Random/LE Roze.swp | 2 | Freqverb,Armonizer | 15 | 1 | f175207c5ce5b063
-Random/LE Septica.swp | 2 | Exaggerator,Freqverb | 15 | 1 | 5f5a6b42ab311cf8
-Random/LE Shifts.swp | 3 | Phlip,Phasevolution,Phlip | 18 | 0 | 8108f5133f694925
-Random/LE So What!.swp | 2 | Pitch Magnet,Imploder | 16 | 0 | 5975fd779673ed80
-Random/LE Tears in Heaven.swp | 2 | Exaggerator,Freqverb | 15 | 1 | 9be33b580c582d27
-Random/LE Thin Air.swp | 2 | Exaggerator,Shifter | 14 | 0 | 0f3f39aaa39665d8
-Random/LE Underwater.swp | 1 | Exaggerator | 6 | 0 | cd8a96f7355e3eb0
-Syndicate Synthetique/Overt Dynamics/SS_AcidCopter.swp | 5 | Frevcho,Blender,Ah-ah,Freqnamics,Gain | 34 | 0 | bf5894426accfad0
-Syndicate Synthetique/Overt Dynamics/SS_AcidWorms.swp | 3 | Freqverb,Pitch Magnet (pvd),Freqverb | 25 | 2 | 265130b530f4c86a
-Syndicate Synthetique/Overt Dynamics/SS_AlarmBoxRox.swp | 4 | Phasevolution,Pitch Spring (pvd),Pitch Spring,Robotizer | 27 | 0 | d3fd876a79ee8d9f
-Syndicate Synthetique/Overt Dynamics/SS_AngryAlienWhispers.swp | 5 | Exploder,Phlip,Inserter,Armonizer,Slew Limiter | 37 | 0 | 5933a2c67de7a329
-Syndicate Synthetique/Overt Dynamics/SS_AngryRobot.swp | 4 | Exploder,Phlip,Inserter,Armonizer | 30 | 0 | 6452d6b6f6647adc
-Syndicate Synthetique/Overt Dynamics/SS_AngryRobotsReturn.swp | 5 | Exploder,Phlip,Inserter,Armonizer,Robotizer | 35 | 0 | e6c6689d66113d7a
-Syndicate Synthetique/Overt Dynamics/SS_Behemoth.swp | 5 | Frevcho,Slicer,Blender,Ah-ah,Gain | 35 | 0 | f9a777f4eb748ed8
-Syndicate Synthetique/Overt Dynamics/SS_BenzoDiazobots.swp | 4 | Exploder (pvd),Slicer,Exploder,Gain | 31 | 0 | 00aee32fd5190280
-Syndicate Synthetique/Overt Dynamics/SS_BrainDrain.swp | 3 | Pitch Magnet (pvd),Exploder,Gain | 21 | 0 | beed8072e9222d57
-Syndicate Synthetique/Overt Dynamics/SS_BufferPusher.swp | 3 | Swappah,Smoother,Wobbler | 23 | 0 | b492cbcdcb387c11
-Syndicate Synthetique/Overt Dynamics/SS_BuzzCopter.swp | 3 | Freqverb,Centroid,Gain | 22 | 1 | 2cf33b3febb92abd
-Syndicate Synthetique/Overt Dynamics/SS_CentipedeShuffle.swp | 5 | Slicer,Exploder,Freqnamics,Freqverb,Gain | 38 | 1 | 6df1d132855b24fe
-Syndicate Synthetique/Overt Dynamics/SS_CircadianSuckerPunch.swp | 5 | Pitch Spring,Slicer,Freqverb,Frecho,Gain | 38 | 1 | a4dbfaef6b5c32fc
-Syndicate Synthetique/Overt Dynamics/SS_DeadOperator.swp | 5 | Frecho,Phlip,Imploder (pvd),Robotizer,Ah-ah | 36 | 0 | f63cf4dff96904d4
-Syndicate Synthetique/Overt Dynamics/SS_DemonicPhaseSlew.swp | 4 | Pitch Spring,Reverser,Robotizer,Phlip | 25 | 0 | df7c34067d7924ee
-Syndicate Synthetique/Overt Dynamics/SS_DigiShuffler.swp | 5 | Freqverb,Robotizer,Phlip,Ethereal,Gain | 33 | 1 | d631cb035c671d74
-Syndicate Synthetique/Overt Dynamics/SS_DigitalSpelunking.swp | 5 | Freqverb,Slicer,Swappah,Freqverb,Gain | 40 | 2 | 971bfbf4b29a55e4
-Syndicate Synthetique/Overt Dynamics/SS_DubAntz.swp | 5 | Blender,Exaggerator,Ah-ah,Frevcho,Gain | 33 | 0 | ee3f28cc511c040b
-Syndicate Synthetique/Overt Dynamics/SS_EarwormShuffle.swp | 5 | PVD stop,Exaggerator,Quiet Boost,Freqverb,Gain | 33 | 1 | 5dc23a8e6cabc81b
-Syndicate Synthetique/Overt Dynamics/SS_EvergladeSlop.swp | 4 | Frevcho,Slicer,Blender,Ah-ah | 30 | 0 | 301d6c217bec030e
-Syndicate Synthetique/Overt Dynamics/SS_GrainFilter.swp | 3 | Swappah,Exaggerator,Gain | 20 | 0 | bcca2f932da04747
-Syndicate Synthetique/Overt Dynamics/SS_HarmonicMachinery.swp | 4 | Exploder (pvd),Slicer,Exploder,Pitch Shifter | 33 | 0 | 67f62ffc76a4ba0f
-Syndicate Synthetique/Overt Dynamics/SS_HijackedSignal.swp | 5 | Pitch Magnet (pvd),Exploder,Inserter,Exploder,Gain | 39 | 0 | 7745d358a4394838
-Syndicate Synthetique/Overt Dynamics/SS_IceShuffler.swp | 4 | Atonal,Freqverb,Pitch Magnet,Gain | 30 | 1 | 80213c25101157a4
-Syndicate Synthetique/Overt Dynamics/SS_MaggotsMetamorphosis.swp | 4 | Phlip,Inserter,Armonizer,Robotizer | 26 | 0 | 9223cac6fb4a20c9
-Syndicate Synthetique/Overt Dynamics/SS_MarchOfTheEarMaggots.swp | 4 | Phlip,Inserter,Armonizer,Robotizer | 26 | 0 | 2bf907ed143420ee
-Syndicate Synthetique/Overt Dynamics/SS_MechanicalWaves.swp | 5 | Wobbler,Freqverb,PVD stop,Freqverb,Gain | 36 | 2 | f293c2c246fac1c4
-Syndicate Synthetique/Overt Dynamics/SS_ModularPunchingBag.swp | 5 | Exploder (pvd),Slicer,Pitch Shifter,Exploder,Freqnamics | 40 | 0 | ee203eaf38ecb812
-Syndicate Synthetique/Overt Dynamics/SS_PhaseModImpact.swp | 4 | Slicer,Pitch Shifter,Gain,Gain | 25 | 0 | 059e611d58d888ac
-Syndicate Synthetique/Overt Dynamics/SS_PressureBoxing.swp | 5 | Freqverb,Ah-ah,Bandstop,Swappah,Gain | 37 | 1 | b1c9b02bb691bef0
-Syndicate Synthetique/Overt Dynamics/SS_Resentment.swp | 5 | Slicer,Phasevolution,Centroid,Frevcho,Gain | 35 | 0 | 7682dac25ee01d3c
-Syndicate Synthetique/Overt Dynamics/SS_RoboPop.swp | 3 | Freqverb,Exploder (pvd),Slicer | 26 | 1 | ddfd77db2051e3d3
-Syndicate Synthetique/Overt Dynamics/SS_RobotsRevenge.swp | 5 | Freqverb,Pitch Spring (pvd),Robotizer,Frecho,Gain | 35 | 1 | cbc44464c5c9d22b
-Syndicate Synthetique/Overt Dynamics/SS_ScratchModular.swp | 4 | Pitch Shifter,Slicer,Exploder,Freqnamics | 31 | 0 | c7c7b692ff12ffa0
-Syndicate Synthetique/Overt Dynamics/SS_SlowAndLow.swp | 3 | Slicer,Blender,Ah-ah | 22 | 0 | 8132b37e4c80e3c0
-Syndicate Synthetique/Overt Dynamics/SS_SlowMachineSadness.swp | 3 | Slicer,Exploder,Freqnamics | 24 | 0 | 210092eeb0884b0d
-Syndicate Synthetique/Overt Dynamics/SS_SputterFlux.swp | 5 | Slicer,Freqverb,Pitch Spring (pvd),Robotizer,Gain | 35 | 1 | ab5cd1b04933d5f8
-Syndicate Synthetique/Overt Dynamics/SS_SquelchyGrainPunch.swp | 5 | Freqverb,Slicer,Swappah,Exaggerator,Freqverb | 41 | 2 | 5eacaf75e73e7bc0
-Syndicate Synthetique/Overt Dynamics/SS_StalactiteRock.swp | 5 | Slicer,Swappah,Exaggerator,Freqverb,Gain | 37 | 1 | 8c0baad336189db6
-Syndicate Synthetique/Overt Dynamics/SS_StalactiteRockSteady.swp | 5 | Freqverb,Slicer,Swappah,Exaggerator,Freqverb | 41 | 2 | ad1a65a1fea8477e
-Syndicate Synthetique/Overt Dynamics/SS_SuckerPop.swp | 4 | Swappah,Exaggerator,Freqverb,Gain | 29 | 1 | 0d7cba6c60b127de
-Syndicate Synthetique/Overt Dynamics/SS_TensionSweeper.swp | 4 | Freqverb,Pitch Magnet (pvd),Exploder,Freqverb | 34 | 2 | 29b2b27f10bd3b90
-Syndicate Synthetique/Overt Dynamics/SS_TheGreatDestroyer.swp | 4 | Slicer,Frecho,Centroid,Gain | 29 | 0 | 69cefa289127f000
-Syndicate Synthetique/Overt Dynamics/SS_ThisIsWhereIMakeMyRobots.swp | 5 | Slicer,Robotizer,Freqverb,Pitch Spring (pvd),Frecho | 38 | 1 | 124aa8e18afd89a3
-Syndicate Synthetique/Overt Dynamics/SS_ToborEsrever.swp | 3 | Freqverb,Reverser,Gain | 20 | 1 | 534428a5239d6430
-Syndicate Synthetique/Overt Dynamics/SS_ToyboxDemons.swp | 4 | Exploder,Frecho,Ah-ah,Gain | 30 | 0 | 302f99a1d69506c7
-Syndicate Synthetique/Overt Dynamics/SS_TransformerCrunch.swp | 5 | Reverser,Robotizer,Phlip,Ethereal,Gain | 30 | 0 | 5a50ba82d41519a3
-Syndicate Synthetique/Overt Dynamics/SS_UprockDubPop.swp | 3 | Exaggerator,Freqverb,Gain | 20 | 1 | b25852a54edf8a18
-Syndicate Synthetique/Overt Dynamics/SS_WetDreams.swp | 5 | Imploder (pvd),PVD stop,Freqverb,PVD start,Whisperer | 33 | 1 | 6157725b003b7bfd
-Syndicate Synthetique/Overt Dynamics/SS_WetMetalSlide.swp | 5 | Frecho,Phlip,Imploder (pvd),Robotizer,Ah-ah | 36 | 0 | 7de6d8c484d08c48
-Techno/LE Colonel Kurtz.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | 91122fb1b762eb28
-Techno/LE Funny Games.swp | 1 | Inserter | 9 | 0 | 959cc9d70d2b7747
-Techno/LE Hit the Breaks.swp | 1 | Slew Limiter | 7 | 0 | dbad1a3306b73a40
-Techno/LE Hurricane going your way.swp | 2 | Bandpass,Slicer | 14 | 0 | 833121ae96341a52
-Techno/LE Just One Sec.swp | 2 | Imploder,Phasevolution | 15 | 0 | abc1ce5a9013b8d1
-Techno/LE Landing.swp | 1 | Imploder | 9 | 0 | 197db1970c975f0f
-Techno/LE Lazzzers.swp | 2 | Freqverb,Pitch Shifter | 16 | 1 | f76bb3d2888a094a
-Techno/LE Lulu.swp | 1 | Phasevolution | 6 | 0 | 1335cde80604e6c7
-Techno/LE Random Trains.swp | 2 | Whisperer,Pitch Magnet | 12 | 0 | d7a9b9ca6ab117e3
-Techno/LE Retreat.swp | 3 | Pitch Magnet,Freqverb,Pitch Shifter | 23 | 1 | aab36de8d8620fe7
-Techno/LE Technologic.swp | 2 | TuneWorx,Slicer | 26 | 0 | 24d2c62d46eb3b78
-Techno/LE Through the Barricades.swp | 1 | Sumo Pitch | 7 | 0 | 7f84eb37d6051919
-Tumbi Umbi/LE Adaminaby.swp | 2 | Blender,Reverser | 12 | 0 | ef180bd33039a63b
-Tumbi Umbi/LE Angurugu.swp | 3 | Quantizer,Imploder,Gain | 21 | 0 | a9480c193bde1e2d
-Tumbi Umbi/LE Bamaga.swp | 1 | Pitch Shifter | 7 | 0 | 47140b1f32d9c15d
-Tumbi Umbi/LE Berri.swp | 2 | Denoiser,Frecho | 15 | 0 | bb9686689a00d82c
-Tumbi Umbi/LE Bindoon.swp | 3 | Pitch Follower,Wobbler,Freqverb | 23 | 1 | 6293ed170706c8df
-Tumbi Umbi/LE Bunyip.swp | 3 | Slew Limiter,Whisperer,Slicer | 20 | 0 | 1b0de37303b1fc73
-Tumbi Umbi/LE Burraneer.swp | 2 | Frecho,Bandpass | 14 | 0 | 1c42030827cdad2f
-Tumbi Umbi/LE Coonabarabran.swp | 3 | Freqverb,Armonizer,Armonizer | 21 | 1 | e0b4a0bd556c4996
-Tumbi Umbi/LE Coonawarra.swp | 2 | Phlip,Quiet Boost | 14 | 0 | 7b01c62372095f5c
-Tumbi Umbi/LE Cooroy.swp | 2 | Wobbler,Freqverb | 17 | 1 | 799d093c016f6d4b
-Tumbi Umbi/LE Dandenong.swp | 3 | Pitch Magnet,Slew Limiter,Gain | 19 | 0 | 65ee679c0f8aaa90
-Tumbi Umbi/LE Dowerin.swp | 2 | Slew Limiter,Whisperer | 12 | 0 | b50ab6af70c7687c
-Tumbi Umbi/LE Dubbo.swp | 3 | Exploder,Exaggerator,Phlip | 21 | 0 | 4f722626d530e8d1
-Tumbi Umbi/LE Echuca.swp | 2 | Centroid,Freqverb | 17 | 1 | 116ea2a7bd9e04a3
-Tumbi Umbi/LE Eneabba.swp | 1 | TuneWorx | 18 | 0 | bd65cacffda824b9
-Tumbi Umbi/LE Gilgandra.swp | 4 | Reverser,Freqverb,Reverser,Gain | 26 | 1 | 93991b4b5de6f9d1
-Tumbi Umbi/LE Gingin.swp | 2 | Smoother,Reverser | 12 | 0 | 5a2f44152bcaabef
-Tumbi Umbi/LE Gulgong.swp | 2 | Robotizer,Talking Wind | 12 | 0 | d948ee305e65b061
-Tumbi Umbi/LE Illawarra.swp | 2 | Freqverb,Wobbler | 17 | 1 | 9caaa40b4fae44c3
-Tumbi Umbi/LE Indooroopilly.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 64 | 0 | 6cc8823b01e7d9c5
-Tumbi Umbi/LE Jeparit.swp | 2 | Inserter,Pitch Spring | 17 | 0 | 5cfece7d3546bdb2
-Tumbi Umbi/LE Joondalup.swp | 5 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop,Freqverb | 45 | 1 | a0ec5bd26d541aa8
-Tumbi Umbi/LE Kalamunda.swp | 2 | Ah-ah,Pitch Magnet | 15 | 0 | 303b9abf3b0b92c1
-Tumbi Umbi/LE Kangy Angy.swp | 2 | Slicer,Pitch Spring | 16 | 0 | 73d52fa651f932af
-Tumbi Umbi/LE Karumba.swp | 2 | Slew Limiter,Whisperer | 12 | 0 | fd3842652d22d815
-Tumbi Umbi/LE Koo Wee Rup.swp | 3 | Slew Limiter,Whisperer,Slicer | 20 | 0 | 2b6ee01eea0a1788
-Tumbi Umbi/LE Mandurah.swp | 3 | Exploder,Phasevolution,Phasevolution | 21 | 0 | 2477dc4d6cd50cf6
-Tumbi Umbi/LE Mareeba.swp | 4 | Slew Limiter,Sharper,TuneWorx,Slicer | 41 | 0 | 398d52d2a1cbd0fd
-Tumbi Umbi/LE Millaa Millaa.swp | 3 | Quantizer,Imploder,Gain | 21 | 0 | 23355a184911fa0f
-Tumbi Umbi/LE Moe.swp | 3 | Centroid,Gain,Pitch Shifter | 20 | 0 | 9d6f4ef1a89d9798
-Tumbi Umbi/LE Ngunnawal.swp | 2 | Wobbler,Pitch Magnet | 15 | 0 | 8a4d2e9b3bf0cd6b
-Tumbi Umbi/LE Nhulunbuy.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 64 | 0 | c5e6ce64e5915cf1
-Tumbi Umbi/LE Noosa.swp | 2 | Slew Limiter,Pitch Spring | 15 | 0 | ab06af8d5063677e
-Tumbi Umbi/LE Nowra.swp | 3 | Frecho,Frecho,Frecho | 24 | 0 | fccd1e0077e69085
-Tumbi Umbi/LE Onkaparinga.swp | 3 | Quiet Boost,Whisperer,Armonizer | 19 | 0 | ddc5bf9225dd989f
-Tumbi Umbi/LE Ouyen.swp | 3 | Swappah,Imploder,Freqverb | 27 | 1 | fb95bd61cd9cdc95
-Tumbi Umbi/LE Paroo.swp | 2 | Slicer,Pitch Magnet | 15 | 0 | 3a3a5eb764ce11f0
-Tumbi Umbi/LE Parramatta.swp | 2 | Wobbler,Pitch Magnet | 15 | 0 | a424c437a929c7c2
-Tumbi Umbi/LE Pialligo.swp | 2 | Slew Limiter,Robotizer | 12 | 0 | e5e3f5b509c5f906
-Tumbi Umbi/LE Ramingining.swp | 3 | Imploder,Phasevolution,Phasevolution | 21 | 0 | 7f7e804b2783c287
-Tumbi Umbi/LE Tamar.swp | 3 | Reverser,Freqverb,Reverser | 21 | 1 | edf666d0abdd349d
-Tumbi Umbi/LE Tambellup.swp | 1 | Sumo Pitch | 7 | 0 | 03f595254da8d3e1
-Tumbi Umbi/LE Tanunda.swp | 2 | Slicer,Slew Limiter | 15 | 0 | 19f12169095d7501
-Tumbi Umbi/LE Tincurrin.swp | 2 | Pitch Spring,Frecho | 16 | 0 | 3a263d914d6da8fd
-Tumbi Umbi/LE Tumbi Umbi.swp | 2 | Pitch Spring,Bandpass | 14 | 0 | 2c43b5010210b4dc
-Tumbi Umbi/LE Uralla.swp | 3 | Slew Limiter,Tonal,Imploder | 25 | 0 | 39d0dd97a12bebc7
-Tumbi Umbi/LE Wanneroo.swp | 3 | Denoiser,Reverser,Frecho | 21 | 0 | bad159456ff1a0ae
-Tumbi Umbi/LE Woollahra.swp | 3 | PVD start,Frecho,PVD stop | 18 | 0 | 3a3a462096d2fab4
-Tumbi Umbi/LE Wujal Wujal.swp | 3 | Slicer,Pitch Spring,Gain | 21 | 0 | 781078e0d700a8ff
-Tumbi Umbi/LE Yarra.swp | 3 | Slew Limiter,Whisperer,Pitch Spring | 20 | 0 | 27b2711ffa1bdff7
-Verbs/LE Barker.swp | 2 | Quantizer,Convolver | 15 | 1 | 4eba169da1179196
-Verbs/LE Far and small.swp | 1 | Freqverb | 9 | 1 | 44bdad6a9b966892
-Verbs/LE Freaky cave.swp | 2 | Imploder,Freqverb | 18 | 1 | 52c3adf70c267712
-Verbs/LE Ghost from the opera.swp | 2 | Freqverb,Reverser | 15 | 1 | 247ea696b8807440
-Verbs/LE Longerb.swp | 1 | Freqverb | 9 | 1 | 7dd15b61208e4cd1
-Verbs/LE Mirko.swp | 2 | Freqverb,Pitch Spring | 17 | 1 | 56b3d6bb5341b0e6
-Verbs/LE Paste.swp | 2 | Convolver,Frecho | 16 | 1 | fd3e758c4f6758a8
-Verbs/LE Pitched.swp | 1 | Freqverb | 9 | 1 | 417275f7c6705f0d
-Verbs/LE Shoots of reverbation.swp | 1 | Freqverb | 9 | 1 | 0565658dd2d785c3
-Verbs/LE Slavko.swp | 2 | Freqverb,Pitch Spring | 17 | 1 | d5ccac9cee18356c
-Verbs/LE Slewerb.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | c0ba7296508b8e13
-Verbs/LE Werby.swp | 1 | Freqverb | 9 | 1 | 0a49583bead2a45a
-Verbs/LE Wetwerb.swp | 1 | Freqverb | 9 | 1 | 4663deb22993a073
-Voices/LE Adorno.swp | 2 | Talking Wind,Whisperer | 12 | 0 | 02cb52226cfc7c0e
-Voices/LE Autotalk.swp | 2 | Talking Wind,TuneWorx | 25 | 0 | c273bd536cc6e211
-Voices/LE Broken Robot.swp | 2 | Swappah,Pitch Spring | 17 | 0 | cba85849caba3ea5
-Voices/LE Closed Doors.swp | 3 | Bandpass,Robotizer,Gain | 16 | 0 | bd3aea4e5870f83d
-Voices/LE Friendly Voice.swp | 2 | Frecho,Pitch Spring | 16 | 0 | 7375a41f8a680cae
-Voices/LE Frobot.swp | 4 | Talking Wind,PVD start,Slicer,PVD stop | 25 | 0 | 5cd74ea0a1868fc8
-Voices/LE Megnetic Collapse.swp | 3 | Bandpass,Reverser,Pitch Shifter | 19 | 0 | 8696e4be5beb8a45
-Voices/LE No Safety.swp | 2 | Pitch Shifter,Bandstop | 13 | 0 | 0b8d1552f2b5d2db
-Voices/LE Robokid.swp | 3 | Freqverb,Armonizer,Robotizer | 20 | 1 | 5646b85c45745135
-Voices/LE Rostfrei.swp | 4 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop | 36 | 0 | 1f105d7ca6edf4d2
-Voices/LE The Fabric of Sound.swp | 2 | Armonizer,Slew Limiter | 13 | 0 | 101f3c190f441a4d
-Voices/LE Totalbot.swp | 2 | Talking Wind,Robotizer | 12 | 0 | d64c098873434036
-Voices/LE WhisperMe.swp | 3 | Bandstop,Whisperer,Gain | 16 | 0 | 63ac1d5fa9eafb61
-Voices/LE WhispererThree.swp | 3 | Bandstop,Whisperer,Gain | 16 | 0 | 63ac1d5fa9eafb61
-Wahs/LE ghost guitar.swp | 3 | Gain,Ah-ah,Reverser | 19 | 0 | 398d095c08555d8b
-Wahs/LE wah fast.swp | 2 | Gain,Ah-ah | 13 | 0 | c99080187d442184
-Wahs/LE wah medium.swp | 2 | Gain,Ah-ah | 13 | 0 | d83ca33307367a17
-Wahs/LE wah nyah.swp | 2 | Gain,Ah-ah | 13 | 0 | 7a4d217ae344d7fa
-Wahs/LE wah sleepy.swp | 2 | Gain,Ah-ah | 13 | 0 | 85e6b1bdd7759877
-Wahs/LE wah slow.swp | 2 | Gain,Ah-ah | 13 | 0 | 5a41e7cb1769cf92
-Wahs/LE wah soft fast.swp | 2 | Gain,Ah-ah | 13 | 0 | a538a9148d510fd2
-Wahs/LE wah soft medium.swp | 2 | Gain,Ah-ah | 13 | 0 | 3fd1764e73538d68
-Wahs/LE wah soft slow.swp | 2 | Gain,Ah-ah | 13 | 0 | 1ad36cd9981a9bee
-Wahs/LE wah whisper.swp | 3 | Gain,Ah-ah,Whisperer | 18 | 0 | 9989f5a917fe4be7
-Wahs/LE wah yu.swp | 2 | Gain,Ah-ah | 13 | 0 | 0703bc9b053fb5d6
+Autotune/Aeolian.swp | 1 | TuneWorx | 18 | 0 | 25dceb7f6a39ecb2
+Autotune/Dorian.swp | 1 | TuneWorx | 18 | 0 | 3e0b0632e43a3d14
+Autotune/Gypsy.swp | 1 | TuneWorx | 18 | 0 | 79c63ff545ccfbac
+Autotune/Ionian.swp | 1 | TuneWorx | 18 | 0 | 0f56eaf7a1f3e9fe
+Autotune/Locrian.swp | 1 | TuneWorx | 18 | 0 | b16391502a326d02
+Autotune/Lydian.swp | 1 | TuneWorx | 18 | 0 | b3fee0a8ab6512e6
+Autotune/Mixolydian.swp | 1 | TuneWorx | 18 | 0 | 8610d0e3cdf64e4c
+Autotune/Pentatonic Major.swp | 1 | TuneWorx | 18 | 0 | 9c1c8313f1e83f40
+Autotune/Pentatonic Minor.swp | 1 | TuneWorx | 18 | 0 | 9f0bde146cc07222
+Autotune/Phrygrian.swp | 1 | TuneWorx | 18 | 0 | 18d6de7709e1308a
+Autotune/Triad Augmented.swp | 1 | TuneWorx | 18 | 0 | 634583acc9e9ded2
+Autotune/Triad Diminished.swp | 1 | TuneWorx | 18 | 0 | f5cc4f0efbf3c0fa
+Autotune/Triad Major.swp | 1 | TuneWorx | 18 | 0 | 39a5de62a51ddf8a
+Autotune/Triad Minor.swp | 1 | TuneWorx | 18 | 0 | c0df36b6dfa3f082
+ESS/Ghost In The Opera.swp | 2 | Freeze,Frecho | 16 | 0 | e4b00f56847f57fb
+ESS/Jao.swp | 2 | Whisperer,Freeze | 13 | 0 | 3eb74d730f21a161
+ESS/Once Upon A Time.swp | 2 | Freqverb,Reverser | 15 | 1 | 2877d1fbda5cfb1c
+ESS/Ribar.swp | 3 | Wobbler,Freeze,Frecho | 24 | 0 | ae5971cb3cc4db10
+ESS/Syrup Freeze.swp | 2 | Robotizer,Freeze | 13 | 0 | 66a8e8d98aaf109f
+Echoes/Basement Voices.swp | 2 | Quantizer,Frecho | 15 | 0 | 9fd0117e698e4e7e
+Echoes/Boiler.swp | 2 | Frecho,Whisperer | 13 | 0 | 15e4411fd9f57aed
+Echoes/Creepy Deepy.swp | 2 | Pitch Shifter,Freqverb | 16 | 1 | 9f2da3a1e4cb565a
+Echoes/Digital March.swp | 2 | Pitch Shifter,Frecho | 15 | 0 | adfd77a0215a7ccd
+Echoes/Flying Saucer.swp | 3 | Pitch Shifter,Frecho,Slew Limiter | 22 | 0 | 40ff1e39ed98a1bf
+Echoes/Great Escape.swp | 3 | Freqverb,Frecho,Gain | 22 | 1 | 08c64ce125a730d7
+Echoes/Jumbo Jet Down Total.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | 0be1a57d86c8b699
+Echoes/Jumbo Jet Down.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | f899ac99827f81f3
+Echoes/Jumbo Jet Total.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | 64763f2c7f91efa0
+Echoes/Jumbo Jet Up Total.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | cb46f8469cd95cd9
+Echoes/Jumbo Jet Up.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | 9ac9491b144d4afb
+Echoes/Jumbo Jet.swp | 4 | Freqverb,Freqverb,Freqverb,Freqverb | 36 | 4 | a7ee667221011e48
+Echoes/Nervous Perls.swp | 3 | Pitch Shifter,Frecho,Robotizer | 20 | 0 | 3d2a61b2a60e9861
+Echoes/Ruby Chamber.swp | 2 | Frecho,Phlip | 14 | 0 | fb3cac3588197aa7
+Echoes/Skokomish.swp | 2 | Bandpass,Frecho | 14 | 0 | b16742b89d4e85c6
+Echoes/Small Wall.swp | 1 | Frecho | 8 | 0 | e3726bbbcc2d67f2
+Echoes/Space Race.swp | 2 | Freqverb,TuneWorx (pvd) | 27 | 1 | 3080c7430c3f1f26
+Echoes/Spiner.swp | 2 | Pitch Spring (pvd),Frecho | 16 | 0 | e5ac4926abfc3cc5
+Echoes/Stomper.swp | 2 | Slew Limiter,Exaggerator | 13 | 0 | 6048d7413e60f5e9
+Echoes/Windy Days.swp | 2 | Whisperer,Frecho | 13 | 0 | b5a1af5148d40481
+Echoes/Wiper.swp | 2 | Pitch Spring,Freqverb | 17 | 1 | 200f075ba162f411
+Extreme/Anything But Silence.swp | 2 | Slicer,Quantizer | 15 | 0 | 759dae439f03c3cd
+Extreme/Blood Group A.swp | 2 | Swappah,Frecho | 17 | 0 | 4f8d5bc471cc1c1b
+Extreme/Bullet Dodger.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | be6e1c642609ffea
+Extreme/Bullet Escape.swp | 3 | Imploder,Sumo Pitch,Freqnamics | 23 | 0 | 75c35f4f445bfe39
+Extreme/Fight Club.swp | 2 | Slicer,Sumo Pitch | 15 | 0 | 9381be6dc3023668
+Extreme/Haircut.swp | 3 | Exploder,Freqnamics,Phlip | 22 | 0 | 3c6ab1205bb8ea2e
+Extreme/High Lines.swp | 2 | Swappah,Frecho | 17 | 0 | 003c6035dceeb7d3
+Extreme/Laugh Track.swp | 2 | Exploder,Bandpass | 15 | 0 | f35a8e350de13bca
+Extreme/Look Who's Talking.swp | 2 | Merger,Reverser | 13 | 0 | 135ee9f8afbca795
+Extreme/Low And Slow.swp | 1 | Frecho | 8 | 0 | 6c4bffce9f50fa98
+Extreme/Mad Max.swp | 2 | Imploder (pvd),Sumo Pitch | 16 | 0 | 5950633c7d029e93
+Extreme/Squeaking.swp | 2 | Slicer,Quantizer | 15 | 0 | e4d7a3f2566daa3e
+Extreme/Turntables.swp | 1 | Reverser | 6 | 0 | 4321e9c38fab20f9
+Extreme/Where It's At.swp | 2 | Freqnamics,Reverser | 13 | 0 | 3e7f8b06ff0626ae
+Frozen/Alias.swp | 3 | Freeze,Pitch Spring,Frecho | 24 | 0 | 77f7558bade2c181
+Frozen/Shelve.swp | 2 | Freeze,Pitch Spring | 16 | 0 | 6d719ae6ed2c9e53
+Gamma Shift/Angry Tendrils.swp | 2 | Pitch Shifter,Exploder | 16 | 0 | 7949f12c275bc232
+Gamma Shift/Antique Syncopated.swp | 2 | Frecho,Pitch Shifter | 15 | 0 | 301c6063bf24f3f2
+Gamma Shift/Big Bottom.swp | 3 | Phlip,Gain,Freqnamics | 18 | 0 | 324078059784b91e
+Gamma Shift/Bird Song.swp | 5 | Exaggerator,Swappah,Freqverb,Bandpass,Frecho | 38 | 1 | 8eb84ca604791f0b
+Gamma Shift/Bojangles.swp | 4 | PVD start,Imploder (pvd),PVD stop,Bandstop | 25 | 0 | 157f3efa1cb2224b
+Gamma Shift/Chime Dancing.swp | 4 | Sharper,Exaggerator,Imploder,Bandpass | 29 | 0 | 45b43131edc6dbb6
+Gamma Shift/Chopper Machine.swp | 3 | Pitch Shifter,Slicer,Blender | 21 | 0 | f9c40d1251604f99
+Gamma Shift/Chunky Strike.swp | 5 | Sharper,Exploder,Pitch Shifter (pvd),PVD stop,Exaggerator | 35 | 0 | 5a211fcd15dd0a9d
+Gamma Shift/Clutter Dropout.swp | 2 | Frecho,Imploder | 17 | 0 | f1d389f3aeaea8b2
+Gamma Shift/Crystalline.swp | 2 | Imploder,Pitch Shifter | 16 | 0 | 2154aac3d0a87c84
+Gamma Shift/Cyclic Destruction.swp | 4 | PVD start,Ethereal,Pitch Magnet (pvd),PVD stop | 25 | 0 | 1236b53f3be6caad
+Gamma Shift/Delayed Harmonics.swp | 5 | PVD start,Imploder (pvd),Pitch Spring (pvd),Bandstop,Ethereal | 36 | 0 | 3400410d2c184091
+Gamma Shift/Delicate Shimmers.swp | 4 | Tonal,Frecho,Bandpass,Gain | 28 | 0 | 115199ec1f292904
+Gamma Shift/Dimensional Interface.swp | 5 | Slicer,Pitch Shifter,Bandpass,Freqnamics,Bandpass | 34 | 0 | 53bb5207b97bdb2e
+Gamma Shift/Disappearing Glass.swp | 2 | Imploder,Frecho | 17 | 0 | c1961663baf6b5bd
+Gamma Shift/Doom Slider.swp | 4 | Pitch Shifter,Swappah,Freqverb,Exaggerator | 31 | 1 | 30d130248769405e
+Gamma Shift/Engine Klang.swp | 1 | Ethereal | 8 | 0 | 2e6e73f89e8a99dc
+Gamma Shift/Fine Whine.swp | 3 | Exploder,Phlip,Slicer | 23 | 0 | 7610d0f516280f4e
+Gamma Shift/Giggles.swp | 4 | Pitch Shifter,Tonal,Exaggerator,Frecho | 30 | 0 | 58999e489387760b
+Gamma Shift/Glass Landscape.swp | 5 | Sharper,Exaggerator,Imploder,Frecho,Denoiser | 38 | 0 | 51c6a491956ee6a9
+Gamma Shift/Glitch City.swp | 4 | Ah-ah,Exaggerator,Quiet Boost,Gain | 27 | 0 | 0e0ddc556cbb55aa
+Gamma Shift/Gong Drones.swp | 3 | PVD start,Exploder (pvd),PVD stop | 19 | 0 | 5ba55973cb3671da
+Gamma Shift/Harmonica Player.swp | 2 | Sumo Pitch,Shapeless | 13 | 0 | b15576f5b9bfc5eb
+Gamma Shift/Howling Wind.swp | 4 | Exaggerator,Imploder,Frecho,Bandpass | 29 | 0 | d07c0ceeb06602eb
+Gamma Shift/Interwarp.swp | 3 | Atonal,Whisperer,Pitch Shifter | 21 | 0 | 0bed20183b34b322
+Gamma Shift/Metallic Slicer.swp | 3 | Freqverb,Robotizer,Quiet Boost | 22 | 1 | d8d51c4e70a2c892
+Gamma Shift/Metallophone.swp | 2 | Imploder,Phasevolution | 15 | 0 | ca8fc3e5cb6e13ac
+Gamma Shift/Moan Rising.swp | 2 | Frecho,Bandpass | 14 | 0 | 84474a2afe31aa9f
+Gamma Shift/Monster Battle.swp | 3 | Slicer,Pitch Shifter (pvd),Whisperer | 20 | 0 | 20ac5ec455eeab8d
+Gamma Shift/Motor Drone.swp | 2 | Exploder,Phlip | 15 | 0 | f54a8c85aab8c36c
+Gamma Shift/Pipework Solo.swp | 4 | Sharper,Imploder,Bandpass,Exaggerator | 29 | 0 | a00656f7c554eea7
+Gamma Shift/Puffing & Panting.swp | 3 | Pitch Follower,Armonizer,Frecho | 20 | 0 | da5ba84ea6296fa4
+Gamma Shift/Punch Drunk.swp | 2 | Freqverb,Exaggerator | 15 | 1 | 4f993a3ebcd147d0
+Gamma Shift/Random Chaos.swp | 2 | Frecho,Freqnamics | 15 | 0 | 9d0407ca90603e76
+Gamma Shift/Resonant Thunk.swp | 3 | Imploder (pvd),Vaxateer,Centroid | 25 | 0 | 4c03e6d1ed2feff4
+Gamma Shift/Return Of The Thud.swp | 2 | Exaggerator,Quantizer | 13 | 0 | 3d7c3b74ee56d549
+Gamma Shift/Shudders.swp | 2 | Frecho,Quiet Boost | 16 | 0 | 28dae337d93706ca
+Gamma Shift/Simple Sweep.swp | 2 | Bandstop,Gain | 11 | 0 | f6ccf7aebf7661d7
+Gamma Shift/Sore Throat.swp | 5 | PVD start,Imploder (pvd),Pitch Spring (pvd),Blender,PVD stop | 33 | 0 | 7ee79dd9cd0e56a3
+Gamma Shift/Spring Sync.swp | 2 | Pitch Spring,Pitch Shifter | 15 | 0 | 7d6d4358c3b7b304
+Gamma Shift/Static Stutter.swp | 2 | Slicer,Slew Limiter | 15 | 0 | 6ec857de230b6f4c
+Gamma Shift/Stereo Slicer.swp | 3 | Quantizer,Exaggerator,Pitch Follower (pvd) | 19 | 0 | 031b9063b359bb98
+Gamma Shift/Tinkletoes.swp | 2 | Exploder (pvd),Exaggerator | 15 | 0 | 1ee8fd558fd0c1cd
+Gamma Shift/Train Sub.swp | 2 | Imploder (pvd),Pitch Shifter | 16 | 0 | 837c442edca81b95
+Gamma Shift/Universal Translator.swp | 4 | Ah-ah,Ethereal,Quiet Boost,Pitch Shifter | 31 | 0 | 66741987703cbb08
+Gamma Shift/Whip Sync.swp | 3 | Inserter,Phlip,Quantizer | 22 | 0 | db5c96b6ed709059
+Gamma Shift/Whispers.swp | 3 | Exaggerator,Swappah,Freqverb | 24 | 1 | b6e37be89d54c025
+Gamma Shift/Whistle A Tune.swp | 3 | Pitch Spring,Freqverb,Swappah | 26 | 1 | 0d163ecd402e5328
+Gamma Shift/Wind Harmonies.swp | 3 | Reverser,Ethereal,Pitch Shifter | 21 | 0 | 3861b796d9ecceab
+Gamma Shift/Woodpecker.swp | 3 | Slicer,Whisperer,Bandpass | 19 | 0 | f4c7adb273ef0e10
+Noise/Crickets.swp | 2 | Swappah,Freqverb | 18 | 1 | a0144c7193275a18
+Noise/Glass Rain.swp | 3 | Slew Limiter,Freqverb,Exaggerator | 22 | 1 | f38194574352320a
+Noise/Leaps.swp | 2 | Colorifer,Denoiser | 15 | 0 | 952363af02cfbcfb
+Noise/Noise Follower.swp | 1 | Pitch Follower | 6 | 0 | 700d4a3fe7bedcb3
+Noise/Swoosh.swp | 2 | Exploder,Frecho | 17 | 0 | 94a71f305d4d0ad4
+Noise/Total Eliminator.swp | 2 | Centroid,Imploder | 17 | 0 | eb5358903e8991e4
+Overt Dynamics/Acid Copter.swp | 5 | Frevcho,Blender,Ah-ah,Freqnamics,Gain | 34 | 0 | bf5894426accfad0
+Overt Dynamics/Acid Worms.swp | 3 | Freqverb,Pitch Magnet (pvd),Freqverb | 25 | 2 | 265130b530f4c86a
+Overt Dynamics/Alarm Box Rox.swp | 4 | Phasevolution,Pitch Spring (pvd),Pitch Spring,Robotizer | 27 | 0 | d3fd876a79ee8d9f
+Overt Dynamics/Angry Alien Whispers.swp | 5 | Exploder,Phlip,Inserter,Armonizer,Slew Limiter | 37 | 0 | 5933a2c67de7a329
+Overt Dynamics/Angry Robot.swp | 4 | Exploder,Phlip,Inserter,Armonizer | 30 | 0 | 6452d6b6f6647adc
+Overt Dynamics/Angry Robots Return.swp | 5 | Exploder,Phlip,Inserter,Armonizer,Robotizer | 35 | 0 | e6c6689d66113d7a
+Overt Dynamics/Behemoth.swp | 5 | Frevcho,Slicer,Blender,Ah-ah,Gain | 35 | 0 | f9a777f4eb748ed8
+Overt Dynamics/Benzo Diazobots.swp | 4 | Exploder (pvd),Slicer,Exploder,Gain | 31 | 0 | 00aee32fd5190280
+Overt Dynamics/Brain Drain.swp | 3 | Pitch Magnet (pvd),Exploder,Gain | 21 | 0 | beed8072e9222d57
+Overt Dynamics/Buffer Pusher.swp | 3 | Swappah,Smoother,Wobbler | 23 | 0 | b492cbcdcb387c11
+Overt Dynamics/Buzz Copter.swp | 3 | Freqverb,Centroid,Gain | 22 | 1 | 2cf33b3febb92abd
+Overt Dynamics/Centipede Shuffle.swp | 5 | Slicer,Exploder,Freqnamics,Freqverb,Gain | 38 | 1 | 6df1d132855b24fe
+Overt Dynamics/Circadian Sucker Punch.swp | 5 | Pitch Spring,Slicer,Freqverb,Frecho,Gain | 38 | 1 | a4dbfaef6b5c32fc
+Overt Dynamics/Dead Operator.swp | 5 | Frecho,Phlip,Imploder (pvd),Robotizer,Ah-ah | 36 | 0 | f63cf4dff96904d4
+Overt Dynamics/Demonic Phase Slew.swp | 4 | Pitch Spring,Reverser,Robotizer,Phlip | 25 | 0 | df7c34067d7924ee
+Overt Dynamics/Digi Shuffler.swp | 5 | Freqverb,Robotizer,Phlip,Ethereal,Gain | 33 | 1 | d631cb035c671d74
+Overt Dynamics/Digital Spelunking.swp | 5 | Freqverb,Slicer,Swappah,Freqverb,Gain | 40 | 2 | 971bfbf4b29a55e4
+Overt Dynamics/Dub Antz.swp | 5 | Blender,Exaggerator,Ah-ah,Frevcho,Gain | 33 | 0 | ee3f28cc511c040b
+Overt Dynamics/Earworm Shuffle.swp | 5 | PVD stop,Exaggerator,Quiet Boost,Freqverb,Gain | 33 | 1 | 5dc23a8e6cabc81b
+Overt Dynamics/Everglade Slop.swp | 4 | Frevcho,Slicer,Blender,Ah-ah | 30 | 0 | 301d6c217bec030e
+Overt Dynamics/Grain Filter.swp | 3 | Swappah,Exaggerator,Gain | 20 | 0 | bcca2f932da04747
+Overt Dynamics/Harmonic Machinery.swp | 4 | Exploder (pvd),Slicer,Exploder,Pitch Shifter | 33 | 0 | 67f62ffc76a4ba0f
+Overt Dynamics/Hijacked Signal.swp | 5 | Pitch Magnet (pvd),Exploder,Inserter,Exploder,Gain | 39 | 0 | 7745d358a4394838
+Overt Dynamics/Ice Shuffler.swp | 4 | Atonal,Freqverb,Pitch Magnet,Gain | 30 | 1 | 80213c25101157a4
+Overt Dynamics/Maggots Metamorphosis.swp | 4 | Phlip,Inserter,Armonizer,Robotizer | 26 | 0 | 9223cac6fb4a20c9
+Overt Dynamics/March Of The Ear Maggots.swp | 4 | Phlip,Inserter,Armonizer,Robotizer | 26 | 0 | 2bf907ed143420ee
+Overt Dynamics/Mechanical Waves.swp | 5 | Wobbler,Freqverb,PVD stop,Freqverb,Gain | 36 | 2 | f293c2c246fac1c4
+Overt Dynamics/Modular Punching Bag.swp | 5 | Exploder (pvd),Slicer,Pitch Shifter,Exploder,Freqnamics | 40 | 0 | ee203eaf38ecb812
+Overt Dynamics/Phase Mod Impact.swp | 4 | Slicer,Pitch Shifter,Gain,Gain | 25 | 0 | 059e611d58d888ac
+Overt Dynamics/Pressure Boxing.swp | 5 | Freqverb,Ah-ah,Bandstop,Swappah,Gain | 37 | 1 | b1c9b02bb691bef0
+Overt Dynamics/Resentment.swp | 5 | Slicer,Phasevolution,Centroid,Frevcho,Gain | 35 | 0 | 7682dac25ee01d3c
+Overt Dynamics/Robo Pop.swp | 3 | Freqverb,Exploder (pvd),Slicer | 26 | 1 | ddfd77db2051e3d3
+Overt Dynamics/Robots Revenge.swp | 5 | Freqverb,Pitch Spring (pvd),Robotizer,Frecho,Gain | 35 | 1 | cbc44464c5c9d22b
+Overt Dynamics/Scratch Modular.swp | 4 | Pitch Shifter,Slicer,Exploder,Freqnamics | 31 | 0 | c7c7b692ff12ffa0
+Overt Dynamics/Slow And Low.swp | 3 | Slicer,Blender,Ah-ah | 22 | 0 | 8132b37e4c80e3c0
+Overt Dynamics/Slow Machine Sadness.swp | 3 | Slicer,Exploder,Freqnamics | 24 | 0 | 210092eeb0884b0d
+Overt Dynamics/Sputter Flux.swp | 5 | Slicer,Freqverb,Pitch Spring (pvd),Robotizer,Gain | 35 | 1 | ab5cd1b04933d5f8
+Overt Dynamics/Squelchy Grain Punch.swp | 5 | Freqverb,Slicer,Swappah,Exaggerator,Freqverb | 41 | 2 | 5eacaf75e73e7bc0
+Overt Dynamics/Stalactite Rock Steady.swp | 5 | Freqverb,Slicer,Swappah,Exaggerator,Freqverb | 41 | 2 | ad1a65a1fea8477e
+Overt Dynamics/Stalactite Rock.swp | 5 | Slicer,Swappah,Exaggerator,Freqverb,Gain | 37 | 1 | 8c0baad336189db6
+Overt Dynamics/Sucker Pop.swp | 4 | Swappah,Exaggerator,Freqverb,Gain | 29 | 1 | 0d7cba6c60b127de
+Overt Dynamics/Tension Sweeper.swp | 4 | Freqverb,Pitch Magnet (pvd),Exploder,Freqverb | 34 | 2 | 29b2b27f10bd3b90
+Overt Dynamics/The Great Destroyer.swp | 4 | Slicer,Frecho,Centroid,Gain | 29 | 0 | 69cefa289127f000
+Overt Dynamics/This Is Where I Make My Robots.swp | 5 | Slicer,Robotizer,Freqverb,Pitch Spring (pvd),Frecho | 38 | 1 | 124aa8e18afd89a3
+Overt Dynamics/Tobor Esrever.swp | 3 | Freqverb,Reverser,Gain | 20 | 1 | 534428a5239d6430
+Overt Dynamics/Toybox Demons.swp | 4 | Exploder,Frecho,Ah-ah,Gain | 30 | 0 | 302f99a1d69506c7
+Overt Dynamics/Transformer Crunch.swp | 5 | Reverser,Robotizer,Phlip,Ethereal,Gain | 30 | 0 | 5a50ba82d41519a3
+Overt Dynamics/Uprock Dub Pop.swp | 3 | Exaggerator,Freqverb,Gain | 20 | 1 | b25852a54edf8a18
+Overt Dynamics/Wet Dreams.swp | 5 | Imploder (pvd),PVD stop,Freqverb,PVD start,Whisperer | 33 | 1 | 6157725b003b7bfd
+Overt Dynamics/Wet Metal Slide.swp | 5 | Frecho,Phlip,Imploder (pvd),Robotizer,Ah-ah | 36 | 0 | 7de6d8c484d08c48
+Random/Assembly Lines.swp | 3 | Slew Limiter,Freqnamics,Pitch Shifter | 21 | 0 | 1fb19a02767b9b51
+Random/Cafe Break.swp | 2 | Inserter,Phlip | 15 | 0 | 59c4bcbd7682af10
+Random/Chicken Cage.swp | 1 | Exploder | 9 | 0 | fe7ed80fd2c15a52
+Random/Claw.swp | 3 | Freqverb,Exaggerator,Armonizer | 21 | 1 | 76b164f0e64ecfd4
+Random/Hectic.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | 3e032db3a6153b9f
+Random/Intervention.swp | 1 | Slicer | 8 | 0 | 1bb23718489de94f
+Random/Invention.swp | 1 | Slew Limiter | 7 | 0 | fa2d8282a6789f53
+Random/Meow Storm.swp | 2 | Imploder (pvd),Sumo Pitch | 16 | 0 | 59a58208731f54f3
+Random/Plastic.swp | 3 | Freqverb,Exaggerator,Armonizer | 21 | 1 | b32fcfde8debde8f
+Random/Rose.swp | 2 | Freqverb,Armonizer | 15 | 1 | f175207c5ce5b063
+Random/Septica.swp | 2 | Exaggerator,Freqverb | 15 | 1 | 5f5a6b42ab311cf8
+Random/Shifts.swp | 3 | Phlip,Phasevolution,Phlip | 18 | 0 | 8108f5133f694925
+Random/So What!.swp | 2 | Pitch Magnet,Imploder | 16 | 0 | 5975fd779673ed80
+Random/Tears In Heaven.swp | 2 | Exaggerator,Freqverb | 15 | 1 | 9be33b580c582d27
+Random/Thin Air.swp | 2 | Exaggerator,Shifter | 14 | 0 | 0f3f39aaa39665d8
+Random/Underwater.swp | 1 | Exaggerator | 6 | 0 | cd8a96f7355e3eb0
+Sidechainables/Convolvevolve.swp | 1 | Convolver | 8 | 0 | e4bee368e9dbb55a
+Sidechainables/Drum Battle.swp | 1 | Merger | 7 | 0 | 857887c5eb1e272c
+Sidechainables/Drum Longerer.swp | 2 | Slew Limiter,Colorifer | 15 | 0 | 3666927f360075fb
+Sidechainables/Drum Thresh Fun.swp | 2 | Wobbler,Merger | 15 | 0 | 65d76750cdbef26a
+Sidechainables/DrumCoder.swp | 1 | Talking Wind | 7 | 0 | f2975f3dc320b7f7
+Sidechainables/Gender Wobbles.swp | 4 | PVD start,Pitch Shifter (pvd),PVD stop,Inserter | 26 | 0 | 1cb24053fdb94dfe
+Sidechainables/Hat Battle.swp | 3 | Exaggerator,Pitch Shifter,Ethereal | 21 | 0 | 7d0f7bbec0fbd8c6
+Sidechainables/Rewrite The Mel.swp | 1 | Ethereal | 8 | 0 | fcbbfb76cbfd6686
+Sidechainables/Standard Lovely.swp | 1 | Shapeless | 6 | 0 | a08159f82048f3af
+Sidechainables/Vocal To Vocal.swp | 3 | Reverser,Reverser,Colorifer | 20 | 0 | 0bc5e8d1ba37efb0
+Techno/Colonel Kurtz.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | 91122fb1b762eb28
+Techno/Funny Games.swp | 1 | Inserter | 9 | 0 | 959cc9d70d2b7747
+Techno/Hit The Breaks.swp | 1 | Slew Limiter | 7 | 0 | dbad1a3306b73a40
+Techno/Hurricane Going Your Way.swp | 2 | Bandpass,Slicer | 14 | 0 | 833121ae96341a52
+Techno/Just One Sec.swp | 2 | Imploder,Phasevolution | 15 | 0 | abc1ce5a9013b8d1
+Techno/Landing.swp | 1 | Imploder | 9 | 0 | 197db1970c975f0f
+Techno/Lazzzers.swp | 2 | Freqverb,Pitch Shifter | 16 | 1 | f76bb3d2888a094a
+Techno/Lulu.swp | 1 | Phasevolution | 6 | 0 | 1335cde80604e6c7
+Techno/Random Trains.swp | 2 | Whisperer,Pitch Magnet | 12 | 0 | d7a9b9ca6ab117e3
+Techno/Retreat.swp | 3 | Pitch Magnet,Freqverb,Pitch Shifter | 23 | 1 | aab36de8d8620fe7
+Techno/Technologic.swp | 2 | TuneWorx,Slicer | 26 | 0 | 24d2c62d46eb3b78
+Techno/Through The Barricades.swp | 1 | Sumo Pitch | 7 | 0 | 7f84eb37d6051919
+Tumbi Umbi/Adaminaby.swp | 2 | Blender,Reverser | 12 | 0 | ef180bd33039a63b
+Tumbi Umbi/Angurugu.swp | 3 | Quantizer,Imploder,Gain | 21 | 0 | a9480c193bde1e2d
+Tumbi Umbi/Bamaga.swp | 1 | Pitch Shifter | 7 | 0 | 47140b1f32d9c15d
+Tumbi Umbi/Berri.swp | 2 | Denoiser,Frecho | 15 | 0 | bb9686689a00d82c
+Tumbi Umbi/Bindoon.swp | 3 | Pitch Follower,Wobbler,Freqverb | 23 | 1 | 6293ed170706c8df
+Tumbi Umbi/Bunyip.swp | 3 | Slew Limiter,Whisperer,Slicer | 20 | 0 | 1b0de37303b1fc73
+Tumbi Umbi/Burraneer.swp | 2 | Frecho,Bandpass | 14 | 0 | 1c42030827cdad2f
+Tumbi Umbi/Coonabarabran.swp | 3 | Freqverb,Armonizer,Armonizer | 21 | 1 | e0b4a0bd556c4996
+Tumbi Umbi/Coonawarra.swp | 2 | Phlip,Quiet Boost | 14 | 0 | 7b01c62372095f5c
+Tumbi Umbi/Cooroy.swp | 2 | Wobbler,Freqverb | 17 | 1 | 799d093c016f6d4b
+Tumbi Umbi/Dandenong.swp | 3 | Pitch Magnet,Slew Limiter,Gain | 19 | 0 | 65ee679c0f8aaa90
+Tumbi Umbi/Dowerin.swp | 2 | Slew Limiter,Whisperer | 12 | 0 | b50ab6af70c7687c
+Tumbi Umbi/Dubbo.swp | 3 | Exploder,Exaggerator,Phlip | 21 | 0 | 4f722626d530e8d1
+Tumbi Umbi/Echuca.swp | 2 | Centroid,Freqverb | 17 | 1 | 116ea2a7bd9e04a3
+Tumbi Umbi/Eneabba.swp | 1 | TuneWorx | 18 | 0 | bd65cacffda824b9
+Tumbi Umbi/Gilgandra.swp | 4 | Reverser,Freqverb,Reverser,Gain | 26 | 1 | 93991b4b5de6f9d1
+Tumbi Umbi/Gingin.swp | 2 | Smoother,Reverser | 12 | 0 | 5a2f44152bcaabef
+Tumbi Umbi/Gulgong.swp | 2 | Robotizer,Talking Wind | 12 | 0 | d948ee305e65b061
+Tumbi Umbi/Illawarra.swp | 2 | Freqverb,Wobbler | 17 | 1 | 9caaa40b4fae44c3
+Tumbi Umbi/Indooroopilly.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 64 | 0 | 6cc8823b01e7d9c5
+Tumbi Umbi/Jeparit.swp | 2 | Inserter,Pitch Spring | 17 | 0 | 5cfece7d3546bdb2
+Tumbi Umbi/Joondalup.swp | 5 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop,Freqverb | 45 | 1 | a0ec5bd26d541aa8
+Tumbi Umbi/Kalamunda.swp | 2 | Ah-ah,Pitch Magnet | 15 | 0 | 303b9abf3b0b92c1
+Tumbi Umbi/Kangy Angy.swp | 2 | Slicer,Pitch Spring | 16 | 0 | 73d52fa651f932af
+Tumbi Umbi/Karumba.swp | 2 | Slew Limiter,Whisperer | 12 | 0 | fd3842652d22d815
+Tumbi Umbi/Koo Wee Rup.swp | 3 | Slew Limiter,Whisperer,Slicer | 20 | 0 | 2b6ee01eea0a1788
+Tumbi Umbi/Mandurah.swp | 3 | Exploder,Phasevolution,Phasevolution | 21 | 0 | 2477dc4d6cd50cf6
+Tumbi Umbi/Mareeba.swp | 4 | Slew Limiter,Sharper,TuneWorx,Slicer | 41 | 0 | 398d52d2a1cbd0fd
+Tumbi Umbi/Millaa Millaa.swp | 3 | Quantizer,Imploder,Gain | 21 | 0 | 23355a184911fa0f
+Tumbi Umbi/Moe.swp | 3 | Centroid,Gain,Pitch Shifter | 20 | 0 | 9d6f4ef1a89d9798
+Tumbi Umbi/Ngunnawal.swp | 2 | Wobbler,Pitch Magnet | 15 | 0 | 8a4d2e9b3bf0cd6b
+Tumbi Umbi/Nhulunbuy.swp | 5 | PVD start,TuneWorx (pvd),TuneWorx (pvd),TuneWorx (pvd),PVD stop | 64 | 0 | c5e6ce64e5915cf1
+Tumbi Umbi/Noosa.swp | 2 | Slew Limiter,Pitch Spring | 15 | 0 | ab06af8d5063677e
+Tumbi Umbi/Nowra.swp | 3 | Frecho,Frecho,Frecho | 24 | 0 | fccd1e0077e69085
+Tumbi Umbi/Onkaparinga.swp | 3 | Quiet Boost,Whisperer,Armonizer | 19 | 0 | ddc5bf9225dd989f
+Tumbi Umbi/Ouyen.swp | 3 | Swappah,Imploder,Freqverb | 27 | 1 | fb95bd61cd9cdc95
+Tumbi Umbi/Paroo.swp | 2 | Slicer,Pitch Magnet | 15 | 0 | 3a3a5eb764ce11f0
+Tumbi Umbi/Parramatta.swp | 2 | Wobbler,Pitch Magnet | 15 | 0 | a424c437a929c7c2
+Tumbi Umbi/Pialligo.swp | 2 | Slew Limiter,Robotizer | 12 | 0 | e5e3f5b509c5f906
+Tumbi Umbi/Ramingining.swp | 3 | Imploder,Phasevolution,Phasevolution | 21 | 0 | 7f7e804b2783c287
+Tumbi Umbi/Tamar.swp | 3 | Reverser,Freqverb,Reverser | 21 | 1 | edf666d0abdd349d
+Tumbi Umbi/Tambellup.swp | 1 | Sumo Pitch | 7 | 0 | 03f595254da8d3e1
+Tumbi Umbi/Tanunda.swp | 2 | Slicer,Slew Limiter | 15 | 0 | 19f12169095d7501
+Tumbi Umbi/Tincurrin.swp | 2 | Pitch Spring,Frecho | 16 | 0 | 3a263d914d6da8fd
+Tumbi Umbi/Tumbi Umbi.swp | 2 | Pitch Spring,Bandpass | 14 | 0 | 2c43b5010210b4dc
+Tumbi Umbi/Uralla.swp | 3 | Slew Limiter,Tonal,Imploder | 25 | 0 | 39d0dd97a12bebc7
+Tumbi Umbi/Wanneroo.swp | 3 | Denoiser,Reverser,Frecho | 21 | 0 | bad159456ff1a0ae
+Tumbi Umbi/Woollahra.swp | 3 | PVD start,Frecho,PVD stop | 18 | 0 | 3a3a462096d2fab4
+Tumbi Umbi/Wujal Wujal.swp | 3 | Slicer,Pitch Spring,Gain | 21 | 0 | 781078e0d700a8ff
+Tumbi Umbi/Yarra.swp | 3 | Slew Limiter,Whisperer,Pitch Spring | 20 | 0 | 27b2711ffa1bdff7
+Verbs/Barker.swp | 2 | Quantizer,Convolver | 15 | 1 | 4eba169da1179196
+Verbs/Far And Small.swp | 1 | Freqverb | 9 | 1 | 44bdad6a9b966892
+Verbs/Freaky Cave.swp | 2 | Imploder,Freqverb | 18 | 1 | 52c3adf70c267712
+Verbs/Ghost From The Opera.swp | 2 | Freqverb,Reverser | 15 | 1 | 247ea696b8807440
+Verbs/Longerb.swp | 1 | Freqverb | 9 | 1 | 7dd15b61208e4cd1
+Verbs/Mirko.swp | 2 | Freqverb,Pitch Spring | 17 | 1 | 56b3d6bb5341b0e6
+Verbs/Paste.swp | 2 | Convolver,Frecho | 16 | 1 | fd3e758c4f6758a8
+Verbs/Pitched.swp | 1 | Freqverb | 9 | 1 | 417275f7c6705f0d
+Verbs/Shoots Of Reverbation.swp | 1 | Freqverb | 9 | 1 | 0565658dd2d785c3
+Verbs/Slavko.swp | 2 | Freqverb,Pitch Spring | 17 | 1 | d5ccac9cee18356c
+Verbs/Slewerb.swp | 2 | Slew Limiter,Freqverb | 16 | 1 | c0ba7296508b8e13
+Verbs/Verby.swp | 1 | Freqverb | 9 | 1 | 0a49583bead2a45a
+Verbs/Wetverb.swp | 1 | Freqverb | 9 | 1 | 4663deb22993a073
+Voices/Adorno.swp | 2 | Talking Wind,Whisperer | 12 | 0 | 02cb52226cfc7c0e
+Voices/Autotalk.swp | 2 | Talking Wind,TuneWorx | 25 | 0 | c273bd536cc6e211
+Voices/Broken Robot.swp | 2 | Swappah,Pitch Spring | 17 | 0 | cba85849caba3ea5
+Voices/Closed Doors.swp | 3 | Bandpass,Robotizer,Gain | 16 | 0 | bd3aea4e5870f83d
+Voices/Friendly Voice.swp | 2 | Frecho,Pitch Spring | 16 | 0 | 7375a41f8a680cae
+Voices/Frobot.swp | 4 | Talking Wind,PVD start,Slicer,PVD stop | 25 | 0 | 5cd74ea0a1868fc8
+Voices/Megnetic Collapse.swp | 3 | Bandpass,Reverser,Pitch Shifter | 19 | 0 | 8696e4be5beb8a45
+Voices/No Safety.swp | 2 | Pitch Shifter,Bandstop | 13 | 0 | 0b8d1552f2b5d2db
+Voices/Robokid.swp | 3 | Freqverb,Armonizer,Robotizer | 20 | 1 | 5646b85c45745135
+Voices/Rostfrei.swp | 4 | PVD start,Pitch Spring (pvd),TuneWorx (pvd),PVD stop | 36 | 0 | 1f105d7ca6edf4d2
+Voices/The Fabric Of Sound.swp | 2 | Armonizer,Slew Limiter | 13 | 0 | 101f3c190f441a4d
+Voices/Totalbot.swp | 2 | Talking Wind,Robotizer | 12 | 0 | d64c098873434036
+Voices/Whisper Me.swp | 3 | Bandstop,Whisperer,Gain | 16 | 0 | 63ac1d5fa9eafb61
+Voices/Whisperer Three.swp | 3 | Bandstop,Whisperer,Gain | 16 | 0 | 63ac1d5fa9eafb61
+Wahs/Ghost Guitar.swp | 3 | Gain,Ah-ah,Reverser | 19 | 0 | 398d095c08555d8b
+Wahs/Wah Fast.swp | 2 | Gain,Ah-ah | 13 | 0 | c99080187d442184
+Wahs/Wah Medium.swp | 2 | Gain,Ah-ah | 13 | 0 | d83ca33307367a17
+Wahs/Wah Nyah.swp | 2 | Gain,Ah-ah | 13 | 0 | 7a4d217ae344d7fa
+Wahs/Wah Sleepy.swp | 2 | Gain,Ah-ah | 13 | 0 | 85e6b1bdd7759877
+Wahs/Wah Slow.swp | 2 | Gain,Ah-ah | 13 | 0 | 5a41e7cb1769cf92
+Wahs/Wah Soft Fast.swp | 2 | Gain,Ah-ah | 13 | 0 | a538a9148d510fd2
+Wahs/Wah Soft Medium.swp | 2 | Gain,Ah-ah | 13 | 0 | 3fd1764e73538d68
+Wahs/Wah Soft Slow.swp | 2 | Gain,Ah-ah | 13 | 0 | 1ad36cd9981a9bee
+Wahs/Wah Whisper.swp | 3 | Gain,Ah-ah,Whisperer | 18 | 0 | 9989f5a917fe4be7
+Wahs/Wah Yu.swp | 2 | Gain,Ah-ah | 13 | 0 | 0703bc9b053fb5d6

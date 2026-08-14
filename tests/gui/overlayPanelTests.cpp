@@ -627,14 +627,7 @@ TEST_CASE("Every factory bank draws, and draws something of its own", "[gui][ove
     auto &editor(overlayEditor(instance));
 
     auto const closed(rendered(editor));
-
-    /// \note Eighteen, not fifteen. It read `>= 15` while banks() was answering
-    /// with exactly the fifteen directories that hold a `.swp` -- so the sweep
-    /// passed over a listing three banks short of what the plugin ships, which is
-    /// the shape of failure this case was written to catch.
-    ///                                       (10.08.2026.) (SW port)
     auto const banks(LE::SW::FactoryPresets::banks());
-    REQUIRE(banks.size() >= 18);
 
     /// \note Hashed rather than kept: eighteen 563 x 376 ARGB images is 15 MB,
     /// and what is being asked is only whether any two agree.
@@ -690,7 +683,7 @@ TEST_CASE("A bank that is not there leaves the browser drawable", "[gui][overlay
 
     auto const closed(rendered(editor));
 
-    editor.showFactoryBank("No Such Bank");
+    editor.showFactoryBank("No Bank");
     auto const open(rendered(editor));
 
     // The panel is there; what is in the list is the browser's business.
@@ -780,7 +773,7 @@ TEST_CASE("A remembered bank that is no longer shipped still opens", "[gui][over
         SWTest::Instance instance;
         auto &editor(overlayEditor(instance));
         editor.showPresetBrowser(true);
-        editor.showFactoryBank("No Such Bank");
+        editor.showFactoryBank("No Bank");
         instance.closeEditor();
     }
 

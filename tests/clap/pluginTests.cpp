@@ -1886,7 +1886,7 @@ TEST_CASE("A preset reaches the rack with no audio thread running", "[clap][pres
     /// screen, and a case that took whatever preset came first could not promise
     /// that. A rename breaks this loudly, which is the right failure.
     std::filesystem::path const presetFile(std::filesystem::path(SW_PRESET_DATA_DIR) / "Voices" /
-                                           "LE Robokid.swp");
+                                           "Robokid.swp");
     REQUIRE(std::filesystem::is_regular_file(presetFile));
     auto presetData(LE::SW::readPresetFile(presetFile));
     REQUIRE(presetData);
@@ -1894,7 +1894,7 @@ TEST_CASE("A preset reaches the rack with no audio thread running", "[clap][pres
     auto const requestsBefore(editor->rackResyncRequests());
 
     REQUIRE(LE::SW::GUI::loadPreset(host, editor.get(), presetData.get(),
-                                    true /*ignore external samples*/, nullptr, "LE Robokid"));
+                                    true /*ignore external samples*/, nullptr, "Robokid"));
 
     // The main thread's chain is the preset's the moment the load returns...
     auto const modules(editor->moduleChain().size());
@@ -1933,7 +1933,7 @@ TEST_CASE("A preset reaches the rack with no audio thread running", "[clap][pres
 /// written against. Each turn of the loop is one browser click: load, resync the
 /// rack, honour the restart if one was asked for, run audio, draw.
 ///
-/// \note All 303 shipped banks, not a sample of them. The interesting presets are
+/// \note All 288 shipped presets, not a sample of them. The interesting presets are
 /// the 2011 ones whose effects have grown parameters since, and there is no way
 /// to know which those are without reading all of them.
 ///
@@ -2087,7 +2087,7 @@ TEST_CASE("Loading preset after preset with the editor open", "[clap][presets][g
     }
 
     INFO("presets loaded: " << loaded);
-    REQUIRE(loaded > 300);
+    REQUIRE(loaded >= 288);
 
     editor.reset();
 }

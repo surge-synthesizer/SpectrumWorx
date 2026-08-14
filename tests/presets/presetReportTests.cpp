@@ -105,7 +105,7 @@ TEST_CASE("Loading a factory preset tells the user nothing", "[presets][report]"
 {
     auto const summary(loadEveryFactoryPreset());
 
-    REQUIRE(summary.presets > 300);
+    REQUIRE(summary.presets >= 288);
 
     for (auto const &offender : summary.offenders)
         UNSCOPED_INFO("raised a dialog: " << offender);
@@ -127,7 +127,7 @@ TEST_CASE("What the factory presets do not mention is exactly this much",
     ///
     /// \note The number that makes suppressing `MissingParameter` safe.
     ///
-    ///   All 106 of these are the same thing: an effect that grew a parameter
+    ///   All 98 of these are the same thing: an effect that grew a parameter
     /// after the preset was written. Freqverb gained `HF absorb` (104 presets --
     /// every one that uses it); two presets predate a `Phase`.
     ///
@@ -149,7 +149,7 @@ TEST_CASE("What the factory presets do not mention is exactly this much",
     ///                                       (11.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
-    constexpr unsigned int knownMissingParameters{106};
+    constexpr unsigned int knownMissingParameters{98};
 
     auto const summary(loadEveryFactoryPreset());
 

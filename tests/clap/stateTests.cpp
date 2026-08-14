@@ -510,7 +510,7 @@ TEST_CASE("A 2011 preset is legal session state", "[clap][state]")
     /// possible statement of "state is the preset serialisation" -- and because
     /// a host that migrates an old project by handing over a preset file is not
     /// a strange host.
-    fs::path const preset(fs::path(SW_PRESET_DATA_DIR) / "Voices" / "LE Autotalk.swp");
+    fs::path const preset(fs::path(SW_PRESET_DATA_DIR) / "Voices" / "Autotalk.swp");
 
     std::error_code error;
     auto const size(std::filesystem::file_size(preset, error));

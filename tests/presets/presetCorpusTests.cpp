@@ -238,7 +238,7 @@ TEST_CASE("Every factory preset loads and produces the committed state", "[prese
 {
     auto const files(corpus());
     INFO("preset directory " << SW_PRESET_DATA_DIR);
-    REQUIRE(files.size() >= 300); // 303 as committed; an empty sweep is a failure, not a pass
+    REQUIRE(files.size() >= 288); // 288 as committed; an empty sweep is a failure, not a pass
 
     auto const *const dumpFilter(std::getenv("SW_PRESET_DUMP"));
 
@@ -320,7 +320,7 @@ TEST_CASE("Every factory preset loads and produces the committed state", "[prese
 TEST_CASE("Every factory preset survives translation into the 3.0 format", "[preset-corpus]")
 {
     auto const files(corpus());
-    REQUIRE(files.size() >= 300);
+    REQUIRE(files.size() >= 288);
 
     auto const expected(readTable());
     REQUIRE_FALSE(expected.empty());
@@ -388,7 +388,7 @@ TEST_CASE("Every factory preset survives translation into the 3.0 format", "[pre
 TEST_CASE("The embedded factory banks are the committed files", "[preset-corpus]")
 {
     auto const files(corpus());
-    REQUIRE(files.size() >= 300);
+    REQUIRE(files.size() >= 288);
 
     std::size_t embeddedCount{0};
     for (auto const &bank : FactoryPresets::banks())
@@ -437,7 +437,7 @@ TEST_CASE("The embedded factory banks are the committed files", "[preset-corpus]
 
     /// \note And that a bank which is not there says so, rather than answering
     /// with an empty list that reads the same as an empty bank.
-    CHECK_FALSE(FactoryPresets::isBank("No Such Bank"));
-    CHECK(FactoryPresets::presets("No Such Bank").empty());
-    CHECK_FALSE(FactoryPresets::load("Echoes", "No Such Preset"));
+    CHECK_FALSE(FactoryPresets::isBank("No Bank"));
+    CHECK(FactoryPresets::presets("No Bank").empty());
+    CHECK_FALSE(FactoryPresets::load("Echoes", "No Preset"));
 }

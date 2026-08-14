@@ -43,7 +43,7 @@ std::string presetPath(std::string_view const bank, std::string_view const prese
     return bankPath(bank) + '/' + std::string(preset) + '.' + std::string(extension);
 }
 
-/// \brief `"LE Boiler"` from `"LE Boiler.swp"`, or nothing if it is not a preset.
+/// \brief `"Boiler"` from `"Boiler.swp"`, or nothing if it is not a preset.
 ///
 /// \note By suffix rather than by asking the filesystem: cmrc has no notion of a
 /// file's type beyond is_file(), and the banks hold nothing else anyway.

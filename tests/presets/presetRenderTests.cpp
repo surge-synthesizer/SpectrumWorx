@@ -117,7 +117,7 @@ TEST_CASE("Every factory preset renders finite audio", "[presets][render]")
 
     // Not a spot check: the interesting presets are the ones nobody would think
     // to pick, and there is no way to know which those are without playing them.
-    REQUIRE(loaded > 300);
+    REQUIRE(loaded >= 288);
 
     for (auto const &offender : offenders)
         UNSCOPED_INFO("non-finite output: " << offender);

@@ -70,8 +70,8 @@ constexpr std::uint32_t blockSize{64};
 /// heap overrun.
 std::filesystem::path presetWithABiggerFFT()
 {
-    std::filesystem::path const preset(std::filesystem::path(SW_PRESET_DATA_DIR) / "Martin Walker" /
-                                       "Gamma Shift" / "Whistle A Tune.swp");
+    std::filesystem::path const preset(std::filesystem::path(SW_PRESET_DATA_DIR) / "Gamma Shift" /
+                                       "Whistle A Tune.swp");
     REQUIRE(std::filesystem::is_regular_file(preset));
     return preset;
 }
