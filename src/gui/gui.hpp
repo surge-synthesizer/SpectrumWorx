@@ -637,7 +637,6 @@ class PopupMenu
     /// desktop window and inherits nothing from what opened it: JUCE works its
     /// scale out from the component the menu names as its target, so a menu that
     /// names none is drawn at 1:1 beside an editor drawn at 1.5.
-    /// \see menuScaleTests.cpp.
     ///
     /// \note And the area is in the owner's coordinates rather than the screen's
     /// for the same reason: every offset here is a skin pixel, and the screen
