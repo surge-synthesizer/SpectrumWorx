@@ -483,6 +483,14 @@ void ModuleUI::updateCursorFor(juce::Point<int> const position)
                                           : juce::MouseCursor::NormalCursor);
 }
 
+/// \note Wherever in the strip it lands, handles included: the drag is the left
+/// button's and this is the right one's, so the two never compete for a pixel.
+void ModuleUI::mouseDown(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        editor().showEffectMenuAt(event.getScreenPosition());
+}
+
 void ModuleUI::mouseDrag(juce::MouseEvent const &event)
 {
     /// \note Where the mouse went *down*, not where it is: a drag that began on a

@@ -397,6 +397,9 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
   private: // JUCE Component overrides.
     void paint(juce::Graphics &) override;
 
+    /// \note Only the right button, which opens the effect menu; the left one is
+    /// the drag, and that starts in mouseDrag().
+    void mouseDown(juce::MouseEvent const &) override;
     void mouseDrag(juce::MouseEvent const &) override;
     void mouseEnter(juce::MouseEvent const &) override;
     void mouseExit(juce::MouseEvent const &) noexcept override;

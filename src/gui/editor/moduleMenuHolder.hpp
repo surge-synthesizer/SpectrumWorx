@@ -63,7 +63,20 @@ class ModuleMenuHolder
     bool isOwnerOfEntry(unsigned int menuEntryID) const;
     std::uint8_t effectIndexForEntry(unsigned int menuEntryID) const;
 
-    Menu const &topMenu() const { return const_cast<ModuleMenuHolder &>(*this).topMenu(); }
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The effect list, under \p title and a separating rule.
+    ///
+    /// \note The same entries every time; only the heading changes, and it is
+    /// what says which of the several things choosing one can now mean -- adding
+    /// an effect, inserting one between two others, replacing one. The top menu
+    /// is therefore refilled per use rather than built once in the constructor:
+    /// it is a handful of strings, and the effects' own sub-menus -- the part
+    /// that is a compile-time traversal -- are still built exactly once.
+    ///                                       (14.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    Menu const &menuWithHeader(char const *title);
 
   private:
     Menu &topMenu() { return menus_.front(); }

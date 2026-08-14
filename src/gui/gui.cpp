@@ -537,7 +537,7 @@ void PopupMenu::addItem(ItemID const newItemId, char const *const newItemText,
 {
     juce::String text(newItemText);
     updateDimensionsForNewItem(text);
-    items_.push_back({newItemId, std::move(text), icon, enabled, false, nullptr});
+    items_.push_back({newItemId, std::move(text), icon, enabled, false, false, nullptr});
 }
 
 void PopupMenu::addSubMenu(PopupMenu &subMenu, char const *const name)
@@ -545,7 +545,7 @@ void PopupMenu::addSubMenu(PopupMenu &subMenu, char const *const name)
     LE_ASSERT(name);
     juce::String text(name);
     updateDimensionsForNewItem(text);
-    items_.push_back({0, std::move(text), nullptr, true, false, &subMenu});
+    items_.push_back({0, std::move(text), nullptr, true, false, false, &subMenu});
 }
 
 void PopupMenu::addSectionHeader(char const *const title)
@@ -553,8 +553,12 @@ void PopupMenu::addSectionHeader(char const *const title)
     LE_ASSERT(title);
     juce::String text(title);
     updateDimensionsForNewItem(text);
-    items_.push_back({0, std::move(text), nullptr, false, true, nullptr});
+    items_.push_back({0, std::move(text), nullptr, false, true, false, nullptr});
 }
+
+/// \note Nothing added to the measured height: a rule is a few pixels and the
+/// height is only used to centre showCenteredAtRight().
+void PopupMenu::addSeparator() { items_.push_back({0, {}, nullptr, false, false, true, nullptr}); }
 
 void PopupMenu::updateDimensionsForNewItem(juce::String const &itemText)
 {
@@ -583,7 +587,9 @@ juce::PopupMenu PopupMenu::build(int const tickedIndex) const
     for (int index(0); index < static_cast<int>(items_.size()); ++index)
     {
         auto const &item(items_[static_cast<std::size_t>(index)]);
-        if (item.isSectionHeader)
+        if (item.isSeparator)
+            menu.addSeparator();
+        else if (item.isSectionHeader)
             menu.addSectionHeader(item.text);
         else if (item.pSubMenu)
             menu.addSubMenu(item.text, item.pSubMenu->build(item.pSubMenu->tickedIndex_), true);
@@ -625,6 +631,12 @@ void PopupMenu::showCenteredBelow(juce::Component const &owner, OnChosen onChose
     showAt(point.getX(), point.getY(), width, owner.getHeight(), std::move(onChosen));
 }
 
+void PopupMenu::showAtScreenPosition(juce::Point<int> const screenPosition, OnChosen onChosen) const
+{
+    showAt(static_cast<unsigned int>(screenPosition.getX()),
+           static_cast<unsigned int>(screenPosition.getY()), 1, 1, std::move(onChosen));
+}
+
 void PopupMenu::showAt(unsigned int const x, unsigned int const y, unsigned int const width,
                        unsigned int const height, OnChosen onChosen) const
 {
@@ -654,6 +666,11 @@ void PopupMenu::clear()
 }
 
 unsigned int PopupMenu::numberOfItems() const { return static_cast<unsigned int>(items_.size()); }
+
+juce::String const &PopupMenu::getItemText(unsigned int const itemIndex) const
+{
+    return items_[itemIndex].text;
+}
 
 PopupMenuWithSelection::PopupMenuWithSelection() : currentSelection_(0), currentSelectionID_(0) {}
 
@@ -747,11 +764,6 @@ void PopupMenuWithSelection::showCenteredBelow(juce::Component const &owner,
         owner, [this, onSelection = std::move(onSelection)](OptionalID const &chosen) {
             onSelection(handleNewSelection(chosen));
         });
-}
-
-juce::String const &PopupMenuWithSelection::getItemText(unsigned int const itemIndex) const
-{
-    return items()[itemIndex].text;
 }
 
 ComboBox::ComboBox(juce::Component &parent, Artwork const &normalBackground,

@@ -25,6 +25,7 @@
 #include "le/parameters/lfo.hpp"
 #include "le/parameters/printer.hpp"
 #include "le/parameters/uiElements.hpp"
+#include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/spectrumworx/presetStorage.hpp"
 #include "le/spectrumworx/presets.hpp"
 #include "le/utility/countof.hpp"
@@ -844,6 +845,236 @@ void SpectrumWorxEditor::swapModuleSlots(std::uint8_t const a, std::uint8_t cons
     host().gestureEnd();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// The right-click effect menu
+// ---------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   The same list of effects the add-module button opens, asked in three places
+/// and meaning something different in each: on a strip it replaces that effect,
+/// between two it goes in there and shifts the rest along, and past the last one
+/// it is simply added. Which of the three is the heading on the menu, so that the
+/// answer is read before anything is chosen rather than discovered afterwards.
+///
+/// \note The zones are the drag's in shape -- a band at each end of a strip means
+/// "between these two" and the middle means "this one" -- but narrower. A drag
+/// draws where it would land and can be walked back before the button is let go;
+/// a right-click is committed to the moment it goes down, and the heading is the
+/// first the user hears of which of the two they asked for. So the seam is
+/// something to be aimed at here and something to be fallen into there.
+///                                           (14.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+/// \see the note above.
+constexpr int menuInsertZone{slotWidth / 6};
+static_assert(menuInsertZone < insertZone, "The menu's seam is the narrower of the two.");
+} // anonymous namespace
+
+SpectrumWorxEditor::EffectMenuTarget
+SpectrumWorxEditor::effectMenuTargetAt(juce::Point<int> const position) const
+{
+    /// \note The whole rack, not the filled part of it: what is past the last
+    /// strip is where a module is added, and that is the emptiest and most
+    /// obvious place to ask for one.
+    juce::Rectangle<int> const rack(ModuleUI::horizontalOffset, ModuleUI::verticalOffset,
+                                    SW::Constants::maxNumberOfModules * slotWidth,
+                                    ModuleUI::height);
+    if (!rack.contains(position))
+        return {};
+
+    auto const filled(nextAvailableModuleSlot_);
+    auto const alongTheRack(position.getX() - ModuleUI::horizontalOffset);
+    auto const slot(static_cast<std::uint8_t>(alongTheRack / slotWidth));
+
+    if (slot >= filled)
+        return {EffectMenuTarget::append, filled};
+
+    /// \note And a full rack has no gaps to insert into, so its strips are
+    /// replaceable edge to edge. Offering an insert that would have to drop
+    /// somebody's last module to make room is the one answer nobody wants.
+    if (filled < SW::Constants::maxNumberOfModules)
+    {
+        auto const acrossTheStrip(alongTheRack % slotWidth);
+        if (acrossTheStrip < menuInsertZone)
+            return {EffectMenuTarget::insert, slot};
+        if (acrossTheStrip >= (slotWidth - menuInsertZone))
+        {
+            /// \note Except off the right of the last strip, which is the end of
+            /// the rack rather than a gap in it -- and inserting there is adding.
+            /// Said as an add so that the heading does not change across a
+            /// boundary the user cannot see and the action does not.
+            auto const gap(static_cast<std::uint8_t>(slot + 1));
+            return (gap < filled) ? EffectMenuTarget{EffectMenuTarget::insert, gap}
+                                  : EffectMenuTarget{EffectMenuTarget::append, filled};
+        }
+    }
+
+    return {EffectMenuTarget::replace, slot};
+}
+
+/// \note A replacement names what it would replace -- "Replace Tonal Effect" --
+/// because that is the one of the three where the user has pointed at something
+/// in particular, and a heading that read "Replace with" left them checking which
+/// strip the menu had opened over. The other two point at a gap, which has no
+/// name.
+juce::String SpectrumWorxEditor::effectMenuHeader(EffectMenuTarget const target) const
+{
+    switch (target.action)
+    {
+    case EffectMenuTarget::replace:
+    {
+        auto const effect(effectInRackSlot(target.slot));
+        /// \note An empty slot cannot be reached from effectMenuTargetAt(), which
+        /// only names a replacement for a slot with a strip in it. Guarded rather
+        /// than asserted because the alternative is indexing the name table with
+        /// `noModule`.
+        if (effect == AutomatedModuleChain::noModule)
+            return "Replace effect";
+        return juce::String("Replace ") + Effects::effectName(static_cast<std::uint8_t>(effect)) +
+               " Effect";
+    }
+    case EffectMenuTarget::insert:
+        return "Insert effect";
+    case EffectMenuTarget::append:
+        return "Add effect";
+    case EffectMenuTarget::none:
+        break;
+    }
+    /// \note `none` never gets this far -- showEffectMenuAt() answers it by not
+    /// opening a menu -- so this is the switch being total, not a fourth heading.
+    return "Add effect";
+}
+
+PopupMenu::OnChosen SpectrumWorxEditor::effectMenuCallback(EffectMenuTarget const target)
+{
+    /// \note The same SafePointer the add-module button has always taken: the
+    /// menu no longer blocks, so the editor can be torn down while it is open.
+    juce::Component::SafePointer<SpectrumWorxEditor> pEditor(this);
+    return [pEditor, target](PopupMenu::OptionalID const chosenMenuEntryID) {
+        if (!pEditor || !chosenMenuEntryID.has_value())
+            return;
+        auto &editor(*pEditor);
+        LE_ASSERT(editor.moduleMenu_.isOwnerOfEntry(*chosenMenuEntryID));
+        editor.applyEffectMenuChoice(target,
+                                     editor.moduleMenu_.effectIndexForEntry(*chosenMenuEntryID));
+    };
+}
+
+void SpectrumWorxEditor::showEffectMenuAt(juce::Point<int> const screenPosition)
+{
+    auto const target(effectMenuTargetAt(mainArea_.getLocalPoint(nullptr, screenPosition)));
+    if (target.action == EffectMenuTarget::none)
+        return;
+
+    auto const header(effectMenuHeader(target));
+    moduleMenu_.menuWithHeader(header.toRawUTF8())
+        .showAtScreenPosition(screenPosition, effectMenuCallback(target));
+}
+
+void SpectrumWorxEditor::applyEffectMenuChoice(EffectMenuTarget const target,
+                                               std::uint8_t const effectIndex)
+{
+    LE_ASSERT(isThisTheGUIThread());
+
+    switch (target.action)
+    {
+    case EffectMenuTarget::replace:
+        replaceModuleInSlot(target.slot, effectIndex);
+        return;
+    case EffectMenuTarget::insert:
+        insertModuleAtGap(target.slot, effectIndex);
+        return;
+    case EffectMenuTarget::append:
+        addUserAddedModule(effectIndex);
+        return;
+    case EffectMenuTarget::none:
+        return;
+    }
+}
+
+void SpectrumWorxEditor::replaceModuleInSlot(std::uint8_t const slot,
+                                             std::uint8_t const effectIndex)
+{
+    /// \note Not an assertion, for removeModule()'s reason: the menu is
+    /// asynchronous, so the strip it was opened on can leave the rack -- a host
+    /// changing a slot, a preset arriving -- while it is down.
+    if (slot >= nextAvailableModuleSlot_)
+        return;
+    if (effectInRackSlot(slot) == static_cast<std::int8_t>(effectIndex))
+        return; // Already that effect; nothing to tell anybody.
+
+    /// \see the note in applyModuleDrop() for why the chain is not walked while
+    /// the host is being told about it.
+    Host2PluginInteropControler::AutomationBlocker const automationBlocker(
+        /*host*/ moduleChainOwner /*mrmlj*/ ());
+
+    if (!setModuleInSlot(slot, static_cast<std::int8_t>(effectIndex)))
+        return; // The effect is not in this build; nothing was asked of the engine.
+
+    /// \note As the add-module menu does: what the user just asked for is what
+    /// they are about to reach for.
+    slotAwaitingFocus_ = slot;
+
+    host().gestureBegin("Replace module");
+    host().moduleChangedByUser(slot, static_cast<std::int8_t>(effectIndex));
+    host().gestureEnd();
+
+    refreshModuleRackAsync();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::insertModuleAtGap()
+// ---------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Added on the end and then moved, because those are the two things the
+/// chain can be asked for and an insert is not one of them. Both edits reach the
+/// engine through the same ring and it drains the whole ring per block, so the
+/// two are one change as far as anything processing is concerned -- the same
+/// reasoning swapModuleSlots() runs on.
+///
+/// \note No strip is moved here, unlike a drag: the module the user asked for has
+/// no strip yet -- it gets one when resyncModuleRack() next runs -- so there is
+/// nothing to move it *around*, and the rack is left as it is until then. Which
+/// is also what makes effectInRackSlot() below the right thing to ask: it still
+/// describes the rack the menu was opened over.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::insertModuleAtGap(std::uint8_t const gap, std::uint8_t const effectIndex)
+{
+    auto const filled(nextAvailableModuleSlot_);
+    if ((gap >= filled) || (filled >= SW::Constants::maxNumberOfModules))
+        return; // The rack changed under the open menu. \see replaceModuleInSlot().
+
+    Host2PluginInteropControler::AutomationBlocker const automationBlocker(
+        /*host*/ moduleChainOwner /*mrmlj*/ ());
+
+    if (!setModuleInSlot(filled, static_cast<std::int8_t>(effectIndex)))
+        return; // The effect is not in this build; nothing was asked of the engine.
+    editorHost().editModuleMove(filled, gap);
+
+    slotAwaitingFocus_ = gap;
+    moduleAdded();
+
+    /// \note The new module, and every one it pushed along -- which is
+    /// removeModule()'s loop with the shift the other way.
+    host().gestureBegin("Insert module");
+    host().moduleChangedByUser(gap, static_cast<std::int8_t>(effectIndex));
+    for (std::uint8_t moved(gap + 1); moved <= filled; ++moved)
+        host().moduleChangedByUser(moved, effectInRackSlot(moved - 1));
+    host().gestureEnd();
+
+    refreshModuleRackAsync();
+}
+
 void SpectrumWorxEditor::setLastModulePosition(std::uint_fast8_t const slotIndex)
 {
     LE_ASSERT(slotIndex <= SW::Constants::maxNumberOfModules);
@@ -958,8 +1189,18 @@ void SpectrumWorxEditor::MainArea::paint(juce::Graphics &graphics)
 /// the rectangle is a position in the skin -- which is what this component's
 /// coordinates are and what the editor's stopped being when the panel column
 /// went to the left.
+///
+/// \note And the right button, which is the rack's empty slots asking for an
+/// effect. The strips have their own handler for it; this is what is left of the
+/// skin underneath them. \see showEffectMenuAt().
 void SpectrumWorxEditor::MainArea::mouseDown(juce::MouseEvent const &event)
 {
+    if (event.mods.isPopupMenu())
+    {
+        editor().showEffectMenuAt(event.getScreenPosition());
+        return;
+    }
+
     juce::Rectangle<int> const logoArea(12, 290, 51, 63);
     if (logoArea.contains(event.x, event.y))
     {
@@ -2111,18 +2352,11 @@ void SpectrumWorxEditor::ModuleMenuButton::clicked()
     /// main area now, not the editor. \see MainArea.
     SpectrumWorxEditor &editor(SpectrumWorxEditor::fromChild(*this));
     LE_ASSERT(editor.nextAvailableModuleSlot_ < SW::Constants::maxNumberOfModules);
-    /// \note The menu no longer blocks, so the editor can be torn down while it
-    /// is open -- a host closing the window under it. A SafePointer to it, and
-    /// the reference is only taken once the callback has proved it is alive.
-    juce::Component::SafePointer<SpectrumWorxEditor> pEditor(&editor);
-    editor.moduleMenu_.topMenu().showCenteredAtRight(
-        *this, [pEditor](PopupMenu::OptionalID const chosenMenuEntryID) {
-            if (!pEditor || !chosenMenuEntryID.has_value())
-                return;
-            auto &editor(*pEditor);
-            LE_ASSERT(editor.moduleMenu_.isOwnerOfEntry(*chosenMenuEntryID));
-            editor.addUserAddedModule(editor.moduleMenu_.effectIndexForEntry(*chosenMenuEntryID));
-        });
+
+    EffectMenuTarget const target{EffectMenuTarget::append, editor.nextAvailableModuleSlot_};
+    auto const header(editor.effectMenuHeader(target));
+    editor.moduleMenu_.menuWithHeader(header.toRawUTF8())
+        .showCenteredAtRight(*this, editor.effectMenuCallback(target));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

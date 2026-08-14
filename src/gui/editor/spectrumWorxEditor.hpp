@@ -872,6 +872,70 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
   public:
     ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What choosing an effect from the right-click menu would do, which
+    /// depends on where the menu was opened. \see effectMenuTargetAt().
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    struct EffectMenuTarget
+    {
+        enum Action : std::uint8_t
+        {
+            /// Somewhere the menu is not offered at all.
+            none,
+            /// Take over `slot`, keeping the rack the length it is.
+            replace,
+            /// Go into the gap `slot`, shifting the rest along.
+            insert,
+            /// Go on the end, which is what the add-module button does.
+            append
+        }; // enum Action
+
+        Action action{none};
+
+        /// A slot index for `replace`; a gap index for `insert`; unused for the
+        /// other two.
+        std::uint8_t slot{0};
+    }; // struct EffectMenuTarget
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What a right-click at \p position -- in the skin's coordinates,
+    /// which are mainArea()'s -- offers to do. \see the definition.
+    ///
+    /// \note Public for the same reason moduleDropAt() is: which of three things
+    /// a point in the rack means is geometry, and a headless run can ask it.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    EffectMenuTarget effectMenuTargetAt(juce::Point<int> position) const;
+
+    /// \brief What the menu is headed with, which is how the user is told which
+    /// of the three they are about to do -- and, for a replacement, which strip
+    /// it would be done to. \see the definition.
+    juce::String effectMenuHeader(EffectMenuTarget) const;
+
+    /// \brief Opens the effect menu for whatever is under \p screenPosition, or
+    /// nothing if that is not somewhere it is offered.
+    void showEffectMenuAt(juce::Point<int> screenPosition);
+
+    /// \brief Puts \p effectIndex where \p target says. Public for the same
+    /// reason applyModuleDrop() is: the only other way here is an open menu.
+    void applyEffectMenuChoice(EffectMenuTarget target, std::uint8_t effectIndex);
+
+  private:
+    /// \brief The callback that hands what was chosen to applyEffectMenuChoice(),
+    /// shared by the two places the menu is opened from.
+    PopupMenu::OnChosen effectMenuCallback(EffectMenuTarget target);
+
+    /// \brief Swaps the effect in \p slot for \p effectIndex, in place.
+    void replaceModuleInSlot(std::uint8_t slot, std::uint8_t effectIndex);
+
+    /// \brief Puts \p effectIndex in the gap \p gap. \see the definition.
+    void insertModuleAtGap(std::uint8_t gap, std::uint8_t effectIndex);
+
+  public:
+    ////////////////////////////////////////////////////////////////////////////
     /// \internal
     /// \class SampleArea
     ///
@@ -1196,7 +1260,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     EditorKnob in_, out_, mix_;
 
-    ModuleMenuHolder const moduleMenu_;
+    /// \note Not const: its heading is set per use. \see menuWithHeader().
+    ModuleMenuHolder moduleMenu_;
     ModuleMenuButton moduleMenuButton_;
     DropIndicator dropIndicator_;
 

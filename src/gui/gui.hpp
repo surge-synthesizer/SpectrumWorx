@@ -574,15 +574,20 @@ class PopupMenu
                  bool enabled = true);
     void addSubMenu(PopupMenu &, char const *name);
     void addSectionHeader(char const *title);
+    void addSeparator();
 
     void clear();
 
     unsigned int numberOfItems() const;
+    juce::String const &getItemText(unsigned int itemIndex) const;
 
     /// \note Asynchronous. JUCE 8 defaults JUCE_MODAL_LOOPS_PERMITTED to 0, and
     /// showMenu() -- which blocked until the user chose -- is gone with it.
     void showCenteredAtRight(juce::Component const &, OnChosen) const;
     void showCenteredBelow(juce::Component const &, OnChosen) const;
+    /// \brief With its corner at \p screenPosition, which is what a right-click
+    /// menu wants: it belongs to the point that was clicked, not to a widget.
+    void showAtScreenPosition(juce::Point<int> screenPosition, OnChosen) const;
 
     ////////////////////////////////////////////////////////////////////////////
     ///
@@ -608,6 +613,7 @@ class PopupMenu
         Artwork const *icon;
         bool enabled;
         bool isSectionHeader;
+        bool isSeparator;
         /// Non-owning, as it was when this held a juce::PopupMenu: sub-menus are
         /// members of the owning widget and outlive the menu.
         PopupMenu const *pSubMenu;
@@ -668,8 +674,6 @@ class PopupMenuWithSelection : public PopupMenu
     void clear();
 
     bool hasValidSelection() const;
-
-    juce::String const &getItemText(unsigned int itemIndex) const;
 
   private:
     bool handleNewSelection(OptionalID const &chosenMenuEntryID);

@@ -103,7 +103,8 @@ struct FlatMenuAdder
 
 #pragma warning(pop)
 
-void fillMenu(Menus &menus, std::true_type /*has sub menus*/)
+/// \brief The effects themselves, which is the part that is built once.
+void fillSubMenus(Menus &menus, std::true_type /*has sub menus*/)
 {
     // Implementation note:
     //   Our own implementation of the boost::mpl::detail::execute() helper
@@ -111,15 +112,22 @@ void fillMenu(Menus &menus, std::true_type /*has sub menus*/)
     // vastly improved compilation times (on GCC atleast).
     //                                    (23.09.2010.) (Domagoj Saric)
     addModulesToMenu<0, 0>(menus, std::false_type());
+}
 
+/// \note One of each pair below is chosen by hasSubMenus and the other is not
+/// compiled into anything; which one that is is a configuration choice, not a
+/// dead function.
+[[maybe_unused]] void fillSubMenus(Menus &, std::false_type /*does not have sub menus*/) {}
+
+/// \brief What goes under the heading: one entry per group, or, with too few
+/// effects for that to be worth a level of nesting, one per effect.
+void fillTopMenu(Menus &menus, std::true_type /*has sub menus*/)
+{
     TopMenusAdder topMenusAdder(menus);
     Utility::forEach<Effects::Groups>(topMenusAdder);
 }
 
-/// \note One of the pair is chosen by hasSubMenus and the other is not compiled
-/// into anything; which one that is is a configuration choice, not a dead
-/// function.
-[[maybe_unused]] void fillMenu(Menus &menus, std::false_type /*does not have sub menus*/)
+[[maybe_unused]] void fillTopMenu(Menus &menus, std::false_type /*does not have sub menus*/)
 {
     FlatMenuAdder const adder = {menus};
     Utility::forEach<Effects::ValidIndices>(adder);
@@ -137,7 +145,17 @@ void fillMenu(Menus &menus, std::true_type /*has sub menus*/)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-ModuleMenuHolder::ModuleMenuHolder() { fillMenu(menus_, std::bool_constant<hasSubMenus>()); }
+ModuleMenuHolder::ModuleMenuHolder() { fillSubMenus(menus_, std::bool_constant<hasSubMenus>()); }
+
+ModuleMenuHolder::Menu const &ModuleMenuHolder::menuWithHeader(char const *const title)
+{
+    auto &menu(topMenu());
+    menu.clear();
+    menu.addSectionHeader(title);
+    menu.addSeparator();
+    fillTopMenu(menus_, std::bool_constant<hasSubMenus>());
+    return menu;
+}
 
 bool ModuleMenuHolder::isOwnerOfEntry(unsigned int const menuEntryID) const
 {
