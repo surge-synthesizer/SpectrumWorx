@@ -603,38 +603,31 @@ juce::PopupMenu PopupMenu::build(int const tickedIndex) const
     return menu;
 }
 
+/// \note The 1 x 1 area is what gets the menu on the right side rather than
+/// under the owner: juce::PopupMenu puts it below whatever it is given.
 void PopupMenu::showCenteredAtRight(juce::Component const &owner, OnChosen onChosen) const
 {
-    juce::Point<int> const ownerPosition(owner.getScreenPosition());
-    unsigned int const ownerRight(ownerPosition.getX() + owner.getWidth());
-    unsigned int const ownerVerticalMiddle(ownerPosition.getY() + (owner.getHeight() / 2));
-    showAt(ownerRight + 6, ownerVerticalMiddle - (menuHeight_ / 2), 1,
-           1 //...mrmlj...required with latest juce to actually get the menu on the right side...
-           ,
+    showAt(owner, {owner.getWidth() + 6, (owner.getHeight() / 2) - (menuHeight_ / 2), 1, 1},
            std::move(onChosen));
 }
 
 void PopupMenu::showCenteredBelow(juce::Component const &owner, OnChosen onChosen) const
 {
-    juce::Point<int> point(owner.localPointToGlobal(juce::Point<int>()));
-
-    unsigned int const width(owner.getWidth());
-    if (menuWidth_ > static_cast<unsigned int>(width))
-    {
-        point.setX(point.getX() - ((menuWidth_ - width) / 2));
-    }
-
-    showAt(point.getX(), point.getY(), width, owner.getHeight(), std::move(onChosen));
+    int const width(owner.getWidth());
+    int const overhang(menuWidth_ - width);
+    showAt(owner, {(overhang > 0) ? -(overhang / 2) : 0, 0, width, owner.getHeight()},
+           std::move(onChosen));
 }
 
-void PopupMenu::showAtScreenPosition(juce::Point<int> const screenPosition, OnChosen onChosen) const
+void PopupMenu::showAtScreenPosition(juce::Component const &owner,
+                                     juce::Point<int> const screenPosition, OnChosen onChosen) const
 {
-    showAt(static_cast<unsigned int>(screenPosition.getX()),
-           static_cast<unsigned int>(screenPosition.getY()), 1, 1, std::move(onChosen));
+    juce::Point<int> const position(owner.getLocalPoint(nullptr, screenPosition));
+    showAt(owner, {position.getX(), position.getY(), 1, 1}, std::move(onChosen));
 }
 
-void PopupMenu::showAt(unsigned int const x, unsigned int const y, unsigned int const width,
-                       unsigned int const height, OnChosen onChosen) const
+void PopupMenu::showAt(juce::Component const &owner, juce::Rectangle<int> const area,
+                       OnChosen onChosen) const
 {
     menuActive_ = true;
     /// \note `this` in the callback, where the flag used to be a static. A menu
@@ -644,8 +637,14 @@ void PopupMenu::showAt(unsigned int const x, unsigned int const y, unsigned int 
     /// ~SpectrumWorxEditor().
     build(tickedIndex_)
         .showMenuAsync(juce::PopupMenu::Options()
-                           .withTargetScreenArea(juce::Rectangle<int>(x, y, width, height))
-                           .withMinimumWidth(width),
+                           /// \note The cast because Options holds a plain
+                           /// pointer; it only ever reads the component (and
+                           /// dismisses the menu if it is deleted).
+                           .withTargetComponent(const_cast<juce::Component *>(&owner))
+                           /// \note After withTargetComponent(), which overwrites
+                           /// the area with the owner's own bounds.
+                           .withTargetScreenArea(owner.localAreaToGlobal(area))
+                           .withMinimumWidth(area.getWidth()),
                        [this, onChosen = std::move(onChosen)](int const chosenID) {
                            menuActive_ = false;
                            if (onChosen)

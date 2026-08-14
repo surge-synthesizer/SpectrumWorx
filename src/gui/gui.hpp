@@ -587,7 +587,9 @@ class PopupMenu
     void showCenteredBelow(juce::Component const &, OnChosen) const;
     /// \brief With its corner at \p screenPosition, which is what a right-click
     /// menu wants: it belongs to the point that was clicked, not to a widget.
-    void showAtScreenPosition(juce::Point<int> screenPosition, OnChosen) const;
+    /// \p owner is what it is drawn beside all the same. \see showAt().
+    void showAtScreenPosition(juce::Component const &owner, juce::Point<int> screenPosition,
+                              OnChosen) const;
 
     ////////////////////////////////////////////////////////////////////////////
     ///
@@ -627,8 +629,23 @@ class PopupMenu
     /// Builds the JUCE menu from items_, ticking \p tickedIndex if in range.
     juce::PopupMenu build(int tickedIndex) const;
 
-    void showAt(unsigned int x, unsigned int y, unsigned int width, unsigned int height,
-                OnChosen) const;
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Shows the menu beside \p area, which is in \p owner's coordinates.
+    ///
+    /// \note \p owner is not there only for the geometry. A menu is its own
+    /// desktop window and inherits nothing from what opened it: JUCE works its
+    /// scale out from the component the menu names as its target, so a menu that
+    /// names none is drawn at 1:1 beside an editor drawn at 1.5.
+    /// \see menuScaleTests.cpp.
+    ///
+    /// \note And the area is in the owner's coordinates rather than the screen's
+    /// for the same reason: every offset here is a skin pixel, and the screen
+    /// stopped being measured in those the moment the editor took a zoom.
+    ///                                       (14.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void showAt(juce::Component const &owner, juce::Rectangle<int> area, OnChosen) const;
 
   protected:
     /// Which entry build() should tick. PopupMenuWithSelection drives it; a

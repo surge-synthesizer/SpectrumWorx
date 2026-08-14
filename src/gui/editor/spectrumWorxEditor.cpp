@@ -972,8 +972,11 @@ void SpectrumWorxEditor::showEffectMenuAt(juce::Point<int> const screenPosition)
         return;
 
     auto const header(effectMenuHeader(target));
+    /// \note The main area rather than the strip that was clicked: the rack is
+    /// rebuilt from the chain and a strip can be replaced under an open menu,
+    /// which JUCE would take as its cue to dismiss it.
     moduleMenu_.menuWithHeader(header.toRawUTF8())
-        .showAtScreenPosition(screenPosition, effectMenuCallback(target));
+        .showAtScreenPosition(mainArea_, screenPosition, effectMenuCallback(target));
 }
 
 void SpectrumWorxEditor::applyEffectMenuChoice(EffectMenuTarget const target,

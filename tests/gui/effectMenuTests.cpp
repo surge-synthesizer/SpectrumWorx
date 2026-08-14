@@ -10,10 +10,12 @@
 /// by the menu's heading, so the two halves are asked separately here: where a
 /// point puts the menu, and what choosing from it then does to the chain.
 ///
-/// \note The menu is not opened. `showMenuAsync` wants a desktop and a modal
-/// manager that a headless run has neither of; what it would decide and what it
-/// would do are both reachable without one, and they are the parts that can be
-/// wrong. \see moduleDragTests.cpp, which is the same split for the same rack.
+/// \note The menu is not opened here: what it would decide and what choosing
+/// from it then does are both reachable without one on screen, and they are the
+/// parts that can be wrong. A headless run can put one up -- menuScaleTests.cpp
+/// does, to measure the window it lands as -- but nothing can be chosen from it
+/// without a message loop. \see moduleDragTests.cpp, which is the same split for
+/// the same rack.
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later
