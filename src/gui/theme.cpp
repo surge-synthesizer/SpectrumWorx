@@ -68,7 +68,7 @@ Theme::Theme()
     setColour(juce::PopupMenu::headerTextColourId, juce::Colours::white);
     setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colours::transparentWhite);
     setColour(juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
-    setColour(juce::PopupMenu::backgroundColourId, juce::Colours::black);
+    setColour(juce::PopupMenu::backgroundColourId, juce::Colours::black.withAlpha(0.8f));
 
     setColour(juce::TextButton::buttonColourId, juce::Colours::black);
     setColour(juce::TextButton::buttonOnColourId, blueColour());
@@ -118,10 +118,22 @@ Theme::~Theme() = default;
 
 void Theme::drawPopupMenuBackground(juce::Graphics &graphics, int const width, int const height)
 {
-    /// \note The colour rather than an opacity over whatever the caller left in
-    /// the context, which is what a settings slider used to write into.
-    graphics.setColour(juce::Colours::black);
-    graphics.fillRoundedRectangle(0, 0, static_cast<float>(width), static_cast<float>(height), 12);
+    if (juce::Desktop::canUseSemiTransparentWindows())
+    {
+        graphics.setColour(juce::Colour(0x10, 0x10, 0x12).withAlpha(0.9f));
+        graphics.fillRoundedRectangle(0.f, 0.f, static_cast<float>(width),
+                                      static_cast<float>(height), 10.f);
+        graphics.setColour(juce::Colour(0x25, 0x25, 0x35));
+        graphics.drawRoundedRectangle(0.f, 0.f, static_cast<float>(width),
+                                      static_cast<float>(height), 10.f, 1.f);
+    }
+    else
+    {
+        graphics.setColour(juce::Colour(0x10, 0x10, 0x12));
+        graphics.fillRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height));
+        graphics.setColour(juce::Colour(0x25, 0x25, 0x35));
+        graphics.drawRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height), 1.f);
+    }
 }
 
 void Theme::drawTabAreaBehindFrontButton(juce::TabbedButtonBar &, juce::Graphics &, int /*w*/,
