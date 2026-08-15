@@ -194,6 +194,15 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
 
     void paint(juce::Graphics &) override;
 
+  private: // Knob's menu interface
+    juce::String parameterName() const override;
+    juce::String parameterValueText() const override;
+    ParameterID parameterID() const override;
+    bool parameterEditable() const override;
+    bool setParameterFromText(juce::String const &) override;
+    void setParameterToDefault() override;
+    void addParameterMenuEntries(juce::PopupMenu &) override;
+
   protected: // ModuleControl interface.
     void lfoStateChanged();
 

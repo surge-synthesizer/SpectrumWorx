@@ -14,6 +14,8 @@
 #include "le/math/conversion.hpp"
 #include "le/utility/cstdint.hpp"
 
+#include <optional>
+
 /// \note This header names juce::Component and juce::Slider throughout but used
 /// to rely on whoever included it having pulled JUCE in first. That worked while
 /// there was exactly one includer.
@@ -62,6 +64,9 @@ template <class ImplWidget> class ModuleControl
 
     ModuleControlBase &control()
     { /*LE_ASSERT( &ModuleControlBase::controlForWidget( impl() ) == &impl() );*/ return impl(); }
+    /// \note The const half, for the widget's own const questions -- what this
+    /// parameter is called and what it currently reads as.
+    ModuleControlBase const &control() const { return impl(); }
 
   protected: // Default implementations for the module control interface
     static bool const mouseClickCanGrabFocus = false;
@@ -133,6 +138,19 @@ class ModuleControlBase
 
     juce::String getValueString(float const *LE_RESTRICT pValue) const;
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief getValueString() backwards: the value this parameter would have to
+    /// hold for it to read as \p text, in the widget's own units -- or nothing at
+    /// all, when no value of it does.
+    ///
+    /// \note Nothing rather than a clamp, which is the whole reason it is an
+    /// optional: a knob handed a clamped value has told the user their typo was
+    /// understood. \see LE::Parameters::parse().
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::optional<float> parseValueString(juce::String const &text) const;
+
     Parameters::RuntimeInformation const &info() const;
     char const *name() const;
 
@@ -144,6 +162,11 @@ class ModuleControlBase
     bool isLFOEnabled() const;
 
     void moduleParameterChanged();
+
+    /// \brief The widget's value, into the Program and out to the host --
+    /// moduleParameterChanged() without the assertions that say the user has
+    /// this control under the mouse right now. \see the definition.
+    void publishValue();
 
     using Module = SW::Module;
 
@@ -282,6 +305,8 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
         reportActiveControl();
         ImplWidget::focusChanged();
     }
+    ////////////////////////////////////////////////////////////////////////////
+    ///
     /// \note `|| !isEnabled()`. JUCE spells getWantsKeyboardFocus() as
     /// `wantsKeyboardFocusFlag && !isDisabledFlag`, and
     /// `Component::setEnabled( false )` sets that flag *before* handing the
@@ -290,9 +315,36 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
     /// it. `ModuleKnob::mouseDown` does exactly that to a knob whose LFO is on,
     /// which is why clicking one fired this.
     ///                                       (03.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **The focus a menu borrows is not a focus loss.** A knob's own
+    /// right button menu contains a type-in field, the field takes the keyboard
+    /// when it opens, and the editor reads every focus loss as "this control is
+    /// no longer the one the user is on" -- which retires the LFO strip out from
+    /// under the menu that is offering to switch it, and, one level up, deselects
+    /// the module and destroys the shared controls the knob may itself be one of.
+    /// So the widget under the open menu could be freed while its menu was still
+    /// on screen, and choosing an item then did nothing at all.
+    ///
+    ///   `isCurrentlyBlockedByAnotherModalComponent()` is the question, and it is
+    /// exactly the right one: a menu is a modal component, so this is true for
+    /// every widget in the editor for as long as one is up, and false the moment
+    /// it closes. Nothing is lost by waiting -- a mouseExit or the next focus
+    /// change re-asks -- and the other two tear-downs guard on the same thing.
+    /// \see ModuleUI::focusLost(), SharedModuleControls::focusLost().
+    ///
+    /// \note The skin's own menus never reach here: they are desktop windows
+    /// carrying `ComponentPeer::windowIgnoresKeyPresses` and take no keyboard, so
+    /// no focus is lost when one opens. \see Knob::showParameterMenu().
+    ///                                       (15.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
     virtual void focusLost(juce::Component::FocusChangeType) noexcept override
     {
         LE_ASSERT(this->getWantsKeyboardFocus() || !this->isEnabled());
+        if (this->isCurrentlyBlockedByAnotherModalComponent())
+            return;
         reportInactiveControl();
         ImplWidget::focusChanged();
     }

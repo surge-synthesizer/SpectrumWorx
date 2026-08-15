@@ -2786,6 +2786,54 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
         paintImage(graphics, *icon, 79, 96);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::setLFOEnabled()
+// -----------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The parameter goes out through `editParameter()` and the host is told
+/// separately, which is what `LFODisplay::updateParameterAndNotifyHost<>` does
+/// for the five LFO parameters that have a ParameterID -- spelled out here
+/// because this is reachable with no LFO strip on screen at all.
+///
+/// \note `lfoStateChanged()` is not cosmetic: it is what re-keys the knob's
+/// scroll wheel and its double-click default on the answer that just changed.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::setLFOEnabled(ModuleControlBase &control, bool const enable)
+{
+    auto const moduleParameterIndex(control.moduleParameterIndex());
+    if (moduleParameterIndex >= (SW::Constants::maxNumberOfParametersPerModule - 1))
+        return; //...mrmlj...a parameter no LFO can drive...
+
+    ParameterID::LFO const lfoParameterID{
+        LE::Parameters::IndexOf<LFO::Parameters, LFO::Enabled>::value, moduleParameterIndex,
+        moduleChain().getIndexForModule(control.module())};
+
+    ParameterID parameterID;
+    parameterID.value.type = ParameterID::LFOParameter;
+    parameterID.value._.lfo = lfoParameterID;
+
+    float const value(enable ? 1.0f : 0.0f);
+    editorHost().editParameter(parameterID, value);
+    host().automatedParameterChanged(lfoParameterID, value);
+
+    control.lfoStateChanged();
+    if (lfoDisplay_ && lfoDisplay_->isFor(control))
+        lfoDisplay_->resyncEnabledSwitch();
+    updateActiveControlValue();
+    control.widget().repaint();
+}
+
+void SpectrumWorxEditor::LFODisplay::resyncEnabledSwitch()
+{
+    switch_.setToggleState(lfo().enabled(), juce::dontSendNotification);
+    repaint();
+}
+
 void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
 {
     auto &lfo(this->lfo());
@@ -2794,9 +2842,10 @@ void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
     {
         bool const enable(switch_.getToggleState());
         LE_ASSERT(enable != lfo.enabled());
-        updateParameterAndNotifyHost<LFO::Enabled>(enable);
-        control().lfoStateChanged();
-        editor().updateActiveControlValue();
+        /// \note Through the editor, which is where the knob's own menu goes as
+        /// well -- see setLFOEnabled(). The button has already toggled itself,
+        /// so the resync that comes back is a no-op here.
+        editor().setLFOEnabled(control(), enable);
     }
     else if (pButton == &typeArrow_)
     {

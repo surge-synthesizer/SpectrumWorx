@@ -44,6 +44,7 @@
 
 #include "le/math/vector.hpp" // Math::copy(), for the sample's wrap
 
+#include <sst/clap_juce_shim/menu_helper.h> // the host's own parameter menu
 #include <sst/plugininfra/cpufeatures.h>
 #include <sst/plugininfra/version_information.h>
 
@@ -2329,6 +2330,27 @@ void SpectrumWorxCLAP::resyncSpectralParametersToEngine()
     requestRescan(CLAP_PARAM_RESCAN_VALUES | CLAP_PARAM_RESCAN_TEXT);
     if (pEditor_)
         pEditor_->updateForGlobalParameterChange();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxCLAP::addHostParameterEntries()
+// -------------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note `clap_id` and `ParameterID::binaryValue` are the same number -- see
+/// paramsInfo(), which writes one straight into the other. The helper asks the
+/// host for its extension and adds nothing when there is none, which is why
+/// there is no test for one here.
+///                                           (15.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxCLAP::addHostParameterEntries(ParameterID const parameterID,
+                                               juce::PopupMenu &menu) const
+{
+    sst::clap_juce_shim::populateMenuForClapParam(menu, parameterID.binaryValue, _host.host());
 }
 
 void SpectrumWorxCLAP::editorOpened(GUI::SpectrumWorxEditor &editor) { pEditor_ = &editor; }

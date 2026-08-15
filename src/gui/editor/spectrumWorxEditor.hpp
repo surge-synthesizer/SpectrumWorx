@@ -350,6 +350,22 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     ParameterID moduleControlID(ModuleControlBase const &) const;
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Turns \p control's LFO on or off. `[main-thread]`
+    ///
+    /// \note One implementation with two ways in: the LFO strip's own switch,
+    /// and the knob's right button menu. `LFO::Enabled` is an exported
+    /// parameter, so this is an edit like any other -- both copies and the host
+    /// -- and not a flag the interface may set for itself.
+    ///
+    /// \note Takes the control rather than working off `activeControl()`: a
+    /// menu's callback runs whenever the user chose, and what was current when
+    /// it opened need not still be.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void setLFOEnabled(ModuleControlBase &control, bool enable);
+
     bool sharedModuleControlsActive() const { return sharedModuleControls_.has_value(); }
     bool sharedModuleControlsActiveAndFocused() const
     {
@@ -1025,6 +1041,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
         ~LFODisplay();
 
         void setupForControl(ModuleControlBase &, double minimum, double maximum, double interval);
+
+        /// \brief Whether this strip is showing \p control.
+        bool isFor(ModuleControlBase const &control) const { return pModuleControl_ == &control; }
+
+        /// \brief Puts the switch back in step with the LFO, for a change made
+        /// somewhere other than by pressing it. \see setLFOEnabled().
+        void resyncEnabledSwitch();
 
         void updateForNewTimingInfo();
         void updateForChangedParameters(ModuleUI const &, std::uint8_t parameterIndex,

@@ -150,6 +150,10 @@ class Instance final : public GUI::EditorHost
     Threading::ToEngineQueue &toEngine() const override { return toEngine_; }
     Threading::ValueMailbox const &modulatedValues() const override { return values_; }
 
+    /// \note Nothing, which is also what a host with no `clap_host_context_menu`
+    /// contributes: the knob's menu ends where the plugin's own entries do.
+    void addHostParameterEntries(ParameterID, juce::PopupMenu &) const override {}
+
     void editorOpened(GUI::SpectrumWorxEditor &) override {}
     void editorClosed(GUI::SpectrumWorxEditor &) override {}
 

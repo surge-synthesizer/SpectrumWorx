@@ -27,6 +27,10 @@
 
 #include "le/utility/intrusivePtr.hpp"
 
+/// A knob's right button menu names the parameter it belongs to, and the host's
+/// half of that menu is addressed by ID. \see Knob::parameterID().
+#include "core/parameterID.hpp"
+
 #include "resources.hpp"
 #include "theme.hpp"
 
@@ -887,7 +891,73 @@ class Knob : public WidgetBase<juce::Slider>
     /// second paint() to keep out of the way of the virtual one.
     ///                                       (15.08.2026.) (SW port)
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \name The right button's menu
+    ///
+    ///   The parameter's name, somewhere to type a value, the way back to the
+    /// default, whatever the knob itself adds, and then whatever the host has to
+    /// add -- which is the menu the rest of the Surge Synth Team's plugins put
+    /// on a parameter.
+    ///
+    /// \note What was here until 15.08.2026: `setPopupMenuEnabled( true )`, so
+    /// the right button raised *juce::Slider*'s own menu -- velocity-sensitive
+    /// mode and the drag direction. Two settings about the mouse, offered on the
+    /// one control a user opens a menu on to reach its parameter.
+    ///
+    /// \note Protected and virtual rather than a constructor argument because
+    /// every one of them is a question only the concrete knob can answer, and
+    /// two of them (the value and whether it may be edited) change under the
+    /// user while the knob lives.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    ///@{
+  protected:
+    /// The section header: what this parameter is called.
+    virtual juce::String parameterName() const = 0;
+    /// What the type-in field starts out holding, unit and all.
+    virtual juce::String parameterValueText() const = 0;
+    /// Which parameter this is, for the host's own entries.
+    virtual ParameterID parameterID() const = 0;
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \brief Whether the knob's own value is worth editing at all.
+    ///
+    /// \note False while an LFO drives the parameter: what is heard then is the
+    /// LFO's output and the widget's value is overwritten from under any edit.
+    /// The two gestures that could already move a knob -- the drag and the
+    /// double click -- are blocked on the same question, so the type-in and the
+    /// default follow them rather than becoming a third answer.
+    ////////////////////////////////////////////////////////////////////////////
+    virtual bool parameterEditable() const { return true; }
+
+    /// \return false when \p text is not a value this parameter can hold, which
+    /// leaves the parameter where it was. \see LE::Parameters::parse().
+    virtual bool setParameterFromText(juce::String const &text) = 0;
+    virtual void setParameterToDefault() = 0;
+
+    /// Entries of the knob's own, under "Set to Default": the module knob's LFO
+    /// switch.
+    virtual void addParameterMenuEntries(juce::PopupMenu &) {}
+    ///@}
+
+  private:
+    /// The type-in field, as a menu item. \see gui.cpp.
+    class ValueTypein;
+
+    void showParameterMenu(juce::MouseEvent const &);
+
   protected: // juce::Component overrides
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note All three, and not only the press. juce::Slider::mouseDown is what
+    /// clears `useDragEvents`, so returning from it early -- which is what
+    /// showing our own menu instead does -- would leave the flag set from the
+    /// last real drag and let a right-drag move the value.
+    ////////////////////////////////////////////////////////////////////////////
+    void mouseDown(juce::MouseEvent const &) override;
+    void mouseDrag(juce::MouseEvent const &) override;
+    void mouseUp(juce::MouseEvent const &) override;
+
     void startedDragging() noexcept override;
     /// \note Was declared and defined only under !NDEBUG, but
     /// EditorKnob::stoppedDragging calls it unconditionally -- an undefined
@@ -998,8 +1068,22 @@ class EditorKnob final : public Knob
     void startedDragging() noexcept override;
     void stoppedDragging() noexcept override;
 
+  private: // Knob's menu interface
+    juce::String parameterName() const override;
+    juce::String parameterValueText() const override;
+    ParameterID parameterID() const override;
+    bool setParameterFromText(juce::String const &) override;
+    void setParameterToDefault() override;
+
+    /// \brief A value from somewhere other than a drag, bracketed in a gesture
+    /// of its own so that a host records it as one edit rather than as a jump.
+    void setParameterValue(double newValue);
+
   private:
-    SpectrumWorxEditor &editor();
+    /// \note const, and still handing back a non-const editor: fromChild() takes
+    /// a `Component const &` and answers the editor it belongs to, and the const
+    /// half of the menu interface above has to be able to ask.
+    SpectrumWorxEditor &editor() const;
 
   private:
     std::uint8_t parameterIndex_;

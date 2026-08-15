@@ -4,9 +4,15 @@
 #include "gui.hpp"
 
 #include "core/host_interop/plugin2Host.hpp" //...mrmlj...only for Plugin2HostPassiveInteropController::ParameterLabelGetter...
+#include "gui/editor/editorHost.hpp" // the host's half of a knob's menu
 #include "gui/editor/spectrumWorxEditor.hpp"
 
 #include "le/spectrumworx/engine/setup.hpp"
+
+/// print() and its inverse: what an editor knob draws inside its face, and what
+/// its menu's type-in field reads back. \see EditorKnob::setParameterFromText().
+#include "le/parameters/parser.hpp"
+
 #include "le/utility/cstdint.hpp"
 #include "le/utility/lexicalCast.hpp"
 #include "le/utility/platformSpecifics.hpp"
@@ -910,7 +916,8 @@ Knob::Knob(juce::Component &parent, unsigned int const x, unsigned int const y,
     setSliderStyle(RotaryVerticalDrag);
     setTextBoxStyle(NoTextBox, true, 0, 0);
     //setPopupDisplayEnabled ( true, 0               ); //...mrmlj...for testing...
-    setPopupMenuEnabled(true);
+    /// \note `setPopupMenuEnabled( true )` stood here. See the note over the
+    /// menu interface in the header: the right button raises ours now.
     setMouseDragSensitivity(800);
     addToParentAndShow(parent, *this);
 }
@@ -973,6 +980,192 @@ void Knob::stoppedDragging() noexcept
     //...mrmlj...automatically (but imprecisely)...
     //juce::Desktop::setMousePosition( juce::Desktop::getLastMouseDownPosition() );
     //juce::Desktop::setMousePosition( this->localPointToGlobal( this->getBounds().getCentre() ) );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Knob::ValueTypein
+// -----------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The "type a value here" line of a knob's menu: a juce::TextEditor
+/// living inside a menu item.
+///
+/// \note `CustomComponent( false )` -- not triggered automatically -- because a
+/// click inside the field must land in the field. The item is dismissed by
+/// triggerMenuItem() when the user commits or gives up, which is also what
+/// carries the "an item was chosen" result back out of the menu.
+///
+/// \note The knob is held through a SafePointer and every use is guarded. A menu
+/// is asynchronous, and while ~SpectrumWorxEditor dismisses whatever is open,
+/// the deferred grab below can still find itself running against a knob that has
+/// gone.
+///                                           (15.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+class Knob::ValueTypein final : public juce::PopupMenu::CustomComponent,
+                                private juce::TextEditor::Listener
+{
+  public:
+    explicit ValueTypein(Knob &knob)
+        : juce::PopupMenu::CustomComponent(/*isTriggeredAutomatically*/ false), knob_(&knob)
+    {
+        editor_.setWantsKeyboardFocus(true);
+        editor_.setIndents(4, 0);
+        editor_.setJustification(juce::Justification::centredLeft);
+        editor_.setFont(Theme::singleton().Theme::getPopupMenuFont());
+        editor_.addListener(this);
+        addAndMakeVisible(editor_);
+    }
+
+  private: // juce::PopupMenu::CustomComponent overrides
+    void getIdealSize(int &idealWidth, int &idealHeight) override
+    {
+        idealWidth = fieldWidth;
+        idealHeight = fieldHeight;
+    }
+
+    void resized() override { editor_.setBounds(getLocalBounds().reduced(4, 2)); }
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note Deferred by a message rather than done here. The item is made
+    /// visible while the menu is still laying itself out and before its window
+    /// is on screen, and a component that grabs the keyboard then does not keep
+    /// it.
+    ////////////////////////////////////////////////////////////////////////////
+    void visibilityChanged() override
+    {
+        if (!isVisible())
+            return;
+
+        juce::Component::SafePointer<ValueTypein> pThis(this);
+        juce::MessageManager::callAsync([pThis] {
+            if (!pThis || !pThis->isVisible())
+                return;
+            pThis->editor_.setText(pThis->knob_ ? pThis->knob_->parameterValueText()
+                                                : juce::String(),
+                                   juce::dontSendNotification);
+            pThis->editor_.grabKeyboardFocus();
+            pThis->editor_.selectAll();
+        });
+    }
+
+  private: // juce::TextEditor::Listener overrides
+    /// \note The typo is not committed and not clamped: setParameterFromText()
+    /// answers false for text no value of this parameter displays as, and the
+    /// menu simply closes with the parameter where it was.
+    void textEditorReturnKeyPressed(juce::TextEditor &typedInto) override
+    {
+        if (knob_)
+            knob_->setParameterFromText(typedInto.getText());
+        triggerMenuItem();
+    }
+    void textEditorEscapeKeyPressed(juce::TextEditor &) override { triggerMenuItem(); }
+
+  private:
+    static int constexpr fieldWidth{140};
+    static int constexpr fieldHeight{22};
+
+  private:
+    juce::Component::SafePointer<Knob> knob_;
+    juce::TextEditor editor_;
+}; // class Knob::ValueTypein
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Knob::showParameterMenu()
+// -------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+void Knob::showParameterMenu(juce::MouseEvent const &event)
+{
+    bool const editable(parameterEditable());
+
+    juce::PopupMenu menu;
+    menu.addSectionHeader(parameterName());
+    menu.addSeparator();
+    if (editable)
+    {
+        /// \note The result ID is unused -- the field dismisses the menu itself
+        /// -- but it may not be zero, which juce::PopupMenu reserves for "the
+        /// user dismissed it".
+        menu.addCustomItem(1, std::make_unique<ValueTypein>(*this));
+    }
+    menu.addItem("Set to Default", editable, /*isTicked*/ false,
+                 [pThis = juce::Component::SafePointer<Knob>(this)] {
+                     if (pThis)
+                         pThis->setParameterToDefault();
+                 });
+
+    addParameterMenuEntries(menu);
+
+    auto &editor(SpectrumWorxEditor::fromChild(*this));
+    editor.editorHost().addHostParameterEntries(parameterID(), menu);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **Inside the editor, not on the desktop**, which the skin's own
+    /// menus are not -- and the reason is the type-in field. A menu with no
+    /// parent component gets a window of its own carrying
+    /// `ComponentPeer::windowIgnoresKeyPresses` (juce_PopupMenu.cpp:387), so
+    /// that window can never become the key one and a juce::TextEditor inside it
+    /// can never take the keyboard. A parented menu is an ordinary child of the
+    /// editor's own peer and the field simply works. It is what six-sines,
+    /// two-filters and ShortCircuit all do with theirs.
+    ///
+    ///   It settles the zoom for free as well: a child inherits the editor's
+    /// transform, where a menu with a window of its own has to be told to
+    /// follow the component that opened it. \see PopupMenu::showAt() for that
+    /// half, and the note there on why a menu that names nothing is drawn at
+    /// 1:1 beside an editor drawn at 1.5.
+    ///
+    /// \note withTargetComponent() all the same, and before
+    /// withTargetScreenArea() because it overwrites the area: it is what the
+    /// menu forwards key presses to and what it measures "the mouse went back
+    /// to whatever opened me" against.
+    ///
+    /// \note And the keyboard goes back to the knob when the menu closes,
+    /// because the type-in field borrowed it and JUCE does not return it: the
+    /// menu enters its modal state with `takeKeyboardFocus` false, so it never
+    /// recorded what had the focus to give it back. Without this the knob is
+    /// left selected with nothing focused, which the editor recovers from on the
+    /// next mouse move rather than immediately.
+    /// \see ModuleControlImpl::focusLost().
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    menu.showMenuAsync(
+        juce::PopupMenu::Options()
+            .withParentComponent(&editor)
+            .withTargetComponent(this)
+            .withTargetScreenArea(localAreaToGlobal(juce::Rectangle<int>(event.x, event.y, 1, 1))),
+        [pThis = juce::Component::SafePointer<Knob>(this)](int) {
+            if (pThis && pThis->getWantsKeyboardFocus() && pThis->isShowing())
+                pThis->grabKeyboardFocus();
+        });
+}
+
+void Knob::mouseDown(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return showParameterMenu(event);
+    juce::Slider::mouseDown(event);
+}
+
+void Knob::mouseDrag(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return;
+    juce::Slider::mouseDrag(event);
+}
+
+void Knob::mouseUp(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return;
+    juce::Slider::mouseUp(event);
 }
 
 void LE_NOINLINE Knob::setValue(param_type const newValue)
@@ -1151,22 +1344,12 @@ struct ParameterPrinter
 #pragma warning(pop)
 } // namespace
 
-void EditorKnob::paint(juce::Graphics &graphics)
+/// \note Was inline in paint(). The menu's type-in field starts out holding
+/// exactly what the knob is showing, so there is one place that says what that
+/// is rather than two that could drift.
+///                                           (15.08.2026.)
+juce::String EditorKnob::parameterValueText() const
 {
-    /// \note valueToProportionOfLength() rather than getNormalisedValue(): it is
-    /// what the film strip picked its frame with, so a skewed range -- which the
-    /// two gains have -- keeps pointing where it used to.
-    paintEditorKnob(graphics, juce::Rectangle<float>(0, 0, diameter, diameter),
-                    static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())));
-
-    // For main knobs we display the value within the knob itself.
-    graphics.setColour(juce::Colours::white);
-    {
-        juce::Font font(Theme::singleton().whiteFont());
-        font.setHeight(11);
-        graphics.setFont(font);
-    }
-
     //...mrmlj...ugh...
     std::array<char, 20> valueString;
     ParameterPrinter const printer = {editor().engineSetup(), static_cast<float>(getValue()),
@@ -1188,13 +1371,113 @@ void EditorKnob::paint(juce::Graphics &graphics)
         LE_DEFAULT_CASE_UNREACHABLE();
     }
     //...mrmlj...assumes global parameters are static...
-    ParameterID::Global parameterID;
-    parameterID.index = parameterIndex_;
-    char const *const pUnit(
-        Plugin2HostPassiveInteropController::ParameterLabelGetter()(parameterID, nullptr));
+    char const *const pUnit(Plugin2HostPassiveInteropController::ParameterLabelGetter()(
+        parameterID().value._.global, nullptr));
 
-    graphics.drawFittedText(juce::String(&valueString[0]) + pUnit, 14, 16, 28, 24,
-                            juce::Justification::centred, 1, 0.1f);
+    return juce::String(&valueString[0]) + pUnit;
+}
+
+void EditorKnob::paint(juce::Graphics &graphics)
+{
+    /// \note valueToProportionOfLength() rather than getNormalisedValue(): it is
+    /// what the film strip picked its frame with, so a skewed range -- which the
+    /// two gains have -- keeps pointing where it used to.
+    paintEditorKnob(graphics, juce::Rectangle<float>(0, 0, diameter, diameter),
+                    static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())));
+
+    // For main knobs we display the value within the knob itself.
+    graphics.setColour(juce::Colours::white);
+    {
+        juce::Font font(Theme::singleton().whiteFont());
+        font.setHeight(11);
+        graphics.setFont(font);
+    }
+
+    graphics.drawFittedText(parameterValueText(), 14, 16, 28, 24, juce::Justification::centred, 1,
+                            0.1f);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// EditorKnob -- the right button's menu
+// -------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+ParameterID EditorKnob::parameterID() const
+{
+    ParameterID parameterID;
+    parameterID.value.type = ParameterID::GlobalParameter;
+    parameterID.value._.global.index = parameterIndex_;
+    return parameterID;
+}
+
+/// \note Asked of the same place the host asks, rather than off the widget:
+/// Knob::setupForParameter() is handed a null title for these three, because a
+/// main knob prints its value inside its own face and has never had a caption.
+juce::String EditorKnob::parameterName() const
+{
+    std::array<char, 64> name{};
+    Plugin2HostPassiveInteropController::getParameterName(
+        parameterID(), LE::Utility::makeSpan(&name[0], name.size()), nullptr);
+    return juce::String(&name[0]);
+}
+
+bool EditorKnob::setParameterFromText(juce::String const &text)
+{
+    using LE::Parameters::IndexOf;
+    using namespace GlobalParameters;
+    typedef GlobalParameters::Parameters GlobalParams;
+
+    auto const &engineSetup(editor().engineSetup());
+    char const *const string(text.toRawUTF8());
+
+    LE::Parameters::ParsedValue value;
+    switch (parameterIndex_)
+    {
+    case IndexOf<GlobalParams, InputGain>::value:
+        value = LE::Parameters::parse<InputGain>(string, engineSetup);
+        break;
+    case IndexOf<GlobalParams, OutputGain>::value:
+        value = LE::Parameters::parse<OutputGain>(string, engineSetup);
+        break;
+    case IndexOf<GlobalParams, MixPercentage>::value:
+        value = LE::Parameters::parse<MixPercentage>(string, engineSetup);
+        break;
+        LE_DEFAULT_CASE_UNREACHABLE();
+    }
+
+    if (!value)
+        return false;
+
+    setParameterValue(*value);
+    return true;
+}
+
+/// \note getDoubleClickReturnValue() is the default Knob::setupForParameter()
+/// was given, so the menu entry and the double click cannot disagree about what
+/// "default" means.
+void EditorKnob::setParameterToDefault() { setParameterValue(getDoubleClickReturnValue()); }
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Bracketed in a gesture of its own, which a drag gets from
+/// started/stoppedDragging(). Without it the host sees a parameter jump with no
+/// gesture around it -- which some record as automation and some ignore -- where
+/// what happened is one deliberate edit.
+///
+/// \note sendNotificationSync, so that valueChanged() -- and through it the
+/// queue and the host -- runs before this returns, exactly as it does mid-drag.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void EditorKnob::setParameterValue(double const newValue)
+{
+    auto &editor(this->editor());
+    editor.mainKnobDragStarted(parameterIndex_);
+    juce::Slider::setValue(newValue, juce::sendNotificationSync);
+    editor.mainKnobDragStopped(parameterIndex_);
+    repaint();
 }
 
 /// \note EditorKnob::valueChanged() lives in spectrumWorxEditor.cpp. It is the
@@ -1219,7 +1502,7 @@ void EditorKnob::stoppedDragging() noexcept
 
 /// \note fromChild() rather than a downcast of the parent, which is the main
 /// area rather than the editor. \see SpectrumWorxEditor::MainArea.
-SpectrumWorxEditor &EditorKnob::editor() { return SpectrumWorxEditor::fromChild(*this); }
+SpectrumWorxEditor &EditorKnob::editor() const { return SpectrumWorxEditor::fromChild(*this); }
 
 TitledComboBox::TitledComboBox(juce::Component &parent, unsigned int const x, unsigned int const y,
                                char const *const title)

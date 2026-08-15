@@ -337,6 +337,77 @@ void ModuleKnob::updateForEngineSetupChanges(Engine::Setup const &engineSetup)
     setRange(adjustedMinimum, adjustedMaximum, quantization);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// ModuleKnob -- the right button's menu
+// -------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+/// \note getName(), which setupForParameter() took from the same
+/// RuntimeInformation, and *not* the host's name for it: that reads "M3.Wet",
+/// and the strip the knob is standing in already says which module this is.
+juce::String ModuleKnob::parameterName() const { return getName(); }
+
+juce::String ModuleKnob::parameterValueText() const { return control().getValueText(); }
+
+ParameterID ModuleKnob::parameterID() const
+{
+    return control().editor().moduleControlID(control());
+}
+
+bool ModuleKnob::parameterEditable() const { return !isLFOEnabled(); }
+
+bool ModuleKnob::setParameterFromText(juce::String const &text)
+{
+    auto const value(control().parseValueString(text));
+    if (!value)
+        return false;
+
+    /// \note Knob::setValue() rather than juce::Slider's notifying form, and
+    /// publishValue() rather than moduleParameterChanged(): valueChanged()
+    /// asserts the mouse is on the knob or dragging it, and it is on the menu.
+    /// \see ModuleControlBase::publishValue().
+    setValue(static_cast<param_type>(*value));
+    control().publishValue();
+    repaint();
+    return true;
+}
+
+void ModuleKnob::setParameterToDefault()
+{
+    setValue(static_cast<param_type>(control().info().default_));
+    control().publishValue();
+    repaint();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The LFO strip's own switch is the other way in, and both end up in
+/// SpectrumWorxEditor::setLFOEnabled(): turning an LFO on is an edit of an
+/// exported parameter, so it has to reach the engine and the host and not just
+/// the copy this thread draws from.
+///
+/// \note Offered whether or not the strip is up. A knob is reachable with no LFO
+/// display on screen -- the shared gain and wet pair above the rack are the
+/// obvious case -- and there is nothing about the switch that needs one.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void ModuleKnob::addParameterMenuEntries(juce::PopupMenu &menu)
+{
+    /// \note The tick is read here, when the menu is built; the toggle re-reads
+    /// when it is chosen. The two can only disagree if the host moved the LFO
+    /// while the menu was open, and then the fresh answer is the right one.
+    menu.addItem("LFO On", /*isEnabled*/ true, /*isTicked*/ isLFOEnabled(),
+                 [pThis = juce::Component::SafePointer<ModuleKnob>(this)] {
+                     if (!pThis)
+                         return;
+                     auto &control(pThis->control());
+                     control.editor().setLFOEnabled(control, !control.isLFOEnabled());
+                 });
+}
+
 void ModuleKnob::moduleControlActivated() { syncMouseWheelAndLFOState(); }
 void ModuleKnob::moduleControlDeactivated() { setScrollWheelEnabled(false); }
 void ModuleKnob::syncMouseWheelAndLFOState() { setScrollWheelEnabled(!isLFOEnabled()); }
@@ -608,6 +679,13 @@ void ModuleUI::focusLost(FocusChangeType)
     // not deactivate.
     //                                        (14.11.2011.) (Domagoj Saric)
     if (hasFocus() || editor().sharedModuleControlsActiveAndFocused())
+        return;
+
+    /// \note ...nor to a menu one of those subcontrols opened, which is a third
+    /// case of the same thing: deselecting the strip under an open menu destroys
+    /// the shared controls, and the menu may belong to one of them.
+    /// \see the note on ModuleControlImpl::focusLost().
+    if (isCurrentlyBlockedByAnotherModalComponent())
         return;
 
     //...mrmlj...rethink this focus changing logic and assumptions

@@ -263,6 +263,11 @@ class SpectrumWorxCLAP final
     void publishUnexportedLFOParameter(std::uint8_t moduleIndex, std::uint8_t moduleParameterIndex,
                                        std::uint8_t lfoParameterIndex, float value) override;
 
+    /// \note The one thing on this interface that only a plugin can answer:
+    /// `clap_host_context_menu` needs the `clap_host *`, and the editor has
+    /// none. \see sst::clap_juce_shim::populateMenuForClapParam().
+    void addHostParameterEntries(ParameterID, juce::PopupMenu &) const override;
+
     void editorOpened(GUI::SpectrumWorxEditor &) override;
     void editorClosed(GUI::SpectrumWorxEditor &) override;
 

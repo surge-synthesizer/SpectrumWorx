@@ -16,6 +16,7 @@
 #include "gui/modules/moduleUI.hpp"
 
 #include "le/parameters/lfo.hpp"
+#include "le/parameters/parser.hpp"
 #include "le/parameters/printer.hpp"
 
 #include "core/modules/moduleDSPAndGUI.hpp"
@@ -108,6 +109,28 @@ void ModuleControlBase::moduleParameterChanged()
     LE_ASSERT(isActive());
     LE_ASSERT(!isLFOEnabled());
 
+    publishValue();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ModuleControlBase::publishValue()
+// ---------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Split out of moduleParameterChanged() above, which is this and the four
+/// assertions that say the user is turning the control at this moment. A value
+/// typed into the knob's right button menu is the same edit made from outside
+/// that: the type-in field takes the keyboard, so the knob loses it, so the
+/// control deactivates -- and `isActive()` is false by the time the user presses
+/// return on a value they are quite deliberately setting.
+///                                           (15.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void ModuleControlBase::publishValue()
+{
     /// \note Checkout revision 7493 or earlier for (more templated) code
     /// that directly accessed the effect's parameters.
     ///                                       (12.03.2013.) (Domagoj Saric)
@@ -194,6 +217,18 @@ juce::String ModuleControlBase::getValueString(float const *LE_RESTRICT const pV
     juce::String result(pValueString);
     result.appendCharPointer(juce::CharPointer_ASCII(pUnit));
     return result;
+}
+
+/// \note The same parser `clap_plugin_params::text_to_value` runs, over the same
+/// module: a value typed into a knob's menu and a value typed into the host's
+/// generic panel are one question, and there is one answer to it.
+///                                           (15.08.2026.)
+std::optional<float> ModuleControlBase::parseValueString(juce::String const &text) const
+{
+    LE::Parameters::ParameterValueParser const parser{text.toRawUTF8(),
+                                                      moduleUI().editor().engineSetup()};
+    std::uint8_t const parameterIndex(moduleParameterIndex() + 1 /*Bypass*/);
+    return Automation::parseParameterValue(parameterIndex, parser, module());
 }
 
 namespace

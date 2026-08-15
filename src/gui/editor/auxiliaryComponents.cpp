@@ -142,6 +142,14 @@ ModuleControlBase &SharedModuleControls::controlForParameter(std::uint8_t const 
 ///                                           (08.08.2026.) (SW port)
 void SharedModuleControls::focusLost(FocusChangeType)
 {
+    /// \note Not while a menu is up. These two knobs each have a right button
+    /// menu with a type-in field in it, the field takes the keyboard, and
+    /// deactivating the module from here destroys *these controls* -- so the
+    /// knob the open menu belongs to would be freed under it.
+    /// \see the note on ModuleControlImpl::focusLost().
+    if (isCurrentlyBlockedByAnotherModalComponent())
+        return;
+
     auto *const pModuleUI(editor().selectedModule());
     if (pModuleUI && !pModuleUI->hasFocus())
         pModuleUI->deactivate();

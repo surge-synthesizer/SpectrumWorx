@@ -148,6 +148,10 @@ class HarnessHost final : public GUI::EditorHost
     Threading::ToEngineQueue &toEngine() const override { return toEngine_; }
     Threading::ValueMailbox const &modulatedValues() const override { return values_; }
 
+    /// \note Nothing: there is no CLAP host behind this harness, which is the
+    /// same situation as a host without `clap_host_context_menu`.
+    void addHostParameterEntries(ParameterID, juce::PopupMenu &) const override {}
+
     void editorOpened(GUI::SpectrumWorxEditor &) override {}
     void editorClosed(GUI::SpectrumWorxEditor &) override {}
 

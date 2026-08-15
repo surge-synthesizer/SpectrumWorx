@@ -38,6 +38,11 @@
 /// `fs`, for the side channel's sample file. \see io/jucePath.hpp.
 #include "filesystem/import.h"
 
+namespace juce
+{
+class PopupMenu;
+} // namespace juce
+
 namespace LE::SW
 {
 
@@ -151,6 +156,23 @@ class EditorHost
     /// The other direction: telling the host that the user moved something.
     /// Gestures, automation notifications and module chain changes.
     virtual Plugin2HostInteropControler &automation() = 0;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Appends the host's own entries for \p parameter to \p menu -- its
+    /// automation lanes, its MIDI learn, whatever it has -- when a knob's right
+    /// button menu is being built. `[main-thread]`
+    ///
+    /// \note `clap_host_context_menu`, which is the only route a plugin has to
+    /// them, and it is optional: a host that does not implement it adds nothing
+    /// and the menu ends where the plugin's own entries do.
+    ///
+    /// \note Here rather than in the widget layer because a `clap_host *` is the
+    /// one thing on the far side of this interface that the editor cannot reach
+    /// through `core()` -- which is the test this file's header sets.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    virtual void addHostParameterEntries(ParameterID parameter, juce::PopupMenu &menu) const = 0;
 
     ////////////////////////////////////////////////////////////////////////////
     ///
