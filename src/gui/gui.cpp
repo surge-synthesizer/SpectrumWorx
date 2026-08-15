@@ -915,22 +915,17 @@ Knob::Knob(juce::Component &parent, unsigned int const x, unsigned int const y,
     addToParentAndShow(parent, *this);
 }
 
-void Knob::setupForParameter(char const *const title, Artwork const &filmStripToSizeFor,
+void Knob::setupForParameter(char const *const title, unsigned int const diameter,
                              param_type const defaultValue)
 {
     setName(title);
 
-    unsigned int const imageWidth(filmStripToSizeFor.getWidth());
-    unsigned int const imageHeight(filmStripToSizeFor.getHeight() / numberOfKnobSubbitmaps);
-    LE_ASSERT((filmStripToSizeFor.getHeight() % numberOfKnobSubbitmaps == 0));
-    LE_ASSUME(imageWidth == imageHeight);
-
+    // The margins the constructor stashed in the bounds: a Knob is built before
+    // it knows how big its face is, so setBounds() carries them until here.
     unsigned int const xMargin(getWidth());
     unsigned int const yMargin(getHeight());
 
-    unsigned int const width(imageWidth + xMargin);
-    unsigned int const height(imageHeight + yMargin);
-    setSize(width, height);
+    setSize(diameter + xMargin, diameter + yMargin);
 
     setDoubleClickReturnValue(true, defaultValue);
 }
@@ -1004,24 +999,6 @@ void LE_NOINLINE Knob::setValue(param_type const newValue)
     juce::Slider::setValue(static_cast<value_type>(newValue), juce::dontSendNotification);
 }
 
-void Knob::paintFilmStrip(Artwork const &filmStrip, unsigned int const xMargin,
-                          unsigned int const yMargin, juce::Graphics &graphics)
-{
-    LE_ASSERT(filmStrip.getWidth() == filmStrip.getHeight() / signed(numberOfKnobSubbitmaps));
-
-    unsigned int const imageWidth(filmStrip.getWidth());
-    unsigned int const imageHeight(imageWidth);
-    unsigned int const pictureIndex(Math::convert<unsigned int>(
-        (numberOfKnobSubbitmaps - 1) * juce::Slider::valueToProportionOfLength(getValue())));
-    unsigned int const pictureOffset(pictureIndex * imageHeight);
-    LE_ASSERT(pictureIndex < numberOfKnobSubbitmaps);
-    LE_ASSERT(pictureOffset < static_cast<unsigned int>(filmStrip.getHeight()));
-
-    filmStrip.drawScaled(
-        graphics, {signed(xMargin), signed(yMargin), signed(imageWidth), signed(imageHeight)},
-        {0, signed(pictureOffset), signed(imageWidth), signed(imageHeight)});
-}
-
 Knob::param_type Knob::getNormalisedValue() const
 {
     Knob::param_type const fullRangeValue(static_cast<param_type>(getValue()));
@@ -1030,6 +1007,110 @@ Knob::param_type Knob::getNormalisedValue() const
 
     return Math::convertLinearRange<Knob::param_type, 0, 1, 1, Knob::param_type>(
         fullRangeValue, minimumValue, maximumValue);
+}
+
+namespace KnobStyle
+{
+juce::ColourGradient radialAbout(juce::Point<float> const centre, float const radius,
+                                 juce::Colour const inner, juce::Colour const outer)
+{
+    return juce::ColourGradient(inner, centre, outer, centre.translated(radius, 0), true);
+}
+
+void fillRing(juce::Graphics &graphics, juce::Point<float> const centre, float const inner,
+              float const outer, juce::ColourGradient const &gradient)
+{
+    LE_ASSERT(inner < outer);
+
+    juce::Path ring;
+    ring.setUsingNonZeroWinding(false); // even-odd, so the inner disc is a hole
+    ring.addEllipse(centre.x - outer, centre.y - outer, 2 * outer, 2 * outer);
+    ring.addEllipse(centre.x - inner, centre.y - inner, 2 * inner, 2 * inner);
+
+    graphics.setGradientFill(gradient);
+    graphics.fillPath(ring);
+}
+} // namespace KnobStyle
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// paintEditorKnob()
+// -----------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+void paintEditorKnob(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
+                     float const normalisedValue)
+{
+    using namespace EditorKnobStyle;
+
+    LE_ASSERT(bounds.getWidth() == bounds.getHeight());
+
+    auto const centre(bounds.getCentre());
+    auto const radius(bounds.getWidth() / 2);
+    auto const value(juce::jlimit(0.0f, 1.0f, normalisedValue));
+    auto const disc([&](float const r) { return bounds.withSizeKeepingCentre(2 * r, 2 * r); });
+
+    /// \note The bevel is lit from above left, so its shading is concentric with
+    /// a point below and right of the knob rather than with the knob. Fitting
+    /// that offset is what took the residual in this ring from 18/255 to 1/255 --
+    /// a concentric gradient cannot describe a lit surface.
+    auto const shading(centre.translated(bevelShadingX * radius, bevelShadingY * radius));
+    auto bevel(KnobStyle::radialAbout(shading, bevelReach * radius, juce::Colour(bevelShadow),
+                                      juce::Colour(bevelRim)));
+    bevel.addColour(bevelShadowStop, juce::Colour(bevelShadow));
+    bevel.addColour(bevelMidStop, juce::Colour(bevelMid));
+    bevel.addColour(bevelRimStop, juce::Colour(bevelRim));
+    graphics.setGradientFill(bevel);
+    graphics.fillEllipse(disc(bevelRadius * radius));
+
+    // The teal ring: a plain vertical ramp, the same grey added to every channel.
+    graphics.setGradientFill(juce::ColourGradient(
+        juce::Colour(ringTop), centre.translated(0, -ringRadius * radius), juce::Colour(ringBottom),
+        centre.translated(0, ringRadius * radius), false));
+    graphics.fillEllipse(disc(ringRadius * radius));
+
+    // The cap, whose edge is soft: it is a shadow on the teal, not a disc on it.
+    auto cap(KnobStyle::radialAbout(centre, capRadius * radius, juce::Colour(centreFill),
+                                    juce::Colours::transparentBlack));
+    cap.addColour(capSolidRadius / capRadius, juce::Colour(centreFill));
+    graphics.setGradientFill(cap);
+    graphics.fillEllipse(disc(capRadius * radius));
+
+    graphics.setColour(juce::Colour(tick));
+    for (unsigned int t(0); t < numberOfTicks; ++t)
+    {
+        juce::Path mark;
+        mark.addRectangle(-tickHalfWidth * radius, -tickOuterRadius * radius,
+                          2 * tickHalfWidth * radius, (tickOuterRadius - tickInnerRadius) * radius);
+        mark.applyTransform(juce::AffineTransform::rotation(
+            juce::degreesToRadians(360.0f * t / numberOfTicks), 0, 0));
+        graphics.fillPath(mark, juce::AffineTransform::translation(centre));
+    }
+
+    /// \note The rim's inner edge deliberately sits under the bevel rather than
+    /// against it. Two antialiased edges meeting exactly leave a seam -- half
+    /// coverage over half coverage composites to three quarters, not to one.
+    auto rim(KnobStyle::radialAbout(centre, rimHighlightOuter * radius, juce::Colour(rimHighlight),
+                                    juce::Colours::transparentWhite));
+    rim.addColour(rimHighlightSolid / rimHighlightOuter, juce::Colour(rimHighlight));
+    KnobStyle::fillRing(graphics, centre, rimHighlightInner * radius, rimHighlightOuter * radius,
+                        rim);
+
+    graphics.setColour(juce::Colour(rimOutline));
+    graphics.drawEllipse(disc(rimOutlineRadius * radius), rimOutlineThickness * radius);
+
+    // The pointer, and the only thing here that moves.
+    juce::Path bar;
+    bar.startNewSubPath(-pointerInnerHalfWidth * radius, -pointerInnerRadius * radius);
+    bar.lineTo(-pointerOuterHalfWidth * radius, -pointerOuterRadius * radius);
+    bar.lineTo(pointerOuterHalfWidth * radius, -pointerOuterRadius * radius);
+    bar.lineTo(pointerInnerHalfWidth * radius, -pointerInnerRadius * radius);
+    bar.closeSubPath();
+    bar.applyTransform(
+        juce::AffineTransform::rotation(juce::degreesToRadians(KnobStyle::angleFor(value)), 0, 0));
+    graphics.setColour(juce::Colour(pointer));
+    graphics.fillPath(bar, juce::AffineTransform::translation(centre));
 }
 
 EditorKnob::EditorKnob(SpectrumWorxEditor &parent, unsigned int const x, unsigned int const y)
@@ -1043,7 +1124,7 @@ EditorKnob::EditorKnob(SpectrumWorxEditor &parent, unsigned int const x, unsigne
 void EditorKnob::setupForParameter(std::uint8_t const parameterIndex, param_type const minimumValue,
                                    param_type const maximumValue, param_type const defaultValue)
 {
-    Knob::setupForParameter(nullptr, resourceArtwork<EditorKnobStrip>(), defaultValue);
+    Knob::setupForParameter(nullptr, diameter, defaultValue);
 
     parameterIndex_ = parameterIndex;
 
@@ -1072,10 +1153,13 @@ struct ParameterPrinter
 
 void EditorKnob::paint(juce::Graphics &graphics)
 {
-    Knob::paintFilmStrip(resourceArtwork<EditorKnobStrip>(), 0, 0, graphics);
+    /// \note valueToProportionOfLength() rather than getNormalisedValue(): it is
+    /// what the film strip picked its frame with, so a skewed range -- which the
+    /// two gains have -- keeps pointing where it used to.
+    paintEditorKnob(graphics, juce::Rectangle<float>(0, 0, diameter, diameter),
+                    static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())));
 
     // For main knobs we display the value within the knob itself.
-    LE_ASSERT(resourceArtwork<EditorKnobStrip>().getWidth() == 55);
     graphics.setColour(juce::Colours::white);
     {
         juce::Font font(Theme::singleton().whiteFont());

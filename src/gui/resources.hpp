@@ -132,7 +132,6 @@ class Artwork
 #define LE_SW_RESOURCE_BITMAP_LIST(x)                       \
     /* Editor */                                            \
     x(EditorBackground,        1)                           \
-    x(EditorKnobStrip,         2)                           \
     x(AddModule,               6)                           \
     x(PresetOff,               8)                           \
     x(PresetOn,                9)                           \
@@ -140,10 +139,8 @@ class Artwork
     x(SettingsOn,             11)                           \
                                                             \
     /* Module panel */                                      \
-    x(ModuleKnobStrip,         3)                           \
     x(ModuleOn,                4)                           \
     x(ModuleMuted,             5)                           \
-    x(SymmetricKnobStrip,     12)                           \
     x(TriggerBtnOff,          13)                           \
     x(TriggerBtnOn,           14)                           \
     x(Eject,                  16)                           \
@@ -152,10 +149,6 @@ class Artwork
     x(ModuleKnobSelected,     58)                           \
     x(ModuleCombo,            59)                           \
     x(ModuleComboOn,          60)                           \
-    x(SmallLinearKnobStrip,   63)                           \
-    x(SmallSymmetricKnobStrip,64)                           \
-    x(SmallModuleKnobSelected,65)                           \
-    x(ModuleKnobLFOed,        68)                           \
                                                             \
     /* Settings panel */                                    \
     x(SettingsEngineBg,       17)                           \
@@ -207,7 +200,7 @@ enum ResourceBitmaps
 }; // enum ResourceBitmaps
 
 /// The highest number `assets/skin` holds, and the size of the cache.
-unsigned int constexpr numberOfResourceBitmaps = 68;
+unsigned int constexpr numberOfResourceBitmaps = 67;
 
 /// \brief Decodes on first use and caches; the reference stays valid until
 /// releaseCachedResources().
@@ -217,11 +210,17 @@ unsigned int constexpr numberOfResourceBitmaps = 68;
 /// they outlived the JUCE they were allocated under. This is one array, and it
 /// can be emptied.
 ///
-/// \note The numbering has holes: 15, 18 and 54 do not exist, and 19, 25, 26,
-/// 29 and 36 to 39 exist but no widget names them. A hole yields an invalid
-/// image rather than an assertion, so that iterating the range is legal; the
-/// check that every *named* bitmap resolves is a test (skinTests.cpp), which is
-/// a better place for it than every call.
+/// \note The numbering has holes: 2, 3, 12, 15, 18, 54, 63, 64, 65 and 68 do not
+/// exist, and 19, 25, 26, 29 and 36 to 39 exist but no widget names them. A hole
+/// yields an invalid image rather than an assertion, so that iterating the range
+/// is legal; the check that every *named* bitmap resolves is a test
+/// (skinTests.cpp), which is a better place for it than every call.
+///
+/// \note Six of those holes are the knob film strips and what went with them:
+/// the module knob's four (3, 12, 63, 64) plus its focus ring (65) and LFO disc
+/// (68) on 14.08.2026, and the editor knob's (2) on the 15th. Every one was 127
+/// frames of one drawing at a fixed size; the drawings are ModuleKnobStyle and
+/// EditorKnobStyle now. 58 stays -- TriggerButton still draws its focus ring.
 juce::Image const &resourceBitmap(unsigned int number);
 
 /// \brief The same artwork, in the form that can still be a vector.

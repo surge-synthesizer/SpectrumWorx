@@ -22,6 +22,8 @@
 #include "le/utility/assert.hpp"
 #include "le/utility/polymorphicDowncast.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 
@@ -116,26 +118,95 @@ void TriggerButton::paintButton(juce::Graphics &graphics, bool const isMouseOver
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// paintModuleKnob()
+// -----------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+void paintModuleKnob(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
+                     float const normalisedValue, bool const bipolar, bool const drawWedge,
+                     bool const selected)
+{
+    using namespace ModuleKnobStyle;
+
+    LE_ASSERT(bounds.getWidth() == bounds.getHeight());
+
+    auto const centre(bounds.getCentre());
+    auto const radius(bounds.getWidth() / 2);
+    auto const value(juce::jlimit(0.0f, 1.0f, normalisedValue));
+
+    /// \note A radial juce::ColourGradient runs from its first point outwards to
+    /// its second, so the inner colour is repeated at innerGradientRadius to
+    /// hold it flat under the cap and start the ramp where the artwork's did.
+    auto dome(KnobStyle::radialAbout(centre, radius, juce::Colour(innerGradient),
+                                     juce::Colour(outerGradient)));
+    dome.addColour(innerGradientRadius, juce::Colour(innerGradient));
+    graphics.setGradientFill(dome);
+    graphics.fillEllipse(bounds);
+
+    /// \note How far the wedge has opened, which the cap's radius follows -- and
+    /// so zero when there is no wedge to follow. A cap sized off a value the
+    /// knob is not showing is the one thing the LFO state could still leak.
+    auto const openness(!drawWedge ? 0.0f : bipolar ? std::abs(2 * value - 1) : value);
+
+    if (drawWedge)
+    {
+        // The far edge is the value; the near one is the stop it opens from.
+        auto const to(KnobStyle::angleFor(value));
+        auto const from(bipolar ? 0.0f : -KnobStyle::halfSweepDegrees);
+        juce::Path pie;
+        pie.addPieSegment(
+            bounds.withSizeKeepingCentre(2 * radius * wedgeRadius, 2 * radius * wedgeRadius),
+            juce::degreesToRadians(std::min(from, to)), juce::degreesToRadians(std::max(from, to)),
+            0.0f);
+        graphics.setColour(juce::Colour(wedge));
+        graphics.fillPath(pie);
+    }
+
+    auto const cap(radius * (capRadiusClosed + (capRadiusOpen - capRadiusClosed) * openness));
+    graphics.setColour(juce::Colour(centreFill));
+    graphics.fillEllipse(bounds.withSizeKeepingCentre(2 * cap, 2 * cap));
+
+    if (selected)
+    {
+        /// \note The soft ring the ModuleKnobSelected bitmaps were: white on the
+        /// rim and gone a couple of pixels either side of it. A plain stroke
+        /// reads as a hard outline against the dome's black edge, which is not
+        /// what "this knob has the focus" looked like.
+        auto const reach(radius + selectionGlow);
+        auto halo(KnobStyle::radialAbout(centre, reach, juce::Colours::transparentWhite,
+                                         juce::Colours::transparentWhite));
+        halo.addColour(radius / reach, juce::Colour(selectedOuterEdge));
+        KnobStyle::fillRing(graphics, centre, radius - selectionGlow, reach, halo);
+    }
+    else
+    {
+        graphics.setColour(juce::Colour(outerGradient));
+        graphics.drawEllipse(bounds.reduced(rimThickness / 2), rimThickness);
+    }
+}
+
 ModuleKnob::ModuleKnob(juce::Component &parent, unsigned int const x, unsigned int const y)
     : Knob(parent, x, y, marginForGlow * 2,
            std::max<unsigned int>(marginForGlow * 2, spaceForText)),
-      pImageStrip_(nullptr)
+      polarity_(Unipolar), diameter_(diameter)
 {
-    //...mrmlj...LE_ASSERT( imageStrip.getHeight() / numberOfKnobSubbitmaps == 50 );
-    //...mrmlj...LE_ASSERT( imageStrip.getWidth ()                          == 50 );
-
     setScrollWheelEnabled(false);
 }
 
-void ModuleKnob::setupForParameter(Artwork const &imageStrip, Quantization const quantizationType,
+void ModuleKnob::setupForParameter(Polarity const polarity, unsigned int const knobDiameter,
+                                   Quantization const quantizationType,
                                    std::uint8_t const quantizationStep)
 {
     auto const &info(control().info());
-    Knob::setupForParameter(info.name, imageStrip, info.default_);
+    Knob::setupForParameter(info.name, knobDiameter, info.default_);
     //LE_ASSERT( !isLFOEnabled() ); //...mrmlj...when turning the GUI on or off...
     setDoubleClickReturnValue(!isLFOEnabled(), info.default_);
     quantization_ = quantizationType;
-    pImageStrip_ = &imageStrip;
+    polarity_ = polarity;
+    diameter_ = knobDiameter;
     switch (quantization_)
     {
     case Fixed:
@@ -174,23 +245,17 @@ void ModuleKnob::mouseDrag(juce::MouseEvent const &event) noexcept
 
 void ModuleKnob::paint(juce::Graphics &graphics)
 {
-    unsigned int const imageWidth(pImageStrip_->getWidth());
-    unsigned int const imageHeight(imageWidth);
+    /// \note valueToProportionOfLength() rather than getNormalisedValue(): it is
+    /// what the film strip picked its frame with, so a skewed range keeps
+    /// pointing where it used to.
+    auto const value(static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())));
 
-    if (!control().isLFOEnabled() || shouldUpdateLFOControl(control()))
-        Knob::paintFilmStrip(*pImageStrip_, marginForGlow, marginForGlow, graphics);
-    else
-        paintImage(graphics, resourceArtwork<ModuleKnobLFOed>(), marginForGlow, marginForGlow);
-    if (this->hasDirectFocus())
-    {
-        Artwork const &selection(imageWidth < 51 ? resourceArtwork<SmallModuleKnobSelected>()
-                                                 : resourceArtwork<ModuleKnobSelected>());
-        LE_ASSERT(selection.getWidth() == selection.getHeight());
-        LE_ASSERT(unsigned(selection.getWidth()) == imageWidth + 2);
-        unsigned int const selectionWidth(imageWidth + 2);
-        unsigned int const xy(marginForGlow - (selectionWidth - imageWidth) / 2);
-        paintImage(graphics, selection, xy, xy);
-    }
+    paintModuleKnob(
+        graphics,
+        juce::Rectangle<float>(static_cast<float>(marginForGlow), static_cast<float>(marginForGlow),
+                               static_cast<float>(diameter_), static_cast<float>(diameter_)),
+        value, polarity_ == Bipolar, !control().isLFOEnabled() || shouldUpdateLFOControl(control()),
+        this->hasDirectFocus());
 
     graphics.setColour(juce::Colours::lightgrey);
     {
@@ -198,7 +263,7 @@ void ModuleKnob::paint(juce::Graphics &graphics)
         font.setHeight(10);
         graphics.setFont(font);
     }
-    graphics.drawFittedText(getName(), 0, imageHeight + marginForGlow + (marginForGlow / 2),
+    graphics.drawFittedText(getName(), 0, diameter_ + marginForGlow + (marginForGlow / 2),
                             getWidth(), 12, juce::Justification::horizontallyCentred, 2, 0.6f);
 }
 
@@ -774,10 +839,9 @@ template <>
 ModuleWidgetHolder<ModuleKnob>::ModuleWidgetHolder(ModuleWidgetConstructionState &state)
     : widget(state.parent, state.parent, ModuleUI::border, state.yOffset, state.parameterIndex++)
 {
-    state.yOffset += widget.getHeight();
-    //...mrmlj...
-    LE_ASSERT(resourceArtwork<ModuleKnobStrip>().getWidth() == 51);
-    state.yOffset += 51;
+    // getHeight() is still only the margin here: setupForParameter() adds the
+    // face, and it has not run yet.
+    state.yOffset += widget.getHeight() + ModuleKnob::diameter;
 }
 
 } // namespace Detail

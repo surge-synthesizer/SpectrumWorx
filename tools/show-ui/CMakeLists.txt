@@ -13,6 +13,7 @@ add_executable(sw-show-ui
         page.cpp
         pages/editorPage.cpp
         pages/environmentPage.cpp
+        pages/knobsPage.cpp
         pages/skinPage.cpp
         pages/themePage.cpp
 )
@@ -97,7 +98,7 @@ if (SW_BUILD_TESTS)
     # editor-presets opens the preset browser, which is what the presets button
     # does and which segfaulted the first time anyone pressed it: nothing
     # headless covered that button until this page.
-    foreach (page editor editor-module editor-module-cold editor-presets editor-settings environment skin theme)
+    foreach (page editor editor-module editor-module-cold editor-presets editor-settings environment knobs skin theme)
         add_test(NAME show-ui-renders-${page}
                 COMMAND sw-show-ui --render ${page}
                 "${CMAKE_CURRENT_BINARY_DIR}/rendered-${page}.png")

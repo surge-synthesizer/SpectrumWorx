@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="51" height="51" viewBox="0 0 51 51">
-<defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="25.5" cy="25.63" r="25.12"><stop offset=".1652" stop-color="#d9d8d8"/><stop offset=".2448" stop-color="#c6c5c5"/><stop offset=".3244" stop-color="#b3b2b2"/><stop offset=".404" stop-color="#a19f9f"/><stop offset=".4836" stop-color="#8e8c8d"/><stop offset=".5632" stop-color="#7c797a"/><stop offset=".6428" stop-color="#696667"/><stop offset=".7224" stop-color="#575454"/><stop offset=".802" stop-color="#444142"/><stop offset=".8816" stop-color="#312d2e"/><stop offset=".9613" stop-color="#211d1e"/><stop offset="1" stop-color="#262223"/></radialGradient></defs>
-<path d="M.38 25.63A25.12 25.12 0 0 0 50.62 25.63A25.12 25.12 0 0 0 .38 25.63Z" fill="url(#g)"/>
-<path d="M19.34 25.7A6.15 6.15 0 0 0 31.64 25.7A6.15 6.15 0 0 0 19.34 25.7Z" fill="#1a171b"/>
-</svg>

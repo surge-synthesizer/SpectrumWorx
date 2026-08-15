@@ -16,14 +16,11 @@ The constructions found:
          -- one construction at two sizes: flat #1a1a1a body, a 1px rim that is
          #13b5ea when off and white when on, and a faint #f0fcff glow that is
          pixel-identical in both states.
-  58/65  ModuleKnobSelected and its small sibling -- a soft white ring, emitted
-         as one disc carrying a radial gradient whose stops are all the same
-         white and differ only in stop-opacity.  Constant colour matters:
-         JUCE's ColourGradient tweens premultiplied where SVG says straight,
-         and the two agree exactly only while the colour does not move.
-  68     ModuleKnobLFOed -- a disc whose grey ramps with radius: one radial
-         gradient again, over a flat dark core.  It is opaque throughout, so
-         the premultiplied-vs-straight question above cannot arise.
+  58     ModuleKnobSelected -- a soft white ring, emitted as one disc carrying
+         a radial gradient whose stops are all the same white and differ only
+         in stop-opacity.  Constant colour matters: JUCE's ColourGradient
+         tweens premultiplied where SVG says straight, and the two agree
+         exactly only while the colour does not move.
   07/17  PresetBackground / SettingsEngineBg -- a flat #1a171b panel carrying
          1px white rounded-rect frames.  07 is rounded on all four corners and
          its top field is two rects sharing three sides; 17 is square along the
@@ -480,67 +477,6 @@ def do_ring(n):
         centres[label.split()[0]] + (stops, peak, col, label, delta))
 
 
-# ==================================================================== 68 ====
-LFO_TRIES = [(s, lam) for s in (2., 3., 4., 6.) for lam in (.001, .01, .1)]
-
-
-def do_lfo(n=68):
-    png = load(n)
-    H, W = png.shape[:2]
-    full = Win((H, W))
-    a = png[:, :, 3]
-    # the disc, off its own outline: opaque, so each edge is a clean step
-    lx = step_edge(a[H // 2, :5], True)
-    rx = W - 5 + step_edge(a[H // 2, W - 5:], False)
-    ty = step_edge(a[:5, W // 2], True)
-    by = H - 5 + step_edge(a[H - 5:, W // 2], False)
-    cx, cy = (lx + rx) / 2, (ty + by) / 2
-    R = ((rx - lx) + (by - ty)) / 4
-    core = tuple(png[int(round(cy)), int(round(cx)), :3])
-    rr = radius(full, cx, cy)
-    disc = (rr <= R).astype(float)
-
-    def ramp_solve(hole, knots, lam):
-        """The grey at each knot, by least squares: the disc is opaque, so its
-        colour is linear in the stops and the core simply masks part of them."""
-        vis = np.stack([f * disc * (1 - hole) for f in hats(rr, knots)])
-        B = np.stack([down(f).ravel() for f in vis], axis=1)
-        t = png[:, :, :3] * png[:, :, 3:4] - np.asarray(core)[None, None, :] * down(hole)[:, :, None]
-        return np.clip(reg_solve(B, t.reshape(-1, 3), lam), 0, 1)
-
-    def build(rin, kx, ky, step, lam):
-        knots = list(np.arange(max(0.0, rin - step), R, step)) + [R]
-        hole = (radius(full, kx, ky) <= rin).astype(float)
-        v = ramp_solve(hole, knots, lam)
-        pm = np.einsum("kyx,kc->yxc", np.stack([down(f * disc * (1 - hole))
-                                                for f in hats(rr, knots)]), v)
-        pm += np.asarray(core)[None, None, :] * down(hole)[:, :, None]
-        return knots, v, err_of(full, png, pm, down(np.maximum(disc, hole)))
-
-    def cost(p):
-        if not (1 < p[0] < R):
-            return 1e9
-        return build(p[0], p[1], p[2], 3.0, .01)[2]
-
-    (rin, kx, ky), err = descend([6.0, cx, cy], cost, [.3, .3, .3])
-
-    made, cands = {}, []
-    for step, lam in LFO_TRIES:
-        knots, v, _ = build(rin, kx, ky, step, lam)
-        key = "%g/%g" % (step, lam)
-        made[key] = len(knots)
-        cands.append((key, svg(W, H, [
-            '<defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="%s" cy="%s" r="%s">'
-            % (fmt(cx), fmt(cy), fmt(R))
-            + "".join('<stop offset="%s" stop-color="%s"/>' % (fmt(k / R, 4), hexc(_i(c)))
-                      for k, c in zip(knots, v)) + "</radialGradient></defs>",
-            '<path d="%s" fill="url(#g)"/>' % circ_path(cx, cy, R),
-            '<path d="%s" fill="%s"/>' % (circ_path(kx, ky, rin), hexc(_i(core)))])))
-    label, delta = pick(n, cands)
-    return "centre %.2f,%.2f R=%.2f  core %.2f at %.2f,%.2f  %d stops  %s -> %.2f (%.5f)" % (
-        cx, cy, R, rin, kx, ky, made[label], label, delta, err)
-
-
 # =============================================================== 07 / 17 ====
 # frames: the rows to fit over, and how many rounded rects share them.  07's top
 # field is two: the field itself and a shorter cap inside its right-hand end.
@@ -698,8 +634,6 @@ def main():
             ("59/60 module combo", lambda: do_combo(59, 60)),
             ("61/62 settings combo", lambda: do_combo(61, 62)),
             ("58 knob ring", lambda: do_ring(58)),
-            ("65 small knob ring", lambda: do_ring(65)),
-            ("68 knob lfo", do_lfo),
             ("07 preset panel", lambda: do_panel(7)),
             ("17 settings panel", lambda: do_panel(17))]
     for name, fn in todo:
@@ -707,7 +641,7 @@ def main():
         sys.stdout.flush()
 
     print()
-    for n in (7, 17, 55, 56, 58, 59, 60, 61, 62, 65, 68):
+    for n in (7, 17, 55, 56, 58, 59, 60, 61, 62):
         mean, mx = compare(n)
         png = os.path.join(SKIN, "%02d.png" % n)
         im = Image.open(png)

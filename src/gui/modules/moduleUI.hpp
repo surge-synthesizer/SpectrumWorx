@@ -70,6 +70,65 @@ namespace GUI
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
+/// \namespace ModuleKnobStyle
+///
+////////////////////////////////////////////////////////////////////////////////
+
+/// \brief Everything a module knob is drawn from: five colours and the radii and
+/// angles they are laid out at.
+///
+///   Until 14.08.2026 a module knob was a film strip -- 127 square frames
+/// stacked into one sheet (skin files 03, 12, 63 and 64), picked by
+/// `126 * proportion` and blitted. That is four assets for what is one drawing
+/// at two sizes and two polarities, it quantises the value to 127 steps, and it
+/// is the reason the knob could not follow the editor's zoom: the frames are
+/// pixels. This is the same drawing as paint calls, so it resolves at whatever
+/// the graphics context is and every number below is in one place.
+///
+///   The shape, from the middle out: a black cap, then the value wedge in the
+/// skin's blue out to `wedgeRadius`, then a dome that ramps from `innerGradient`
+/// where the cap ends to `outerGradient` at the rim. The wedge opens clockwise
+/// from `-halfSweepDegrees` for a unipolar parameter and from twelve o'clock for
+/// a bipolar one, and the cap grows with it -- which is what the artwork did,
+/// and what keeps the blue a band of roughly even thickness rather than a
+/// lengthening spike.
+///
+/// \note Radii are fractions of the knob's own radius, so they hold at both the
+/// 51 px module knob and the 23 px shared one. The rim and the focus halo are in
+/// pixels instead: they are hairlines at both sizes rather than something that
+/// scales with them.
+namespace ModuleKnobStyle
+{
+std::uint32_t constexpr innerGradient{0xFFB8B6B6};     ///< the dome where the cap ends
+std::uint32_t constexpr outerGradient{0xFF0A0909};     ///< the dome at its rim
+std::uint32_t constexpr centreFill{0xFF000000};        ///< the cap over the wedge's inside
+std::uint32_t constexpr wedge{0xFF13B7EA};             ///< the skin blue
+std::uint32_t constexpr selectedOuterEdge{0xFFFFFFFF}; ///< the focused knob's halo
+
+float constexpr innerGradientRadius{0.26f}; ///< the dome holds innerGradient in to here
+float constexpr wedgeRadius{0.717f};
+float constexpr capRadiusClosed{0.22f}; ///< with the wedge shut
+float constexpr capRadiusOpen{0.48f};   ///< with it fully open
+
+/// \note The wedge's travel is KnobStyle::halfSweepDegrees, shared with the
+/// editor knob's pointer -- see the note there.
+
+float constexpr rimThickness{1.0f};  ///< px
+float constexpr selectionGlow{2.0f}; ///< px, either side of the rim
+} // namespace ModuleKnobStyle
+
+/// \brief Draws a module knob into the square \p bounds.
+///
+/// \param normalisedValue where the value sits in its range, 0 to 1; for a
+/// \p bipolar knob 0.5 is the centre the wedge opens from.
+/// \param drawWedge false while an LFO drives the parameter, when the knob's own
+/// value says nothing -- what the ModuleKnobLFOed bitmap used to be.
+/// \param selected whether it has the keyboard focus.
+void paintModuleKnob(juce::Graphics &, juce::Rectangle<float> bounds, float normalisedValue,
+                     bool bipolar, bool drawWedge, bool selected);
+
+////////////////////////////////////////////////////////////////////////////////
+///
 /// \class ModuleKnob
 ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,6 +153,23 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
     };
 #pragma warning(pop)
 
+    /// Which end the value wedge opens from: the left stop, or twelve o'clock.
+    enum Polarity : std::uint8_t
+    {
+        Unipolar,
+        Bipolar
+    };
+
+    /// The two sizes a module knob comes in: the one in a module's panel, and
+    /// the smaller gain and wet pair in the shared controls above the rack.
+    /// These were the film strips' frame widths.
+    ///
+    /// \note constexpr rather than the `static unsigned int const` the two
+    /// margins below are: that form is odr-usable and so wants an out-of-line
+    /// definition, which is what the `#ifdef __GNUC__` after spaceForText is.
+    static constexpr unsigned int diameter{51};
+    static constexpr unsigned int smallDiameter{23};
+
   private:
     using Hertz = LE::Parameters::UnitString<" Hz">;
     using Millisecond = LE::Parameters::UnitString<" ms">;
@@ -108,7 +184,7 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
     {
     }; // struct QuantizationFor
 
-    void setupForParameter(Artwork const &imageStrip, Quantization quantizationType,
+    void setupForParameter(Polarity, unsigned int knobDiameter, Quantization quantizationType,
                            std::uint8_t quantizationStep);
 
   private: // juce::Component overrides
@@ -140,7 +216,8 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
 
   private:
     Quantization quantization_;
-    Artwork const *LE_RESTRICT pImageStrip_;
+    Polarity polarity_;
+    unsigned int diameter_;
 
   private:
     static unsigned int const marginForGlow = 4;
@@ -529,9 +606,10 @@ struct WidgetInitialiser
     {
         knob.setupForParameter(
             std::is_base_of<LE::Parameters::SymmetricParameterTag, typename Parameter::Tag>::value
-                ? resourceArtwork<SymmetricKnobStrip>()
-                : resourceArtwork<ModuleKnobStrip>(),
-            ModuleKnob::QuantizationFor<Parameter>::value, Parameter::discreteValueDistance);
+                ? ModuleKnob::Bipolar
+                : ModuleKnob::Unipolar,
+            ModuleKnob::diameter, ModuleKnob::QuantizationFor<Parameter>::value,
+            Parameter::discreteValueDistance);
     }
 }; // struct WidgetInitialiser
 

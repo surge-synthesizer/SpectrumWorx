@@ -69,9 +69,9 @@ SharedModuleControls::SharedModuleControls()
                 1), //...mrmlj...ModuleControlBase::moduleParameterIndex() excludes bypass...
       wet_(*this, *editor().selectedModule(), 75, 4, IndexOf<Parameters, Wet>::value - 1)
 {
-    gain_.setupForParameter(resourceArtwork<SmallSymmetricKnobStrip>(), ModuleKnob::Fixed,
+    gain_.setupForParameter(ModuleKnob::Bipolar, ModuleKnob::smallDiameter, ModuleKnob::Fixed,
                             Gain::discreteValueDistance);
-    wet_.setupForParameter(resourceArtwork<SmallLinearKnobStrip>(), ModuleKnob::Fixed,
+    wet_.setupForParameter(ModuleKnob::Unipolar, ModuleKnob::smallDiameter, ModuleKnob::Fixed,
                            Wet ::discreteValueDistance);
 
     addToParentAndShow(*this, frequencyRange_);

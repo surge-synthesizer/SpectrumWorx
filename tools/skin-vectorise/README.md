@@ -65,7 +65,7 @@ byte for byte, which is the check that a change to the fitter was intentional.
 
 ## What is converted
 
-56 of the 57 files, one generator per family, because the families have
+49 of the 50 files, one generator per family, because the families have
 nothing in common but the method:
 
 | generator | files | what they are |
@@ -74,21 +74,24 @@ nothing in common but the method:
 | `run_tabs.py` | `21`-`28` | square plate rounded on one top corner, a rounded lit face inside it |
 | `run_buttons.py` | `04`-`06`, `13`, `14`, `57`, `66`, `67` | LEDs, arrows, the trigger button, the user's guide pair |
 | `run_lfo.py` | `40`-`53` | stroked waveform glyphs, the LEDs and the slider thumb |
-| `run_panels.py` | `07`, `17`, `55`-`62`, `65`, `68` | panel backgrounds, module strip, knob rings, combos |
+| `run_panels.py` | `07`, `17`, `55`-`62` | panel backgrounds, module strip, the knob ring, combos |
 | `run_background.py` | `01` | the editor background |
-| `run_knobs.py` | `02`, `03`, `12`, `63`, `64` | the knob film strips |
 | `run_eject.py` | `16` | the eject button |
 
 Each is idempotent: re-running reproduces its files byte for byte, which is the
 check that a change to a fitter was intentional.
 
-The knob film strips (`02`, `03`, `12`, `63`, `64`) are converted too, by
-`run_knobs.py`, keeping the 127-frame layout the widgets index into. Each frame
-is one `<use>` of a knob defined once, so 415 KB of PNG comes to 121 KB of SVG.
-That the strips *should not be* 127 frames at all is a separate matter, recorded
-in issue #20; converting them does not address it.
+**No film strips are left.** `run_knobs.py` built five of them -- the module
+knob's four (`03`, `12`, `63`, `64`) and the editor knob's (`02`) -- and it is
+gone with them, as are the module knob's focus ring (`65`) and LFO disc (`68`).
+Both knobs draw themselves now, out of `KnobStyle` and `EditorKnobStyle`
+(`src/gui/gui.hpp`) and `ModuleKnobStyle` (`src/gui/modules/moduleUI.hpp`):
+five colours and six radii for one, ten and a dozen for the other, against 415
+KB of PNG for 127 frames apiece at a fixed size. A knob quantised to 127 steps
+that could not follow the editor's zoom was what issue #20 was about; this is
+what closed it. `58` stays -- `TriggerButton` still draws its focus ring.
 
-Three JUCE facts shape those files, and any other use of `<use>` here:
+Three JUCE facts shape the remaining files, and any other use of `<use>` here:
 
 - `getLinkedID` reads **`xlink:href` only**, never the modern `href`. The bare
   spelling renders perfectly in `rsvg-convert` and draws *nothing* under JUCE.
