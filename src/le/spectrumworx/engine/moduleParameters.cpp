@@ -347,8 +347,21 @@ void ModuleParameters::loadPresetParameters(ParametersLoader const &parameterLoa
     auto const effectSpecificParameters(numberOfEffectSpecificParameters());
     for (std::uint8_t i(0); i < effectSpecificParameters; ++i)
     {
-        auto const parameterValueWithoutLFO(getParameterValueWithoutLFO(
-            parameterLoader, effectSpecificParameterInfo(i), effectLFO(i)));
+        auto const &info(effectSpecificParameterInfo(i));
+
+        /// \note The LFO is read either way -- a rate and a shape are state like
+        /// any other -- and only the parameter's own value is dropped.
+        auto const parameterValueWithoutLFO(
+            getParameterValueWithoutLFO(parameterLoader, info, effectLFO(i)));
+
+        /// \note **An event is never restored**, and a file written before that
+        /// rule can be carrying one: `setEffectParameter` on a trigger arms it,
+        /// and the next processed block consumes it. That is a preset that
+        /// freezes the session it is loaded into. \see savePresetParameters().
+        ///                                   (16.08.2026.) (SW port)
+        if (info.type == ParameterInfo::Trigger)
+            continue;
+
         if (parameterValueWithoutLFO)
             setEffectParameter(i, *parameterValueWithoutLFO);
     }
@@ -374,11 +387,33 @@ void ModuleParameters::savePresetParameters(ParametersSaver const &parameterSave
                                    baseLFO(i - 1));
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **An event always streams off.** A trigger is armed by a press and
+    /// disarmed by `TriggerParameter::consumeValue()` on the audio thread's copy
+    /// of the Program -- so the main thread's, which is the copy a preset and a
+    /// session are written from, is never disarmed and reads armed from the
+    /// first press onwards. Writing that meant a file that fired itself on load,
+    /// once, every time it was opened.
+    ///
+    ///   It is still *written*, at rest: the format is a full list of an
+    /// effect's parameters and a reader warns about a name it does not find.
+    ///
+    /// \note Here as well as in ParametersSaver::valueToStream(), because an
+    /// effect's parameters are saved by this runtime loop while the globals go
+    /// through the templated functor. The two paths need the same rule stated
+    /// twice; \see LE::Parameters::isAnEvent for the other one. Issue #65.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
     auto const effectSpecificParameters(numberOfEffectSpecificParameters());
     for (std::uint8_t i(0); i < effectSpecificParameters; ++i)
     {
-        saver.saveParameter<float>(effectSpecificParameterInfo(i).streamingName,
-                                   unmodulatedEffectParameter(i), effectLFO(i));
+        auto const &info(effectSpecificParameterInfo(i));
+        saver.saveParameter<float>(
+            info.streamingName,
+            (info.type == ParameterInfo::Trigger) ? 0.0f : unmodulatedEffectParameter(i),
+            effectLFO(i));
         //...mrmlj...
         //ParameterInfo const &       info  ( effectSpecificParameterInfo( i ) );
         //LFO           const &       lfo   ( effectLFO                  ( i ) );

@@ -37,6 +37,27 @@ template <class Impl>
 Plugins::AutomatedParameterValue AutomatedModuleImpl<Impl>::getEffectSpecificAutomatedParameter(
     std::uint8_t const effectSpecificParameterIndex, bool const normalised) const
 {
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **An event reads off, always.** A trigger is armed by a press and
+    /// disarmed by `TriggerParameter::consumeValue()` on the audio thread's
+    /// copy of the Program -- so the *main* thread's copy, which is what this is
+    /// asked about, is never disarmed at all and reads armed from the first
+    /// press to the end of the session. `clap_plugin_params::get_value` is the
+    /// caller, so a host's generic panel showed Freeze stuck at 1 after one
+    /// press, for ever.
+    ///
+    ///   The same answer the streaming layer gives, for the same reason: what an
+    /// event *is* lives in the moment between arming and consuming, and that
+    /// moment belongs to the audio thread. \see LE::Parameters::isAnEvent and
+    /// ParametersSaver::valueToStream(), and issue #65.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    if (impl().effectSpecificParameterInfo(effectSpecificParameterIndex).type ==
+        Parameters::RuntimeInformation::Trigger)
+        return Plugins::AutomatedParameterValue();
+
     /// \note The unmodulated value; see getSharedAutomatedParameter() above.
     float const parameterValue(impl().unmodulatedEffectParameter(effectSpecificParameterIndex));
     return Automation::effectInternal2AutomatedValue(effectSpecificParameterIndex, parameterValue,

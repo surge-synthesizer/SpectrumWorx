@@ -25,6 +25,8 @@
 
 #include "le/math/conversion.hpp"
 #include "le/parameters/parametersUtilities.hpp"
+/// `isAnEvent`, which is what "an event always streams off" is spelt with.
+#include "le/parameters/trigger/tag.hpp"
 #include "le/spectrumworx/engine/parameters.hpp"
 #include "le/utility/countof.hpp"
 #include "le/utility/lexicalCast.hpp"
@@ -573,6 +575,9 @@ class ParametersLoader : private PresetHandler
 
     template <class Parameter> void operator()(Parameter &parameter) const
     {
+        if constexpr (LE::Parameters::isAnEvent<Parameter>)
+            return; // \see ParametersSaver::valueToStream().
+
         using binary_type = typename Parameter::binary_type;
         std::optional<binary_type> const parameterValue(
             getSimpleParameterValue<binary_type>(LE::Parameters::streamingName<Parameter>()));
@@ -583,10 +588,17 @@ class ParametersLoader : private PresetHandler
     template <class Parameter> void operator()(Parameter &parameter, LFO &lfo) const
     {
         using binary_type = typename Parameter::binary_type;
+
+        /// \note The LFO's own settings are read either way -- they *are* state,
+        /// and an event under an LFO is a rate and a shape like any other. Only
+        /// the parameter's own value is dropped.
         std::optional<binary_type> const parameterValueWithoutLFO(getLFOParameterValue<binary_type>(
             Parameters::streamingName<Parameter>(), lfo, &parameter));
-        if (parameterValueWithoutLFO.has_value() &&
-            parameter.isValidValue(*parameterValueWithoutLFO))
+
+        if constexpr (LE::Parameters::isAnEvent<Parameter>)
+            return;
+        else if (parameterValueWithoutLFO.has_value() &&
+                 parameter.isValidValue(*parameterValueWithoutLFO))
             parameter.setValue(*parameterValueWithoutLFO);
     }
 
@@ -735,17 +747,46 @@ class ParametersSaver : private PresetHandler
     using result_type = void;
     using const_qualified_lfo_t = LFO const;
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What \p parameter is written as. **An event always streams off.**
+    ///
+    ///   A trigger has no value worth keeping: it is armed, the engine consumes
+    /// it, and it is spent. Writing the armed state means a preset that fires
+    /// itself on load, once, every time -- a Freeze that freezes a session the
+    /// moment it is opened. The parameter is still written, because the format
+    /// is a full list and a reader may warn about a missing name; it is written
+    /// at rest. The loader drops it for the same reason.
+    ///
+    /// \note It is not only the window between arming and consuming. Nothing
+    /// disarms the *main thread's* copy at all -- `consumeValue()` runs on the
+    /// engine's -- so from the first press onwards that copy reads armed for the
+    /// life of the session, and it is the copy `stateSave` reads. \see
+    /// LE::Parameters::isAnEvent, and issue #65.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    template <class Parameter>
+    static typename Parameter::param_type valueToStream(Parameter const &parameter)
+    {
+        if constexpr (LE::Parameters::isAnEvent<Parameter>)
+            return false;
+        else
+            return parameter.getValue();
+    }
+
     template <class Parameter> void operator()(Parameter const &parameter) const
     {
         const_cast<ParametersSaver &>(*this). //...mrmlj...because of forEach()...
             saveParameter<typename Parameter::param_type>(
-                LE::Parameters::streamingName<Parameter>(), parameter.getValue());
+                LE::Parameters::streamingName<Parameter>(), valueToStream(parameter));
     }
     template <class Parameter> void operator()(Parameter const &parameter, LFO const &lfo) const
     {
         const_cast<ParametersSaver &>(*this). //...mrmlj...because of forEach()...
             saveParameter<typename Parameter::param_type>(
-                LE::Parameters::streamingName<Parameter>(), parameter.getValue(), lfo);
+                LE::Parameters::streamingName<Parameter>(), valueToStream(parameter), lfo);
     }
 
     template <typename T>

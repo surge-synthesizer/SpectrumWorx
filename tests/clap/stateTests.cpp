@@ -500,6 +500,70 @@ TEST_CASE("Session state is the preset format plus a dawExtraState block", "[cla
     CHECK(asPreset.find("<dawExtraState") == std::string::npos);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **An event always streams off**, and reads off. A trigger is armed by
+/// a press and disarmed by `TriggerParameter::consumeValue()` on the *engine's*
+/// Program; nothing disarms the main thread's, which is the copy `stateSave`
+/// reads and `clap_plugin_params::get_value` answers from. So one press left
+/// Freeze reading 1 for the rest of the session and wrote it into every state
+/// saved after it -- and restoring that state re-armed the trigger, so the next
+/// processed block froze a session nobody had asked to freeze.
+///
+///   Measured before the fix, through this same save: at rest `Freeze" v="0"`,
+/// after the press `v="1"`, and after the release `v="1"` still. \see
+/// LE::Parameters::isAnEvent, ParametersSaver::valueToStream() and
+/// AutomatedModuleImpl::getEffectSpecificAutomatedParameter(). Issue #65.
+///                                           (16.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A fired event is saved at rest and reads at rest", "[clap][state]")
+{
+    Entry const entry;
+    Plugin const plugin;
+
+    auto const freeze(LE::SW::Effects::effectIndex("Freeze"));
+    REQUIRE(freeze >= 0);
+    REQUIRE(plugin.editorHost().editSlot(0, static_cast<std::int8_t>(freeze)));
+
+    /// The Freeze trigger: 00 Bypass, 01 Gain, 02 Wet, 03/04 the frequency
+    /// range, 05 Freeze. \see tests/parameters/data/parameterTable.txt.
+    auto const trigger(moduleParameterID(0, 5));
+
+    auto const savedState = [&] {
+        OutStream saved;
+        REQUIRE(stateOf(*plugin).save(&*plugin, &saved));
+        return std::string(saved.data().begin(), saved.data().end());
+    };
+
+    auto const freezeAttribute = [](std::string const &state) {
+        auto const at(state.find("Freeze\" v="));
+        REQUIRE(at != std::string::npos); // written either way: the list is full
+        return state.substr(at, std::strlen("Freeze\" v=\"0"));
+    };
+
+    REQUIRE(freezeAttribute(savedState()) == "Freeze\" v=\"0");
+
+    // Fired the way the button fires it, and never released -- setValue on a
+    // trigger only ORs true in, so a release could not clear it anyway.
+    plugin.editorHost().editParameter(trigger, 1.0f);
+
+    CHECK(freezeAttribute(savedState()) == "Freeze\" v=\"0");
+
+    /// \note And what the host is told, which is the other half: `get_value`
+    /// reads the same copy. A DAW's generic panel showed this stuck at 1.
+    bool found(false);
+    for (auto const &[id, value] : plugin.allParameters())
+    {
+        if (id != trigger.binaryValue)
+            continue;
+        found = true;
+        CHECK(value == 0.0);
+    }
+    CHECK(found);
+}
+
 TEST_CASE("A 2011 preset is legal session state", "[clap][state]")
 {
     Entry const entry;
