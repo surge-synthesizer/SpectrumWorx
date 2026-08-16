@@ -28,6 +28,8 @@
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
 
 #include <cmath>
 #include <cstdint>
@@ -219,4 +221,57 @@ TEST_CASE("Freezing stops the spectrum and melting lets it move again", "[effect
 
     // ...and the melt hands the signal back, by then most of an octave higher.
     CHECK(melted > frozenLate * 1.2);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The bug the two cases above could not see, because they render at a
+/// hop smaller than the block. A spectral frame arrives every `fftSize /
+/// overlapFactor` samples and a host block every `blockSize`, and the two have
+/// nothing to do with each other -- so at a large FFT under a small block there
+/// are blocks that produce no frame at all.
+///
+///   `preProcess()` ran on every one of them, and it is where an effect samples
+/// its parameters: `FreezeImpl::setup()` calls `consumeValue()`, which reads a
+/// trigger *and disarms it*. A press landing in a frameless block was therefore
+/// swallowed before any frame could act on it. Measured at a 2048-sample hop
+/// under 512-sample blocks: **5 presses in 20**. An LFO never showed it, because
+/// it rearms the parameter every block; a button arms once.
+///
+/// \note 374 samples, and 1000, because a real host's block size is not a power
+/// of two and owes the FFT nothing. 374 against a 2048 hop means the arm usually
+/// lands mid-frame with several frameless blocks either side, which is the shape
+/// that failed.
+///                                           (16.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A press is not swallowed by a block that produces no frame", "[effects][freeze]")
+{
+    auto const [fft, overlap, hostBlock] =
+        GENERATE(table<std::uint16_t, std::uint8_t, std::uint32_t>(
+            {{4096, 2, 512}, {4096, 2, 374}, {4096, 2, 1000}, {2048, 4, 374}, {512, 4, 374}}));
+
+    CAPTURE(fft, overlap, hostBlock);
+    SWTest::RenderSetup const awkward{fft, overlap, 1, sampleRate, hostBlock};
+
+    /// \note Twenty presses, each in its own render, one host block apart -- so
+    /// between them they land at every phase of the frame the hop defines. One
+    /// green press proves nothing at a one-in-four failure rate.
+    std::size_t froze(0);
+    constexpr std::size_t presses{20};
+    for (std::uint32_t press(0); press < presses; ++press)
+    {
+        auto const at(static_cast<double>(40 * hostBlock + press * hostBlock) / sampleRate);
+        auto const input(sineSweep(2 * sampleRate, 200.0, 4000.0));
+        std::array<SWTest::Slot, 1> const slots{freezeFiring(at, -1)};
+        auto const rendered(SWTest::renderChain(awkward, slots, input));
+
+        auto const early(rateAt(rendered, 1.2));
+        auto const late(rateAt(rendered, 1.6));
+        if (std::abs(late - early) < 0.05 * early)
+            ++froze;
+    }
+
+    CHECK(froze == presses);
 }

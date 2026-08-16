@@ -104,8 +104,8 @@ for free (§1.4), so the effect itself is a placeholder for it.
 ## 1.2 `setup()` and `process()`: the division of labour
 
 ```
-main thread                    audio thread, once per frame, per channel
-─────────────                  ────────────────────────────────────────
+main thread                    audio thread, at the first frame of a block
+─────────────                  ──────────────────────────────────────────
 parameter write     ─────►     preProcess()  ─► LFOs advance
                                               ─► ModuleDSP::setup()
                                                    ├─ workingRange_ ← Start/StopFrequency
@@ -114,11 +114,19 @@ parameter write     ─────►     preProcess()  ─► LFOs advance
                                process( channel 1 ) ─► effect().process( state[1], data, setup )
 ```
 
-`ModuleDSP::preProcess` (`module.cpp:29-36`) runs once per audio block, before
-any channel is processed: it advances the LFOs, recomputes the working range
-from `StartFrequency`/`StopFrequency`, and calls your `setup()`. Then
-`ModuleDSP::process` (`module.cpp:76-103`) runs your `process()` once per
+`ModuleDSP::preProcess` (`module.cpp:29-36`) advances the LFOs, recomputes the
+working range from `StartFrequency`/`StopFrequency`, and calls your `setup()`.
+Then `ModuleDSP::process` (`module.cpp:76-103`) runs your `process()` once per
 channel, on the same parameter values.
+
+**It runs once per audio block *that produces a frame*, immediately before the
+first one** — `Processor::preProcessForFirstFrame`. A block and a spectral frame
+are unrelated quantities: frames arrive every `fftSize / overlapFactor` samples,
+so a large FFT under a small host block produces frames more rarely than blocks
+arrive, and a small FFT produces several per block. Sampling the parameters at
+the block boundary meant sampling them on blocks where nothing would read the
+result — which is free for a value that is merely read, and fatal for one that is
+*consumed*.
 
 **`setup()` is where every parameter → DSP conversion belongs.** dB → linear,
 Hz → bin, ms → frames. `process()` reads only the members `setup()` cached.
@@ -131,12 +139,23 @@ reach is the `ChannelState &` it was handed, and one of those exists per
 channel. This is what decouples an effect from multichannel processing entirely:
 you write mono and the engine runs you N times.
 
-> **Trap.** The relationship between `setup()` and `process()` call *counts* is
-> not deterministic. Two effects carry an explicit `//...mrmlj...` workaround for
-> it — `ConvolverImpl::ChannelState::frozenFlagConsumed` and
-> `FreezeImpl::ChannelState::previousFreezeFlag`/`previousMeltFlag`. Anything
-> that latches a `TriggerParameter` in `setup()` hits it. Latch in the channel
-> state, not in the effect.
+**A `TriggerParameter` may be consumed in `setup()`.** `consumeValue()` reads a
+trigger and disarms it, so it must not be called where nothing will act on the
+answer — which is the whole reason `setup()` is tied to the first frame rather
+than to the block. `FreezeImpl` and `ConvolverImpl` both do it, and neither has
+to know any of the above.
+
+What is *not* guaranteed is one `setup()` per `process()`: a block holding four
+frames still samples the parameters once, so `process()` runs four times per
+channel on one set of values. An effect that needs "has this arm already been
+acted on" still keeps that per channel — `FreezeImpl::ChannelState::
+previousFreezeFlag`/`previousMeltFlag` and `ConvolverImpl::ChannelState::
+frozenFlagConsumed` — because the effect's own members are shared by every
+channel and the channel loop is outside the frame loop.
+
+> **Trap.** Do not move a `consumeValue()` into `process()`. It is called per
+> channel, so the first channel would take the trigger and the rest would never
+> see it — the effect would freeze one side of a stereo pair.
 
 ## 1.3 What `process()` is handed
 

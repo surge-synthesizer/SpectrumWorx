@@ -111,7 +111,39 @@ class Processor
     Setup &engineSetup() { return engineSetup_; }
 
     void processSingleChannel(ProcessParameters const &);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Samples every module's parameters, once, for this call -- and not
+    /// until a frame is about to be built from them.
+    ///
+    ///   `preProcess()` ran unconditionally at the top of process(). A caller's
+    /// block and a spectral frame are different quantities, though: the frame
+    /// rate is the hop -- `fftSize / overlapFactor` -- so a large FFT under a
+    /// small block produces frames more rarely than blocks arrive, and every
+    /// block in between still sampled the parameters.
+    ///
+    ///   For a value that is merely read that costs nothing. For one that is
+    /// *consumed* it is fatal: `TriggerParameter::consumeValue()` reads a
+    /// trigger and disarms it, so a Freeze armed during a block that produced no
+    /// frame was thrown away before anything could act on it. Measured at a
+    /// 2048-sample hop under 512-sample blocks, one press in four survived --
+    /// which is what "the button works sometimes" was. An LFO never noticed,
+    /// because it rearms the parameter every block.
+    ///
+    /// \note Once per *call*, not once per frame, and the flag is what says so.
+    /// A block holding four frames still samples once, exactly as before -- so
+    /// nothing an existing caller renders can move. And the channel loop is
+    /// outside the frame loop, so without the flag channel 0's first frame would
+    /// consume a trigger that channel 1 then never saw.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void preProcessForFirstFrame();
     void preProcess();
+
+    /// Whether preProcessForFirstFrame() has already run for the call in hand.
+    bool preProcessedThisCall_{false};
 
     ModuleChainImpl &modules();
     ModuleChainImpl const &modules() const;

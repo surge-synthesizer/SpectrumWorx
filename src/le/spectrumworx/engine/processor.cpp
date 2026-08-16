@@ -35,6 +35,15 @@ namespace LE::SW::Engine
 
 void Processor::preProcess() { modules().preProcessAll(lfoTimer(), engineSetup()); }
 
+/// \see the note on the declaration.
+void Processor::preProcessForFirstFrame()
+{
+    if (preProcessedThisCall_)
+        return;
+    preProcessedThisCall_ = true;
+    preProcess();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class Processor::ProcessParameters
@@ -129,7 +138,11 @@ void Processor::process /// \throws nothing
     /// callback, which is the right scope for it and the only one all four
     /// formats share.
     ///                                   (29.07.2026.) (SW port)
-    preProcess();
+    ///
+    /// \note Armed rather than called: the sampling happens at the first frame
+    /// this call produces, and not at all if it produces none.
+    /// \see preProcessForFirstFrame().
+    preProcessedThisCall_ = false;
 
     ProcessParameters processParameters(mainInputs, sideInputs, outputs, channels_, samples,
                                         outputGain, mixAmount);
@@ -217,7 +230,11 @@ void Processor::process /// \throws nothing
     /// callback, which is the right scope for it and the only one all four
     /// formats share.
     ///                                   (29.07.2026.) (SW port)
-    preProcess();
+    ///
+    /// \note Armed rather than called: the sampling happens at the first frame
+    /// this call produces, and not at all if it produces none.
+    /// \see preProcessForFirstFrame().
+    preProcessedThisCall_ = false;
 
     float const *LE_RESTRICT const *LE_RESTRICT mainInputs;
     float const *LE_RESTRICT const *LE_RESTRICT sideInputs;
@@ -354,6 +371,15 @@ void Processor::processSingleChannel(ProcessParameters const &processParameters)
              channelBuffers.outputBufferSize() - windowSize) // - we have space for output data
         )
         {
+            /// \note Here rather than at the top of the call: this is the first
+            /// point at which a frame is certain, and a parameter that is
+            /// *consumed* rather than read must not be sampled anywhere else.
+            /// \see preProcessForFirstFrame(). Cheap after the first frame -- a
+            /// predictable branch on a flag -- and it must stay inside this
+            /// branch rather than above the loop, which would sample on a block
+            /// that never reaches it.
+            preProcessForFirstFrame();
+
             // The Window+FFT phase:
             // Implementation note:
             //   As we cannot window the input data directly (because we
