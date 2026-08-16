@@ -39,7 +39,7 @@ namespace LE::SW::Effects
 ////////////////////////////////////////////////////////////////////////////////
 
 char const TuneWorx ::title[] = "TuneWorx";
-char const TuneWorxPVD::title[] = "TuneWorx (pvd)";
+char const TuneWorxPVD::title[] = "TuneWorx (PV)";
 
 char const Detail::TuneWorxBase::description[] = "Chromatic scale pitch discretization.";
 namespace Detail

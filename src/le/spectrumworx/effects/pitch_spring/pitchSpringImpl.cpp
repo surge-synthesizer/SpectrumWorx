@@ -24,7 +24,7 @@ namespace LE::SW::Effects
 ////////////////////////////////////////////////////////////////////////////////
 
 char const PitchSpring ::title[] = "Pitch Spring";
-char const PitchSpringPVD::title[] = "Pitch Spring (pvd)";
+char const PitchSpringPVD::title[] = "Pitch Spring (PV)";
 
 char const Detail::PitchSpringBase::description[] = "Oscillating pitch.";
 

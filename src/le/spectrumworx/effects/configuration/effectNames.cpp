@@ -30,13 +30,25 @@ namespace LE::SW::Effects
 ////////////////////////////////////////////////////////////////////////////////
 // Titles that have moved since a preset named them.
 //
-// \note Empty, and it should stay nearly so. An entry here means an effect's
-// title changed after files had been written naming the old one; the pin is what
-// keeps those files loading. Nothing else may be added -- a *new* effect has no
-// history and its title is its streaming name.
+// \note An entry here means an effect's title changed after files had been
+// written naming the old one; the pin is what keeps those files loading. Nothing
+// else may be added -- a *new* effect has no history and its title is its
+// streaming name.
+//
+// \note The seven below are the phase-vocoder variants, retitled from "(pvd)" to
+// "(PV)" for issue #80. Every one of the 303 factory presets and every user file
+// written before that names them the old way, so the old spelling is what stays
+// in the file. \see doc/tech/streaming_format.md.
+//                                            (16.08.2026.)
 ////////////////////////////////////////////////////////////////////////////////
 
-// LE_SW_EFFECT_STREAMING_NAME( SomeEffect, "What presets call it" )
+LE_SW_EFFECT_STREAMING_NAME(PVPitchShifter, "Pitch Shifter (pvd)")
+LE_SW_EFFECT_STREAMING_NAME(PitchFollowerPVD, "Pitch Follower (pvd)")
+LE_SW_EFFECT_STREAMING_NAME(TuneWorxPVD, "TuneWorx (pvd)")
+LE_SW_EFFECT_STREAMING_NAME(PitchMagnetPVD, "Pitch Magnet (pvd)")
+LE_SW_EFFECT_STREAMING_NAME(PitchSpringPVD, "Pitch Spring (pvd)")
+LE_SW_EFFECT_STREAMING_NAME(PVImploder, "Imploder (pvd)")
+LE_SW_EFFECT_STREAMING_NAME(PVExploder, "Exploder (pvd)")
 
 namespace
 {

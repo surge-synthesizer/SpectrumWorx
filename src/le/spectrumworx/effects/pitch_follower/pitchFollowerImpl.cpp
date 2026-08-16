@@ -24,7 +24,7 @@ namespace LE::SW::Effects
 ////////////////////////////////////////////////////////////////////////////////
 
 char const PitchFollower ::title[] = "Pitch Follower";
-char const PitchFollowerPVD::title[] = "Pitch Follower (pvd)";
+char const PitchFollowerPVD::title[] = "Pitch Follower (PV)";
 
 char const Detail::PitchFollowerBase::description[] = "Follow side channel's pitch.";
 

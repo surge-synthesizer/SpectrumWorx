@@ -984,13 +984,13 @@ analysis and synthesis have already been paid for.
 | # | Title | Folder | P | State | SC | What it does |
 |---:|---|---|---:|---|:-:|---|
 | 43 | PVD start | `phase_vocoder_analysis` | 0 | analysis | | `PhaseVocoderShared::analysis` over `data.full()`. After it, `phases()` holds frequencies. |
-| 44 | Pitch Shifter (pvd) | `pitch_shifter` | 2 | — | | Shift only. No channel state at all. |
-| 45 | Pitch Follower (pvd) | `pitch_follower` | 1 | PD | ✔ | |
-| 46 | TuneWorx (pvd) | `tune_worx` | 13 | PD | | |
-| 47 | Pitch Magnet (pvd) | `pitch_magnet` | 2 | PD | | |
-| 48 | Pitch Spring (pvd) | `pitch_spring` | 3 | MC | | |
-| 49 | Imploder (pvd) | `eximploder` | 4 | D | | The standalone Imploder is this wrapped in `StandaloneEffect`. |
-| 50 | Exploder (pvd) | `eximploder` | 4 | D | | |
+| 44 | Pitch Shifter (PV) | `pitch_shifter` | 2 | — | | Shift only. No channel state at all. |
+| 45 | Pitch Follower (PV) | `pitch_follower` | 1 | PD | ✔ | |
+| 46 | TuneWorx (PV) | `tune_worx` | 13 | PD | | |
+| 47 | Pitch Magnet (PV) | `pitch_magnet` | 2 | PD | | |
+| 48 | Pitch Spring (PV) | `pitch_spring` | 3 | MC | | |
+| 49 | Imploder (PV) | `eximploder` | 4 | D | | The standalone Imploder is this wrapped in `StandaloneEffect`. |
+| 50 | Exploder (PV) | `eximploder` | 4 | D | | |
 | 51 | PVD stop | `phase_vocoder_synthesis` | 0 | synthesis | | `PhaseVocoderShared::synthesis` over `data.full().phases()`. |
 
 ### Misc — indices 52–56

@@ -7,7 +7,7 @@
 /// loosely, because a one-ulp FFT difference becomes a percent-level output
 /// difference in each of them.
 ///
-///   Those nine -- Pitch Spring, Pitch Spring (pvd), Pitch Magnet, Octaver,
+///   Those nine -- Pitch Spring, Pitch Spring (PV), Pitch Magnet, Octaver,
 /// PVD start, PVD stop, Imploder, Exploder and Slew Limiter -- each make a
 /// *decision* somewhere: a pitch detector picks a maximum, a phase vocoder
 /// unwraps a phase, the ex/imploder thresholds a bin, the slew limiter compares
@@ -257,8 +257,8 @@ std::vector<float> renderOne(std::string_view const name, std::span<float const>
 
 /// The nine, by the names the golden keys carry.
 constexpr std::string_view amplifyingEffects[]{
-    "Pitch Spring", "Pitch Spring (pvd)", "Pitch Magnet", "Octaver",      "PVD start",
-    "PVD stop",     "Imploder",           "Exploder",     "Slew Limiter",
+    "Pitch Spring", "Pitch Spring (PV)", "Pitch Magnet", "Octaver",      "PVD start",
+    "PVD stop",     "Imploder",          "Exploder",     "Slew Limiter",
 };
 } // anonymous namespace
 
@@ -384,7 +384,7 @@ TEST_CASE("A pitch spring oscillates, and only where it is told to", "[effects][
     /// driving a phase-vocoder shifter instead of the plain one, so the *pitch*
     /// property is identical and is exactly what should be asserted of both --
     /// the goldens can only say that their samples differ.
-    for (auto const name : {"Pitch Spring", "Pitch Spring (pvd)"})
+    for (auto const name : {"Pitch Spring", "Pitch Spring (PV)"})
     {
         UNSCOPED_INFO(name);
 

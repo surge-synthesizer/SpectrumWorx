@@ -25,7 +25,7 @@ namespace LE::SW::Effects
 ////////////////////////////////////////////////////////////////////////////////
 
 char const PitchMagnet ::title[] = "Pitch Magnet";
-char const PitchMagnetPVD::title[] = "Pitch Magnet (pvd)";
+char const PitchMagnetPVD::title[] = "Pitch Magnet (PV)";
 
 char const Detail::PitchMagnetBase::description[] = "Force to target pitch.";
 

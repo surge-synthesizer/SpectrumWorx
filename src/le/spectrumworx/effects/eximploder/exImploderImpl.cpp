@@ -36,10 +36,10 @@ namespace LE::SW::Effects
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-char const PVImploder::title[] = "Imploder (pvd)";
+char const PVImploder::title[] = "Imploder (PV)";
 char const PVImploder::description[] = "Spectral implosion with glissando.";
 
-char const PVExploder::title[] = "Exploder (pvd)";
+char const PVExploder::title[] = "Exploder (PV)";
 char const PVExploder::description[] = "Spectral explosion with glissando.";
 
 char const Imploder::title[] = "Imploder";

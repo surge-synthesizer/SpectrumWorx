@@ -204,7 +204,7 @@ bool amplifiesRounding(std::string const &key)
     // keyFor() writes them.
     static constexpr std::string_view chaotic[]{
         "Pitch_Spring",
-        "Pitch_Spring_(pvd)",
+        "Pitch_Spring_(PV)",
         "Pitch_Magnet",
         "Octaver",
         "PVD_start",

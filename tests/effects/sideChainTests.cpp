@@ -172,7 +172,7 @@ enum BurritoParameter : std::uint8_t
 
 SideChainEffect const sideChainEffects[]{
     {"Pitch Follower"},
-    {"Pitch Follower (pvd)"},
+    {"Pitch Follower (PV)"},
     {"Talking Wind"},
     {"Ethereal"},
     {"Vaxateer"},

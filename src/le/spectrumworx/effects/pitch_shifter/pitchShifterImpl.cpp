@@ -25,7 +25,7 @@ namespace LE::SW::Effects
 ////////////////////////////////////////////////////////////////////////////////
 
 char const PitchShifter ::title[] = "Pitch Shifter";
-char const PVPitchShifter::title[] = "Pitch Shifter (pvd)";
+char const PVPitchShifter::title[] = "Pitch Shifter (PV)";
 
 char const Detail::PitchShifterBase::description[] = "Pitch shifter.";
 
