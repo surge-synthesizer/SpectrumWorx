@@ -390,8 +390,10 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
         juce::DirectoryContentsDisplayComponent::textColourId));
     graphics.setFont(height * 0.7f);
 
-    graphics.drawFittedText(item.name, x, 0, width - x, height, juce::Justification::centredLeft,
-                            1);
+    // The 4 on the right is issue #76's margin: a name as wide as the list had
+    // its last glyph against the scrollbar.
+    graphics.drawFittedText(item.name, x, 0, width - x - 4, height,
+                            juce::Justification::centredLeft, 1);
 }
 
 void PresetBrowser::deleteKeyPressed(int /*lastRowSelected*/) noexcept {}

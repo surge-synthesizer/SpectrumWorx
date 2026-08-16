@@ -94,6 +94,15 @@ unsigned int const textBoxHorizontalOffset = 76;
 unsigned int const textBoxHeight = 22;
 unsigned int const textBoxWidth = 113;
 
+/// \brief What the main area's strings keep clear of their boxes' edges.
+///
+/// \note The boxes are painted by the skin and the text was laid out across
+/// their full width, so a long effect title -- "Pitch Follower (PV)" -- ran into
+/// the rounded ends. Only the fitting rectangle shrinks; the text is centred, so
+/// nothing moves that was not already touching. \see issue #76.
+///                                           (16.08.2026.)
+unsigned int const textBoxMargin = 4;
+
 unsigned int const moduleNameVerticalOffset = 13;
 unsigned int const controlNameVerticalOffset = 42;
 unsigned int const controlValueVerticalOffset = 53;
@@ -1152,7 +1161,8 @@ void drawMainAreaText(juce::Graphics &graphics, EditorMainAreaText const &text)
 
     graphics.setColour(text.colour);
     graphics.setFont(*text.pFont);
-    graphics.drawFittedText(*text.pText, textBoxHorizontalOffset, text.verticalOffset, textBoxWidth,
+    graphics.drawFittedText(*text.pText, textBoxHorizontalOffset + textBoxMargin,
+                            text.verticalOffset, textBoxWidth - 2 * textBoxMargin,
                             textBoxHeight * text.textLinesToUse, text.justification,
                             text.textLinesToUse);
 }

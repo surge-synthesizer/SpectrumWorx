@@ -529,6 +529,10 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     static std::uint8_t const distance = 0;
     static std::uint8_t const border = 4;
 
+    /// \brief What text keeps clear of a strip's left and right edges.
+    /// \see issue #76, and paint(), which is the one thing wide enough to need it.
+    static std::uint8_t const textMargin = 4;
+
     /// \brief The blue rule across the bottom of a strip: the effect's controls
     /// are above it and its name is below.
     ///

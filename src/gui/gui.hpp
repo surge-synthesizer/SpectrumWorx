@@ -728,6 +728,10 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
     void setValue(param_type const newValue) { setSelectedID(newValue); }
 
   public:
+    /// What the selected item's text keeps clear of the rounded background's
+    /// ends. \see paint(), and issue #76.
+    static int constexpr textMargin{6};
+
     void setSelectedID(unsigned int newSelectionID);
     void setSelectedIndex(unsigned int newSelectionIndex);
 

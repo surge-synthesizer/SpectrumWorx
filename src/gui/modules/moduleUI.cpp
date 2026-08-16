@@ -302,8 +302,9 @@ void ModuleKnob::paint(juce::Graphics &graphics)
         font.setHeight(10);
         graphics.setFont(font);
     }
-    graphics.drawFittedText(getName(), 0, diameter_ + marginForGlow + (marginForGlow / 2),
-                            getWidth(), 12, juce::Justification::horizontallyCentred, 2, 0.6f);
+    graphics.drawFittedText(
+        getName(), ModuleUI::textMargin / 2, diameter_ + marginForGlow + (marginForGlow / 2),
+        getWidth() - ModuleUI::textMargin, 12, juce::Justification::horizontallyCentred, 2, 0.6f);
 }
 
 void ModuleKnob::valueChanged() noexcept
@@ -644,9 +645,25 @@ void ModuleUI::paint(juce::Graphics &graphics)
     graphics.drawHorizontalLine(nameRule, static_cast<float>(ModuleUI::border),
                                 Math::convert<float>(getWidth() - ModuleUI::border));
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Two lines, not three, a 4 px margin either side, and 0.8 rather than
+    /// 0.6 as the least this may condense to. \see issue #76.
+    ///
+    ///   The three interact, which is why they moved together. drawFittedText
+    /// spends its budget on *narrowing* before it spends it on wrapping: at 0.6
+    /// every title in the skin fits on one line, so the third line only ever
+    /// appeared for a name too long even for that -- "Pitch Follower (pvd)" --
+    /// and the rest were condensed to the strip's full width instead. Raising
+    /// the floor to 0.8 is what makes a long name break rather than squash,
+    /// which is the two rows the issue asks for; the margin is what keeps
+    /// whichever way it lands off the rounded border.
+    ///                                       (16.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
     graphics.setFont(Theme::singleton().whiteFont());
-    graphics.drawFittedText(getName(), 3, nameRule, width - 6, 28, juce::Justification::centred, 3,
-                            0.6f);
+    graphics.drawFittedText(getName(), textMargin, nameRule, width - 2 * textMargin, 28,
+                            juce::Justification::centred, 2, 0.8f);
 }
 
 /// \note It was every pixel no control happened to cover, which made a drag of

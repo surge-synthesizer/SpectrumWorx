@@ -782,13 +782,18 @@ ComboBox::ComboBox(juce::Component &parent, Artwork const &normalBackground,
     addToParentAndShow(parent, *this);
 }
 
+/// \note `textMargin` either side rather than the 4 it was. The background is a
+/// rounded rectangle, so the four pixels the text was given were spent on the
+/// curve and a long selection -- "Module/nothing selected" -- read as touching
+/// both ends. \see issue #76.
+///                                           (16.08.2026.)
 void ComboBox::paint(juce::Graphics &graphics)
 {
     paintImage(graphics, hasDirectFocus() ? selectedBackground_ : normalBackground_);
 
     graphics.setColour(juce::Colours::white);
     graphics.setFont(Theme::singleton().whiteFont());
-    graphics.drawFittedText(getSelectedItemText(), 4, 2, getWidth() - 8,
+    graphics.drawFittedText(getSelectedItemText(), textMargin, 2, getWidth() - 2 * textMargin,
                             normalBackground_.getHeight() - 3, juce::Justification::centred, 1,
                             0.1f);
 }

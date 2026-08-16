@@ -51,9 +51,17 @@ void paintSliderThumb(juce::Graphics &graphics, Artwork const &image, float cons
 /// straight out of the binary now, so they are handed to JUCE by pointer and
 /// no system font of the same name can win. See resources.hpp.
 ///                                       (28.07.2026.) (SW port)
+///
+/// \note **Regular, not bold, since issue #76.** Both of these were the bold
+/// face, which is why every label in the skin read as emphasised and why the
+/// longer effect titles had to be squeezed horizontally to fit their boxes at
+/// all. Bitstream Vera Sans ships Roman and Bold and nothing between, so "one
+/// weight down" is the regular face; `boldTypeface()` is still what the About
+/// page's title asks for.
+///                                       (16.08.2026.)
 Theme::Theme()
-    : blueFont_(juce::FontOptions(boldTypeface()).withHeight(14.0f)),
-      whiteFont_(juce::FontOptions(boldTypeface()).withHeight(12.0f))
+    : blueFont_(juce::FontOptions(regularTypeface()).withHeight(14.0f)),
+      whiteFont_(juce::FontOptions(regularTypeface()).withHeight(12.0f))
 {
     setDefaultSansSerifTypeface(regularTypeface());
 
