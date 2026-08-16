@@ -156,6 +156,30 @@ struct RenderSetup
     std::uint8_t numberOfChannels;
     std::uint32_t sampleRate;
     std::uint32_t blockSize;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief How many frames to hand `process()` at a time, where `blockSize` is
+    /// what the engine is *configured* for. Zero -- the default -- means "the
+    /// block size", which is what every caller before this did and is why nothing
+    /// had to change.
+    ///
+    ///   The two were one field, and that made a whole class of question
+    /// unaskable: `blockSize` reaches `Engine::setBlockSize()`, so rendering
+    /// twice with different block sizes compares two differently *configured*
+    /// engines -- different buffer sizing, different latency -- rather than one
+    /// engine called two ways. An attempt to probe chunking transparency that way
+    /// reported a worst-sample difference of ~1.0 and meant nothing. \see issue
+    /// #79 and core/chunkTransparencyTests.cpp.
+    ///
+    /// \note A call larger than `blockSize` is a caller error, not a wider test:
+    /// the engine sized its buffers for `blockSize` and the harness asserts.
+    ///                                       (16.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::uint32_t callSize{0};
+
+    std::uint32_t framesPerCall() const { return callSize ? callSize : blockSize; }
 };
 
 /// \brief Runs one effect over one signal and returns the interleaved output.

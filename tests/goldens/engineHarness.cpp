@@ -255,11 +255,31 @@ std::vector<float> renderChain(RenderSetup const &setup, std::span<Slot const> c
     std::vector<float const *> sidePointers(separateSideChain ? channels : 0);
     std::vector<float *> outputPointers(channels);
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Two loops, host block outside and engine call inside, which is
+    /// `SpectrumWorxCLAP::process()`'s own shape -- including its remainder: the
+    /// last call of a block is `blockSize % callSize` and is therefore *smaller*
+    /// than the rest whenever the two do not divide. That remainder is not an
+    /// edge case to be avoided here; it is what the plugin does on every block
+    /// under most host block sizes, and a harness that quietly rounded it away
+    /// could not see it.
+    ///
+    ///   `callSize` is the block size unless a case asked otherwise, so the inner
+    /// loop runs once and this is the single loop it replaced. \see
+    /// RenderSetup::callSize.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    auto const framesPerCall(setup.framesPerCall());
+    LE_ASSERT_MSG(framesPerCall <= setup.blockSize, "A call larger than the engine was sized for.");
+
     for (std::uint32_t offset(0); offset < frames; offset += setup.blockSize)
     {
         auto const block(std::min<std::uint32_t>(setup.blockSize, frames - offset));
 
-        /// \note Before the block, in the audio thread's role. \see Slot::duringRender.
+        /// \note Before the block, in the audio thread's role, and once per
+        /// *host* block rather than per call -- a host event arrives with the
+        /// block. \see Slot::duringRender.
         {
             Threading::ScopedAudioThreadEntry const audioThread;
             for (std::size_t slot(0); slot < slots.size(); ++slot)
@@ -267,16 +287,22 @@ std::vector<float> renderChain(RenderSetup const &setup, std::span<Slot const> c
                     slots[slot].duringRender(offset, *modules[slot]);
         }
 
-        for (std::uint8_t channel(0); channel < channels; ++channel)
+        for (std::uint32_t cursor(0); cursor < block; cursor += framesPerCall)
         {
-            inputPointers[channel] = inputChannels[channel].data() + offset;
-            outputPointers[channel] = outputChannels[channel].data() + offset;
-            if (separateSideChain)
-                sidePointers[channel] = sideChannels[channel].data() + offset;
+            auto const call(std::min<std::uint32_t>(framesPerCall, block - cursor));
+            auto const at(offset + cursor);
+
+            for (std::uint8_t channel(0); channel < channels; ++channel)
+            {
+                inputPointers[channel] = inputChannels[channel].data() + at;
+                outputPointers[channel] = outputChannels[channel].data() + at;
+                if (separateSideChain)
+                    sidePointers[channel] = sideChannels[channel].data() + at;
+            }
+            engine.process(inputPointers.data(),
+                           separateSideChain ? sidePointers.data() : inputPointers.data(),
+                           outputPointers.data(), 1.0f, call);
         }
-        engine.process(inputPointers.data(),
-                       separateSideChain ? sidePointers.data() : inputPointers.data(),
-                       outputPointers.data(), 1.0f, block);
     }
 
     engine.suspend();

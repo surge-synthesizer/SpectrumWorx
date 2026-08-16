@@ -23,6 +23,7 @@
 ################################################################################
 
 add_executable(sw-dsp-tests
+        core/chunkTransparencyTests.cpp
         core/engineOwnershipTests.cpp
         core/protocolTests.cpp
         effects/amplifyingEffectsTests.cpp
