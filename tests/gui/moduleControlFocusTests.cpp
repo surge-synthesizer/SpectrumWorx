@@ -30,6 +30,7 @@
 #include "gui/modules/moduleUI.hpp"
 
 #include "le/parameters/lfoImpl.hpp"
+#include "le/spectrumworx/effects/configuration/effectNames.hpp"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -215,16 +216,40 @@ void dragKnob(juce::Component &knob)
 /// \note By parameter index rather than by walking the children: the widget
 /// storage is a compile-time chain of one base class per parameter, so there is
 /// no runtime list of controls to iterate.
-GUI::ModuleControlBase *firstKnob(GUI::ModuleUI &moduleUI)
+template <typename Widget> GUI::ModuleControlBase *firstControlOfType(GUI::ModuleUI &moduleUI)
 {
     auto const parameters(moduleUI.module().numberOfEffectSpecificParameters());
     for (std::uint8_t index(0); index < parameters; ++index)
     {
         auto &control(moduleUI.effectSpecificParameterControl(index));
-        if (dynamic_cast<GUI::ModuleKnob *>(&control.widget()) != nullptr)
+        if (dynamic_cast<Widget *>(&control.widget()) != nullptr)
             return &control;
     }
     return nullptr;
+}
+
+GUI::ModuleControlBase *firstKnob(GUI::ModuleUI &moduleUI)
+{
+    return firstControlOfType<GUI::ModuleKnob>(moduleUI);
+}
+
+/// \brief The one strip of \p effectName, in slot 0, with nothing selected in it.
+GUI::ModuleUI &stripFor(GUI::SpectrumWorxEditor &editor, char const *const effectName)
+{
+    auto const effect(Effects::effectIndex(effectName));
+    REQUIRE(effect >= 0);
+    editor.addUserAddedModule(static_cast<std::uint8_t>(effect));
+    editor.resyncModuleRack();
+    auto *const pModuleUI(editor.regionInSlot(0));
+    REQUIRE(pModuleUI != nullptr);
+    return *pModuleUI;
+}
+
+/// One press and release over the centre of \p widget.
+void clickOnce(juce::Component &widget)
+{
+    widget.mouseDown(eventOver(widget, {}, false));
+    widget.mouseUp(eventOver(widget, {}, false));
 }
 } // anonymous namespace
 
@@ -417,4 +442,84 @@ TEST_CASE("A strip removed after its control was deactivated leaves nothing poin
     }
 
     CHECK(editor.regionInSlot(0) != nullptr);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Issue #65. A module control has to be selected before it may be
+/// changed, and taking the selection used to be the whole of the first press --
+/// so a button took two clicks to toggle once and a trigger fired on the second.
+/// Both cases below press exactly once.
+///
+/// \note They need a real window for the same reason the two above do: the
+/// selection *is* the keyboard focus, and JUCE will not hand focus to a
+/// component with no peer.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("One press on a module button selects it and toggles it", "[gui][modules]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!aWindowCanBeMade())
+        SKIP(noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    // TuneWorx, because its twelve semitone toggles are the LED buttons the
+    // report was about -- \see the Boolean arm of Detail::WidgetForParameterAux.
+    auto &moduleUI(stripFor(editor, "TuneWorx"));
+
+    auto *const pControl(firstControlOfType<GUI::ModuleLEDTextButton>(moduleUI));
+    REQUIRE(pControl != nullptr);
+    auto &control(*pControl);
+    auto &button(control.widget());
+
+    REQUIRE(editor.activeControl() != &control);
+    auto const valueBefore(control.getValue());
+
+    clickOnce(button);
+
+    // It selected -- which is what puts the control's LFO on screen...
+    CHECK(editor.activeControl() == &control);
+    CHECK(button.hasKeyboardFocus(false));
+    // ...and it toggled, which is the half that used to need a second press.
+    CHECK(control.getValue() != valueBefore);
+}
+
+TEST_CASE("One press on a module trigger selects it and fires it", "[gui][modules]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!aWindowCanBeMade())
+        SKIP(noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    // Freeze, whose two triggers are "Freeze" and "Melt": a trigger that fires
+    // on the second press is one that did nothing when it was pressed.
+    auto &moduleUI(stripFor(editor, "Freeze"));
+
+    auto *const pControl(firstControlOfType<GUI::TriggerButton>(moduleUI));
+    REQUIRE(pControl != nullptr);
+    auto &control(*pControl);
+    auto &button(control.widget());
+
+    REQUIRE(editor.activeControl() != &control);
+    REQUIRE(control.getValue() == 0);
+
+    /// \note The press alone, with no release: TriggerButton is
+    /// `setTriggeredOnMouseDown( true )`, so that is the whole gesture.
+    button.mouseDown(eventOver(button, {}, false));
+
+    CHECK(editor.activeControl() == &control);
+    CHECK(control.getValue() != 0);
 }

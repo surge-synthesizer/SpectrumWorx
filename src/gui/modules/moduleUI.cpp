@@ -42,16 +42,46 @@ ModuleLEDTextButton::ModuleLEDTextButton(juce::Component &parent, unsigned int c
 
 void ModuleLEDTextButton::clicked() { moduleParameterChanged(); }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **Both, where this was either/or.** A module control has to be the
+/// selected one before it may be changed -- that is what puts its LFO on screen
+/// -- and taking the selection used to be the whole of the first press, so a
+/// button needed two clicks to toggle once. That is not how a button behaves
+/// anywhere else. \see issue #65.
+///
+///   Nothing about selection needs the press thrown away. `grabKeyboardFocus()`
+/// delivers `focusGained` synchronously, which is where
+/// `ModuleControlImpl::reportActiveControl()` runs, so by the time the button's
+/// own handler is reached this control is already the active one and
+/// `moduleParameterChanged()`'s `LE_ASSERT( isActive() )` holds.
+///
+/// \note And only if the focus was actually taken. `Component::takeKeyboardFocus`
+/// is the window manager's to refuse -- see the note on `tookTheKeyboard()` in
+/// tests/gui/moduleControlFocusTests.cpp -- and a control that is not selected
+/// must not publish a value. A refusal leaves the old behaviour exactly: the
+/// press selects and does nothing else.
+///
+/// \note The SafePointer guards the gap rather than a known crash: taking focus
+/// runs the *previous* holder's `focusLost`, and that reaches the editor, which
+/// retires an LFO strip and can drop the shared controls. This widget is a
+/// module's own and never one of those, so there is nothing to catch today.
+///                                           (16.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void ModuleLEDTextButton::mouseDown(juce::MouseEvent const &event)
 {
     if (!hasDirectFocus())
     {
+        juce::Component::SafePointer<juce::Component> const self(this);
         grabKeyboardFocus();
+        if (!self || !hasDirectFocus())
+            return;
     }
-    else if (!isLFOEnabled())
-    {
+
+    if (!isLFOEnabled())
         LEDTextButton::mouseDown(event);
-    }
 }
 
 void ModuleLEDTextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton,
@@ -81,13 +111,21 @@ void TriggerButton::setValue(param_type const newValue)
     setState(newValue ? buttonDown : buttonNormal);
 }
 
+/// \note The same either/or, and the same fix: a trigger that fires on the
+/// second press is a trigger that did not fire when it was pressed. \see
+/// ModuleLEDTextButton::mouseDown() above for why taking the focus first is
+/// enough to make this control the active one.
 void TriggerButton::mouseDown(juce::MouseEvent const &e)
 {
     if (!hasDirectFocus())
     {
+        juce::Component::SafePointer<juce::Component> const self(this);
         grabKeyboardFocus();
+        if (!self || !hasDirectFocus())
+            return;
     }
-    else if (!isLFOEnabled())
+
+    if (!isLFOEnabled())
     {
         BitmapButton::mouseDown(e);
         moduleParameterChanged();
