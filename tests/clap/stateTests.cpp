@@ -521,7 +521,25 @@ TEST_CASE("Session state is the preset format plus a dawExtraState block", "[cla
 TEST_CASE("A fired event is saved at rest and reads at rest", "[clap][state]")
 {
     Entry const entry;
-    Plugin const plugin;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **Activated**, unlike most of this file, and it has to be. An
+    /// inactive plugin has no spectral setup -- `fftSize` 0, `stepSize` 0 -- and
+    /// several of `Engine::Setup`'s conversions divide by them:
+    /// `milliSecondsToSteps` by the step, `frequencyRangePerBin` by the FFT
+    /// size. On arm64 an integer division by zero yields zero and nothing is
+    /// said; on x86 it traps. \see issue #81, which is that hazard on its own --
+    /// a host really does restore a session before it activates.
+    ///
+    ///   Activating is the right fixture rather than a way round anything: a
+    /// trigger is something a user fires while audio is running, so the state
+    /// this case is about is a state a *running* plugin gets into. It was
+    /// inactive only because most of this file is.
+    ///                                       (17.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    Plugin const plugin{nullHost(), true /*active*/};
 
     auto const freeze(LE::SW::Effects::effectIndex("Freeze"));
     REQUIRE(freeze >= 0);
