@@ -33,14 +33,18 @@
 //------------------------------------------------------------------------------
 #include "page.hpp"
 
+#include "gui/preferences.hpp"
 #include "gui/theme.hpp"
+#include "io/jucePath.hpp"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
+#include <system_error>
 //------------------------------------------------------------------------------
 namespace
 {
@@ -305,12 +309,52 @@ int renderPage(juce::String const &pageName, juce::File const &output)
     return drewSomething(ink, page->name) ? 0 : 1;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Points the interface preferences at an empty folder beside the PNG.
+///
+///   A render has to be a function of the build and nothing else. The editor
+/// reads GUI::preferences() -- the settings panel's Interface page shows them,
+/// and the zoom among them decides how big the whole image is -- so without this
+/// `--render` would answer differently on every machine, according to what
+/// whoever ran it last chose in a DAW. `ctest` runs these.
+///
+/// \note Only `--render`. Run interactively, sw-show-ui is looking at the real
+/// editor and should use the real preferences, zoom included.
+///
+/// \note `SW_SHOW_UI_ZOOM` then puts one back, for looking at a page at a size
+/// other than the plugin's normal one. Same shape as SW_SHOW_UI_SETTINGS_PAGE
+/// and SW_SHOW_UI_PRESET_BANK, and an unoffered percentage is ignored -- \see
+/// GUI::Preferences::zoomPercentages.
+///                                           (16.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void usePreferencesOfNobodyInParticular(juce::File const &output)
+{
+    auto const folder(LE::IO::juceFileToPath(output.getParentDirectory()) / "show-ui-preferences");
+    std::error_code ignored;
+    fs::remove_all(folder, ignored);
+    LE::SW::GUI::setPreferencesFolder(folder);
+
+    if (auto const *const requested = std::getenv("SW_SHOW_UI_ZOOM"))
+    {
+        auto const percent(static_cast<unsigned int>(std::atoi(requested)));
+        if (LE::SW::GUI::Preferences::isOfferedZoom(percent))
+            LE::SW::GUI::preferences().setZoomPercent(percent);
+        else
+            std::fprintf(stderr, "sw-show-ui: SW_SHOW_UI_ZOOM=%s is not an offered zoom.\n",
+                         requested);
+    }
+}
+
 int render(juce::String const &pageName, juce::File const &output)
 {
     // No JUCEApplication and no message loop: paintEntireComponent() needs a
     // graphics context and a font engine, which ScopedJuceInitialiser_GUI
     // provides, and nothing else.
     juce::ScopedJuceInitialiser_GUI const juceInitialiser;
+    usePreferencesOfNobodyInParticular(output);
     auto const result(renderPage(pageName, output));
     // Inside the initialiser's lifetime, so the images and typefaces the page
     // cached are gone before JUCE's leak detector looks. Getting this wrong is

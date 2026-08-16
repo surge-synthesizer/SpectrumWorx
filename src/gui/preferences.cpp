@@ -18,6 +18,7 @@
 
 #include <sst/plugininfra/userdefaults.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <optional>
@@ -44,6 +45,7 @@ enum PreferenceKey
     moduleUIMouseOverReactionKey,
     lfoUpdateBehaviourKey,
     hideCursorOnKnobDragKey,
+    zoomPercentKey,
     numberOfPreferenceKeys
 };
 
@@ -60,6 +62,8 @@ std::string preferenceKeyName(PreferenceKey const key)
         return "lfoUpdateBehaviour";
     case hideCursorOnKnobDragKey:
         return "hideCursorOnKnobDrag";
+    case zoomPercentKey:
+        return "zoomPercent";
     case numberOfPreferenceKeys:
         break;
     }
@@ -159,6 +163,21 @@ Preferences::Preferences(fs::path const &folder) : storage_(std::make_unique<Sto
 
     hideCursorOnKnobDrag_ =
         provider.getUserDefaultValue(hideCursorOnKnobDragKey, hideCursorOnKnobDrag_) != 0;
+
+    /// \note Checked against the offered list rather than clamped to its ends.
+    /// A file naming a zoom this build does not have is a file from another
+    /// build or from a text editor, and there is no reading of "300" that the
+    /// combo box could then show.
+    auto const zoom(static_cast<unsigned int>(
+        provider.getUserDefaultValue(zoomPercentKey, static_cast<int>(zoomPercent_))));
+    if (Preferences::isOfferedZoom(zoom))
+        zoomPercent_ = zoom;
+}
+
+bool Preferences::isOfferedZoom(unsigned int const percent)
+{
+    return std::find(zoomPercentages.begin(), zoomPercentages.end(), percent) !=
+           zoomPercentages.end();
 }
 
 Preferences::~Preferences() = default;
@@ -181,6 +200,16 @@ void Preferences::setHideCursorOnKnobDrag(bool const value)
 {
     hideCursorOnKnobDrag_ = value;
     storage_->provider.updateUserDefaultValue(hideCursorOnKnobDragKey, value ? 1 : 0);
+}
+
+void Preferences::setZoomPercent(unsigned int const percent)
+{
+    LE_ASSERT_MSG(isOfferedZoom(percent), "a zoom the Interface page cannot show");
+    if (!isOfferedZoom(percent))
+        return;
+
+    zoomPercent_ = percent;
+    storage_->provider.updateUserDefaultValue(zoomPercentKey, static_cast<int>(percent));
 }
 
 fs::path const &Preferences::file() const { return storage_->file; }

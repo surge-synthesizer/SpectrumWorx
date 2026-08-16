@@ -160,6 +160,12 @@ class HarnessHost final : public GUI::EditorHost
     /// page follows the editor's size; there is no window under either.
     bool requestEditorSize(int, int) override { return true; }
 
+    /// \note Nothing to do: there is no window here, and the page follows the
+    /// wrapper's size through childBoundsChanged. `--render` never changes the
+    /// zoom anyway, and interactively the wrapper has already re-transformed
+    /// itself by the time this is called.
+    void editorSizeChanged(int, int) override {}
+
     /// \note The external audio file, declined: the harness has no engine to
     /// feed one to and renders a still image, so the sample area draws its empty
     /// state. Loading one is what sampleTests.cpp covers.

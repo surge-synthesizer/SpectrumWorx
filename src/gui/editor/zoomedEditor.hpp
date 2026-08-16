@@ -15,6 +15,8 @@
 //------------------------------------------------------------------------------
 #include "spectrumWorxEditor.hpp"
 
+#include "gui/preferences.hpp"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <memory>
@@ -53,28 +55,82 @@ namespace LE::SW::GUI
 class ZoomedEditor final : public juce::Component
 {
   public:
-    /// What the plugin shows. Not a constant of the editor, because the editor
-    /// does not know it is being scaled.
-    static constexpr float defaultZoom{1.5f};
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The transform a user-facing 100% means.
+    ///
+    ///   The skin is a 563 x 376 bitmap laid out for a 2010 screen and the
+    /// plugin has always drawn it at 1.5x. That 1.5 is what "normal size" has
+    /// meant since, so it is what 100% is defined as here rather than something
+    /// the user is shown -- a zoom combo offering 150% as its resting value
+    /// would be describing the bitmap rather than the window.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static constexpr float scaleAtOneHundredPercent{1.5f};
 
-    static constexpr int scaled(int const skinPixels, float const zoom = defaultZoom)
+    static constexpr float scaleForZoom(unsigned int const zoomPercent)
     {
-        return static_cast<int>(static_cast<float>(skinPixels) * zoom + 0.5f);
+        return scaleAtOneHundredPercent * static_cast<float>(zoomPercent) / 100.0f;
     }
 
-    ZoomedEditor(std::unique_ptr<SpectrumWorxEditor> editor, float const zoom = defaultZoom)
-        : pEditor_(std::move(editor)), zoom_(zoom)
+    static constexpr int scaled(int const skinPixels, float const scale)
+    {
+        return static_cast<int>(static_cast<float>(skinPixels) * scale + 0.5f);
+    }
+
+    /// \brief \p skinPixels at the zoom the user has asked for.
+    ///
+    /// \note What every size crossing into the host goes through. The editor
+    /// asks in skin pixels -- it does not know it is being scaled -- so the
+    /// preference is read here rather than threaded through the editor, and one
+    /// answer serves the window, the shim and this component.
+    static int scaledForCurrentZoom(int const skinPixels)
+    {
+        return scaled(skinPixels, scaleForZoom(preferences().zoomPercent()));
+    }
+
+    explicit ZoomedEditor(std::unique_ptr<SpectrumWorxEditor> editor)
+        : ZoomedEditor(std::move(editor), preferences().zoomPercent())
+    {
+    }
+
+    ZoomedEditor(std::unique_ptr<SpectrumWorxEditor> editor, unsigned int const zoomPercent)
+        : pEditor_(std::move(editor)), zoomPercent_(zoomPercent)
     {
         LE_ASSERT(pEditor_ != nullptr);
         setOpaque(true);
         addAndMakeVisible(*pEditor_);
         pEditor_->setTopLeftPosition(0, 0);
-        pEditor_->setTransform(juce::AffineTransform::scale(zoom_));
-        matchEditor();
+        applyZoom();
     }
 
     SpectrumWorxEditor &editor() const { return *pEditor_; }
-    float zoom() const { return zoom_; }
+    unsigned int zoomPercent() const { return zoomPercent_; }
+    float scale() const { return scaleForZoom(zoomPercent_); }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Redraws the editor at \p zoomPercent and resizes to match.
+    ///
+    /// \note The transform is replaced rather than composed -- `setTransform`
+    /// takes the whole of it -- so this can be called any number of times
+    /// without the scales multiplying.
+    ///
+    /// \note It does not tell the host. Asking for a window is the plugin's
+    /// half and goes through `EditorHost::requestEditorSize`, which reads the
+    /// same preference; \see SpectrumWorxEditor::setZoom(), which does both in
+    /// the order that keeps them agreeing.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void setZoomPercent(unsigned int const zoomPercent)
+    {
+        if (zoomPercent == zoomPercent_)
+            return;
+
+        zoomPercent_ = zoomPercent;
+        applyZoom();
+    }
 
     /// \note Black, for the half pixel that rounding can leave down the right
     /// and bottom edges when the scaled size is not integral. The same reason
@@ -99,13 +155,19 @@ class ZoomedEditor final : public juce::Component
             matchEditor();
     }
 
+    void applyZoom()
+    {
+        pEditor_->setTransform(juce::AffineTransform::scale(scale()));
+        matchEditor();
+    }
+
     void matchEditor()
     {
-        setSize(scaled(pEditor_->getWidth(), zoom_), scaled(pEditor_->getHeight(), zoom_));
+        setSize(scaled(pEditor_->getWidth(), scale()), scaled(pEditor_->getHeight(), scale()));
     }
 
     std::unique_ptr<SpectrumWorxEditor> pEditor_;
-    float const zoom_;
+    unsigned int zoomPercent_;
 }; // class ZoomedEditor
 
 } // namespace LE::SW::GUI

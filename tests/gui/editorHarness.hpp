@@ -179,7 +179,16 @@ class Instance final : public GUI::EditorHost
         return grantResizes;
     }
 
+    /// \note Recorded separately from requestedSizes, because the distinction is
+    /// the point: this one has no answer and cannot be refused. \see
+    /// EditorHost::editorSizeChanged().
+    void editorSizeChanged(int const width, int const height) override
+    {
+        announcedSizes.emplace_back(width, height);
+    }
+
     std::vector<juce::Point<int>> requestedSizes;
+    std::vector<juce::Point<int>> announcedSizes;
     bool grantResizes{true};
 
     fs::path currentSampleFile() const override { return {}; }

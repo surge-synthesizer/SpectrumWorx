@@ -31,6 +31,8 @@
 #include "presets/presetHarness.hpp"
 #include "gui/editor/spectrumWorxEditor.hpp"
 #include "gui/editor/zoomedEditor.hpp"
+#include "gui/preferences.hpp"
+#include "spectrumWorxCLAP.hpp"
 #include "le/spectrumworx/presetStorage.hpp"
 
 #include <clap/clap.h>
@@ -1658,25 +1660,26 @@ TEST_CASE("Opening a panel asks the host for a wider window", "[clap][gui]")
     /// and asks in them -- it does not know it is being drawn zoomed -- and
     /// SpectrumWorxCLAP scales on the way out, because a size crossing into the
     /// host is in window units. So `getWidth()` below is the skin's number and
-    /// what the host was told is that number through ZoomedEditor::scaled().
-    /// The editor this case builds is bare, at 1:1, which is the point: the
-    /// zoom is the wrapper's and the editor is the same either way.
+    /// what the host was told is that number at the zoom in force --
+    /// ZoomedEditor::scaledForCurrentZoom(). The editor this case builds is
+    /// bare, at 1:1, which is the point: the zoom is the wrapper's and the
+    /// editor is the same either way.
     ///
     ////////////////////////////////////////////////////////////////////////////
     using Zoomed = LE::SW::GUI::ZoomedEditor;
 
     editor->showPresetBrowser(true);
     REQUIRE(host.resizeRequests.size() == 1);
-    CHECK(host.resizeRequests.back() ==
-          std::pair<std::uint32_t, std::uint32_t>{Zoomed::scaled(Editor::expandedWidth),
-                                                  Zoomed::scaled(Editor::estimatedHeight)});
+    CHECK(host.resizeRequests.back() == std::pair<std::uint32_t, std::uint32_t>{
+                                            Zoomed::scaledForCurrentZoom(Editor::expandedWidth),
+                                            Zoomed::scaledForCurrentZoom(Editor::estimatedHeight)});
     CHECK(editor->getWidth() == Editor::expandedWidth);
 
     editor->showPresetBrowser(false);
     REQUIRE(host.resizeRequests.size() == 2);
-    CHECK(host.resizeRequests.back() ==
-          std::pair<std::uint32_t, std::uint32_t>{Zoomed::scaled(Editor::estimatedWidth),
-                                                  Zoomed::scaled(Editor::estimatedHeight)});
+    CHECK(host.resizeRequests.back() == std::pair<std::uint32_t, std::uint32_t>{
+                                            Zoomed::scaledForCurrentZoom(Editor::estimatedWidth),
+                                            Zoomed::scaledForCurrentZoom(Editor::estimatedHeight)});
     CHECK(editor->getWidth() == Editor::estimatedWidth);
 
     editor.reset();
@@ -1684,6 +1687,67 @@ TEST_CASE("Opening a panel asks the host for a wider window", "[clap][gui]")
     /// \note `request_resize` is `[main-thread]` and clap-helpers checks it the
     /// moment a host answers the thread check, so this is also what says the
     /// editor asks from where it is allowed to.
+    CHECK(host.misbehaviours().empty());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The bug this was written against, and it is the whole reason
+/// `editorSizeChanged` is not `requestEditorSize`. A zoom change resized the
+/// editor, asked the host, and stopped at the answer -- so on a host that says
+/// no, the shim's own components kept the *old* size while the editor had the
+/// new one. `guiGetSize()` is answered out of the shim's holder, so the plugin
+/// then told every host that asked that it was still the size it used to be.
+///
+///   "A host that says no" is not a corner: `clap-wrapper`'s macOS standalone
+/// resizes its window and returns false (AppDelegate.mm), which is how this was
+/// found -- the editor slid up or down inside a window that had moved without
+/// it. So the refusal is exercised here rather than the acceptance.
+///                                           (16.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A zoom change reaches the window even when the host refuses", "[clap][gui][zoom]")
+{
+    using Editor = LE::SW::GUI::SpectrumWorxEditor;
+    using Zoomed = LE::SW::GUI::ZoomedEditor;
+
+    /// \note A folder of this case's own: the zoom is a process-wide preference,
+    /// ctest runs eight cases at a time, and this one writes it.
+    LE::SW::GUI::setPreferencesFolder(fs::path(SW_TEST_OUTPUT_DIR) / "preferences" /
+                                      "clapZoomRefused");
+    LE::SW::GUI::preferences().setZoomPercent(100);
+
+    Entry const entry;
+    TestHost host{{.threadCheck = true, .log = true, .gui = true}};
+    host.grantResizes = false; // what the macOS standalone answers
+    ActivePlugin plugin(48000, 512, host);
+
+    auto const *const gui(
+        static_cast<clap_plugin_gui const *>(plugin->get_extension(&*plugin, CLAP_EXT_GUI)));
+    REQUIRE(gui != nullptr);
+    REQUIRE(gui->create(&*plugin, CLAP_WINDOW_API_COCOA, false));
+
+    std::uint32_t width{0}, height{0};
+    REQUIRE(gui->get_size(&*plugin, &width, &height));
+    REQUIRE(width == std::uint32_t(Zoomed::scaledForCurrentZoom(Editor::expandedWidth)));
+
+    auto &editor(*static_cast<LE::SW::SpectrumWorxCLAP &>(SWTest::editorHostOf(*plugin)).gui());
+    editor.setZoom(200);
+
+    // The plugin asked, and was told no...
+    REQUIRE(host.resizeRequests.size() == 1);
+    CHECK(host.resizeRequests.back() == std::pair<std::uint32_t, std::uint32_t>{
+                                            Zoomed::scaledForCurrentZoom(Editor::expandedWidth),
+                                            Zoomed::scaledForCurrentZoom(Editor::estimatedHeight)});
+
+    // ...and the shim moved anyway, so what the plugin reports is what it is.
+    CHECK(gui->get_size(&*plugin, &width, &height));
+    CHECK(width == std::uint32_t(Zoomed::scaledForCurrentZoom(Editor::expandedWidth)));
+    CHECK(height == std::uint32_t(Zoomed::scaledForCurrentZoom(Editor::estimatedHeight)));
+    CHECK(width == 2292);
+
+    gui->destroy(&*plugin);
     CHECK(host.misbehaviours().empty());
 }
 

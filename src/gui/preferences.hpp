@@ -31,6 +31,7 @@
 /// `fs`, for the folder the file lives in.
 #include "filesystem/import.h"
 
+#include <array>
 #include <memory>
 
 namespace LE::SW::GUI
@@ -77,6 +78,30 @@ class Preferences
         Always
     };
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The zooms the Interface page offers, ascending, as percentages.
+    ///
+    /// \note **100 is the size the skin was drawn for, not a scale factor of
+    /// one.** Every offset in the editor is a pixel position in a 563 x 376
+    /// bitmap from 2010, and that is small on a screen sold since; the plugin
+    /// has always drawn it at 1.5x and called that its normal size. So the
+    /// percentage a user picks is a statement about how big the editor should
+    /// look, and ZoomedEditor is what turns it into a transform. \see issue #55.
+    ///
+    /// \note This list is the whole of what a zoom may be: it is what the combo
+    /// box offers and what a value read out of the preferences file is checked
+    /// against. A typed-in or dragged custom zoom is a separate question and
+    /// waits on the skin being vector.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static constexpr std::array<unsigned int, 7> zoomPercentages{50, 75, 90, 100, 125, 150, 200};
+
+    static constexpr unsigned int defaultZoomPercent{100};
+
+    /// Whether \p percent is one of the above.
+    static bool isOfferedZoom(unsigned int percent);
+
   public:
     /// \note Reads the file. A missing one is not an error -- it is what a first
     /// run looks like -- and leaves every value at its default.
@@ -92,11 +117,17 @@ class Preferences
     }
     LFOUpdateBehaviour lfoUpdateBehaviour() const { return lfoUpdateBehaviour_; }
     bool hideCursorOnKnobDrag() const { return hideCursorOnKnobDrag_; }
+    /// Always one of zoomPercentages.
+    unsigned int zoomPercent() const { return zoomPercent_; }
 
     /// Each of these writes the file. `[main-thread]`
     void setModuleUIMouseOverReaction(ModuleUIMouseOverReaction);
     void setLFOUpdateBehaviour(LFOUpdateBehaviour);
     void setHideCursorOnKnobDrag(bool);
+    /// \note A percentage this build does not offer is ignored, for the same
+    /// reason an unrecognised enumeration name is: the file is the user's to
+    /// edit, and every zoom has to be one the combo box can show.
+    void setZoomPercent(unsigned int);
 
     /// Where this instance reads and writes.
     fs::path const &file() const;
@@ -111,6 +142,7 @@ class Preferences
     ModuleUIMouseOverReaction moduleUIMouseOverReaction_{Never};
     LFOUpdateBehaviour lfoUpdateBehaviour_{Always};
     bool hideCursorOnKnobDrag_{true};
+    unsigned int zoomPercent_{defaultZoomPercent};
 }; // class Preferences
 
 /// \brief The process-wide preferences, under `rootPath()` -- beside the user's

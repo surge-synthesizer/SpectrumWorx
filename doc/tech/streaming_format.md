@@ -272,17 +272,23 @@ the payload accrues. The candidate is the preset browser's location and
 selection, which is main-thread and is not a parameter.
 
 The settings panel's Interface page is *not* a candidate, and it is the case that
-says where the line is. Those three — mouse-over reaction, LFO update behaviour,
-hide-cursor-on-knob-drag — used to persist nowhere at all (issue #61). They are
-answers about how this user likes the editor to behave, not about this session,
-so they are the same in every instance and in every project, and they belong in
-the user's preferences file rather than in a host's state blob:
-`<user folder>/SpectrumWorxUserDefaults.xml`, through
+says where the line is. Its four — zoom, mouse-over reaction, LFO update
+behaviour, hide-cursor-on-knob-drag — used to persist nowhere at all (issues #61
+and #55). They are answers about how this user likes the editor to behave, not
+about this session, so they are the same in every instance and in every project,
+and they belong in the user's preferences file rather than in a host's state
+blob: `<user folder>/SpectrumWorxUserDefaults.xml`, through
 `sst::plugininfra::defaults::Provider`. \see `src/gui/preferences.hpp`. Its
 format is that library's; what this tree fixes about it is that both
 enumerations are streamed **by name**, so inserting a value cannot silently
 change what an existing file means. `tests/gui/preferencesTests.cpp` pins the
 names.
+
+The zoom is a percentage, and **100 is the size the plugin has always opened
+at** rather than a scale factor of one: the skin is a 563 x 376 bitmap laid out
+for a 2010 screen and `ZoomedEditor` has drawn it at 1.5x since the port. A
+percentage the build does not offer — 300, say — reads as 100 rather than being
+clamped, because the combo box could show nothing for it.
 
 Note what does *not* need it — the loaded sample. `<Global Sample="…">` has
 carried that since 2011, so putting state on the preset serialisation restores it

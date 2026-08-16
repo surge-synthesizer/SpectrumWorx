@@ -2265,13 +2265,13 @@ catch (...)
 /// case.
 ///
 /// \note The settings panel's Interface page was the other candidate and is no
-/// longer one. Mouse-over reaction, LFO update behaviour and
-/// hide-cursor-on-knob-drag persisted nowhere at all (issue #61); they are
-/// answers about how this user likes the editor to behave rather than about this
-/// session, so they went to the user preferences file instead --
+/// longer one. Zoom, mouse-over reaction, LFO update behaviour and
+/// hide-cursor-on-knob-drag persisted nowhere at all (issues #61 and #55); they
+/// are answers about how this user likes the editor to behave rather than about
+/// this session, so they went to the user preferences file instead --
 /// `sst::plugininfra::defaults::Provider`, \see gui/preferences.hpp. The two
 /// homes are not exclusive, and surge uses both; these belong in that one.
-///                                       (15.08.2026.) (SW port)
+///                                       (16.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2409,10 +2409,13 @@ bool SpectrumWorxCLAP::requestEditorSize(int const width, int const height)
 
     ///   Scaled, because the editor asks in skin pixels -- it does not know it
     /// is being drawn zoomed -- and every size crossing this boundary is in the
-    /// host's window units. The same factor ZoomedEditor uses, or the window
-    /// and the column it was opened for disagree by exactly the zoom.
-    auto const requestedWidth(static_cast<std::uint32_t>(GUI::ZoomedEditor::scaled(width)));
-    auto const requestedHeight(static_cast<std::uint32_t>(GUI::ZoomedEditor::scaled(height)));
+    /// host's window units. The zoom the *user* has asked for, read from the
+    /// same preference ZoomedEditor reads, or the window and the column it was
+    /// opened for disagree by exactly the zoom.
+    auto const requestedWidth(
+        static_cast<std::uint32_t>(GUI::ZoomedEditor::scaledForCurrentZoom(width)));
+    auto const requestedHeight(
+        static_cast<std::uint32_t>(GUI::ZoomedEditor::scaledForCurrentZoom(height)));
     if (!_host.guiRequestResize(requestedWidth, requestedHeight))
         return false;
 
@@ -2430,6 +2433,48 @@ bool SpectrumWorxCLAP::requestEditorSize(int const width, int const height)
     if (clapJuceShim_ && clapJuceShim_->isEditorAttached())
         clapJuceShim_->guiSetSize(requestedWidth, requestedHeight);
     return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxCLAP::editorSizeChanged()
+// -------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   What the editor calls when it has already changed size and the window has
+/// to catch up -- the zoom, and nothing else so far.
+///
+/// \note **The shim first, the host second.** `guiGetSize()` is answered out of
+/// the shim's holder, so until the holder has the new size the plugin is telling
+/// any host that asks that it is still the old one -- including a host that
+/// answers `request_resize` by turning round and asking. Six Sines drives the
+/// same shim in the same order, for the same reason.
+///
+/// \note And `guiSetSize` unconditionally, where requestEditorSize() reaches it
+/// only past two `return false`s. Neither guard belongs here: a host with no
+/// `clap.gui` still has an editor that has just changed size, and a refusal is
+/// not a statement that the window stayed put. \see EditorHost.
+///                                           (16.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxCLAP::editorSizeChanged(int const width, int const height)
+{
+    LE_ASSERT(Threading::isMainThread() || !Threading::isAudioThread());
+
+    auto const newWidth(static_cast<std::uint32_t>(GUI::ZoomedEditor::scaledForCurrentZoom(width)));
+    auto const newHeight(
+        static_cast<std::uint32_t>(GUI::ZoomedEditor::scaledForCurrentZoom(height)));
+
+    /// \note Not gated on `isEditorAttached()`, which is about a *parent window*
+    /// rather than about there being an editor: the shim's components exist from
+    /// `guiCreate()`, and this is only ever called by an editor that is up.
+    if (clapJuceShim_)
+        clapJuceShim_->guiSetSize(newWidth, newHeight);
+
+    if (_host.canUseGui())
+        _host.guiRequestResize(newWidth, newHeight);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

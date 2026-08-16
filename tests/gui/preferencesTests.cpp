@@ -22,6 +22,7 @@
 //------------------------------------------------------------------------------
 #include "gui/editorHarness.hpp"
 
+#include "gui/editor/zoomedEditor.hpp"
 #include "gui/preferences.hpp"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -126,18 +127,18 @@ template <typename Widget> std::vector<Widget *> descendantsOfType(juce::Compone
     return found;
 }
 
-/// \brief The Interface page's two combo boxes, told apart by how many choices
-/// each offers rather than by the order they were added in.
+/// \brief The Interface page's combo boxes, told apart by how many choices each
+/// offers rather than by the order they were added in.
 ///
 /// \note A TabbedComponent keeps only the *current* page as a child, so the
 /// engine page's three combo boxes -- which are TitledComboBoxes too -- are not
 /// in the tree while the Interface tab is up. The count is required rather than
 /// assumed, so that a layout change fails here instead of silently sending the
 /// rest of the case at the wrong widget.
-GUI::TitledComboBox &comboBoxOffering(Editor &editor, unsigned int const choices)
+GUI::TitledComboBox &comboBoxOffering(Editor &editor, std::size_t const choices)
 {
     auto const comboBoxes(descendantsOfType<GUI::TitledComboBox>(editor));
-    REQUIRE(comboBoxes.size() == 2);
+    REQUIRE(comboBoxes.size() == 3);
 
     for (auto *const pComboBox : comboBoxes)
         if (pComboBox->numberOfItems() == choices)
@@ -147,6 +148,10 @@ GUI::TitledComboBox &comboBoxOffering(Editor &editor, unsigned int const choices
     return *comboBoxes.front();
 }
 
+GUI::TitledComboBox &zoomComboBox(Editor &editor)
+{
+    return comboBoxOffering(editor, Preferences::zoomPercentages.size());
+}
 GUI::TitledComboBox &mouseOverComboBox(Editor &editor) { return comboBoxOffering(editor, 3); }
 GUI::TitledComboBox &lfoUpdateComboBox(Editor &editor) { return comboBoxOffering(editor, 4); }
 
@@ -183,6 +188,7 @@ TEST_CASE("With no preferences file every value is at its default", "[gui][prefe
     CHECK(preferences.moduleUIMouseOverReaction() == Preferences::Never);
     CHECK(preferences.lfoUpdateBehaviour() == Preferences::Always);
     CHECK(preferences.hideCursorOnKnobDrag());
+    CHECK(preferences.zoomPercent() == Preferences::defaultZoomPercent);
 
     /// \note And reading wrote nothing. A plugin that has only ever been opened
     /// has no preferences to record, and a file appearing in the user's folder on
@@ -199,6 +205,7 @@ TEST_CASE("Every preference survives a new instance over the same folder", "[gui
         written.setModuleUIMouseOverReaction(Preferences::WhenParentModuleSelected);
         written.setLFOUpdateBehaviour(Preferences::WhenControlActive);
         written.setHideCursorOnKnobDrag(false);
+        written.setZoomPercent(75);
 
         REQUIRE(fs::exists(written.file()));
     }
@@ -207,6 +214,7 @@ TEST_CASE("Every preference survives a new instance over the same folder", "[gui
     CHECK(read.moduleUIMouseOverReaction() == Preferences::WhenParentModuleSelected);
     CHECK(read.lfoUpdateBehaviour() == Preferences::WhenControlActive);
     CHECK(!read.hideCursorOnKnobDrag());
+    CHECK(read.zoomPercent() == 75);
 }
 
 TEST_CASE("The file names its keys and its enumerated values", "[gui][preferences]")
@@ -226,6 +234,7 @@ TEST_CASE("The file names its keys and its enumerated values", "[gui][preference
     preferences.setModuleUIMouseOverReaction(Preferences::WhenParentOrNothingSelected);
     preferences.setLFOUpdateBehaviour(Preferences::WhenControlSelected);
     preferences.setHideCursorOnKnobDrag(false);
+    preferences.setZoomPercent(125);
 
     auto const file(contentsOf(preferences.file()));
     CAPTURE(file);
@@ -235,6 +244,7 @@ TEST_CASE("The file names its keys and its enumerated values", "[gui][preference
     CHECK(file.find("key=\"lfoUpdateBehaviour\" value=\"WhenControlSelected\"") !=
           std::string::npos);
     CHECK(file.find("key=\"hideCursorOnKnobDrag\" value=\"0\"") != std::string::npos);
+    CHECK(file.find("key=\"zoomPercent\" value=\"125\"") != std::string::npos);
 }
 
 TEST_CASE("A value this build does not recognise reads as the default", "[gui][preferences]")
@@ -247,13 +257,50 @@ TEST_CASE("A value this build does not recognise reads as the default", "[gui][p
           "<defaults version=\"1\">\n"
           "  <default key=\"moduleUIMouseOverReaction\" value=\"Sideways\" type=\"1\"/>\n"
           "  <default key=\"lfoUpdateBehaviour\" value=\"WhenControlActive\" type=\"1\"/>\n"
+          "  <default key=\"zoomPercent\" value=\"300\" type=\"2\"/>\n"
           "</defaults>\n");
 
     Preferences const preferences(folder);
 
     CHECK(preferences.moduleUIMouseOverReaction() == Preferences::Never);
-    // ...and the key it could not read did not cost it the one beside it.
+
+    /// \note 300 is a zoom, and a reasonable one -- issue #55 asks for it -- but
+    /// it is not one this build offers, and the combo box could show nothing for
+    /// it. A zoom is checked against the offered list rather than clamped to its
+    /// ends for that reason.
+    REQUIRE(!Preferences::isOfferedZoom(300));
+    CHECK(preferences.zoomPercent() == Preferences::defaultZoomPercent);
+
+    // ...and neither unreadable key cost it the one beside it.
     CHECK(preferences.lfoUpdateBehaviour() == Preferences::WhenControlActive);
+}
+
+TEST_CASE("Every offered zoom scales the skin by its own percentage", "[gui][preferences]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note What "100%" means, pinned. The skin is drawn at 1.5x and always has
+    /// been, so a user picking 100 is asking for the size the plugin has always
+    /// opened at rather than for a scale factor of one -- and every size the
+    /// host is told goes through this. \see ZoomedEditor.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    using Zoomed = GUI::ZoomedEditor;
+
+    useCaseFolder("scaling");
+
+    CHECK(Zoomed::scaleForZoom(100) == Zoomed::scaleAtOneHundredPercent);
+    CHECK(Zoomed::scaleForZoom(200) == 2 * Zoomed::scaleAtOneHundredPercent);
+    CHECK(Zoomed::scaleForZoom(50) == Zoomed::scaleAtOneHundredPercent / 2);
+
+    for (auto const percent : Preferences::zoomPercentages)
+    {
+        CAPTURE(percent);
+        GUI::preferences().setZoomPercent(percent);
+
+        CHECK(Zoomed::scaledForCurrentZoom(Editor::estimatedWidth) ==
+              Zoomed::scaled(Editor::estimatedWidth, Zoomed::scaleForZoom(percent)));
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -318,4 +365,78 @@ TEST_CASE("Toggling hide-cursor-on-knob-drag on the page writes it to the file",
 
     Preferences const onDisk(GUI::preferences().file().parent_path());
     CHECK(!onDisk.hideCursorOnKnobDrag());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// The zoom
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("An editor opens at the zoom the last session chose", "[gui][preferences][zoom]")
+{
+    useCaseFolder("zoomAtOpening");
+    GUI::preferences().setZoomPercent(75);
+
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+
+    // Built the way SpectrumWorxCLAP::createEditor() builds it: nothing tells the
+    // wrapper what zoom to use, so what it opens at is what was remembered.
+    GUI::ZoomedEditor const wrapper(
+        std::make_unique<Editor>(instance, Editor::PanelPlacement::overlay));
+
+    CHECK(wrapper.zoomPercent() == 75);
+
+    /// \note And the skin did not move: the editor is laid out in the 563 x 376
+    /// it always was and the wrapper is its scaled shadow. That split is what
+    /// keeps every offset in the editor a constant.
+    CHECK(wrapper.editor().getWidth() == Editor::estimatedWidth);
+    CHECK(wrapper.getWidth() ==
+          GUI::ZoomedEditor::scaled(Editor::estimatedWidth, GUI::ZoomedEditor::scaleForZoom(75)));
+}
+
+TEST_CASE("Choosing a zoom on the page resizes the editor and remembers it",
+          "[gui][preferences][zoom]")
+{
+    useCaseFolder("pageWritesTheZoom");
+    GUI::preferences().setZoomPercent(100);
+
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+
+    GUI::ZoomedEditor wrapper(std::make_unique<Editor>(instance, Editor::PanelPlacement::overlay));
+    auto &editor(wrapper.editor());
+    editor.showSettings(Editor::interfacePageIndex);
+
+    auto &comboBox(zoomComboBox(editor));
+    REQUIRE(comboBox.getSelectedID() == 100);
+    auto const atOneHundred(wrapper.getWidth());
+
+    comboBox.setSelectedID(200);
+    Editor::Settings::comboBoxValueChanged(comboBox);
+
+    CHECK(wrapper.zoomPercent() == 200);
+    CHECK(wrapper.getWidth() > atOneHundred);
+    CHECK(wrapper.getWidth() ==
+          GUI::ZoomedEditor::scaled(Editor::estimatedWidth, GUI::ZoomedEditor::scaleForZoom(200)));
+
+    // The skin is where it was; only the transform over it moved.
+    CHECK(editor.getWidth() == Editor::estimatedWidth);
+
+    /// \note And the window was told, in skin pixels -- the scaling into window
+    /// units is SpectrumWorxCLAP's and is measured against a real host in
+    /// tests/clap/pluginTests.cpp. Without this the editor would be drawn at the
+    /// new scale inside a window still the old size.
+    ///
+    /// \note `announcedSizes`, not `requestedSizes`: a zoom is not a request and
+    /// nothing may make it conditional on the host's answer. \see
+    /// EditorHost::editorSizeChanged().
+    CHECK(instance.requestedSizes.empty());
+    REQUIRE(!instance.announcedSizes.empty());
+    CHECK(instance.announcedSizes.back() ==
+          juce::Point<int>{Editor::estimatedWidth, Editor::estimatedHeight});
+
+    CHECK(GUI::preferences().zoomPercent() == 200);
+
+    Preferences const onDisk(GUI::preferences().file().parent_path());
+    CHECK(onDisk.zoomPercent() == 200);
 }

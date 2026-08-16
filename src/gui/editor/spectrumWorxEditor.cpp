@@ -20,6 +20,7 @@
 #include "core/threading/publish.hpp"
 #include "gui/editor/editorHost.hpp"
 #include "gui/editor/presetLoading.hpp"
+#include "gui/editor/zoomedEditor.hpp"
 #include "gui/preferences.hpp"
 #include "io/jucePath.hpp"
 
@@ -40,6 +41,7 @@
 #include "le/utility/ignoreUnused.hpp"
 
 #include <array>
+#include <cstdio>
 #include <span>
 #include <optional>
 #include <string_view>
@@ -447,6 +449,27 @@ bool SpectrumWorxEditor::setPanelColumnVisible(bool const wanted)
     panelHasOwnColumn_ = wanted;
     setSize(width, estimatedHeight);
     return wanted;
+}
+
+void SpectrumWorxEditor::setZoom(unsigned int const zoomPercent)
+{
+    if (!Preferences::isOfferedZoom(zoomPercent))
+        return;
+
+    preferences().setZoomPercent(zoomPercent);
+
+    if (auto *const pWrapper = findParentComponentOfClass<ZoomedEditor>())
+        pWrapper->setZoomPercent(zoomPercent);
+
+    /// \note In skin pixels, like every other caller: the scaling to window
+    /// units happens on the far side, out of the same preference this has just
+    /// written.
+    ///
+    /// \note And an announcement rather than a request -- the editor has already
+    /// changed and there is no fallback to negotiate for. \see
+    /// EditorHost::editorSizeChanged(), which has what treating it as a request
+    /// looked like.
+    editorHost_.editorSizeChanged(getWidth(), getHeight());
 }
 
 void SpectrumWorxEditor::panelPlacement(PanelPlacement const placement)
@@ -3346,6 +3369,10 @@ void SpectrumWorxEditor::Settings::comboBoxValueChanged(ComboBox const &comboBox
         LE_VERIFY(editor.globalParameterChanged<WindowFunction>(
             static_cast<WindowFunction ::value_type>(value), true));
     }
+    else if (&comboBox == &settings.interfacePage_.zoomComboBox())
+    {
+        editor.setZoom(value);
+    }
     else if (&comboBox == &settings.interfacePage_.mouseOverComboBox())
     {
         preferences().setModuleUIMouseOverReaction(
@@ -3479,12 +3506,24 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     : BackgroundImage(resourceArtwork<SettingsIntrfcBg>()),
-      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 0 * yStep, "Mouse over reaction"),
-      lfoUpdateBehaviour_(*this, xMargin, yMargin + 1 * yStep, "LFO update behaviour"),
-      hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 2 * yStep, "Hide cursor on knob drag")
+      zoom_(*this, xMargin, yMargin + 0 * yStep, "Zoom"),
+      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 1 * yStep, "Mouse over reaction"),
+      lfoUpdateBehaviour_(*this, xMargin, yMargin + 2 * yStep, "LFO update behaviour"),
+      hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 3 * yStep, "Hide cursor on knob drag")
 {
     Settings &parent(
         Utility::ParentFromMember<Settings, InterfacePage, &Settings::interfacePage_>()(*this));
+
+    /// \note The percentage is the item's ID, so what comes back out of
+    /// `getValue()` is the zoom itself rather than a position in this list that
+    /// something else would have to translate.
+    for (auto const percent : Preferences::zoomPercentages)
+    {
+        std::array<char, 8> text;
+        std::snprintf(text.data(), text.size(), "%u%%", percent);
+        zoom_.addItem(percent, text.data());
+    }
+    zoom_.setSelectedID(preferences().zoomPercent());
 
     moduleUIMouseOverReaction_.addItem(Preferences::Never, "Never");
     moduleUIMouseOverReaction_.addItem(Preferences::WhenParentModuleSelected, "Module selected");

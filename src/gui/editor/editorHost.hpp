@@ -222,6 +222,31 @@ class EditorHost
     virtual bool requestEditorSize(int width, int height) = 0;
 
     ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Says the editor *is* now \p width x \p height, and that the window
+    /// around it has to follow. `[main-thread]`
+    ///
+    ///   An announcement, where requestEditorSize() above is a negotiation, and
+    /// the difference is whether there is a fallback. A host that will not widen
+    /// its window for the preset browser gets the browser over the module strips
+    /// instead, so asking first is right there. A user who picks 200 % gets 200
+    /// %; there is nothing else to give them, so the editor changes and this
+    /// carries the consequence outwards.
+    ///
+    /// \note And it must not stop at a refusal, which is what made zoom draw in
+    /// the wrong place. `clap-wrapper`'s macOS standalone resizes its window and
+    /// **returns false** from `request_resize` (AppDelegate.mm), so a refusal
+    /// does not even mean the window stayed put. Treating it as one left the
+    /// shim's own components at the old size while the window had the new one --
+    /// and a JUCE peer inside a foreign NSView is anchored at Cocoa's bottom
+    /// left, so the mismatch showed up as the editor sliding up or down the
+    /// window rather than as a wrong size. \see issue #55.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    virtual void editorSizeChanged(int width, int height) = 0;
+
+    ////////////////////////////////////////////////////////////////////////////
     // The side channel's sample: the external audio file that feeds it in place
     // of the host's side chain port.
     //

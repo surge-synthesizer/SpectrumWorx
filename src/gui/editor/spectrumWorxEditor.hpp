@@ -629,6 +629,35 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// the button is private and its handler recovers the editor from it.
     void showSettings(unsigned int pageIndexToActivate);
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Shows this editor at \p zoomPercent and remembers the choice.
+    ///
+    ///   Three things in one call, and they have to happen in this order:
+    /// the preference is written first, because it is what everything else
+    /// reads; then the wrapper is re-transformed and re-sized; then the host is
+    /// asked for a window that matches.
+    ///
+    /// \note This editor, not every open one. The preference is process-wide and
+    /// a second instance picks it up when its editor is next built -- the same
+    /// as the other three, and for the same reason: an editor reads them once,
+    /// when it is made.
+    ///
+    /// \note A bare editor -- what the tests and `tools/show-ui`'s 1:1 render
+    /// build -- has no ZoomedEditor over it, so there is nothing to transform;
+    /// the preference is still written. \see zoomedEditor.hpp on why the zoom
+    /// lives in the wrapper.
+    ///
+    /// \note A host that refuses the resize leaves its window at the old size
+    /// with the editor drawn at the new scale until the editor is next opened,
+    /// at which point `guiGetSize` reports the zoomed size and it comes right.
+    /// The alternative -- refusing to zoom because the window did not move --
+    /// would leave the user with a control that silently does nothing.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void setZoom(unsigned int zoomPercent);
+
   private:
     ////////////////////////////////////////////////////////////////////////////
     ///
@@ -1219,8 +1248,16 @@ class SpectrumWorxEditor final : private SkinLifetime,
           private: // JUCE component overrides.
             void paint(juce::Graphics &) override;
 
+          public:
+            TitledComboBox const &zoomComboBox() const { return zoom_; }
+
           private:
             friend class Settings;
+            /// \note Zoom first: it is the one a user reaches for, and the two
+            /// below it are set once and forgotten. Nothing is baked into the
+            /// page bitmap -- each control draws its own title -- so the order
+            /// is a layout decision rather than an artwork one.
+            TitledComboBox zoom_;
             TitledComboBox moduleUIMouseOverReaction_;
             TitledComboBox lfoUpdateBehaviour_;
             LEDTextButton hideCursorOnKnobDrag_;
