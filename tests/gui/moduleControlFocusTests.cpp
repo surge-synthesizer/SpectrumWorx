@@ -523,3 +523,55 @@ TEST_CASE("One press on a module trigger selects it and fires it", "[gui][module
     CHECK(editor.activeControl() == &control);
     CHECK(control.getValue() != 0);
 }
+
+TEST_CASE("One press on a module combo box selects it and opens its menu", "[gui][modules]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The third widget, and the one the first pass at issue #65 missed:
+    /// `Detail::WidgetForParameterAux` maps Boolean to an LED, Trigger to a
+    /// button and **Enumerated to a combo box**, and only the first two were
+    /// fixed. A combo box is the same complaint in a different shape -- the
+    /// first press selected the control and swallowed itself, so the menu took
+    /// two clicks.
+    ///
+    /// \note `menuActive()` rather than a screenshot: the menu is asynchronous
+    /// and there is no message loop in a test binary, but the flag is set where
+    /// the menu is shown, which is the half this case is about. \see
+    /// PopupMenu::menuActive().
+    ///                                       (17.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!aWindowCanBeMade())
+        SKIP(noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    // Swappah, whose Target and Swap order are the enumerations the report named.
+    auto &moduleUI(stripFor(editor, "Swappah"));
+
+    auto *const pControl(firstControlOfType<GUI::DiscreteParameter>(moduleUI));
+    REQUIRE(pControl != nullptr);
+    auto &control(*pControl);
+    auto &comboBox(dynamic_cast<GUI::ComboBox &>(control.widget()));
+
+    REQUIRE(editor.activeControl() != &control);
+    REQUIRE(!comboBox.menuActive());
+
+    comboBox.mouseDown(eventOver(comboBox, {}, false));
+
+    // It selected -- which is what puts the control's LFO on screen...
+    CHECK(editor.activeControl() == &control);
+    // ...and the menu is up, which used to need a second press.
+    CHECK(comboBox.menuActive());
+
+    /// \note Before the editor goes. Its destructor dismisses menus itself, but
+    /// a menu left up here would outlive the case rather than the editor.
+    juce::PopupMenu::dismissAllActiveMenus();
+}

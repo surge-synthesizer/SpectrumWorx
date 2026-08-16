@@ -464,13 +464,23 @@ DiscreteParameter::DiscreteParameter(juce::Component &parent, unsigned int const
     LE_ASSERT(control().info().default_ == 0);
 }
 
+/// \note The third of the three, and the one that was missed the first time --
+/// \see ModuleLEDTextButton::mouseDown() above for why taking the focus is
+/// enough to make this control the active one. A combo box is the same complaint
+/// as a button in a different shape: the first press selected the control and
+/// swallowed itself, so opening the menu took two clicks. \see issue #65.
+///                                           (17.08.2026.) (SW port)
 void DiscreteParameter::mouseDown(juce::MouseEvent const &)
 {
     if (!hasDirectFocus())
     {
+        juce::Component::SafePointer<juce::Component> const self(this);
         grabKeyboardFocus();
+        if (!self || !hasDirectFocus())
+            return;
     }
-    else if (!isLFOEnabled())
+
+    if (!isLFOEnabled())
     {
         /// \note The menu is asynchronous now, so the notification happens in
         /// the callback rather than on the next line. The SafePointer matters:
