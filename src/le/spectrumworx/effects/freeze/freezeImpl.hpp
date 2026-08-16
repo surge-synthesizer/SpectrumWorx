@@ -68,6 +68,8 @@ class FreezeImpl : public EffectImpl<Freeze>
 
   private:
     float inverseTransitionTime_;
+    /// Whether TransitionTime rounds to no steps at all. \see setup().
+    bool noTransition_;
     bool freeze_;
     bool melt_;
 

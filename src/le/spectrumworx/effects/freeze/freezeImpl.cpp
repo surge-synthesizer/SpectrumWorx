@@ -41,9 +41,29 @@ void FreezeImpl::setup(IndexRange const &, Engine::Setup const &engineSetup)
 
     freeze_ = parameters().get<FreezeTrigger>().consumeValue();
     melt_ = parameters().get<MeltTrigger>().consumeValue();
-    inverseTransitionTime_ =
-        1 /
-        Math::convert<float>(engineSetup.milliSecondsToSteps(parameters().get<TransitionTime>()));
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **Zero steps is a legal setting and cannot be a reciprocal.**
+    /// `TransitionTime`'s range starts at 0, and the note in process() says a
+    /// zero period means "no transition" -- but `1 / 0` is infinity, and the
+    /// first frame multiplies it by a zero frame counter to get NaN. That
+    /// tripped `LE_ASSUME( blendFactor >= 0 )` in a checked build and mixed a
+    /// NaN into the magnitude and frequency arrays in a shipping one, so the
+    /// whole spectrum went quiet for the rest of the session.
+    ///
+    ///   A short transition also rounds to zero steps: the step is the hop, so
+    /// anything under `1000 * hop / sampleRate` milliseconds is no transition at
+    /// all -- ~10 ms at a 512-sample hop and 48 kHz. This is not a corner only
+    /// reachable by typing 0.
+    ///
+    ///   So "no transition" is carried as the flag it is rather than as a number
+    /// the arithmetic cannot represent.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    auto const transitionSteps(engineSetup.milliSecondsToSteps(parameters().get<TransitionTime>()));
+    noTransition_ = (transitionSteps == 0);
+    inverseTransitionTime_ = noTransition_ ? 0.0f : 1 / Math::convert<float>(transitionSteps);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -124,7 +144,10 @@ void FreezeImpl::process(ChannelState &cs, Engine::ChannelData_AmPh data,
 
     // If period is zero, then there is no transition, output formula
     // "out = blendFactor * ( in2 - in1 ) + in1" amounts to "out = in2".
-    float const blendFactor(std::min(cs.frameCounter++ * inverseTransitionTime_, 1.0f));
+    /// \note Which is what the flag says, in one step rather than by dividing by
+    /// a period of zero. \see setup().
+    float const blendFactor(
+        noTransition_ ? 1.0f : std::min(cs.frameCounter++ * inverseTransitionTime_, 1.0f));
     LE_ASSUME(blendFactor >= 0);
     LE_ASSUME(blendFactor <= 1);
     bool const blendFactorIsOne(blendFactor == 1);

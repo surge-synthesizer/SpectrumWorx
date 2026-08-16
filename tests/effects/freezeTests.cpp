@@ -117,7 +117,8 @@ std::int8_t freezeIndex()
 /// \note Once. `TriggerParameter::setValue` only ORs true in and the engine
 /// disarms it in `consumeValue()`, so setting it every block would be a
 /// different property -- one this deliberately does not test.
-SWTest::Slot freezeFiring(double const freezeAt, double const meltAt)
+SWTest::Slot freezeFiring(double const freezeAt, double const meltAt,
+                          std::uint16_t const transition = 10)
 {
     auto const frameOf(
         [](double const second) { return static_cast<std::uint32_t>(second * sampleRate); });
@@ -140,8 +141,8 @@ SWTest::Slot freezeFiring(double const freezeAt, double const meltAt)
                         ///                   (16.08.2026.) (SW port)
                         ///
                         ////////////////////////////////////////////////////////
-                        [](Engine::ModuleParameters &parameters) {
-                            parameters.setEffectParameter(transitionTime, 10);
+                        [transition](Engine::ModuleParameters &parameters) {
+                            parameters.setEffectParameter(transitionTime, transition);
                         },
                         [freezeAt, meltAt, frameOf](std::uint32_t const offset,
                                                     Engine::ModuleParameters &parameters) {
@@ -274,4 +275,44 @@ TEST_CASE("A press is not swallowed by a block that produces no frame", "[effect
     }
 
     CHECK(froze == presses);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note A transition of no steps at all, which `TransitionTime`'s own range
+/// allows and which `process()` documents as meaning "no transition". The
+/// implementation formed `1 / steps` for it -- infinity -- and multiplied that
+/// by a zero frame counter on the first frame to get NaN. A checked build
+/// aborted on `LE_ASSUME( blendFactor >= 0 )`; a shipping one mixed the NaN into
+/// the magnitude and frequency arrays, and everything downstream of it in the
+/// chain went with it.
+///
+/// \note **Typing 0 is not the only way in.** A step is a hop, so any transition
+/// shorter than `1000 * hop / sampleRate` milliseconds rounds to zero steps --
+/// about 10 ms at a 512-sample hop and 48 kHz, and 43 ms at 2048. The second
+/// section is that case, reached with a perfectly ordinary-looking 5 ms.
+///                                           (16.08.2026.) (SW port)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A transition of no steps freezes at once rather than producing NaN", "[effects][freeze]")
+{
+    auto const transition(GENERATE(std::uint16_t{0}, std::uint16_t{5}));
+    CAPTURE(transition);
+
+    constexpr std::uint32_t frames{2 * sampleRate};
+    auto const rendered(renderSweep(freezeFiring(0.5, -1, transition), frames));
+
+    // Nothing NaN or infinite reached the output...
+    for (auto const sample : rendered)
+        REQUIRE(std::isfinite(sample));
+
+    // ...and it froze, immediately rather than over half a second.
+    auto const before(rateAt(rendered, 0.3));
+    auto const frozenEarly(rateAt(rendered, 0.7));
+    auto const frozenLate(rateAt(rendered, 1.6));
+
+    CAPTURE(before, frozenEarly, frozenLate);
+    CHECK(frozenEarly > before);
+    CHECK(std::abs(frozenLate - frozenEarly) < 0.05 * frozenEarly);
 }
