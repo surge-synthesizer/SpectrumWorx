@@ -133,10 +133,18 @@ class Artwork
     /* Editor */                                            \
     x(EditorBackground,        1)                           \
     x(AddModule,               6)                           \
-    x(PresetOff,               8)                           \
-    x(PresetOn,                9)                           \
-    x(SettingsOff,            10)                           \
-    x(SettingsOn,             11)                           \
+    /* \note 8 and 10 are the *lit* variants and 9 and 11 the dark ones, which  */\
+    /* is the other way round from how these four were named. The buttons       */\
+    /* passed them to BitmapButton in name order, so both lit up while their    */\
+    /* panel was shut and went dark when it opened -- the Settings button       */\
+    /* looked selected until you selected it. \see issue #73.                   */\
+    /*   Renamed rather than swapped at the call site: the call sites read      */\
+    /* correctly and always did, and a name that lies is worse where there are  */\
+    /* two of them. (16.08.2026.) (SW port)                                     */\
+    x(PresetOn,                8)                           \
+    x(PresetOff,               9)                           \
+    x(SettingsOn,             10)                           \
+    x(SettingsOff,            11)                           \
                                                             \
     /* Module panel */                                      \
     x(ModuleOn,                4)                           \

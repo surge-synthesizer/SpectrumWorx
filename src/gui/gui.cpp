@@ -459,7 +459,10 @@ BitmapButton::BitmapButton(juce::Component &parent, Artwork const &on, Artwork c
     : pOn_(&on), pOff_(&off), overOverlay_(overlayColourWhenOver)
 {
     //...mrmlj...the settings bitmaps are currently broken...
-    LE_ASSERT((on.getHeight() == off.getHeight()) || (&on == &resourceArtwork<SettingsOn>()));
+    /// \note Either of the pair, because which one is the button's `on` is the
+    /// caller's choice and the settings button swapped them. \see issue #73.
+    LE_ASSERT((on.getHeight() == off.getHeight()) || (&on == &resourceArtwork<SettingsOn>()) ||
+              (&on == &resourceArtwork<SettingsOff>()));
     LE_ASSERT(on.getWidth() == off.getWidth());
 
     /// \note The 2013 comment here explained that juce::Button registered itself

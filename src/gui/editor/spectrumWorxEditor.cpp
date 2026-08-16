@@ -116,6 +116,8 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
       //cSpectrumDisplay( CRect( 0, 0, 235, 129 ).offset( 222, 17 ), this, SpectrumDisplay, 0, capture ),
 
       // buttons...
+      /// \note These two lines never changed for issue #73 and never needed to:
+      /// what was wrong was which file each name pointed at. \see resources.hpp.
       preset_(mainArea_, resourceArtwork<PresetOn>(), resourceArtwork<PresetOff>()),
       settingsButton_(mainArea_, resourceArtwork<SettingsOn>(), resourceArtwork<SettingsOff>())
 {
