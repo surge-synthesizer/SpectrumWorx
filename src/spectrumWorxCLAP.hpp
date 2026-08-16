@@ -469,7 +469,19 @@ class SpectrumWorxCLAP final
     /// Feeds the engine the sidechain port when the host has one connected, and
     /// the main input otherwise -- the engine reads a side channel whenever the
     /// current input mode calls for one and does not check that it is real.
-    void runEngine(clap_process const *) noexcept;
+    void runEngine(clap_process const *, std::uint32_t offset, std::uint32_t frames) noexcept;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief How much of a host block the engine is handed at a time: one hop,
+    /// `fftSize / overlapFactor`, which is the rate at which it produces frames
+    /// and therefore the finest resolution a parameter change can be heard at.
+    ///
+    /// \note Unchecked, like the channel count beside it in runEngine(): this is
+    /// the audio thread and the spectral setup is only ever swapped by it.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::uint32_t engineChunkSize() const noexcept;
 
     /// \brief index -> ParameterID, which is what CLAP's paramsInfo(index) needs
     /// and the model does not offer directly.

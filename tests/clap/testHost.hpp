@@ -586,6 +586,71 @@ class OneParameterEvent
 }; // class OneParameterEvent
 
 ////////////////////////////////////////////////////////////////////////////////
+///
+/// \class TimedParameterEvents
+///
+/// \brief Several parameter values in one block, each with the sample offset the
+/// host wants it heard at -- which is what `clap_event_header::time` is and what
+/// `OneParameterEvent` above cannot express.
+///
+/// \note CLAP requires an input event list to be sorted by time and the plugin
+/// is entitled to rely on it, so the constructor asserts it rather than sorting:
+/// a case that hands over an unsorted list is testing something no host does.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+class TimedParameterEvents
+{
+  public:
+    struct At
+    {
+        std::uint32_t time;
+        clap_id id;
+        double value;
+    };
+
+    TimedParameterEvents(std::initializer_list<At> const events) : list_{this, size, get}
+    {
+        std::uint32_t previous(0);
+        for (auto const &[time, id, value] : events)
+        {
+            REQUIRE(time >= previous); // CLAP: sorted by time
+            previous = time;
+
+            clap_event_param_value event{};
+            event.header.size = sizeof(event);
+            event.header.time = time;
+            event.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+            event.header.type = CLAP_EVENT_PARAM_VALUE;
+            event.param_id = id;
+            event.note_id = event.port_index = event.channel = event.key = -1;
+            event.value = value;
+            events_.push_back(event);
+        }
+    }
+
+    TimedParameterEvents(TimedParameterEvents const &) = delete; // self-referential ctx
+    TimedParameterEvents &operator=(TimedParameterEvents const &) = delete;
+
+    clap_input_events const &operator*() const { return list_; }
+
+  private:
+    static std::uint32_t size(clap_input_events const *const self)
+    {
+        return static_cast<std::uint32_t>(
+            static_cast<TimedParameterEvents const *>(self->ctx)->events_.size());
+    }
+    static clap_event_header const *get(clap_input_events const *const self,
+                                        std::uint32_t const index)
+    {
+        return &static_cast<TimedParameterEvents const *>(self->ctx)->events_[index].header;
+    }
+
+    clap_input_events list_;
+    std::vector<clap_event_param_value> events_;
+}; // class TimedParameterEvents
+
+////////////////////////////////////////////////////////////////////////////////
 // Driving the plugin the way a host does
 ////////////////////////////////////////////////////////////////////////////////
 

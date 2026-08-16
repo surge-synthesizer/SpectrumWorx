@@ -1152,13 +1152,61 @@ clap_process_status SpectrumWorxCLAP::process(clap_process const *const process)
     /// before the block started.
     drainCommands();
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **The block is rendered in pieces, and a parameter event takes
+    /// effect at the piece its timestamp falls in.** `clap_event_header::time`
+    /// is a sample offset into the block and every host fills it in; this used
+    /// to apply the whole event list up front and then render the block in one
+    /// go, so an automation move landing three quarters of the way through was
+    /// heard from the very start of it. At a 1024-sample block that is 21 ms
+    /// early, every block, on every automated parameter.
+    ///
+    /// \note **The piece is the hop, not the event.** Splitting at each event
+    /// would make the engine call count a function of how busy the host's
+    /// automation is; the hop -- `fftSize / overlapFactor` -- is a fixed
+    /// division of the block *and* the finest resolution this plugin has, since
+    /// a spectral effect only ever acts on whole frames. An event cannot be
+    /// heard sooner than the next frame however it is delivered, so quantising
+    /// to the hop discards nothing. Six Sines' sibling designs and ShortCircuit
+    /// both run their engine at a fixed inner block for the same reason.
+    ///
+    /// \note Events are applied when they come *due* -- `time <= cursor` --
+    /// rather than when they fall inside the piece about to be rendered, so a
+    /// value never takes effect before the sample the host asked for. The
+    /// remainder is applied after the last piece: those events belong to the
+    /// boundary itself, and dropping them would lose an edit rather than delay
+    /// one.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    auto const *const events(process->in_events);
+    auto const numberOfEvents(events ? events->size(events) : 0);
+    std::uint32_t nextEvent(0);
     bool effectChanged(false);
-    if (auto const *const in = process->in_events)
+
+    auto const applyEventsDueAt([&](std::uint32_t const sample) {
+        while ((nextEvent < numberOfEvents) && (events->get(events, nextEvent)->time <= sample))
+            effectChanged |= handleEvent(events->get(events, nextEvent++));
+    });
+
+    /// \note Once for the block, before any of it is rendered, exactly as it was
+    /// -- the LFO clock is the plugin's own and moving it per piece would be a
+    /// change to how LFOs sound rather than to when a host's edit lands.
+    updateLFOTiming(process);
+
+    auto const chunk(engineChunkSize());
+    for (std::uint32_t cursor(0); cursor < process->frames_count; cursor += chunk)
     {
-        auto const size(in->size(in));
-        for (std::uint32_t event(0); event < size; ++event)
-            effectChanged |= handleEvent(in->get(in, event));
+        applyEventsDueAt(cursor);
+        runEngine(process, cursor, std::min(chunk, process->frames_count - cursor));
     }
+
+    /// \note And whatever is left, which is every event timed at or past the end
+    /// of the block. Applying them here rather than dropping them is what makes
+    /// the *next* block start from the state the host asked for.
+    applyEventsDueAt(process->frames_count);
 
     /// \note Names, module paths and displayed values change; the parameter
     /// *list* does not, so this never needs CLAP_PARAM_RESCAN_ALL -- which
@@ -1169,10 +1217,6 @@ clap_process_status SpectrumWorxCLAP::process(clap_process const *const process)
 
     if (process->out_events)
         flushUIEdits(process->out_events);
-
-    updateLFOTiming(process);
-
-    runEngine(process);
 
     /// \note After the block, once, rather than from inside the engine per LFO
     /// per module. See publishModulatedValues().
@@ -1315,8 +1359,23 @@ bool isDeclaredSilent(clap_audio_buffer const &buffer) noexcept
 }
 } // anonymous namespace
 
-void SpectrumWorxCLAP::runEngine(clap_process const *const process) noexcept
+/// \see the note on the declaration.
+std::uint32_t SpectrumWorxCLAP::engineChunkSize() const noexcept
 {
+    auto const &setup(uncheckedEngineSetup());
+    auto const hop(setup.stepSize<std::uint32_t>());
+    /// \note Never zero: a setup that has not been built yet would otherwise
+    /// turn the loop in process() into a spin. One whole block is the honest
+    /// answer for "no frames are being produced anyway".
+    return (hop > 0) ? hop : std::numeric_limits<std::uint32_t>::max();
+}
+
+void SpectrumWorxCLAP::runEngine(clap_process const *const process, std::uint32_t const offset,
+                                 std::uint32_t const frames) noexcept
+{
+    if (frames == 0)
+        return;
+
     if ((process->audio_inputs_count == 0) || (process->audio_outputs_count == 0))
         return;
 
@@ -1392,9 +1451,9 @@ void SpectrumWorxCLAP::runEngine(clap_process const *const process) noexcept
     /// \note A Sample is always stereo, so a wider engine configuration -- which
     /// nothing produces today; activate() asks for 2 x 2 -- keeps the port.
     float const *sampleChannels[Sample::numberOfChannels];
+    bool sideIsScratch(false);
     if (pSample_ && *pSample_ && (channels <= std::size(sampleChannels)) &&
-        (buffers().numberOfSideChannels() >= channels) &&
-        (process->frames_count <= buffers().blockSize()))
+        (buffers().numberOfSideChannels() >= channels) && (frames <= buffers().blockSize()))
     {
         auto const startingPosition(pSample_->samplePosition());
         std::uint32_t position(startingPosition);
@@ -1403,21 +1462,43 @@ void SpectrumWorxCLAP::runEngine(clap_process const *const process) noexcept
             // Every channel reads the same span, so each starts where the last
             // one did and the advance is taken once.
             position = startingPosition;
-            sampleChannels[channel] =
-                sampleChunk(pSample_->channel(channel), position, process->frames_count,
-                            buffers().sideChannel(channel).begin());
+            sampleChannels[channel] = sampleChunk(pSample_->channel(channel), position, frames,
+                                                  buffers().sideChannel(channel).begin());
         }
         pSample_->samplePosition() = position;
         sideChannels = sampleChannels;
+        sideIsScratch = true;
     }
 
-    SpectrumWorxCore::process(input.data32, sideChannels, output.data32, 1.0f,
-                              process->frames_count);
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The host's buffers, seen from \p offset. A call renders one chunk of
+    /// the block rather than all of it -- \see process() -- so every pointer
+    /// handed to the engine has to start where this chunk does.
+    ///
+    /// \note Except the side chain when it is the decoded file: `sampleChunk`
+    /// has just filled that scratch buffer with *this chunk's* samples, from the
+    /// file position it also advanced, so it already begins at the right place.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::array<float const *, Sample::numberOfChannels> mainAt;
+    std::array<float const *, Sample::numberOfChannels> sideAt;
+    std::array<float *, Sample::numberOfChannels> outAt;
+    LE_ASSERT(channels <= mainAt.size());
+    for (std::uint8_t channel(0); channel < channels; ++channel)
+    {
+        mainAt[channel] = input.data32[channel] + offset;
+        sideAt[channel] = sideIsScratch ? sideChannels[channel] : sideChannels[channel] + offset;
+        outAt[channel] = output.data32[channel] + offset;
+    }
+
+    SpectrumWorxCore::process(mainAt.data(), sideAt.data(), outAt.data(), 1.0f, frames);
 
     // Ports beyond what the engine is configured for are the host's to see as
     // silence, not as whatever was in the buffer.
     for (std::uint32_t channel(channels); channel < output.channel_count; ++channel)
-        std::memset(output.data32[channel], 0, process->frames_count * sizeof(float));
+        std::memset(output.data32[channel] + offset, 0, frames * sizeof(float));
 }
 
 void SpectrumWorxCLAP::onMainThread() noexcept

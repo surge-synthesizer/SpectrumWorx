@@ -58,6 +58,7 @@ target_link_libraries(sw-dsp-tests PRIVATE sw-dsp Catch2::Catch2WithMain)
 ################################################################################
 
 add_executable(sw-plugin-tests
+        clap/automationTimingTests.cpp
         clap/engineSetupStalenessTests.cpp
         clap/hostileParameterIDTests.cpp
         clap/hostInteropTests.cpp
