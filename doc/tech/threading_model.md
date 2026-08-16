@@ -419,7 +419,7 @@ The inventory the model is measured by.
 | **`LFOImpl::Timer`'s tempo** | three process-wide statics, `std::atomic` — no longer a race, still shared between instances | issue #11 |
 | `SkinLifetime::liveEditors_` | a process-wide count, main thread only — every editor is built and destroyed there | ✅ |
 | `PresetLoadReport` | a file-scope report the loader counts into and the caller takes; main thread only, and `stateLoad` drops it | ✅ |
-| `Theme::settings()` | process-wide, and arguably correct: these are application preferences | not addressed |
+| `GUI::preferences()` | process-wide, and correct: these are the user's application preferences, shared by every instance and backed by one file. Main thread only — everything that reads them runs under the host's message thread, which is also what makes `setPreferencesFolder()` safe for the tests | ✅ |
 
 **JUCE has one owner.** `SkinLifetime` builds the `Theme` and installs it as the
 default LookAndFeel for as long as at least one editor exists, and touches

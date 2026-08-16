@@ -39,6 +39,7 @@ target_compile_definitions(sw-gui-resources PRIVATE LE_ENABLE_ASSERT_HANDLER)
 
 add_library(sw-gui-widgets STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/gui.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/preferences.cpp
 )
 
 # sw-io rather than sw-dsp: the editor opens preset files and lists the factory
@@ -50,7 +51,12 @@ target_link_libraries(sw-gui-widgets PUBLIC sw-gui-resources sw-io)
 # sst-plugininfra handed it, so nothing above needs to know where it came from --
 # and, as of 09.08.2026, nothing has to convert it either. See the note on
 # rootPath() and tests/checkNoJuceFile.cmake.
-target_link_libraries(sw-gui-widgets PRIVATE sst-plugininfra)
+#
+# tinyxml with it, for preferences.cpp: sst-plugininfra's userdefaults.h parses
+# the preferences file with it. Also PRIVATE, and preferences.hpp keeps the
+# provider behind a pimpl, so the header does not arrive above this target
+# either.
+target_link_libraries(sw-gui-widgets PRIVATE sst-plugininfra sst-plugininfra::tinyxml)
 
 # \note gui/gui.mm and "-framework Cocoa" stood here. The .mm held one function,
 # initialiseMac(), which detached a throwaway NSThread to put Cocoa into

@@ -268,10 +268,21 @@ calls the reader only when the element is present, so loading a `.swp` into a
 live session is not a silent reset of session state.
 
 **Its payload is deliberately empty for now.** The mechanism is the deliverable;
-the payload accrues. The candidates, both main-thread and neither of them a
-parameter: the preset browser's location and selection; and the interface
-settings the CLAP build persists nowhere at all, so they are back at their
-defaults every time the plugin is loaded.
+the payload accrues. The candidate is the preset browser's location and
+selection, which is main-thread and is not a parameter.
+
+The settings panel's Interface page is *not* a candidate, and it is the case that
+says where the line is. Those three — mouse-over reaction, LFO update behaviour,
+hide-cursor-on-knob-drag — used to persist nowhere at all (issue #61). They are
+answers about how this user likes the editor to behave, not about this session,
+so they are the same in every instance and in every project, and they belong in
+the user's preferences file rather than in a host's state blob:
+`<user folder>/SpectrumWorxUserDefaults.xml`, through
+`sst::plugininfra::defaults::Provider`. \see `src/gui/preferences.hpp`. Its
+format is that library's; what this tree fixes about it is that both
+enumerations are streamed **by name**, so inserting a value cannot silently
+change what an existing file means. `tests/gui/preferencesTests.cpp` pins the
+names.
 
 Note what does *not* need it — the loaded sample. `<Global Sample="…">` has
 carried that since 2011, so putting state on the preset serialisation restores it

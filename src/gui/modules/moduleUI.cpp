@@ -12,6 +12,7 @@
 
 #include "core/modules/moduleDSPAndGUI.hpp"
 #include "gui/editor/spectrumWorxEditor.hpp"
+#include "gui/preferences.hpp"
 
 #include "le/parameters/lfo.hpp"
 #include "le/parameters/printer.hpp"
@@ -733,7 +734,8 @@ void ModuleUI::deactivate()
 
 bool ModuleUI::selectionTracksMouseMovements() const
 {
-    return (Theme::settings().moduleUIMouseOverReaction == Theme::WhenParentOrNothingSelected) &&
+    return (preferences().moduleUIMouseOverReaction() ==
+            Preferences::WhenParentOrNothingSelected) &&
            ModuleControlBase::noModuleOrModuleControlFocused(editor());
 }
 

@@ -204,8 +204,8 @@ bool createUserPresetsFolder();
 /// LookAndFeel, which is abstract in JUCE 8, and not a LookAndFeel_V4, which
 /// would paint linear sliders whole and silently drop the skinned thumb).
 ///
-///   These two were static members of Theme purely because they read
-/// Theme::settings(). They ask about a ModuleControlBase and a ModuleUI, which
+///   These two were static members of Theme purely because they read what is now
+/// GUI::preferences(). They ask about a ModuleControlBase and a ModuleUI, which
 /// a LookAndFeel has no business knowing about, and being members is what kept
 /// Theme from being separable at all. aModuleControlNeedsLFOUpdate went with
 /// them: it had no callers.

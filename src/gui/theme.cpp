@@ -46,13 +46,6 @@ void paintSliderThumb(juce::Graphics &graphics, Artwork const &image, float cons
 }
 } // anonymous namespace
 
-Theme::Settings Theme::settings_;
-
-Theme::Settings::Settings()
-    : moduleUIMouseOverReaction(Never), lfoUpdateBehaviour(Always), hideCursorOnKnobDrag(true)
-{
-}
-
 /// \note 2016 named the font family -- "Bitstream Vera Sans" -- after
 /// registering the .ttf files with the operating system. The typefaces come
 /// straight out of the binary now, so they are handed to JUCE by pointer and

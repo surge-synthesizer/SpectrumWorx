@@ -20,6 +20,7 @@
 #include "core/threading/publish.hpp"
 #include "gui/editor/editorHost.hpp"
 #include "gui/editor/presetLoading.hpp"
+#include "gui/preferences.hpp"
 #include "io/jucePath.hpp"
 
 #include "le/parameters/lfo.hpp"
@@ -3347,13 +3348,12 @@ void SpectrumWorxEditor::Settings::comboBoxValueChanged(ComboBox const &comboBox
     }
     else if (&comboBox == &settings.interfacePage_.mouseOverComboBox())
     {
-        Theme::singleton().settings().moduleUIMouseOverReaction =
-            static_cast<Theme::ModuleUIMouseOverReaction>(value);
+        preferences().setModuleUIMouseOverReaction(
+            static_cast<Preferences::ModuleUIMouseOverReaction>(value));
     }
     else if (&comboBox == &settings.interfacePage_.lfoUpdateComboBox())
     {
-        Theme::singleton().settings().lfoUpdateBehaviour =
-            static_cast<Theme::LFOUpdateBehaviour>(value);
+        preferences().setLFOUpdateBehaviour(static_cast<Preferences::LFOUpdateBehaviour>(value));
     }
     else
     {
@@ -3486,20 +3486,19 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     Settings &parent(
         Utility::ParentFromMember<Settings, InterfacePage, &Settings::interfacePage_>()(*this));
 
-    moduleUIMouseOverReaction_.addItem(Theme::Never, "Never");
-    moduleUIMouseOverReaction_.addItem(Theme::WhenParentModuleSelected, "Module selected");
-    moduleUIMouseOverReaction_.addItem(Theme::WhenParentOrNothingSelected,
+    moduleUIMouseOverReaction_.addItem(Preferences::Never, "Never");
+    moduleUIMouseOverReaction_.addItem(Preferences::WhenParentModuleSelected, "Module selected");
+    moduleUIMouseOverReaction_.addItem(Preferences::WhenParentOrNothingSelected,
                                        "Module/nothing selected");
-    moduleUIMouseOverReaction_.setSelectedIndex(
-        Theme::singleton().settings().moduleUIMouseOverReaction);
+    moduleUIMouseOverReaction_.setSelectedIndex(preferences().moduleUIMouseOverReaction());
 
-    lfoUpdateBehaviour_.addItem(Theme::NoUpdate, "Never");
-    lfoUpdateBehaviour_.addItem(Theme::WhenControlSelected, "Control selected");
-    lfoUpdateBehaviour_.addItem(Theme::WhenControlActive, "Control active");
-    lfoUpdateBehaviour_.addItem(Theme::Always, "Always");
-    lfoUpdateBehaviour_.setSelectedIndex(Theme::singleton().settings().lfoUpdateBehaviour);
+    lfoUpdateBehaviour_.addItem(Preferences::NoUpdate, "Never");
+    lfoUpdateBehaviour_.addItem(Preferences::WhenControlSelected, "Control selected");
+    lfoUpdateBehaviour_.addItem(Preferences::WhenControlActive, "Control active");
+    lfoUpdateBehaviour_.addItem(Preferences::Always, "Always");
+    lfoUpdateBehaviour_.setSelectedIndex(preferences().lfoUpdateBehaviour());
 
-    hideCursorOnKnobDrag_.setToggleState(Theme::singleton().settings().hideCursorOnKnobDrag,
+    hideCursorOnKnobDrag_.setToggleState(preferences().hideCursorOnKnobDrag(),
                                          juce::dontSendNotification);
     hideCursorOnKnobDrag_.addListener(&parent);
 }
@@ -3580,7 +3579,7 @@ void SpectrumWorxEditor::Settings::buttonClicked(juce::Button *const pButton)
     LE_ASSERT(pButton == &interfacePage_.hideCursorOnKnobDrag_);
     (void)pButton;
 
-    Theme::settings().hideCursorOnKnobDrag = interfacePage_.hideCursorOnKnobDrag_.getToggleState();
+    preferences().setHideCursorOnKnobDrag(interfacePage_.hideCursorOnKnobDrag_.getToggleState());
 }
 
 } // namespace LE::SW::GUI

@@ -2260,16 +2260,18 @@ catch (...)
 /// is a list that will grow one bullet at a time, and guessing at it now would
 /// be inventing a schema for settings nobody has asked to persist yet.
 ///
-///   The two candidates, both `[main-thread]` and neither of them a parameter:
+///   The candidate, `[main-thread]` and not a parameter: the preset browser's
+/// location and selection -- it does not remember where it was, for the session
+/// case.
 ///
-///   - the preset browser's location and selection -- it does not remember where
-///     it was, for the session case;
-///   - the interface settings (mouse-over reaction, LFO update behaviour,
-///     hide-cursor-on-knob-drag), which the CLAP build persists nowhere at all,
-///     so they are back at their defaults every time the plugin is loaded. Those
-///     are arguably user preferences rather than session state, and
-///     sst-plugininfra's userdefaults.h is the other candidate home; the two are
-///     not exclusive and surge uses both.
+/// \note The settings panel's Interface page was the other candidate and is no
+/// longer one. Mouse-over reaction, LFO update behaviour and
+/// hide-cursor-on-knob-drag persisted nowhere at all (issue #61); they are
+/// answers about how this user likes the editor to behave rather than about this
+/// session, so they went to the user preferences file instead --
+/// `sst::plugininfra::defaults::Provider`, \see gui/preferences.hpp. The two
+/// homes are not exclusive, and surge uses both; these belong in that one.
+///                                       (15.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

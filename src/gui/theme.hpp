@@ -3,8 +3,12 @@
 /// \file theme.hpp
 /// ---------------
 ///
-///   SpectrumWorx's LookAndFeel, and the handful of user-visible preferences
-/// that travel with it.
+///   SpectrumWorx's LookAndFeel.
+///
+/// \note A `Theme::Settings` used to travel with it -- the three answers the
+/// settings panel's Interface page asks for. They were never the LookAndFeel's
+/// and they are GUI::Preferences now. \see preferences.hpp.
+///                                       (15.08.2026.) (SW port)
 ///
 ///   Split out of gui.hpp so that it can be built and looked at before the
 /// widget set compiles: everything else in src/gui reaches Theme for a font or
@@ -74,35 +78,6 @@ class Theme final : public juce::LookAndFeel_V2
     Theme(Theme const &) = delete; // makes non-copyable
     Theme &operator=(Theme const &) = delete;
 
-    enum ModuleUIMouseOverReaction
-    {
-        Never,
-        WhenParentModuleSelected,
-        WhenParentOrNothingSelected
-    };
-
-    enum LFOUpdateBehaviour
-    {
-        NoUpdate,
-        WhenControlSelected,
-        WhenControlActive,
-        Always
-    };
-
-    /// \note The "layout is on disk; do not reorder it" that stood here was about
-    /// SpectrumWorx.dat, which spectrumWorx.cpp wrote these out to verbatim.
-    /// Neither survives: the CLAP build persists none of this, and the note went
-    /// on outranking that fact.
-    ///                                       (14.08.2026.) (SW port)
-    struct Settings
-    {
-        Settings();
-
-        ModuleUIMouseOverReaction moduleUIMouseOverReaction;
-        LFOUpdateBehaviour lfoUpdateBehaviour;
-        bool hideCursorOnKnobDrag;
-    };
-
   public:
     static void createSingleton();
     static void destroySingleton();
@@ -118,8 +93,6 @@ class Theme final : public juce::LookAndFeel_V2
 
     juce::Font const &blueFont() const { return blueFont_; }
     juce::Font const &whiteFont() const { return whiteFont_; }
-
-    static Settings &settings() { return settings_; }
 
   public: // juce::LookAndFeel_V2 overrides
     void drawLinearSliderBackground(juce::Graphics &, int x, int y, int width, int height,
@@ -149,8 +122,6 @@ class Theme final : public juce::LookAndFeel_V2
     juce::Font const whiteFont_;
 
     std::unique_ptr<juce::Drawable> folderIcon_;
-
-    static Settings settings_;
 }; // class Theme
 
 } // namespace LE::SW::GUI

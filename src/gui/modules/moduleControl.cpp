@@ -14,6 +14,7 @@
 
 #include "gui/editor/spectrumWorxEditor.hpp"
 #include "gui/modules/moduleUI.hpp"
+#include "gui/preferences.hpp"
 
 #include "le/parameters/lfo.hpp"
 #include "le/parameters/parser.hpp"
@@ -54,8 +55,8 @@ bool ModuleControlBase::tryActivateControl() const
     if (juce::Component::getNumCurrentlyModalComponents() != 0)
         return false;
 
-    Theme::ModuleUIMouseOverReaction const desiredReaction(
-        Theme::settings().moduleUIMouseOverReaction);
+    Preferences::ModuleUIMouseOverReaction const desiredReaction(
+        preferences().moduleUIMouseOverReaction());
     juce::Component const *const pFocusedComponent(juce::Component::getCurrentlyFocusedComponent());
 
     bool const nothingFocused(noModuleOrModuleControlFocused());
@@ -64,8 +65,8 @@ bool ModuleControlBase::tryActivateControl() const
                                       nothingFocused); // Intentional bitwise or as an optimization.
     bool const controlFocused(pFocusedComponent == &widget());
     if ((controlFocused) ||
-        (desiredReaction == Theme::WhenParentOrNothingSelected && parentOrNothingFocused) ||
-        (desiredReaction == Theme::WhenParentModuleSelected && parentFocused))
+        (desiredReaction == Preferences::WhenParentOrNothingSelected && parentOrNothingFocused) ||
+        (desiredReaction == Preferences::WhenParentModuleSelected && parentFocused))
         return true;
     else
         return false;

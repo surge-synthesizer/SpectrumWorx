@@ -6,6 +6,7 @@
 #include "core/host_interop/plugin2Host.hpp" //...mrmlj...only for Plugin2HostPassiveInteropController::ParameterLabelGetter...
 #include "gui/editor/editorHost.hpp" // the host's half of a knob's menu
 #include "gui/editor/spectrumWorxEditor.hpp"
+#include "gui/preferences.hpp"
 
 #include "le/spectrumworx/engine/setup.hpp"
 
@@ -939,7 +940,7 @@ void Knob::setupForParameter(char const *const title, unsigned int const diamete
 
 void Knob::startedDragging() noexcept
 {
-    if (!Theme::singleton().settings().hideCursorOnKnobDrag)
+    if (!preferences().hideCursorOnKnobDrag())
         return;
 
     LE_ASSERT(juce::Desktop::getInstance().getNumMouseSources() == 1);
@@ -973,7 +974,7 @@ void Knob::stoppedDragging() noexcept
     LE_ASSERT(juce::Desktop::getInstance().getNumMouseSources() == 1);
     //juce::MouseInputSource & mouseSource( juce::Desktop::getInstance().getMainMouseSource() );
     // http://www.rawmaterialsoftware.com/viewtopic.php?f=2&t=5628&hilit=enableUnboundedMouseMovement
-    //mouseSource.enableUnboundedMouseMovement( false, !Theme::singleton().settings().hideCursorOnKnobDrag );
+    //mouseSource.enableUnboundedMouseMovement( false, !preferences().hideCursorOnKnobDrag() );
 
     //...mrmlj...neither of these works/helps because
     //...mrmlj...enableUnboundedMouseMovement() seems to handle it
@@ -1565,24 +1566,24 @@ void addEnumeratedParameterValueStringsToComboBox(LE::Utility::Span<char const *
 } // namespace Detail
 
 ////////////////////////////////////////////////////////////////////////////////
-// Theme
+// The LFO update policy
 ////////////////////////////////////////////////////////////////////////////////
 
 /// \note Theme itself now lives in theme.hpp/theme.cpp -- it is a
 /// LookAndFeel_V2 there, not a LookAndFeel, and it loads its fonts out of the
 /// binary instead of registering them with the operating system. What stays
 /// here are the two LFO-update policy queries, which were static members of
-/// Theme only because they read Theme::settings(): they ask about a
+/// Theme only because they read what is now GUI::preferences(): they ask about a
 /// ModuleControlBase and a ModuleUI, neither of which a LookAndFeel should
 /// know exist, and their presence is what stopped Theme being separable.
 ///                                       (28.07.2026.) (SW port)
 
 bool shouldUpdateLFOControl(ModuleControlBase const &control)
 {
-    Theme::LFOUpdateBehaviour const lfoUpdateBehaviour(Theme::settings().lfoUpdateBehaviour);
-    return (lfoUpdateBehaviour == Theme::Always) ||
-           (lfoUpdateBehaviour == Theme::WhenControlActive && control.isActive()) ||
-           (lfoUpdateBehaviour == Theme::WhenControlSelected &&
+    Preferences::LFOUpdateBehaviour const lfoUpdateBehaviour(preferences().lfoUpdateBehaviour());
+    return (lfoUpdateBehaviour == Preferences::Always) ||
+           (lfoUpdateBehaviour == Preferences::WhenControlActive && control.isActive()) ||
+           (lfoUpdateBehaviour == Preferences::WhenControlSelected &&
             Detail::hasDirectFocus(control.widget()));
 }
 
