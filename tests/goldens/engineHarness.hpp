@@ -197,6 +197,30 @@ struct Slot
 {
     std::int8_t effectIndex{-1};
     std::function<void(LE::SW::Engine::ModuleParameters &)> configure{};
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Called before every block, where `configure` is called once before
+    /// the first -- for a property about something that happens *during* a
+    /// render rather than to its settings.
+    ///
+    ///   A trigger is the case that needs it: Freeze and Melt are events, and an
+    /// event set before the first block is indistinguishable from an effect that
+    /// is always frozen. What says the trigger works is the signal changing at
+    /// the moment it is fired and not before.
+    ///
+    /// \param frameOffset where the block about to be rendered starts, so a case
+    ///        can say "half a second in" rather than counting blocks.
+    ///
+    /// \note Called inside a `ScopedAudioThreadEntry`, because that is what it
+    /// is: a host's parameter event arrives on the audio thread, and the engine
+    /// asserts that whoever mutates it while it runs is that thread. \see
+    /// Engine::set(), which says the same thing about a global.
+    ///                                       (16.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::function<void(std::uint32_t frameOffset, LE::SW::Engine::ModuleParameters &)>
+        duringRender{};
 };
 
 /// \brief Runs a whole chain, one effect per slot, and returns the interleaved

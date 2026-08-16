@@ -196,6 +196,10 @@ std::vector<float> renderChain(RenderSetup const &setup, std::span<Slot const> c
     LE::Utility::ignoreUnused(initialised);
 
     LE_ASSERT_MSG(slots.size() <= Constants::maxNumberOfModules, "More slots than the chain has.");
+
+    /// Kept so that Slot::duringRender can reach them between blocks.
+    std::vector<LE::SW::Module *> modules(slots.size(), nullptr);
+
     for (std::uint8_t slot(0); slot < slots.size(); ++slot)
     {
         if (slots[slot].effectIndex < 0)
@@ -204,6 +208,7 @@ std::vector<float> renderChain(RenderSetup const &setup, std::span<Slot const> c
             slot, slots[slot].effectIndex, engine.moduleInitialiser()));
         LE_ASSERT_MSG(inserted.second == slots[slot].effectIndex,
                       "Test engine failed to insert the effect.");
+        modules[slot] = inserted.first ? &*inserted.first : nullptr;
         if (inserted.first && slots[slot].configure)
             slots[slot].configure(*inserted.first);
     }
@@ -253,6 +258,15 @@ std::vector<float> renderChain(RenderSetup const &setup, std::span<Slot const> c
     for (std::uint32_t offset(0); offset < frames; offset += setup.blockSize)
     {
         auto const block(std::min<std::uint32_t>(setup.blockSize, frames - offset));
+
+        /// \note Before the block, in the audio thread's role. \see Slot::duringRender.
+        {
+            Threading::ScopedAudioThreadEntry const audioThread;
+            for (std::size_t slot(0); slot < slots.size(); ++slot)
+                if (modules[slot] && slots[slot].duringRender)
+                    slots[slot].duringRender(offset, *modules[slot]);
+        }
+
         for (std::uint8_t channel(0); channel < channels; ++channel)
         {
             inputPointers[channel] = inputChannels[channel].data() + offset;
