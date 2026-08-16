@@ -486,7 +486,20 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
         using Channels = Utility::SharedStorageBuffer<Engine::real_t *LE_RESTRICT>;
 
         InputBuffers() : blockSize_(0), forceSideChannel_(false) {}
-        bool resize(std::uint16_t blockSize, std::uint8_t numberOfMainChannels,
+
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \note `std::uint32_t`, and it was `std::uint16_t` on both the
+        /// parameter and the member. `setBlockSize()` takes an `unsigned int`
+        /// straight from the host and handed it over narrowed, so a block of
+        /// 65536 became 0 and one of 16384 -- see the note in the definition --
+        /// laid every channel's buffer on top of the others while recording the
+        /// full size. Both are reachable: an offline render is exactly where a
+        /// host uses a block far larger than its realtime one.
+        ///                                   (16.08.2026.)
+        ///
+        ////////////////////////////////////////////////////////////////////////
+        bool resize(std::uint32_t blockSize, std::uint8_t numberOfMainChannels,
                     std::uint8_t numberOfSideChannels);
 
         Engine::DataRange mainChannel(unsigned int const channel) const
@@ -517,13 +530,13 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
         bool operator!() const { return !storage_; }
 
       private:
-        static void initializeChannelPointers(unsigned int blockBytes, Channels &,
+        static void initializeChannelPointers(std::size_t blockBytes, Channels &,
                                               Engine::Storage &);
 
       private:
         Channels mainChannels_;
         Channels sideChannels_;
-        std::uint16_t blockSize_;
+        std::uint32_t blockSize_;
         Engine::HeapSharedStorage storage_;
 
         //...mrmlj...

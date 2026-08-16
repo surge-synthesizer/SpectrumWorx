@@ -56,6 +56,7 @@
 #include "goldens/engineHarness.hpp"
 
 #include "le/spectrumworx/effects/configuration/constants.hpp"
+#include "le/spectrumworx/engine/parameters.hpp"
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -149,6 +150,118 @@ void requireTransparent(std::span<SWTest::Slot const> const slots,
 //------------------------------------------------------------------------------
 } // anonymous namespace
 //------------------------------------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The sibling property, and the one that caught a live heap overrun:
+/// **what the engine is *configured* for does not change the sound either.**
+///
+///   `setBlockSize()` sizes the input buffers and nothing else -- not the FFT,
+/// not the OLA buffers, not the latency. Two engines differing only in it, driven
+/// with the same calls over the same samples, must render identically.
+///
+///   16384 is the point of the case. `InputBuffers::resize` took a
+/// `std::uint16_t` and computed `blockSize * sizeof(float)` in one, so at 16384
+/// the byte count wrapped to zero: every channel's buffer was laid at the same
+/// address, `blockSize_` still recorded 16384, and the next write of a block
+/// through `mainChannel()` ran off the end of an allocation sized for none of it.
+/// At 65536 the block size itself truncated to zero. Both are reachable from a
+/// host: a realtime block is 128-2048, but an **offline render** is where a host
+/// hands over something much larger.
+///
+/// \note **The input gain is what reaches the buffers, and it is why this case
+/// drives the engine directly instead of going through `renderChain`.**
+/// `SpectrumWorxCore::process` only copies into `buffers().mainChannel()` when
+/// `InputGain != 1` -- at unity it passes the caller's pointers straight through
+/// and the mis-sized buffers are never touched. The first version of this case
+/// rendered at the default gain, and it passed with the bug deliberately put
+/// back: it was testing nothing. A non-unity gain is not decoration here, it is
+/// the whole reproduction.
+///
+/// \note Verified by reversion, and it took two goes to make the reversion go
+/// red: with the `std::uint16_t` restored, the 16384 and 65536 cases both fail,
+/// and 1024 and 4096 keep passing -- which is the shape the wrap predicts.
+/// \see issue #67, where a large-render heap overrun is one of the candidate
+/// mechanisms.
+///                                           (16.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The configured block size does not change the sound", "[chunking][block-size]")
+{
+    auto const configuredFor(GENERATE(std::uint32_t{1024}, 4096, 16384, 65536));
+
+    auto const &configuration(configurations[0]);
+    auto const call(configuration.hop());
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **A different signal per channel**, which is the second thing this
+    /// case needs and the second thing an earlier version of it got wrong. With
+    /// the byte count wrapped to zero every channel's buffer lands at the same
+    /// address, so channel 1's gain-scaled copy overwrites channel 0's -- and if
+    /// both channels carry the same samples, that overwrite puts back exactly
+    /// what was there. Feeding the sweep to both channels made the aliasing
+    /// invisible and the case passed with the bug deliberately in place.
+    ///
+    ///   Pink noise against a sweep, so a channel that has quietly taken the
+    /// other's data is not a subtle difference.
+    ///                                       (16.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::vector<std::vector<float>> perChannel(channels, std::vector<float>(renderedFrames));
+    SWTest::generate(SWTest::Signal::Sweep, perChannel[0], static_cast<float>(sampleRate));
+    SWTest::generate(SWTest::Signal::PinkNoise, perChannel[1], static_cast<float>(sampleRate));
+
+    /// \brief One render at a given configured block size, always called in
+    /// hop-sized pieces so the only difference is what the engine was sized for.
+    auto const renderAt([&](std::uint32_t const blockSize) {
+        SWTest::Engine engine;
+        engine.setNumberOfChannels(channels, channels);
+        engine.setSampleRate(static_cast<float>(sampleRate));
+        REQUIRE(engine.setBlockSize(blockSize));
+        engine.set<GlobalParameters::FFTSize>(configuration.fftSize);
+        engine.set<GlobalParameters::OverlapFactor>(configuration.overlapFactor);
+        REQUIRE(engine.initialise());
+
+        /// \note Not unity. See the note above -- at 1.0 nothing writes into the
+        /// buffers this case exists to size.
+        REQUIRE(engine.set<GlobalParameters::InputGain>(0.5f));
+
+        engine.resume();
+
+        std::vector<std::vector<float>> in(perChannel);
+        std::vector<std::vector<float>> out(channels, std::vector<float>(renderedFrames, 0.0f));
+        std::vector<float const *> inPointers(channels);
+        std::vector<float *> outPointers(channels);
+
+        for (std::uint32_t at(0); at < renderedFrames; at += call)
+        {
+            auto const frames(std::min(call, renderedFrames - at));
+            for (std::uint8_t channel(0); channel < channels; ++channel)
+            {
+                inPointers[channel] = in[channel].data() + at;
+                outPointers[channel] = out[channel].data() + at;
+            }
+            engine.process(inPointers.data(), inPointers.data(), outPointers.data(), 1.0f, frames);
+        }
+        engine.suspend();
+
+        std::vector<float> interleaved(std::size_t{renderedFrames} * channels);
+        for (std::uint32_t frame(0); frame < renderedFrames; ++frame)
+            for (std::uint8_t channel(0); channel < channels; ++channel)
+                interleaved[std::size_t{frame} * channels + channel] = out[channel][frame];
+        return interleaved;
+    });
+
+    auto const expected(renderAt(1024));
+    auto const actual(renderAt(configuredFor));
+
+    INFO("configured for " << configuredFor << " samples, called in " << call
+                           << "-sample pieces, input gain 0.5");
+    REQUIRE(expected.size() == actual.size());
+    CHECK(firstDifference(expected, actual) == -1);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 ///

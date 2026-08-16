@@ -148,7 +148,31 @@ void SpectrumWorxCore::reset()
     Engine::Processor::reset();
 }
 
-bool SpectrumWorxCore::InputBuffers::resize(std::uint16_t const blockSize,
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **Everything here counts in `std::size_t`.** The parameter was a
+/// `std::uint16_t` and so was `blockBytes`, computed as `blockSize * 4`:
+///
+///   - at 16384 samples `blockBytes` wrapped to 0, so `requiredStorage` came out
+///     as the pointer array alone, `initializeChannelPointers` advanced by
+///     nothing and laid every channel's buffer on top of the others, and
+///     `blockSize_` still recorded 16384. Every subsequent `mainChannel(c)`
+///     write then ran off the end of a block sized for none of it.
+///   - at 65536 the parameter itself truncated to 0.
+///
+///   `setBlockSize()` takes an `unsigned int` from the host and the conversion
+///   was implicit, so neither had a diagnostic. Both sizes are reachable: an
+///   offline render is exactly where a host hands over a block far larger than
+///   its realtime one, and 16384 is not an unusual choice.
+///
+/// \note And the allocation is checked before anything is written, which it was:
+/// `storage_.resize()` failing already returned false. What is new is that it can
+/// no longer be asked for an absurd size by arithmetic rather than by the caller.
+///                                           (16.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+bool SpectrumWorxCore::InputBuffers::resize(std::uint32_t const blockSize,
                                             std::uint8_t const numberOfMainChannels,
                                             std::uint8_t numberOfSideChannels)
 {
@@ -172,7 +196,7 @@ bool SpectrumWorxCore::InputBuffers::resize(std::uint16_t const blockSize,
     using Utility::align;
     std::uint8_t const numberOfChannels(numberOfMainChannels + numberOfSideChannels);
     std::uint8_t const baseChannelStorage(sizeof(Channels::iterator));
-    std::uint16_t const blockBytes(blockSize * sizeof(Engine::real_t));
+    std::size_t const blockBytes(std::size_t{blockSize} * sizeof(Engine::real_t));
     auto const channelDataStorage(align(blockBytes));
     auto const requiredStorage(align(numberOfChannels * baseChannelStorage) +
                                numberOfChannels * channelDataStorage);
@@ -192,7 +216,7 @@ bool SpectrumWorxCore::InputBuffers::resize(std::uint16_t const blockSize,
     return true;
 }
 
-void SpectrumWorxCore::InputBuffers::initializeChannelPointers(unsigned int const blockBytes,
+void SpectrumWorxCore::InputBuffers::initializeChannelPointers(std::size_t const blockBytes,
                                                                Channels &channels,
                                                                Engine::Storage &storage)
 {
