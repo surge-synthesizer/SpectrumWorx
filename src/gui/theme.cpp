@@ -15,6 +15,7 @@
 
 #include "le/utility/assert.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <optional>
 
@@ -110,7 +111,59 @@ Theme::Theme()
     setColour(juce::TabbedComponent::backgroundColourId, juce::Colours::transparentBlack);
     setColour(juce::TabbedComponent::outlineColourId, juce::Colours::transparentBlack);
 
-    setColour(juce::ScrollBar::trackColourId, juce::Colours::lightgrey);
+    /// \note `ScrollBar::trackColourId, lightgrey` stood here and was the whole
+    /// of issue #90's contrast complaint: it made the groove the brightest
+    /// rectangle in the preset browser and left the white thumb sitting on it
+    /// almost invisible. drawScrollbar() paints no groove now, so there is no
+    /// track colour to name; the thumb is the only mark a scroll bar makes.
+    setColour(juce::ScrollBar::thumbColourId, juce::Colours::white);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Theme::drawScrollbar()
+// ----------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note \p x, \p y, \p width and \p height are the *thumb area*, which with the
+/// step buttons gone is the whole bar. \p thumbSize is zero when there is not
+/// room for a thumb worth dragging, which is JUCE's way of saying "draw nothing"
+/// -- and nothing is exactly what this then draws, where V2 would still have laid
+/// down its slot.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void Theme::drawScrollbar(juce::Graphics &graphics, juce::ScrollBar &scrollBar, int const x,
+                          int const y, int const width, int const height,
+                          bool const isScrollbarVertical, int const thumbStartPosition,
+                          int const thumbSize, bool const isMouseOver, bool const isMouseDown)
+{
+    if (thumbSize <= 0)
+        return;
+
+    /// What the thumb keeps clear of the edges of the strip it runs in.
+    constexpr int inset{1};
+
+    auto const bar(isScrollbarVertical
+                       ? juce::Rectangle<int>(x, thumbStartPosition, width, thumbSize)
+                       : juce::Rectangle<int>(thumbStartPosition, y, thumbSize, height));
+    auto const thumb(bar.reduced(inset).toFloat());
+
+    /// \note Translucent at rest and solid under the hand: a floating bar has no
+    /// frame to separate it from the list it is over, so what keeps it from
+    /// reading as content is that it is faint until it is being used.
+    auto const opacity(isMouseDown ? 1.0f : (isMouseOver ? 0.8f : 0.45f));
+    graphics.setColour(scrollBar.findColour(juce::ScrollBar::thumbColourId).withAlpha(opacity));
+    graphics.fillRoundedRectangle(thumb, std::min(thumb.getWidth(), thumb.getHeight()) / 2);
+}
+
+/// \note Square rather than V2's `jmin( width, height ) * 2`, which for an eight
+/// pixel bar asked for a sixteen pixel thumb -- a capsule where a round dot reads
+/// better, and enough of the bar in a short list to make the thing look full.
+int Theme::getMinimumScrollbarThumbSize(juce::ScrollBar &scrollBar)
+{
+    return std::min(scrollBar.getWidth(), scrollBar.getHeight());
 }
 
 /// \note Was registerFonts(false), unregistering the .ttf files from the OS.

@@ -1161,10 +1161,43 @@ void Knob::showParameterMenu(juce::MouseEvent const &event)
         });
 }
 
+bool isOnRoundFace(juce::Rectangle<int> const face, juce::Point<int> const position)
+{
+    LE_ASSERT_MSG(face.getWidth() == face.getHeight(), "Not a circle.");
+    auto const radius(face.getWidth() / 2.0f);
+    juce::Point<float> const centre(static_cast<float>(face.getX()) + radius,
+                                    static_cast<float>(face.getY()) + radius);
+    return centre.getDistanceFrom(position.toFloat()) <= radius;
+}
+
+void passMousePressToParent(juce::Component &widget, juce::MouseEvent const &event)
+{
+    if (auto *const pParent = widget.getParentComponent())
+        pParent->mouseDown(event.getEventRelativeTo(pParent));
+}
+
+bool Knob::isOnKnobFace(juce::Point<int>) const { return true; }
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The right button off the knob's face is *forwarded* rather than
+/// swallowed. The widget is a rectangle around a circle with room for a caption
+/// under it, so it covers a good deal of the module strip it is standing on, and
+/// everything it covers is somewhere the strip's own menu used to be reachable.
+/// Handing the press up is what gives that back. \see issue #92, and
+/// TriggerButton::mouseDown(), which is the same widget in a different shape.
+///                                           (17.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void Knob::mouseDown(juce::MouseEvent const &event)
 {
     if (event.mods.isPopupMenu())
-        return showParameterMenu(event);
+    {
+        if (isOnKnobFace(event.getPosition()))
+            return showParameterMenu(event);
+        return passMousePressToParent(*this, event);
+    }
     juce::Slider::mouseDown(event);
 }
 

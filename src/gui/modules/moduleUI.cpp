@@ -111,12 +111,46 @@ void TriggerButton::setValue(param_type const newValue)
     setState(newValue ? buttonDown : buttonNormal);
 }
 
+/// \note The artwork is square and holds a circle, and paintButton() centres it
+/// across the strip at the top. The thirteen pixels under it are the caption.
+juce::Rectangle<int> TriggerButton::faceBounds() const
+{
+    auto const &artwork(currentArtwork());
+    return {(ModuleUI::width - artwork.getWidth()) / 2, 0, artwork.getWidth(), artwork.getHeight()};
+}
+
+bool TriggerButton::isOnFace(juce::Point<int> const position) const
+{
+    return isOnRoundFace(faceBounds(), position);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
 /// \note The same either/or, and the same fix: a trigger that fires on the
 /// second press is a trigger that did not fire when it was pressed. \see
 /// ModuleLEDTextButton::mouseDown() above for why taking the focus first is
 /// enough to make this control the active one.
+///
+/// \note **The right button does not fire a trigger**, exactly as it does not
+/// move a knob, and off the face it belongs to the strip behind it -- which for a
+/// trigger is most of the widget: eight pixels either side of the circle, the
+/// caption under it and the four corners of the artwork. Freeze's two are the
+/// ones this was noticed on. On the face there is nothing for it to raise yet: a
+/// trigger has no parameter menu of its own, where a knob has. \see issue #92 and
+/// Knob::mouseDown().
+///                                           (17.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void TriggerButton::mouseDown(juce::MouseEvent const &e)
 {
+    if (e.mods.isPopupMenu())
+    {
+        if (!isOnFace(e.getPosition()))
+            passMousePressToParent(*this, e);
+        return;
+    }
+
     if (!hasDirectFocus())
     {
         juce::Component::SafePointer<juce::Component> const self(this);
@@ -132,8 +166,15 @@ void TriggerButton::mouseDown(juce::MouseEvent const &e)
     }
 }
 
+/// \note The release is guarded too, and not only for symmetry: the press is
+/// what fires (setTriggeredOnMouseDown), so all an unguarded release adds is a
+/// second moduleParameterChanged() -- an edit published to the engine and the
+/// host for a trigger that was never pulled.
 void TriggerButton::mouseUp(juce::MouseEvent const &e) noexcept
 {
+    if (e.mods.isPopupMenu())
+        return;
+
     if (!isLFOEnabled())
     {
         BitmapButton::mouseUp(e);
@@ -446,6 +487,17 @@ void ModuleKnob::addParameterMenuEntries(juce::PopupMenu &menu)
                      auto &control(pThis->control());
                      control.editor().setLFOEnabled(control, !control.isLFOEnabled());
                  });
+}
+
+/// \note The circle paint() draws, to the pixel: `marginForGlow` in from the top
+/// left and `diameter_` across. Everything else the widget covers -- the glow
+/// margin, and the eighteen pixels of caption below -- is the module strip
+/// showing through.
+bool ModuleKnob::isOnKnobFace(juce::Point<int> const position) const
+{
+    auto const margin(static_cast<int>(marginForGlow));
+    auto const size(static_cast<int>(diameter_));
+    return isOnRoundFace({margin, margin, size, size}, position);
 }
 
 void ModuleKnob::moduleControlActivated() { syncMouseWheelAndLFOState(); }

@@ -31,6 +31,7 @@
 
 #include "le/parameters/lfoImpl.hpp"
 #include "le/parameters/parametersUtilities.hpp"
+#include "le/spectrumworx/effects/configuration/effectNames.hpp"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -52,22 +53,42 @@ constexpr std::uint8_t
     enabledIndex(LE::Parameters::IndexOf<LE::Parameters::LFOImpl::Parameters,
                                          LE::Parameters::LFOImpl::Enabled>::value);
 
-/// \brief The first effect-specific control of \p moduleUI that is a knob.
+/// \brief The first effect-specific control of \p moduleUI of type \p Widget.
 ///
 /// \note By parameter index rather than by walking the children, as
 /// moduleControlFocusTests.cpp does and for the same reason: the widget storage
 /// is a compile-time chain of one base class per parameter, so there is no
 /// runtime list to iterate.
-ModuleControlBase *firstKnob(LE::SW::GUI::ModuleUI &moduleUI)
+template <typename Widget> ModuleControlBase *firstControlOfType(LE::SW::GUI::ModuleUI &moduleUI)
 {
     auto const parameters(moduleUI.module().numberOfEffectSpecificParameters());
     for (std::uint8_t index(0); index < parameters; ++index)
     {
         auto &control(moduleUI.effectSpecificParameterControl(index));
-        if (dynamic_cast<LE::SW::GUI::ModuleKnob *>(&control.widget()) != nullptr)
+        if (dynamic_cast<Widget *>(&control.widget()) != nullptr)
             return &control;
     }
     return nullptr;
+}
+
+ModuleControlBase *firstKnob(LE::SW::GUI::ModuleUI &moduleUI)
+{
+    return firstControlOfType<LE::SW::GUI::ModuleKnob>(moduleUI);
+}
+
+/// \brief A right-button press over \p position, in \p component's coordinates.
+///
+/// \note Hand-built and handed straight to `Component::mouseDown()`, which is
+/// half a mouse -- \see the note on `eventOver()` in moduleControlFocusTests.cpp.
+/// Enough for the one question here, which is what the widget does with a press
+/// it is given.
+juce::MouseEvent rightPressAt(juce::Component &component, juce::Point<int> const position)
+{
+    auto const point(position.toFloat());
+    return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), point,
+                            juce::ModifierKeys(juce::ModifierKeys::rightButtonModifier), 1.0f, 0.0f,
+                            0.0f, 0.0f, 0.0f, &component, &component, juce::Time(), point,
+                            juce::Time(), 1, false);
 }
 
 /// Everything the interface has queued for the engine, drained.
@@ -196,6 +217,96 @@ TEST_CASE("A knob refuses text no value of it displays as", "[gui][modules][menu
     /// above, a perfectly good number -- so this is the range check rather than
     /// the parse.
     CHECK_FALSE(control.parseValueString("1e9").has_value());
+}
+
+TEST_CASE("The knob's face is the circle, not the box it is drawn in", "[gui][modules][menu]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note What decides whether a right press raises the parameter's menu or is
+    /// handed to the strip behind it. A module knob's widget is eight pixels wider
+    /// and eighteen pixels taller than its circle -- the margin the focus halo
+    /// needs, and the row the caption is drawn in -- and all of that reads as the
+    /// module's background rather than as the knob. \see issue #92.
+    ///
+    /// \note The geometry rather than the forwarding: sending the press itself
+    /// would open one of the two menus, and a menu is what a test binary with no
+    /// message loop cannot answer. This is the whole of the decision either way.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    KnobUnderTest const knob(instance);
+
+    auto &widget(dynamic_cast<LE::SW::GUI::Knob &>(knob.control().widget()));
+    auto const bounds(widget.getLocalBounds());
+
+    CHECK(widget.isOnKnobFace(bounds.getCentre()));
+
+    // The caption, which is what the issue was reported about.
+    CHECK_FALSE(widget.isOnKnobFace({bounds.getCentreX(), bounds.getBottom() - 1}));
+
+    // ...and the four corners, which are inside the rectangle and outside the
+    // circle.
+    for (auto const corner : {bounds.getTopLeft(), bounds.getTopRight(), bounds.getBottomLeft(),
+                              bounds.getBottomRight()})
+        CHECK_FALSE(widget.isOnKnobFace(corner));
+}
+
+TEST_CASE("A trigger button is a circle in a box too", "[gui][modules][menu]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The same widget in a different shape, and the one the knob fix
+    /// missed: Freeze's two triggers are 51 px circles at the top of a 68 x 64
+    /// box, so eight pixels either side, the caption row under them and the four
+    /// corners of the artwork are all the module strip showing through.
+    ///
+    /// \note And the right button does not fire the trigger, on the face or off
+    /// it -- a knob does not move on the right button either, and a right click
+    /// that freezes the audio while the user is reaching for a menu is the
+    /// gesture this is about. \see issue #92.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    instance.openEditor();
+    auto &editor(instance.editor());
+
+    auto const freeze(LE::SW::Effects::effectIndex("Freeze"));
+    REQUIRE(freeze >= 0);
+    editor.addUserAddedModule(static_cast<std::uint8_t>(freeze));
+    editor.resyncModuleRack();
+
+    auto *const pModuleUI(editor.regionInSlot(0));
+    REQUIRE(pModuleUI != nullptr);
+    auto *const pControl(firstControlOfType<LE::SW::GUI::TriggerButton>(*pModuleUI));
+    REQUIRE(pControl != nullptr);
+
+    auto &button(dynamic_cast<LE::SW::GUI::TriggerButton &>(pControl->widget()));
+    auto const bounds(button.getLocalBounds());
+
+    // The circle is at the top of the box, so its centre is not the box's.
+    CHECK(button.isOnFace({bounds.getCentreX(), bounds.getWidth() / 2}));
+
+    CHECK_FALSE(button.isOnFace({bounds.getCentreX(), bounds.getBottom() - 1})); // the caption
+    CHECK_FALSE(button.isOnFace(bounds.getTopLeft())); // beside the circle
+    CHECK_FALSE(button.isOnFace(bounds.getTopRight()));
+
+    // Whatever building the strip queued is not this case's.
+    drain(instance.toEngine());
+
+    /// \note Through the base, because the overrides are private -- which is how
+    /// moduleControlFocusTests.cpp drives a widget too. The call is virtual
+    /// either way.
+    juce::Component &component(button);
+    component.mouseDown(rightPressAt(button, {bounds.getCentreX(), bounds.getWidth() / 2}));
+    component.mouseUp(rightPressAt(button, {bounds.getCentreX(), bounds.getWidth() / 2}));
+
+    CHECK(pControl->getValue() == 0.0f);
+    CHECK(drain(instance.toEngine()).empty());
 }
 
 TEST_CASE("The menu's LFO switch moves both copies and the host", "[gui][modules][lfo][menu]")

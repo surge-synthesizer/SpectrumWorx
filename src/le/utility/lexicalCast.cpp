@@ -184,9 +184,9 @@ unsigned int lexical_cast(double const value, std::span<char> const buffer)
     return lexical_cast(value, maximumDecimalPlaces, buffer);
 }
 unsigned int lexical_cast(float const value, std::uint8_t const decimalPlaces,
-                          std::span<char> const buffer)
+                          std::span<char> const buffer, TrailingZeros const trailingZeros)
 {
-    return lexical_cast(static_cast<double>(value), decimalPlaces, buffer);
+    return lexical_cast(static_cast<double>(value), decimalPlaces, buffer, trailingZeros);
 }
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -215,10 +215,18 @@ unsigned int lexical_cast(float const value, std::uint8_t const decimalPlaces,
 /// either. It is what a caller that wants every digit should declare.
 ///                                           (08.08.2026.) (SW port)
 ///
+/// \note The trim is the caller's to ask for. It is what makes the text the
+/// shortest that reads back, which is right for a file and wrong for a readout
+/// -- \see TrailingZeros. The `%g` fallback below is unaffected either way: it is
+/// reached only when fixed notation does not fit at all, and a value that wide
+/// has no trailing zeros to argue about.
+///                                           (17.08.2026.)
+///
 ////////////////////////////////////////////////////////////////////////////////
 
 LE_NOINLINE unsigned int lexical_cast(double const value, std::uint8_t const decimalPlaces,
-                                      std::span<char> const buffer)
+                                      std::span<char> const buffer,
+                                      TrailingZeros const trailingZeros)
 {
     if (buffer.empty()) [[unlikely]]
         return 0;
@@ -231,7 +239,8 @@ LE_NOINLINE unsigned int lexical_cast(double const value, std::uint8_t const dec
     /// \note `length > decimalPlaces` and not merely `decimalPlaces`: infinity
     /// and NaN print as three characters whatever the precision asked for, and
     /// there is no point in them to trim back to.
-    if (decimalPlaces && (totalCharactersWritten > decimalPlaces))
+    if ((trailingZeros == TrailingZeros::trim) && decimalPlaces &&
+        (totalCharactersWritten > decimalPlaces))
     {
         /// \note Trim trailing zeros.
         ///                                   (15.12.2011.) (Domagoj Saric)

@@ -84,8 +84,35 @@ unsigned int lexical_cast(std::uint64_t, std::span<char> buffer);
 unsigned int lexical_cast(float, std::span<char> buffer);
 unsigned int lexical_cast(double, std::span<char> buffer);
 
-unsigned int lexical_cast(float, std::uint8_t decimalPlaces, std::span<char> buffer);
-unsigned int lexical_cast(double, std::uint8_t decimalPlaces, std::span<char> buffer);
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \enum TrailingZeros
+///
+/// \brief Whether the zeros that pad a fixed-point rendering out to
+/// \p decimalPlaces are kept or trimmed away.
+///
+/// \note `trim` is the older behaviour and stays the default: it is what writes
+/// the shortest text that reads back, which is what a preset file wants.
+///
+///   A *display* wants the other one. A knob swept past unity read "0.8", "1",
+/// "1.1" -- the column jumps a character wide and back as the user turns it, and
+/// the one value that matters most is the one that loses its point. \see issue
+/// #94, and le/parameters/linear/printer.hpp, which is where every float
+/// parameter's readout is rendered.
+///                                           (17.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+enum class TrailingZeros : std::uint8_t
+{
+    trim,
+    keep
+}; // enum class TrailingZeros
+
+unsigned int lexical_cast(float, std::uint8_t decimalPlaces, std::span<char> buffer,
+                          TrailingZeros = TrailingZeros::trim);
+unsigned int lexical_cast(double, std::uint8_t decimalPlaces, std::span<char> buffer,
+                          TrailingZeros = TrailingZeros::trim);
 
 /// \note The narrow integers widen to the signedness they already have. `long`
 /// and `unsigned long` used to widen to the *32 bit* overloads, which silently

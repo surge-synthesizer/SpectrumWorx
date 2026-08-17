@@ -275,7 +275,7 @@ TEST_CASE("A typed value is read in display units, not storage units", "[clap][t
     CHECK(unity < 1.001);
 
     write(plugin, inputGain, unity);
-    CHECK(displayOf(*plugin, params, inputGain) == "0dB");
+    CHECK(displayOf(*plugin, params, inputGain) == "0.0 dB");
 }
 
 TEST_CASE("A typed value out of range is refused, not clamped", "[clap][text]")
@@ -312,7 +312,7 @@ TEST_CASE("A typed value out of range is refused, not clamped", "[clap][text]")
 
     // The bounds themselves, as the plugin prints them, are inside. That is the
     // half of the contract a refusal-only rule would break: the maximum shows as
-    // "6dB", and 6 dB is 1.9953 -- a shade under 2.0 here, but a parameter whose
+    // "6.0 dB", and 6 dB is 1.9953 -- a shade under 2.0 here, but a parameter whose
     // maximum rounds the other way would read back *past* its own maximum.
     for (double const bound : {info.min_value, info.max_value})
     {
@@ -374,14 +374,14 @@ TEST_CASE("value_to_text answers about the value it is asked about", "[clap][tex
     auto const inputGain(parameterID(globalType, 0));
 
     // The gain sits at unity and is asked about something else.
-    REQUIRE(displayOf(*plugin, params, inputGain) == "0dB");
+    REQUIRE(displayOf(*plugin, params, inputGain) == "0.0 dB");
 
     double minusSix{0};
     REQUIRE(params.text_to_value(&*plugin, inputGain, "-6dB", &minusSix));
-    CHECK(displayOf(*plugin, params, inputGain, minusSix) == "-6dB");
+    CHECK(displayOf(*plugin, params, inputGain, minusSix) == "-6.0 dB");
 
     // And asking did not move it.
-    CHECK(displayOf(*plugin, params, inputGain) == "0dB");
+    CHECK(displayOf(*plugin, params, inputGain) == "0.0 dB");
 
     // An enumerated global: the answer is a different name, not a number.
     auto const windowType(parameterID(globalType, 5));

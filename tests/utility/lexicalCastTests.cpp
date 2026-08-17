@@ -98,10 +98,12 @@ template <std::size_t capacity> class Guarded
 /// the function owes its caller.
 /// \return what it wrote.
 template <std::size_t capacity>
-std::string renderedSafely(double const value, std::uint8_t const decimalPlaces)
+std::string
+renderedSafely(double const value, std::uint8_t const decimalPlaces,
+               LE::Utility::TrailingZeros const trailingZeros = LE::Utility::TrailingZeros::trim)
 {
     Guarded<capacity> guarded;
-    auto const written(lexical_cast(value, decimalPlaces, guarded.buffer()));
+    auto const written(lexical_cast(value, decimalPlaces, guarded.buffer(), trailingZeros));
 
     // Nothing past the buffer the caller gave.
     CHECK(guarded.intact());
@@ -188,6 +190,35 @@ TEST_CASE("An ordinary value prints the way it always did", "[utility][lexical-c
 
     // A value that rounds to zero at the precision shown is zero, sign and all.
     CHECK(renderedSafely<displayBuffer>(-7e-15, 1) == "0");
+}
+
+TEST_CASE("A display keeps the decimal the trim would take off", "[utility][lexical-cast]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The other half of the same function, and what every float
+    /// parameter's readout asks for. A knob turned past unity printed "0.8",
+    /// "1", "1.1" -- the column changes width under the user's hand and the
+    /// round number is the one that loses its point. \see issue #94.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    using LE::Utility::TrailingZeros;
+
+    CHECK(renderedSafely<displayBuffer>(1.0, 1, TrailingZeros::keep) == "1.0");
+    CHECK(renderedSafely<displayBuffer>(0.8, 1, TrailingZeros::keep) == "0.8");
+    CHECK(renderedSafely<displayBuffer>(100.0, 1, TrailingZeros::keep) == "100.0");
+    CHECK(renderedSafely<displayBuffer>(-6.0, 1, TrailingZeros::keep) == "-6.0");
+
+    // Zero places is still zero places: there is no point to pad out.
+    CHECK(renderedSafely<displayBuffer>(100.0, 0, TrailingZeros::keep) == "100");
+
+    // And a value that rounds to zero keeps losing its sign, which is a
+    // statement about the number rather than about the trim.
+    CHECK(renderedSafely<displayBuffer>(-7e-15, 1, TrailingZeros::keep) == "0.0");
+
+    // Infinity has no decimals to pad, whichever way it is asked.
+    CHECK(renderedSafely<displayBuffer>(std::numeric_limits<double>::infinity(), 1,
+                                        TrailingZeros::keep) == "inf");
 }
 
 TEST_CASE("A value too wide for the buffer stays inside it", "[utility][lexical-cast][hostile]")

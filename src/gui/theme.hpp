@@ -117,6 +117,43 @@ class Theme final : public juce::LookAndFeel_V2
     int getTabButtonSpaceAroundImage() override { return 0; }
     int getTabButtonOverlap(int /*tabDepth*/) override { return 0; }
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \name The scroll bars
+    ///
+    ///   A thumb and nothing else: no groove behind it and no step buttons at
+    /// its ends, so what a scrolling view gains is a bar floating over its own
+    /// background rather than a strip of furniture beside it. \see issue #90.
+    ///
+    /// \note V2 draws a light rounded slot the full length of the bar, a
+    /// gradient-shaded thumb on top of it and a triangle button at each end, all
+    /// eighteen pixels wide. Against this skin the slot was the brightest thing
+    /// in the preset browser and the thumb was barely a shade off it.
+    ///
+    /// \note The width is the *LookAndFeel's* answer rather than each viewport's,
+    /// which is what makes "narrower everywhere" one number. `juce::Viewport`
+    /// asks for it whenever it has not been told otherwise
+    /// (juce_Viewport.cpp:162), and a `juce::TextEditor`'s viewport never is --
+    /// which is why the preset browser's comment box carried a bar half again as
+    /// wide as the list's, with correspondingly larger arrows on it.
+    ///                                       (17.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    ///@{
+    bool areScrollbarButtonsVisible() override { return false; }
+    int getDefaultScrollbarWidth() override { return scrollBarThickness; }
+    int getMinimumScrollbarThumbSize(juce::ScrollBar &) override;
+    void drawScrollbar(juce::Graphics &, juce::ScrollBar &, int x, int y, int width, int height,
+                       bool isScrollbarVertical, int thumbStartPosition, int thumbSize,
+                       bool isMouseOver, bool isMouseDown) override;
+    ///@}
+
+    /// \brief What a scroll bar takes out of the view it scrolls, in pixels.
+    ///
+    /// \note Six, of which the thumb is four: the inset either side is what keeps
+    /// it off the edge of the view. JUCE's own answer is eighteen.
+    static int constexpr scrollBarThickness{6};
+
   private:
     juce::Font const blueFont_;
     juce::Font const whiteFont_;

@@ -28,11 +28,17 @@ template <class TraitTag, class Traits, class... DefaultTraits> struct GetTraitD
 /// only the pointer down, so the size was thrown away at exactly the layer that
 /// needed it and `lexical_cast` was left guessing with a constant.
 ///                                           (08.08.2026.) (SW port)
+/// \note One decimal place, and the zero that pads it out is *kept*. A float
+/// parameter shows one decimal or none depending on its value otherwise, so a
+/// knob swept past unity reads "0.8", "1", "1.1" -- the readout jumps a character
+/// wide and back under the user's hand, and the round number, which is the one
+/// worth recognising, is the one that loses its point. \see issue #94.
+///                                           (17.08.2026.)
 template <typename Source>
 char const *printLinear(PrintBuffer const &buffer, Source const &parameterValue,
                         LinearFloatParameterTag const &)
 {
-    Utility::lexical_cast(parameterValue, 1, buffer);
+    Utility::lexical_cast(parameterValue, 1, buffer, Utility::TrailingZeros::keep);
     return buffer.begin();
 }
 

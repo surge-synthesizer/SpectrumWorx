@@ -13,6 +13,7 @@
 #include "gui/modules/moduleUI.hpp"
 
 #include "le/spectrumworx/effects/pitch_magnet/pitchMagnet.hpp"
+#include "le/spectrumworx/effects/tune_worx/tuneWorx.hpp"
 
 #include "le/spectrumworx/effects/configuration/constants.hpp"
 #include "le/spectrumworx/effects/configuration/includedEffects.hpp"
@@ -45,6 +46,44 @@ template <> struct ModuleKnob::QuantizationFor<Effects::Detail::PitchMagnetBase:
 {
     static ModuleKnob::Quantization const value = ModuleKnob::Fixed;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// fillComboBoxForParameter< TuneWorx::Key >()
+// -------------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Tune Worx's scale root, listed from C rather than from A.
+///
+///   The declaration order is A first, because the value *is* the index and the
+/// DSP counts semitones up from a 27.5 Hz A -- so it is what presets, sessions
+/// and automation lanes have always meant and it does not move. What a musician
+/// reads down is a chromatic scale, and that one starts at C. \see issue #89, and
+/// the note beside the value strings in tuneWorx.hpp.
+///
+/// \note Here, in the one translation unit that builds module widgets, for the
+/// same reason the quantisation above is: it has to be declared before
+/// `WidgetInitialiser` instantiates the primary template for this parameter, and
+/// this file is the only place that happens.
+///                                           (17.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+template <> void fillComboBoxForParameter<Effects::Detail::TuneWorxBase::Key>(ComboBox &comboBox)
+{
+    using Key = Effects::Detail::TuneWorxBase::Key;
+    auto const &names(LE::Parameters::DiscreteValues<Key>::strings);
+
+    LE_ASSERT_MSG(comboBox.numberOfItems() == 0, "ComboBox already filled.");
+    for (auto const value : {Key::C, Key::Cis, Key::D, Key::Dis, Key::E, Key::F, Key::Fis, Key::G,
+                             Key::Gis, Key::A, Key::Ais, Key::B})
+        comboBox.addItem(value, names[value]);
+
+    /// \note The parameter's default rather than the first row, which is what the
+    /// generic filler's `setValue( 0 )` amounts to only while the two coincide.
+    comboBox.setValue(Key::default_());
+}
 
 //------------------------------------------------------------------------------
 namespace

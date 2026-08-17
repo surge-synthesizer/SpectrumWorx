@@ -203,8 +203,23 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
     void setParameterToDefault() override;
     void addParameterMenuEntries(juce::PopupMenu &) override;
 
+  public:
+    /// \brief The circle, not the widget: the margin the focus halo needs and
+    /// the strip below it that carries the caption are the module's, not the
+    /// knob's. \see Knob::isOnKnobFace(), issue #92.
+    bool isOnKnobFace(juce::Point<int>) const override;
+
   protected: // ModuleControl interface.
     void lfoStateChanged();
+
+    /// \brief The halo is drawn on the focus, so a change of focus is a repaint.
+    ///
+    /// \note This was the default do-nothing, and the halo therefore appeared
+    /// whenever something else happened to repaint the knob -- for a right press,
+    /// not until the menu closed again, which is the second half of issue #92.
+    /// The other two focusable module widgets have always had this.
+    ///                                       (17.08.2026.)
+    void focusChanged() { repaint(); }
 
     void updateForEngineSetupChanges(Engine::Setup const &);
 
@@ -309,11 +324,21 @@ class TriggerButton : public BitmapButton, public ModuleControl<TriggerButton>
   public:
     typedef TriggerButton BaseWidget;
 
+    /// \brief Whether \p position is on the round face rather than on the strip
+    /// showing through around it. \see isOnRoundFace(), Knob::isOnKnobFace() and
+    /// issue #92 -- a trigger is the same widget as a knob in a different shape,
+    /// a circle with its caption underneath and margin either side.
+    bool isOnFace(juce::Point<int> position) const;
+
   private: // juce::Component overrides
     void mouseDown(juce::MouseEvent const &) override;
     void mouseUp(juce::MouseEvent const &) noexcept override;
 
     void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
+
+  private:
+    /// Where paintButton() puts the artwork: centred across the strip, at the top.
+    juce::Rectangle<int> faceBounds() const;
 }; // class TriggerButton
 
 ////////////////////////////////////////////////////////////////////////////////

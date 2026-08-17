@@ -64,7 +64,14 @@ template <> struct DisplayValueTransformer<SW::GlobalParameters::InputGain>
     {
         return Math::dB2NormalisedLinear(dB);
     }
-    using Suffix = UnitString<"dB">;
+    /// \note The leading space is significant, and these three were the only
+    /// units in the tree without one -- every effect parameter declares
+    /// `Unit<" dB">`, so the main knobs read "0dB" beside a module's "0.0 dB".
+    /// The suffix is concatenated straight onto the value by both the editor
+    /// (`EditorKnob::parameterValueText`) and `clap_plugin_params::value_to_text`,
+    /// so it is the string itself that carries the separator. \see issue #94.
+    ///                                       (17.08.2026.)
+    using Suffix = UnitString<" dB">;
 };
 
 template <>
@@ -84,7 +91,8 @@ template <> struct DisplayValueTransformer<SW::GlobalParameters::MixPercentage>
     {
         return Math::percentage2NormalisedLinear(percentage);
     }
-    using Suffix = UnitString<"%">;
+    /// \note With the space, as above -- an effect's Wet is `Unit<" %">`.
+    using Suffix = UnitString<" %">;
 };
 
 template <> struct DisplayValueTransformer<SW::GlobalParameters::OverlapFactor>

@@ -102,7 +102,11 @@ PresetBrowser::PresetBrowser()
 
     listBox_.setOpaque(false);
     listBox_.setRowHeight(16);
-    listBox_.getViewport()->setScrollBarThickness(12);
+    /// \note `getViewport()->setScrollBarThickness( 12 )` stood here. The width
+    /// is Theme's now, so the list and the comment box below it get the same one
+    /// -- this was the only bar that had been told, and the comment box's was
+    /// JUCE's eighteen. \see Theme::getDefaultScrollbarWidth(), issue #90.
+    ///                                       (17.08.2026.)
 
     comment().setMultiLine(true);
     comment().setReturnKeyStartsNewLine(true);

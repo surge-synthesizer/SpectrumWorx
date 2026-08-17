@@ -860,6 +860,41 @@ void fillRing(juce::Graphics &, juce::Point<float> centre, float inner, float ou
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
+/// \name Round controls, and the strip behind them
+///
+///   A module knob and a trigger button are both circles, and both are drawn in
+/// a rectangle with room for a caption underneath. Everything in that rectangle
+/// which is not the circle reads as the module strip showing through -- so a
+/// right press there is a question for the strip, "replace this effect", and not
+/// for the control. \see issue #92.
+///
+////////////////////////////////////////////////////////////////////////////////
+///@{
+
+/// \brief Whether \p position is inside the circle inscribed in \p face, both in
+/// the widget's own coordinates.
+bool isOnRoundFace(juce::Rectangle<int> face, juce::Point<int> position);
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Hands \p event to \p widget's parent, in the parent's coordinates.
+///
+/// \note The parent is asked directly rather than by making the widget
+/// transparent to the mouse: which button is down is not something `hitTest()`
+/// can see, and a control that let the left button through could not be operated
+/// at all.
+///
+/// \note A parent with nothing to say about the press does nothing with it --
+/// the panel the shared gain and wet pair stand on is not a module strip and
+/// offers no menu -- which is also what pressing that panel itself does.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void passMousePressToParent(juce::Component &widget, juce::MouseEvent const &event);
+///@}
+
+////////////////////////////////////////////////////////////////////////////////
+///
 /// \class Knob
 ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -944,6 +979,31 @@ class Knob : public WidgetBase<juce::Slider>
     /// switch.
     virtual void addParameterMenuEntries(juce::PopupMenu &) {}
     ///@}
+
+  public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Whether \p position, in this widget's coordinates, is on the knob
+    /// itself rather than on the space around it.
+    ///
+    ///   A right press that is not gets handed to the parent instead of raising
+    /// the parameter menu. A module knob is a circle in a rectangle with its
+    /// caption underneath, and the caption reads as part of the strip behind it
+    /// -- so a menu about the parameter is the wrong answer there and the strip's
+    /// own "replace this effect" is the right one. \see issue #92, and
+    /// ModuleKnob::isOnKnobFace(), which is the only override.
+    ///
+    /// \note The default is "all of it", which is what the editor's three main
+    /// knobs want: they have no margin, nothing behind them offers a menu, and
+    /// the four corners outside their circle are as much part of the knob as the
+    /// middle is.
+    ///
+    /// \note Public for the same reason ModuleUI::isDragHandle() is: it is a
+    /// statement about where the widget's regions are, and the only part of this
+    /// a test can put a number on.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    virtual bool isOnKnobFace(juce::Point<int> position) const;
 
   private:
     /// The type-in field, as a menu item. \see gui.cpp.

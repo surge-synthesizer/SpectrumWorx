@@ -365,8 +365,27 @@ parameters have a transform: the two gains (dB), the mix and the overlap factor
 (%), the two effect frequencies (Hz, and the only one that needs the engine's
 `Setup`), and the ExImPloder gate (dB, with `-inf` for "off").
 
-Three properties are worth stating, because each is a bug that was actually
-shipped:
+Two rules decide what the text looks like, and both are properties of the
+printer rather than of any one parameter (17.08.2026):
+
+- **A float prints one decimal place and keeps it.**
+  `printLinear( …, LinearFloatParameterTag )` asks `lexical_cast` for
+  `TrailingZeros::keep`, so a value that happens to be round still shows its
+  point: `0.8`, `1.0`, `1.1` rather than `0.8`, `1`, `1.1`. The trim is still the
+  default everywhere else, and `presets.hpp`'s `makeString` — the one caller that
+  writes a number into a file — wants it: there the shortest text that reads back
+  is the right one. Integral and enumerated parameters are unaffected; they print
+  through their own arms at zero decimals.
+- **A unit carries its own leading space**, because the two places that append
+  one (`EditorKnob::parameterValueText` and `clap_plugin_params::value_to_text`)
+  concatenate the suffix straight onto the number. Every `Unit< " dB" >` in the
+  effects has always had it; the three globals in
+  `core/host_interop/parameters.hpp` did not until 17.08.2026, which is why the
+  main knobs read `0dB` beside a module's `0.0 dB`. `tests/parameters/data/parameterTable.txt`
+  records the unit inside brackets so that the space is visible in the diff.
+
+Three further properties are worth stating, because each is a bug that was
+actually shipped:
 
 - **`parse` answers `std::optional`.** A display transform is not onto: `""`,
   `"off"` and `"M3.Wet"` are text no value corresponds to, and `strtod` answers
@@ -383,6 +402,24 @@ shipped:
   unseen `transform`: the primary template is the identity, so a translation unit
   that cannot see the specialisation parses dB as a linear gain and says nothing.
   The specialisations live in the header beside the parameter for that reason.
+
+### An enumerated parameter's rows are not its values
+
+`DiscreteValues<Parameter>::strings` maps a value to its name, and the plugin's
+own combo box is filled from it in declaration order — with one exception, and
+the exception is the rule worth knowing. Tune Worx's `Key` is declared `A` first,
+because the value **is** the index: it is what a `.swp` stores, what a host
+automates, and what the DSP adds to a note offset counted up from a 27.5 Hz A
+(`musicalScales.cpp`). Reordering the enumerators would have silently retuned
+every preset that names a key. A chromatic scale nevertheless reads from C, so
+`fillComboBoxForParameter< Key >` (`gui/modules/moduleWidgets.cpp`) lists the same
+twelve values from C, each row carrying its own — the rows move, the values do
+not (issue #89, 17.08.2026; pinned by `tests/gui/discreteParameterTests.cpp`).
+
+An explicit specialisation of `fillComboBoxForParameter<>` is how that is said,
+and it has to be **declared before the point of instantiation**. There is one
+such point — `WidgetInitialiser` in `moduleWidgets.cpp`, which is also where
+`ModuleKnob::QuantizationFor< PitchMagnet::Target >` lives for the same reason.
 
 Power-of-two parameters print *through* the transformer like everything else as
 of 07.08.2026. They used to be the one exception — the note said they "do not

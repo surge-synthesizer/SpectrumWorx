@@ -62,17 +62,17 @@ struct TuneWorxBase ///<
     /// \brief chromatic scale root tone (default "A").
     /// \details
     ///   - A  : set root tone to A.
-    ///   - Ais: set root tone to Ais.
+    ///   - Ais: set root tone to A#/Bb.
     ///   - B  : set root tone to B.
     ///   - C  : set root tone to C.
-    ///   - Cis: set root tone to Cis.
+    ///   - Cis: set root tone to C#/Db.
     ///   - D  : set root tone to D.
-    ///   - Dis: set root tone to Dis.
+    ///   - Dis: set root tone to D#/Eb.
     ///   - E  : set root tone to E.
     ///   - F  : set root tone to F.
-    ///   - Fis: set root tone to Fis.
+    ///   - Fis: set root tone to F#/Gb.
     ///   - G  : set root tone to G.
-    ///   - Gis: set root tone to Gis.
+    ///   - Gis: set root tone to G#/Ab.
     /// \typedef Semi01
     /// \brief Snap to semitone  1 on the chromatic scale.
     /// \typedef Semi02
@@ -148,19 +148,37 @@ EFFECT_PARAMETER_NAME(Detail::TuneWorxBase::Semi10, "10")
 EFFECT_PARAMETER_NAME(Detail::TuneWorxBase::Semi11, "11")
 EFFECT_PARAMETER_NAME(Detail::TuneWorxBase::Semi12, "12")
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Both spellings of each black key, sharp first. The list is chromatic
+/// rather than diatonic -- a root is picked from all twelve -- so there is no key
+/// signature here to settle whether one of them is A sharp or B flat, and naming
+/// only the sharp made the plugin unreadable to anybody working in flats.
+/// Neither spelling is the right one to pick, so both are given. \see issue #89.
+///
+/// \note **The order here is the parameter's, and the order the menu shows is
+/// not.** A value is an index: it is what a `.swp` stores, what a host automates
+/// and what the DSP adds to a note offset off a 27.5 Hz A
+/// (musicalScales.cpp:109), so A stays zero. What starts at C is the combo box,
+/// which lists the same twelve values in musical order --
+/// `fillComboBoxForParameter< Key >` in gui/modules/moduleWidgets.cpp.
+///                                           (17.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Detail::TuneWorxBase, Key,
     {A, "A"},
-    {Ais, "A#"},
+    {Ais, "A#/Bb"},
     {B, "B"},
     {C, "C"},
-    {Cis, "C#"},
+    {Cis, "C#/Db"},
     {D, "D"},
-    {Dis, "D#"},
+    {Dis, "D#/Eb"},
     {E, "E"},
     {F, "F"},
-    {Fis, "F#"},
+    {Fis, "F#/Gb"},
     {G, "G"},
-    {Gis, "G#"})
+    {Gis, "G#/Ab"})
 
 } // namespace LE::SW::Effects
 
