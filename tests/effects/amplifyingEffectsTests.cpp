@@ -8,7 +8,7 @@
 /// difference in each of them.
 ///
 ///   Those nine -- Pitch Spring, Pitch Spring (PV), Pitch Magnet, Octaver,
-/// PVD start, PVD stop, Imploder, Exploder and Slew Limiter -- each make a
+/// To PV, From PV, Imploder, Exploder and Slew Limiter -- each make a
 /// *decision* somewhere: a pitch detector picks a maximum, a phase vocoder
 /// unwraps a phase, the ex/imploder thresholds a bin, the slew limiter compares
 /// a rate of change against a limit. One ulp of difference in the spectrum flips
@@ -20,7 +20,7 @@
 ///   These are the test instead. Not "the output is these numbers" but "the
 /// effect does what it is called": a magnet lands on its target, a spring
 /// oscillates and in the direction it was told to, an octaver puts energy an
-/// octave away, PVD start and PVD stop are inverses, an imploder sustains, an
+/// octave away, To PV and From PV are inverses, an imploder sustains, an
 /// exploder grows, a slew limiter slows a change down. None of that moves when a
 /// bin does, so all of it holds on any platform and in either build type -- the
 /// goldens render in Release only, and these do not.
@@ -37,8 +37,6 @@
 //------------------------------------------------------------------------------
 #include "goldens/engineHarness.hpp"
 
-#include "le/spectrumworx/effects/configuration/effectNames.hpp"
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -51,7 +49,6 @@
 //------------------------------------------------------------------------------
 namespace
 {
-namespace Effects = LE::SW::Effects;
 using SWTest::Slot;
 
 constexpr double pi{std::numbers::pi};
@@ -84,12 +81,11 @@ constexpr SWTest::RenderSetup pitchSetup{2048, 4, channels, sampleRate, 256};
 
 constexpr std::uint32_t oneSecond{sampleRate};
 
-std::int8_t effect(std::string_view const name)
-{
-    auto const index(Effects::effectIndex(name));
-    REQUIRE(index >= 0);
-    return index;
-}
+/// \note By streaming name, like everywhere else a test names an effect: a
+/// title is free to move and did -- "PVD start" became "To PV" -- which broke
+/// six cases here that were about phase vocoders and not about spelling.
+/// \see SWTest::effectByStreamingName().
+using SWTest::effectByStreamingName;
 
 //------------------------------------------------------------------------------
 // Signals
@@ -251,14 +247,14 @@ std::vector<float> renderOne(std::string_view const name, std::span<float const>
                              std::function<void(Module &)> configure = {},
                              SWTest::RenderSetup const &setup = standardSetup)
 {
-    Slot const slots[]{{effect(name), std::move(configure)}};
+    Slot const slots[]{{effectByStreamingName(name), std::move(configure)}};
     return SWTest::renderChain(setup, slots, input);
 }
 
-/// The nine, by the names the golden keys carry.
+/// The nine, by the names the golden keys carry -- which are streaming names.
 constexpr std::string_view amplifyingEffects[]{
-    "Pitch Spring", "Pitch Spring (PV)", "Pitch Magnet", "Octaver",      "PVD start",
-    "PVD stop",     "Imploder",          "Exploder",     "Slew Limiter",
+    "Pitch Spring", "Pitch Spring (pvd)", "Pitch Magnet", "Octaver",      "PVD start",
+    "PVD stop",     "Imploder",           "Exploder",     "Slew Limiter",
 };
 } // anonymous namespace
 
@@ -409,7 +405,7 @@ TEST_CASE("A pitch spring oscillates, and only where it is told to", "[effects][
     /// driving a phase-vocoder shifter instead of the plain one, so the *pitch*
     /// property is identical and is exactly what should be asserted of both --
     /// the goldens can only say that their samples differ.
-    for (auto const name : {"Pitch Spring", "Pitch Spring (PV)"})
+    for (auto const name : {"Pitch Spring", "Pitch Spring (pvd)"})
     {
         UNSCOPED_INFO(name);
 
@@ -655,19 +651,25 @@ TEST_CASE("An octaver's cutoff is a low pass on what comes out", "[effects][prop
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// PVD start and PVD stop: inverses
+// To PV and From PV: inverses
+//
+// \note Titled "PVD start" and "PVD stop" until 17.08.2026, which is still what
+// they are named by below -- a streaming name outlives the title it was taken
+// from, and every preset written since 2011 says the old one.
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("PVD start followed by PVD stop is transparent", "[effects][property][pvd]")
+TEST_CASE("To PV followed by From PV is transparent", "[effects][property][pvd]")
 {
     // The one property that says what these two are *for*. Analysis converts
     // each bin's phase into an instantaneous frequency and synthesis converts it
     // back; with nothing in between, the pair has to return what it was given.
-    // Everything in the PVD group is only meaningful inside that sandwich.
+    // Everything in the Phase Vocoder group is only meaningful inside that
+    // sandwich.
     auto const input(tone(220, oneSecond));
     auto const dry(dryRender(input));
 
-    Slot const sandwich[]{{effect("PVD start"), {}}, {effect("PVD stop"), {}}};
+    Slot const sandwich[]{{effectByStreamingName("PVD start"), {}},
+                          {effectByStreamingName("PVD stop"), {}}};
     auto const rendered(SWTest::renderChain(standardSetup, sandwich, input));
 
     REQUIRE(rendered.size() == dry.size());
@@ -681,7 +683,7 @@ TEST_CASE("PVD start followed by PVD stop is transparent", "[effects][property][
     CHECK(relativeDifference(window(rendered), window(dry)) < 0.05f);
 }
 
-TEST_CASE("PVD start alone is not transparent", "[effects][property][pvd]")
+TEST_CASE("To PV alone is not transparent", "[effects][property][pvd]")
 {
     /// \note The control for the case above, and not a formality: if the pair
     /// were transparent because *neither one did anything*, the round trip would

@@ -25,8 +25,6 @@
 //------------------------------------------------------------------------------
 #include "goldens/engineHarness.hpp"
 
-#include "le/spectrumworx/effects/configuration/effectNames.hpp"
-
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
@@ -105,12 +103,7 @@ std::vector<float> sineSweep(std::uint32_t const frames, double const from, doub
     return signal;
 }
 
-std::int8_t freezeIndex()
-{
-    auto const index(Effects::effectIndex("Freeze"));
-    REQUIRE(index >= 0);
-    return index;
-}
+std::int8_t freezeIndex() { return SWTest::effectByStreamingName("Freeze"); }
 
 /// \brief A Freeze slot that fires \p parameter once, at \p second.
 ///

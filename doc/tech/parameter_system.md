@@ -122,8 +122,10 @@ plus a `Type` discriminator (`GlobalParameter`, `ModuleChainParameter`,
 and slot 1's selector is `0x01000000`.
 
 `tests/parameters/data/parameterTable.txt` pins them, in two sections: 482
-`effect/` rows, which are the per-effect parameter descriptions presets bind to,
-and 388 `id/` rows keyed by the packed ID. The second is deliberately larger than
+`effect/` rows, which are the per-effect parameter descriptions presets bind to
+— keyed by the effect's *streaming* name, so that retitling one does not drag
+its rows with it (`streaming_format.md` §6) — and 388 `id/` rows keyed by the
+packed ID. The second is deliberately larger than
 the 286 above — it also covers what a host cannot address, the two LFO
 sub-parameters that are not exported. **286 is the number a host sees**, and
 `pluginTests.cpp` asserts `params.count()` against the constant rather than

@@ -33,7 +33,7 @@
 #include "clap/testHost.hpp"
 
 #include "external_audio/sample.hpp"
-#include "le/spectrumworx/effects/configuration/effectNames.hpp"
+#include "goldens/engineHarness.hpp"
 
 /// \note For ScopedProblemCounter: nothing here loads a preset, but the editor
 /// host's default problem reporter is a `juce::AlertWindow` in a process with no
@@ -113,8 +113,7 @@ std::vector<float> run(Arrangement const arrangement)
 
     ActivePlugin plugin(sampleRate, blockSize);
 
-    auto const colorifer(LE::SW::Effects::effectIndex("Colorifer"));
-    REQUIRE(colorifer >= 0);
+    auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
     parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
 
@@ -208,8 +207,7 @@ TEST_CASE("The sample is read forwards rather than held", "[external-audio][side
 
     ActivePlugin plugin(sampleRate, blockSize);
 
-    auto const colorifer(LE::SW::Effects::effectIndex("Colorifer"));
-    REQUIRE(colorifer >= 0);
+    auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
     parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
 
@@ -250,8 +248,7 @@ TEST_CASE("Clearing the sample gives the port back", "[external-audio][side-chai
 
     ActivePlugin plugin(sampleRate, blockSize);
 
-    auto const colorifer(LE::SW::Effects::effectIndex("Colorifer"));
-    REQUIRE(colorifer >= 0);
+    auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
     parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
 

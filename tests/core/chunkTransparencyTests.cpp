@@ -325,9 +325,12 @@ TEST_CASE("The engine's own WOLA path does not care how the block was cut up", "
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \note Compared against the *streaming* name, here and below, so that a
+/// retitle cannot quietly empty the exclusion list and turn these cases green
+/// for the wrong reason. \see SWTest::effectByStreamingName().
 bool callCountDependent(std::uint8_t const effect)
 {
-    std::string_view const name(Effects::effectName(effect));
+    std::string_view const name(Effects::effectStreamingName(effect));
     return (name == "Freqverb") || (name == "Whisperer");
 }
 
@@ -340,7 +343,7 @@ bool callCountDependent(std::uint8_t const effect)
 ///                                           (16.08.2026.)
 bool tripsTheEngineInDebug(std::uint8_t const effect)
 {
-    return std::string_view(Effects::effectName(effect)) == "Smoother";
+    return std::string_view(Effects::effectStreamingName(effect)) == "Smoother";
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -447,19 +450,19 @@ TEST_CASE("The engine delays by exactly the latency it reports", "[chunking][lat
 ///
 /// \note A chain rather than a slot, because the modules hand each other a
 /// spectrum: a phase vocoder pair with something between them is the arrangement
-/// in which one module's per-call state could reach another's. PVD start and PVD
-/// stop are what bracket it, which is what the factory presets do.
+/// in which one module's per-call state could reach another's. To PV and From PV
+/// are what bracket it, which is what the factory presets do.
+///
+/// \note Named by streaming name, which is what those presets say and what the
+/// two were titled until 17.08.2026. \see SWTest::effectByStreamingName().
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("A phase-vocoder chain does not care either", "[chunking]")
 {
-    auto const start(Effects::effectIndex("PVD start"));
-    auto const stop(Effects::effectIndex("PVD stop"));
-    auto const shifter(Effects::effectIndex("Pitch Shifter (PV)"));
-    REQUIRE(start >= 0);
-    REQUIRE(stop >= 0);
-    REQUIRE(shifter >= 0);
+    auto const start(SWTest::effectByStreamingName("PVD start"));
+    auto const stop(SWTest::effectByStreamingName("PVD stop"));
+    auto const shifter(SWTest::effectByStreamingName("Pitch Shifter (pvd)"));
 
     SWTest::Slot const chain[]{{start, {}}, {shifter, {}}, {stop, {}}};
 

@@ -5,15 +5,17 @@
 #   session state are written under, and matched by on the way back in. They
 #   are not the strings a user sees -- see parameterTable.txt for those.
 #
-#   A row that moves is a file on someone's disk that stops being understood:
-#   the parameter it names loads its default instead, silently. Renaming a
-#   knob or retitling an effect must therefore be paired with a
+#   A streaming name that moves is a file on someone's disk that stops being
+#   understood: the parameter it names loads its default instead, silently.
+#   Renaming a knob or retitling an effect must therefore be paired with a
 #   STREAMING_NAME / LE_SW_EFFECT_STREAMING_NAME pin, which holds the file key
-#   still and leaves this table alone.
+#   still and leaves those columns alone.
 #
 # effect/<index> | <streaming name> | <title>
 #     what a preset calls the effect, and what a user sees. Equal unless the
-#     title has moved since presets were written naming it.
+#     title has moved since presets were written naming it. The title is the
+#     one column here that is *not* checked -- a title is free to move, and a
+#     run that finds one moved says so and passes.
 #
 # param/<effect streaming name>/<index> | <streaming name>
 # global/<index> | <streaming name>
@@ -63,7 +65,7 @@ effect/39 | Merger | Merger
 effect/40 | Blender | Blender
 effect/41 | Inserter | Inserter
 effect/42 | Burrito | Burrito
-effect/43 | PVD_start | PVD_start
+effect/43 | PVD_start | To_PV
 effect/44 | Pitch_Shifter_(pvd) | Pitch_Shifter_(PV)
 effect/45 | Pitch_Follower_(pvd) | Pitch_Follower_(PV)
 effect/46 | TuneWorx_(pvd) | TuneWorx_(PV)
@@ -71,7 +73,7 @@ effect/47 | Pitch_Magnet_(pvd) | Pitch_Magnet_(PV)
 effect/48 | Pitch_Spring_(pvd) | Pitch_Spring_(PV)
 effect/49 | Imploder_(pvd) | Imploder_(PV)
 effect/50 | Exploder_(pvd) | Exploder_(PV)
-effect/51 | PVD_stop | PVD_stop
+effect/51 | PVD_stop | From_PV
 effect/52 | Armonizer | Armonizer
 effect/53 | Slew_Limiter | Slew_Limiter
 effect/54 | Shifter | Shifter

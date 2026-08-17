@@ -25,7 +25,7 @@
 /// it through `clap_plugin::plugin_data` as processLockTests.cpp does.
 #include "core/modules/moduleDSPAndGUI.hpp"
 #include "core/threading/publish.hpp"
-#include "le/spectrumworx/effects/configuration/effectNames.hpp"
+#include "goldens/engineHarness.hpp"
 #include "gui/editor/presetLoading.hpp"
 #include "le/parameters/lfoImpl.hpp"
 #include "presets/presetHarness.hpp"
@@ -333,8 +333,7 @@ TEST_CASE("What a host puts on the side chain port reaches the engine", "[clap][
     /// \note Colorifer: one of the fifteen effects measured to read a side
     /// chain, and one of the eleven that does so at its default parameters.
     /// \see sideChainTests.cpp for the set and for the four that do not.
-    auto const colorifer(LE::SW::Effects::effectIndex("Colorifer"));
-    REQUIRE(colorifer >= 0);
+    auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
 
     /// \brief One run of \p blocks, with the side chain arranged by \p connect.
     ///

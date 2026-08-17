@@ -114,8 +114,8 @@ spirit for two of the four tuples; this finishes it.
 
 | | pins | moves when |
 |---|---|---|
-| `tests/parameters/data/streamingNames.txt` | every string that reaches a file — 57 effects, their parameters, the globals, the LFO | a key changes. **Always a break.** |
-| `tests/parameters/data/parameterTable.txt` | display names, types, ranges, defaults, units, and the host-visible id space | a label changes, or a range does |
+| `tests/parameters/data/streamingNames.txt` | every string that reaches a file — 57 effects, their parameters, the globals, the LFO. Its third column, an effect's title, is *recorded* rather than pinned | a key changes. **Always a break.** A title moving is reported and passes |
+| `tests/parameters/data/parameterTable.txt` | display names, types, ranges, defaults, units, and the host-visible id space, keyed by streaming name | a label changes, or a range does. Not when an effect is retitled |
 | `tests/presets/data/presetCorpus.txt` | what all 303 factory presets load into, by two routes: read directly, and read → rewritten as 3.0 → read again | a preset loads differently, or the translation into 3.0 loses something |
 | `tests/presets/data/format3.swp` | the 3.0 grammar itself — hand written, read by a test that never runs the writer | the grammar moves. A rename applied to writer *and* reader passes every round-trip test and orphans every file already saved; this is what does not pass. |
 | `tests/clap/stateTests.cpp` | `clap_plugin_state`: the round trip through a second instance, the bytes, the sample, and what a host may do to a stream | state stops being a preset, or stops surviving a truncated / mis-sized / hostile one |
@@ -361,8 +361,34 @@ simply skipped when there is nowhere to draw.
   `presetCorpus.txt` must not. If either does, the pin is not visible where the
   parameter table is built.
 - **Retitling an effect.** The same, with `LE_SW_EFFECT_STREAMING_NAME` in
-  `effectNames.cpp`. The `effect/NN` rows carry both columns, so the diff shows
-  the title moving beside a streaming name that did not.
+  `effectNames.cpp`. Then regenerate `streamingNames.txt`: the `effect/NN` rows
+  carry both columns, so the diff shows the title moving beside a streaming name
+  that did not. **Nothing else may move.** `goldens.txt`, `sideChain.txt` and
+  `parameterTable.txt` are all keyed by streaming name; a title has no fixture
+  of its own, because it is not a promise to anyone.
 - **Changing a streaming name.** Don't. If there is a reason,
   `streamingNames.txt` moving is the file telling you how many presets it is
   worth.
+
+### Why the fixtures are keyed the way they are
+
+The three fixture files above once carried effect **titles** in their keys, and
+the `(pvd)` → `(PV)` pass renamed 64 golden rows and 64 parameter rows that had
+nothing to say about the change. Worse than the churn is what the failure invites:
+a retitled effect reports every one of its rows as *"no golden"*, and the obvious
+repair for that is `SW_GOLDEN_UPDATE=1` — which re-mints them off the current
+build and silently blesses whatever else moved in the same commit.
+
+Keyed by a name that cannot move, a retitle costs nothing and the fixtures still
+verify **bit-exact**, which is the actual proof that only a string changed. The
+same rule holds in test *sources*: `SWTest::effectByStreamingName()` is how a
+case names an effect, which is why a few of them read `Pitch Spring (pvd)` where
+the interface says `(PV)`.
+
+The one column deliberately exempt is the title in `streamingNames.txt`. It is
+recorded so that a retitle leaves a trace beside the name it did not move, and
+it is *not* checked — a run that finds one moved says so and passes. Titles are
+still not unconstrained: `effectsListTests.cpp` requires
+`effectIndex(effectName(i)) == i` for every effect, so two effects can never
+share a title. A host parses automation text by title
+(`plugin2HostImpl.inl`), and that is what keeps it unambiguous.

@@ -31,7 +31,6 @@
 #include "gui/preferences.hpp" // hideCursorOnKnobDrag, for the fourth LFO gesture
 
 #include "le/parameters/lfoImpl.hpp"
-#include "le/spectrumworx/effects/configuration/effectNames.hpp"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -237,8 +236,7 @@ GUI::ModuleControlBase *firstKnob(GUI::ModuleUI &moduleUI)
 /// \brief The one strip of \p effectName, in slot 0, with nothing selected in it.
 GUI::ModuleUI &stripFor(GUI::SpectrumWorxEditor &editor, char const *const effectName)
 {
-    auto const effect(Effects::effectIndex(effectName));
-    REQUIRE(effect >= 0);
+    auto const effect(SWTest::effectByStreamingName(effectName));
     editor.addUserAddedModule(static_cast<std::uint8_t>(effect));
     editor.resyncModuleRack();
     auto *const pModuleUI(editor.regionInSlot(0));

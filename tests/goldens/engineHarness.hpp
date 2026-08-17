@@ -31,6 +31,7 @@
 #include <functional>
 #include <numbers>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace SWTest
@@ -83,6 +84,30 @@ class Engine : public LE::SW::SpectrumWorxCore
   private:
     Program program_;
 }; // class Engine
+
+//------------------------------------------------------------------------------
+// Naming an effect
+//------------------------------------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The effect a preset would name, by the name a preset names it with.
+///
+/// \note Streaming name and not title, everywhere a test names an effect. A
+/// title is a display string and `doc/tech/streaming_format.md` says outright
+/// that it is free to move; a streaming name is the one spelling the project
+/// has promised never to move, because a file on someone's disk depends on it.
+/// Naming effects by title is how a retitle -- "PVD start" to "To PV" -- broke
+/// six cases that had nothing to do with it.
+///
+/// \note The two spellings coincide for every effect that has never been
+/// retitled, which is fifty of the fifty-seven, so most call sites read the
+/// same as they always did. `Effects::effectStreamingName()` defaults to the
+/// title precisely so that they can.
+///                                       (17.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+std::int8_t effectByStreamingName(std::string_view streamingName);
 
 //------------------------------------------------------------------------------
 // Deterministic test signals

@@ -51,8 +51,6 @@
 #include "goldens/engineHarness.hpp"
 #include "goldens/goldenDigest.hpp"
 
-#include "le/spectrumworx/effects/configuration/effectNames.hpp"
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -94,9 +92,7 @@ float peakOf(std::string_view const name, Signal const signal,
              SWTest::RenderSetup const &configuration = setup,
              std::uint32_t const renderedFrames = frames)
 {
-    auto const effect(Effects::effectIndex(name));
-    REQUIRE(effect >= 0);
-    Slot const slots[]{{effect, std::move(configure)}};
+    Slot const slots[]{{SWTest::effectByStreamingName(name), std::move(configure)}};
     return peak(SWTest::renderChain(configuration, slots, signal, renderedFrames));
 }
 } // anonymous namespace

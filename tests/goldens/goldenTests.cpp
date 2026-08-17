@@ -103,16 +103,33 @@ bool needsALongRender(std::int8_t const effectIndex)
     static constexpr std::string_view slow[]{"Frecho", "Frevcho"};
     if (effectIndex < 0) // the bypassed chain
         return false;
-    std::string_view const effect(Effects::effectName(effectIndex));
+    std::string_view const effect(Effects::effectStreamingName(effectIndex));
     return std::find(std::begin(slow), std::end(slow), effect) != std::end(slow);
 }
 
 std::string fixturePath() { return std::string(SW_GOLDEN_DATA_DIR) + "/goldens.txt"; }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The row's name: what a preset calls the effect, not what a user does.
+///
+/// \note By streaming name since 17.08.2026, and it is a property of the file
+/// rather than a spelling preference. A title is free to move -- `PVD start`
+/// became `To PV` -- and while these keys carried titles, a retitle orphaned
+/// eight rows per effect and reported them as "no golden". The obvious repair
+/// for that is `SW_GOLDEN_UPDATE=1`, which would re-mint every row of the
+/// renamed effect off the current build and silently bless whatever else had
+/// moved in the same commit. Keyed by a name that cannot move, a retitle costs
+/// nothing and the fixtures still verify bit-exact, which is the actual proof
+/// that only a string changed.
+///
+////////////////////////////////////////////////////////////////////////////////
+
 std::string keyFor(std::int8_t const effectIndex, SWTest::Signal const signal,
                    Configuration const &configuration)
 {
-    std::string const effect(effectIndex < 0 ? "(bypass)" : Effects::effectName(effectIndex));
+    std::string const effect(effectIndex < 0 ? "(bypass)"
+                                             : Effects::effectStreamingName(effectIndex));
     std::string key;
     for (auto const character : effect)
         key += (character == ' ') ? '_' : character;
@@ -200,11 +217,11 @@ constexpr char const *fixturePreamble[]{
 ///                                       (01.08.2026.) (SW port)
 bool amplifiesRounding(std::string const &key)
 {
-    // Keys carry the effect name with spaces turned into underscores, as
-    // keyFor() writes them.
+    // Keys carry the effect's *streaming* name with spaces turned into
+    // underscores, as keyFor() writes them.
     static constexpr std::string_view chaotic[]{
         "Pitch_Spring",
-        "Pitch_Spring_(PV)",
+        "Pitch_Spring_(pvd)",
         "Pitch_Magnet",
         "Octaver",
         "PVD_start",

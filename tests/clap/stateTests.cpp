@@ -28,6 +28,7 @@
 #include "core/automatedModuleChain.hpp"
 #include "core/parameterID.hpp"
 #include "le/parameters/parametersUtilities.hpp"
+#include "goldens/engineHarness.hpp"
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/spectrumworx/presetStorage.hpp" // savePreset, maximumPresetSize
 
@@ -541,9 +542,8 @@ TEST_CASE("A fired event is saved at rest and reads at rest", "[clap][state]")
     ////////////////////////////////////////////////////////////////////////////
     Plugin const plugin{nullHost(), true /*active*/};
 
-    auto const freeze(LE::SW::Effects::effectIndex("Freeze"));
-    REQUIRE(freeze >= 0);
-    REQUIRE(plugin.editorHost().editSlot(0, static_cast<std::int8_t>(freeze)));
+    auto const freeze(SWTest::effectByStreamingName("Freeze"));
+    REQUIRE(plugin.editorHost().editSlot(0, freeze));
 
     /// The Freeze trigger: 00 Bypass, 01 Gain, 02 Wet, 03/04 the frequency
     /// range, 05 Freeze. \see tests/parameters/data/parameterTable.txt.

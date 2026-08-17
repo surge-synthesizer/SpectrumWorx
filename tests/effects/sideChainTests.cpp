@@ -168,11 +168,14 @@ enum BurritoParameter : std::uint8_t
 /// declaration. Adding a row should mean the same work: render it both ways and
 /// look at the number. A row without one is an effect nobody drove.
 ///
+/// \note Named by *streaming* name, which is why one of them reads "(pvd)"
+/// where the interface says "(PV)". \see sideChainEffect() below.
+///
 ////////////////////////////////////////////////////////////////////////////////
 
 SideChainEffect const sideChainEffects[]{
     {"Pitch Follower"},
-    {"Pitch Follower (PV)"},
+    {"Pitch Follower (pvd)"},
     {"Talking Wind"},
     {"Ethereal"},
     {"Vaxateer"},
@@ -220,9 +223,12 @@ SideChainEffect const sideChainEffects[]{
     {"Burrito", [](Module &module) { module.setEffectParameter(burritoPeriod, 10); }},
 };
 
+/// \note Matched on the streaming name, and so is the table above: a title is
+/// free to move and a row that stopped matching would quietly drop an effect
+/// from the sweep rather than fail it. \see SWTest::effectByStreamingName().
 SideChainEffect const *sideChainEffect(std::uint8_t const effect)
 {
-    std::string_view const name(Effects::effectName(effect));
+    std::string_view const name(Effects::effectStreamingName(effect));
     auto const found(std::ranges::find(sideChainEffects, name, &SideChainEffect::name));
     return (found != std::end(sideChainEffects)) ? &*found : nullptr;
 }
@@ -249,7 +255,7 @@ SideChainEffect const *sideChainEffect(std::uint8_t const effect)
 bool abortsInACheckedBuild([[maybe_unused]] std::uint8_t const effect)
 {
 #ifndef NDEBUG
-    return std::string_view(Effects::effectName(effect)) == "Smoother";
+    return std::string_view(Effects::effectStreamingName(effect)) == "Smoother";
 #else
     return false;
 #endif // NDEBUG
@@ -360,7 +366,8 @@ TEST_CASE("A side-chain effect hears what is on the side chain", "[effects][side
     }
 
     // Every row of the table is an effect that exists, spelled the way
-    // effectName() spells it -- a typo would otherwise silently test nothing.
+    // effectStreamingName() spells it -- a typo would otherwise silently test
+    // nothing.
     CHECK(heard == std::size(sideChainEffects));
 }
 
@@ -479,11 +486,13 @@ constexpr char const *fixturePreamble[]{
     "is held to.",
 };
 
+/// \note By streaming name, for the reason keyFor() in goldenTests.cpp gives at
+/// length: a retitled effect must not orphan its fixture rows.
 std::string keyFor(std::uint8_t const effect, SignalPair const &pair,
                    SWTest::RenderSetup const &configuration)
 {
     std::string key;
-    for (auto const character : std::string_view(Effects::effectName(effect)))
+    for (auto const character : std::string_view(Effects::effectStreamingName(effect)))
         key += (character == ' ') ? '_' : character;
     return key + "/" + SWTest::name(pair.main) + "-" + SWTest::name(pair.side) + "/" +
            std::to_string(configuration.fftSize) + "/" +

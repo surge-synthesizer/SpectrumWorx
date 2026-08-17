@@ -184,6 +184,13 @@ using Table = std::map<std::string, std::string>;
 /// module's parameter table is a property of the effect, and putting them all
 /// through the same slot means a difference between two rows cannot be a
 /// difference between two slots.
+///
+/// \note Keyed by the effect's *streaming* name, the same as
+/// streamingNameTests.cpp keys its `param/` rows and for the same reason: a
+/// retitled effect must not drag its parameter rows with it. It carried the
+/// title until 17.08.2026, and renaming two effects moved 64 rows that had
+/// nothing to say about either. The title is not lost -- `streamingNames.txt`
+/// records it, beside the streaming name it moved against.
 void collectEffectTables(Table &table)
 {
     Fixture fixture;
@@ -193,7 +200,7 @@ void collectEffectTables(Table &table)
                 static_cast<std::int8_t>(effect));
 
         auto const &module(fixture.moduleInSlot(0));
-        std::string const effectKey(sanitised(Effects::effectName(effect)));
+        std::string const effectKey(sanitised(Effects::effectStreamingName(effect)));
 
         for (std::uint8_t index(0); index < module.numberOfParameters(); ++index)
         {
@@ -280,10 +287,15 @@ void writeTable(Table const &table)
         << "# SpectrumWorx parameter table -- generated, do not hand edit.\n"
            "# Regenerate with SW_PARAMETER_TABLE_UPDATE=1 ./sw-plugin-tests \"[parameter-table]\"\n"
            "#\n"
-           "# effect/<Effect>/<index> | type | min | max | default | name | [unit] [| enums]\n"
+           "# effect/<streaming name>/<index> | type | min | max | default | name | [unit]\n"
+           "#                                 [| enums]\n"
            "#     the per-effect parameter table, in declaration order. Presets\n"
            "#     serialise by name and automation addresses by index, so a row that\n"
-           "#     moves is a preset that loads differently.\n"
+           "#     moves is a preset that loads differently. The key is the effect's\n"
+           "#     streaming name rather than its title -- which is why a few read\n"
+           "#     '(pvd)' where the interface says '(PV)' -- so that retitling an\n"
+           "#     effect does not drag its parameter rows with it. streamingNames.txt\n"
+           "#     is where the two names are recorded side by side.\n"
            "#\n"
            "# id/<parameterID> | name | [unit]\n"
            "#     the same parameters as a host sees them, plus the globals, the slot\n"

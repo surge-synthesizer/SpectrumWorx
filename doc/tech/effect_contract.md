@@ -648,12 +648,15 @@ window and never compensates for one.
 
 ### The phase vocoder domain
 
-Two of the 57 effects are not effects but mode switches. `PVD start`
+Two of the 57 effects are not effects but mode switches. `To PV`
 (`phase_vocoder_analysis/`) runs `PhaseVocoderShared::analysis` over the full
 spectrum, which — per bin — takes the phase difference from the last frame,
 subtracts the expected per-hop advance, unwraps to (−π, π], scales, and
-**overwrites the phase array with the resulting true frequency**. `PVD stop`
+**overwrites the phase array with the resulting true frequency**. `From PV`
 (`phase_vocoder_synthesis/`) integrates it back into a phase.
+
+The two were titled `PVD start` and `PVD stop` until 17.08.2026, and every
+preset still names them that way — see `streaming_format.md` §6.
 
 Between the two markers, `data.phases()` holds frequencies. That is the whole of
 the PVD, and it is why there are `PitchShifter` / `PVPitchShifter` twins: the PVD
@@ -975,7 +978,7 @@ Ten effects, nine of which read the side chain.
 | 41 | Inserter | `inserter` | 4 | — | ✔ | Blits a band of the side spectrum into main at a chosen destination. |
 | 42 | Burrito | `burrito` | 4 | MC+D | ✔ | Replaces or sums side bins at randomly chosen positions, re-rolled every `Period`. **The positions only change once the period wraps.** |
 
-### PV domain — indices 43–51
+### Phase Vocoder — indices 43–51
 
 Nine entries. Two are domain markers; the other seven are the PVD twins of
 effects that also ship standalone, and they exist because inside the markers the
@@ -983,7 +986,7 @@ analysis and synthesis have already been paid for.
 
 | # | Title | Folder | P | State | SC | What it does |
 |---:|---|---|---:|---|:-:|---|
-| 43 | PVD start | `phase_vocoder_analysis` | 0 | analysis | | `PhaseVocoderShared::analysis` over `data.full()`. After it, `phases()` holds frequencies. |
+| 43 | To PV | `phase_vocoder_analysis` | 0 | analysis | | `PhaseVocoderShared::analysis` over `data.full()`. After it, `phases()` holds frequencies. |
 | 44 | Pitch Shifter (PV) | `pitch_shifter` | 2 | — | | Shift only. No channel state at all. |
 | 45 | Pitch Follower (PV) | `pitch_follower` | 1 | PD | ✔ | |
 | 46 | TuneWorx (PV) | `tune_worx` | 13 | PD | | |
@@ -991,9 +994,9 @@ analysis and synthesis have already been paid for.
 | 48 | Pitch Spring (PV) | `pitch_spring` | 3 | MC | | |
 | 49 | Imploder (PV) | `eximploder` | 4 | D | | The standalone Imploder is this wrapped in `StandaloneEffect`. |
 | 50 | Exploder (PV) | `eximploder` | 4 | D | | |
-| 51 | PVD stop | `phase_vocoder_synthesis` | 0 | synthesis | | `PhaseVocoderShared::synthesis` over `data.full().phases()`. |
+| 51 | From PV | `phase_vocoder_synthesis` | 0 | synthesis | | `PhaseVocoderShared::synthesis` over `data.full().phases()`. |
 
-### Misc — indices 52–56
+### Miscellaneous — indices 52–56
 
 | # | Title | Folder | P | State | SC | What it does |
 |---:|---|---|---:|---|:-:|---|

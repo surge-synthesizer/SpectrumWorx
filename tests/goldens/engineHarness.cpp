@@ -18,10 +18,13 @@
 #include "core/modules/finalImplementations.hpp"
 
 #include "le/math/math.hpp"
+#include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/utility/ignoreUnused.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
+#include <string>
 
 namespace SWTest
 {
@@ -146,6 +149,20 @@ void generate(Signal const signal, std::span<float> const mono, float const samp
         break;
     }
     }
+}
+
+/// \note Throws rather than asserts, and that is the whole point of it being a
+/// function. `LE_ASSERT` does not survive NDEBUG and the goldens render in
+/// Release only, so a misspelt name under an assert would look up -1, quietly
+/// render the *bypassed chain* and mint a fixture for it. Catch2 reports the
+/// throw as a failure of whichever case asked, in either build type.
+std::int8_t effectByStreamingName(std::string_view const streamingName)
+{
+    auto const index(LE::SW::Effects::effectIndexFromStreamingName(streamingName));
+    if (index < 0)
+        throw std::invalid_argument("No effect streams under the name \"" +
+                                    std::string(streamingName) + "\".");
+    return index;
 }
 
 std::vector<float> render(RenderSetup const &setup, std::int8_t const effectIndex,

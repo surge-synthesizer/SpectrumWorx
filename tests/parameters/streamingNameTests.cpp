@@ -15,14 +15,18 @@
 ///   `Parameters::StreamingName` and `Effects::EffectStreamingName` split the
 /// two, and both default to the display string, because the display string is
 /// exactly what the 303 factory presets contain. That default is what makes the
-/// split free; this file is what makes it safe. A row here moving means a file
-/// on someone's disk stops being understood.
+/// split free; this file is what makes it safe. A streaming name here moving
+/// means a file on someone's disk stops being understood.
+///
+///   The effect rows carry the title as a third column, and it is the one thing
+/// here that is not held to anything: a title that moved is reported and passes.
+/// \see Row.
 ///
 ///   Regenerate with SW_STREAMING_NAMES_UPDATE=1, and then do not commit it
 /// until you can say which files you are willing to break. The legitimate
-/// reasons are two: an effect or a parameter was added, or one was pinned with
-/// STREAMING_NAME / LE_SW_EFFECT_STREAMING_NAME -- and a pin, done right, moves
-/// nothing here at all. That is its point.
+/// reasons are three: an effect or a parameter was added, one was pinned with
+/// STREAMING_NAME / LE_SW_EFFECT_STREAMING_NAME, or an effect was retitled --
+/// and a pin, done right, moves nothing here but a title. That is its point.
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later
@@ -81,7 +85,31 @@ std::string sanitised(std::string_view const text)
     return result;
 }
 
-using Table = std::map<std::string, std::string>;
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief One row: the part a file depends on, and the part a user sees.
+///
+///   Only `pinned` is a contract. `informational` is an effect's title, carried
+/// beside the streaming name so that a retitle is *recorded* against the name it
+/// did not move -- which is the shape this whole mechanism exists to produce --
+/// but a title is free to change by definition, so a difference in it is news
+/// rather than a failure. Every row but `effect/<index>` leaves it empty.
+///
+/// \note Both were one string until 17.08.2026, and a retitle therefore failed
+/// this case. It was the file working: the streaming name had held still, which
+/// is what it is for. Failing on it taught the reflex of regenerating the
+/// snapshot to make a rename land, and that reflex is exactly what would carry a
+/// *moved streaming name* through unread.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+struct Row
+{
+    std::string pinned;
+    std::string informational;
+};
+
+using Table = std::map<std::string, Row>;
 
 /// \brief Collects `streamingName<Parameter>()` across a parameter tuple.
 ///
@@ -102,7 +130,7 @@ struct StreamingNameCollector
         std::array<char, 32> indexText{};
         std::snprintf(indexText.data(), indexText.size(), "%02u", index++);
         table.emplace(std::string(prefix) + "/" + indexText.data(),
-                      sanitised(Parameters::streamingName<Parameter>()));
+                      Row{sanitised(Parameters::streamingName<Parameter>()), {}});
     }
 }; // struct StreamingNameCollector
 
@@ -152,15 +180,16 @@ class Fixture
 /// \note Keyed by index, which effectsList.cmake holds stable across editions by
 /// design and effectsListTests.cpp pins independently. Both names are columns so
 /// that a retitling shows up as a moved *title* beside an unmoved key -- which is
-/// the whole shape this mechanism exists to produce.
+/// the whole shape this mechanism exists to produce. Only the first is checked;
+/// \see Row.
 void collectEffects(Table &table)
 {
     for (std::uint8_t effect(0); effect < Effects::Constants::numberOfEffects; ++effect)
     {
         std::array<char, 32> key{};
         std::snprintf(key.data(), key.size(), "effect/%02u", effect);
-        table.emplace(key.data(), sanitised(Effects::effectStreamingName(effect)) + " | " +
-                                      sanitised(Effects::effectName(effect)));
+        table.emplace(key.data(), Row{sanitised(Effects::effectStreamingName(effect)),
+                                      sanitised(Effects::effectName(effect))});
     }
 }
 
@@ -185,7 +214,7 @@ void collectEffectParameters(Table &table)
             std::array<char, 32> indexText{};
             std::snprintf(indexText.data(), indexText.size(), "%02u", index);
             table.emplace("param/" + effectKey + "/" + indexText.data(),
-                          sanitised(module.parameterInfo(index).streamingName));
+                          Row{sanitised(module.parameterInfo(index).streamingName), {}});
         }
     }
 }
@@ -216,6 +245,10 @@ Table currentTable()
     return table;
 }
 
+/// \note Split on " | " twice rather than once: the third column is optional and
+/// present only on the effect rows. Unambiguous because `sanitised()` has
+/// already turned every space into an underscore, so no field can contain the
+/// separator.
 Table readTable()
 {
     Table table;
@@ -225,9 +258,16 @@ Table readTable()
     {
         if (line.empty() || (line.front() == '#'))
             continue;
-        auto const separator(line.find(" | "));
-        REQUIRE(separator != std::string::npos);
-        table.emplace(line.substr(0, separator), line.substr(separator + 3));
+
+        auto const key(line.find(" | "));
+        REQUIRE(key != std::string::npos);
+
+        auto const title(line.find(" | ", key + 3));
+        if (title == std::string::npos)
+            table.emplace(line.substr(0, key), Row{line.substr(key + 3), {}});
+        else
+            table.emplace(line.substr(0, key),
+                          Row{line.substr(key + 3, title - key - 3), line.substr(title + 3)});
     }
     return table;
 }
@@ -242,15 +282,17 @@ void writeTable(Table const &table)
             "#   session state are written under, and matched by on the way back in. They\n"
             "#   are not the strings a user sees -- see parameterTable.txt for those.\n"
             "#\n"
-            "#   A row that moves is a file on someone's disk that stops being understood:\n"
-            "#   the parameter it names loads its default instead, silently. Renaming a\n"
-            "#   knob or retitling an effect must therefore be paired with a\n"
+            "#   A streaming name that moves is a file on someone's disk that stops being\n"
+            "#   understood: the parameter it names loads its default instead, silently.\n"
+            "#   Renaming a knob or retitling an effect must therefore be paired with a\n"
             "#   STREAMING_NAME / LE_SW_EFFECT_STREAMING_NAME pin, which holds the file key\n"
-            "#   still and leaves this table alone.\n"
+            "#   still and leaves those columns alone.\n"
             "#\n"
             "# effect/<index> | <streaming name> | <title>\n"
             "#     what a preset calls the effect, and what a user sees. Equal unless the\n"
-            "#     title has moved since presets were written naming it.\n"
+            "#     title has moved since presets were written naming it. The title is the\n"
+            "#     one column here that is *not* checked -- a title is free to move, and a\n"
+            "#     run that finds one moved says so and passes.\n"
             "#\n"
             "# param/<effect streaming name>/<index> | <streaming name>\n"
             "# global/<index> | <streaming name>\n"
@@ -258,7 +300,12 @@ void writeTable(Table const &table)
             "#     the module, global and LFO parameter keys. Spaces are written as\n"
             "#     underscores so that ' | ' stays unambiguous as a column separator.\n";
     for (auto const &[key, row] : table)
-        file << key << " | " << row << '\n';
+    {
+        file << key << " | " << row.pinned;
+        if (!row.informational.empty())
+            file << " | " << row.informational;
+        file << '\n';
+    }
 }
 
 bool updateRequested()
@@ -290,19 +337,33 @@ TEST_CASE("Every name that reaches a file is the one that has always reached it"
     auto const expected(readTable());
     REQUIRE_FALSE(expected.empty()); // an absent or empty file is a failure, not a pass
 
+    std::string retitled;
     for (auto const &[key, row] : table)
     {
         auto const found(expected.find(key));
         INFO("streaming name " << key);
         REQUIRE(found != expected.end()); // a name this build writes and the snapshot does not
-        CHECK(found->second == row);
+        CHECK(found->second.pinned == row.pinned);
+
+        if (found->second.informational != row.informational)
+            retitled +=
+                "\n  " + key + ": " + found->second.informational + " -> " + row.informational;
     }
 
     for (auto const &[key, row] : expected)
     {
-        INFO("streaming name " << key << " = " << row);
+        INFO("streaming name " << key << " = " << row.pinned);
         CHECK(table.contains(key)); // a name the snapshot has and this build no longer writes
     }
+
+    /// \note Reported rather than checked, and aggregated rather than one per
+    /// row: a title beside an unmoved streaming name is a *pin doing its job*,
+    /// and fifty-seven of them at once is one retitling pass rather than
+    /// fifty-seven problems. \see Row.
+    if (!retitled.empty())
+        WARN("A title has moved beside a streaming name that did not, which is what a "
+             "pin is for. Regenerate with SW_STREAMING_NAMES_UPDATE=1 to record it:"
+             << retitled);
 }
 
 /// \note Separate from the snapshot because it is a different claim. The
