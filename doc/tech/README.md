@@ -12,6 +12,7 @@ executed or a record of how the port got where it is; that is in [`old/`](old/).
 | [`effect_contract.md`](effect_contract.md) | What an effect must declare and implement, what the engine hands it per frame, the six edits that register one, and an inventory of the 57 shipped, the 4 orphaned and the 17 unfinished. |
 | [`parameter_system.md`](parameter_system.md) | How the plugin addresses, names and exports its 286 parameters, and why the answer is "dynamic" in a way that constrains the format choice. |
 | [`streaming_format.md`](streaming_format.md) | What goes into a preset and into session state: the on-disk names, the snapshot tests that pin them, and the rules for changing any of it. |
+| [`latency.md`](latency.md) | Why the delay is one FFT window, why it cannot be less, the two FIFO primings that hold it constant, and the block-splitting bug that happened without the second one. |
 | [`how-lfo-rates-work.md`](how-lfo-rates-work.md) | What an LFO's period holds, which bar it is a fraction of, and what tempo sync does and does not move. |
 
 ## What is left — the issue tracker
