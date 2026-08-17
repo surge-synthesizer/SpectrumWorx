@@ -35,13 +35,15 @@ namespace LE::SW::Effects
 // else may be added -- a *new* effect has no history and its title is its
 // streaming name.
 //
-// \note The seven below are the phase-vocoder variants, retitled from "(pvd)" to
+// \note The nine below are the phase-vocoder variants, retitled from "(pvd)" to
 // "(PV)" for issue #80. Every one of the 303 factory presets and every user file
 // written before that names them the old way, so the old spelling is what stays
 // in the file. \see doc/tech/streaming_format.md.
 //                                            (16.08.2026.)
 ////////////////////////////////////////////////////////////////////////////////
 
+LE_SW_EFFECT_STREAMING_NAME(PhaseVocoderAnalysis, "PVD start")
+LE_SW_EFFECT_STREAMING_NAME(PhaseVocoderSynthesis, "PVD stop")
 LE_SW_EFFECT_STREAMING_NAME(PVPitchShifter, "Pitch Shifter (pvd)")
 LE_SW_EFFECT_STREAMING_NAME(PitchFollowerPVD, "Pitch Follower (pvd)")
 LE_SW_EFFECT_STREAMING_NAME(TuneWorxPVD, "TuneWorx (pvd)")

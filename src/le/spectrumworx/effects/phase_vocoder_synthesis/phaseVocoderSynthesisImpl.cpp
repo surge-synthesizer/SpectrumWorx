@@ -22,9 +22,9 @@ namespace LE::SW::Effects
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-char const PhaseVocoderSynthesis::title[] = "PVD stop";
+char const PhaseVocoderSynthesis::title[] = "From PV";
 char const PhaseVocoderSynthesis::description[] =
-    "Transform back from the \"Phase vocoder domain\".";
+    "Transform signal back from the phase vocoder domain.";
 
 ////////////////////////////////////////////////////////////////////////////////
 //

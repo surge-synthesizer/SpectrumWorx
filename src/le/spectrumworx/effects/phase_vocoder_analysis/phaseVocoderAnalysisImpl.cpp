@@ -22,8 +22,8 @@ namespace LE::SW::Effects
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-char const PhaseVocoderAnalysis::title[] = "PVD start";
-char const PhaseVocoderAnalysis::description[] = "Transform into the \"Phase vocoder domain\".";
+char const PhaseVocoderAnalysis::title[] = "To PV";
+char const PhaseVocoderAnalysis::description[] = "Transform signal into phase vocoder domain.";
 
 ////////////////////////////////////////////////////////////////////////////////
 //
