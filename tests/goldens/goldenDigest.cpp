@@ -88,18 +88,41 @@ Digest Digest::of(std::span<float const> const interleaved, std::uint8_t const c
     digest.dcOffset = static_cast<float>(sum / count);
     digest.nonFiniteSamples = nonFinite;
 
-    // Band energies, from a plain DFT of the first channel decimated to a fixed
-    // 1024 point window. Fixed size and fixed window position, so the summary
-    // does not move when the render length does.
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Band energies, from a plain DFT of the first channel over a fixed 1024
+    /// point window. Fixed size and fixed grid, so the summary does not move
+    /// when the render length does.
+    ///
+    /// \note **The windows overlap by half, and that is not a refinement.** They
+    /// used to be laid end to end, and a Hann window is zero at both ends -- so
+    /// the analysis was blind at every 1024-sample boundary and anything short
+    /// landing there contributed nothing to any band.
+    ///
+    ///   It bit when #83 moved the engine's delay to `fftSize`: at 2048/8 the
+    /// golden impulse's output landed on 7168, which is 7 x 1024 exactly, and the
+    /// band columns of every impulse row at that configuration collapsed to the
+    /// silence floor. What they then reported was numerical residue rather than
+    /// signal -- and residue is exactly the thing that does not agree between
+    /// Accelerate and pffft, so `Octaver/impulse/2048/8` drifted 16 dB in band 2
+    /// against an 8 dB bound and CI went red on Linux and Windows while macOS,
+    /// which minted the file, stayed green.
+    ///
+    ///   At a hop of half a window Hann satisfies COLA: every sample is covered
+    /// with a total weight of 1, and a transient cannot hide between windows.
+    ///                                       (17.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
     constexpr std::size_t window{1024};
+    constexpr std::size_t hop{window / 2};
     auto const frames(interleaved.size() / std::max<std::uint8_t>(channels, 1));
     std::vector<double> magnitude(window / 2 + 1, 0.0);
     if (frames >= window)
     {
-        // Average the magnitude spectrum over as many non-overlapping windows
-        // as fit, which is far more stable across platforms than a single one.
+        // Average the magnitude spectrum over as many windows as fit, which is
+        // far more stable across platforms than a single one.
         std::size_t windows{0};
-        for (std::size_t start(0); start + window <= frames; start += window)
+        for (std::size_t start(0); start + window <= frames; start += hop)
         {
             for (std::size_t bin(0); bin < magnitude.size(); ++bin)
             {
