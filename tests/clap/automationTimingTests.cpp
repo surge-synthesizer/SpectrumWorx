@@ -31,6 +31,7 @@
 #include "clap/testHost.hpp"
 
 #include "core/host_interop/parameters.hpp"
+#include "le/spectrumworx/engine/configuration.hpp" // defaultOverlapFactor
 #include "le/spectrumworx/engine/parameters.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -77,13 +78,47 @@ std::vector<float> sine(std::uint32_t const frames)
     return signal;
 }
 
-double rmsOfQuarter(std::vector<float> const &block, std::size_t const quarter)
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The level in one quarter of the block the host sent, read out of the
+/// output at the offset the gain change actually lands on.
+///
+/// \note **One hop, not one latency**, and the difference is worth knowing.
+/// `OutputGain` is not applied per sample -- `Processor::processSingleChannel`
+/// scales a whole frame's worth as that frame is produced -- so an event timed at
+/// sample `p` takes effect from the next frame boundary, which is `p + hop`.
+/// Measured directly: with the event at 3072 and a 512-sample hop, the level
+/// drops at 3584.
+///
+/// \note The offset exists at all because these cases used to read quarter `q` at
+/// buffer position `q * 1024` and get the right answer by coincidence -- before
+/// #83 the whole output sat one hop earlier, which cancelled this hop exactly. So
+/// they were measuring "the change is at the event's own sample", which was true
+/// of the buffer and never true of the audio. #83 moved the output and the
+/// coincidence went with it, on renders that are otherwise bit-identical.
+///
+///   `\p samples` is two blocks joined, so a quarter offset by a hop is still in
+/// range.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+double rmsOfQuarter(std::vector<float> const &samples, std::size_t const quarter,
+                    std::uint32_t const hop)
 {
-    auto const length(block.size() / 4);
+    auto const length(blockSize / 4);
+    auto const first(hop + quarter * length);
+    REQUIRE((first + length) <= samples.size());
     double sum(0);
-    for (std::size_t index(quarter * length); index < (quarter + 1) * length; ++index)
-        sum += double(block[index]) * block[index];
+    for (std::size_t index(first); index < first + length; ++index)
+        sum += double(samples[index]) * samples[index];
     return std::sqrt(sum / length);
+}
+
+/// Two renders end to end, so a quarter offset by the latency is still in range.
+std::vector<float> operator+(std::vector<float> lhs, std::vector<float> const &rhs)
+{
+    lhs.insert(lhs.end(), rhs.begin(), rhs.end());
+    return lhs;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,6 +151,35 @@ class Running
         return leftOut;
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The engine's hop, which is what a gain change is quantised to.
+    ///
+    /// \note Derived from what the plugin reports rather than written down.
+    /// `latencyGet()` is the FFT size (\see doc/tech/latency.md), and the default
+    /// overlap factor is 4 -- read from the parameter rather than assumed, so
+    /// that changing the default moves this with it instead of breaking it
+    /// silently.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::uint32_t hop() const
+    {
+        auto const &plugin(*plugin_);
+        auto const *const latency(static_cast<clap_plugin_latency const *>(
+            plugin.get_extension(&plugin, CLAP_EXT_LATENCY)));
+        REQUIRE(latency != nullptr);
+
+        /// \note `latencyGet()` is the FFT size -- \see doc/tech/latency.md --
+        /// and nothing in these cases moves the overlap factor off its default,
+        /// so the hop is the one divided by the other. Read from the engine's own
+        /// constant rather than written down, and *not* from the CLAP parameter:
+        /// `params.get_value` does not hand back the raw factor, which is how an
+        /// earlier version of this got 1024 for a hop that measures 512.
+        auto const hop(latency->get(&plugin) / LE::SW::Engine::Constants::defaultOverlapFactor);
+        REQUIRE(hop > 0);
+        return hop;
+    }
+
   private:
     ActivePlugin plugin_;
     std::vector<float> input_;
@@ -136,9 +200,9 @@ TEST_CASE("A parameter event is heard where the host timed it", "[clap][automati
         TestHost host{{.threadCheck = true, .log = true}};
         Running running(host);
         TimedParameterEvents const atZero{{0, outputGainID(), quiet}};
-        auto const rendered(running.render(&*atZero));
-        firstQuarterWhenEarly = rmsOfQuarter(rendered, 0);
-        lastQuarterWhenEarly = rmsOfQuarter(rendered, 3);
+        auto const rendered(running.render(&*atZero) + running.render(nullptr));
+        firstQuarterWhenEarly = rmsOfQuarter(rendered, 0, running.hop());
+        lastQuarterWhenEarly = rmsOfQuarter(rendered, 3, running.hop());
     }
     {
         // The same edit three quarters of the way in: the start of the block is
@@ -146,9 +210,9 @@ TEST_CASE("A parameter event is heard where the host timed it", "[clap][automati
         TestHost host{{.threadCheck = true, .log = true}};
         Running running(host);
         TimedParameterEvents const atThreeQuarters{{3 * blockSize / 4, outputGainID(), quiet}};
-        auto const rendered(running.render(&*atThreeQuarters));
-        firstQuarterWhenLate = rmsOfQuarter(rendered, 0);
-        lastQuarterWhenLate = rmsOfQuarter(rendered, 3);
+        auto const rendered(running.render(&*atThreeQuarters) + running.render(nullptr));
+        firstQuarterWhenLate = rmsOfQuarter(rendered, 0, running.hop());
+        lastQuarterWhenLate = rmsOfQuarter(rendered, 3, running.hop());
     }
 
     CAPTURE(firstQuarterWhenEarly, firstQuarterWhenLate, lastQuarterWhenEarly, lastQuarterWhenLate);
@@ -178,11 +242,11 @@ TEST_CASE("Two events in one block are heard in their own halves", "[clap][autom
 
     TimedParameterEvents const downThenUp{{blockSize / 4, outputGainID(), quiet},
                                           {3 * blockSize / 4, outputGainID(), loud}};
-    auto const rendered(running.render(&*downThenUp));
+    auto const rendered(running.render(&*downThenUp) + running.render(nullptr));
 
-    auto const first(rmsOfQuarter(rendered, 0));
-    auto const middle(rmsOfQuarter(rendered, 1));
-    auto const last(rmsOfQuarter(rendered, 3));
+    auto const first(rmsOfQuarter(rendered, 0, running.hop()));
+    auto const middle(rmsOfQuarter(rendered, 1, running.hop()));
+    auto const last(rmsOfQuarter(rendered, 3, running.hop()));
 
     CAPTURE(first, middle, last);
 
@@ -212,10 +276,11 @@ TEST_CASE("An event stays in the block the host put it in", "[clap][automation]"
     // Block two: back to full level, from its first sample.
     TimedParameterEvents const atOnce{{0, outputGainID(), loud}};
     auto const blockTwo(running.render(&*atOnce));
+    auto const blockThree(running.render(nullptr));
 
-    auto const oneFirst(rmsOfQuarter(blockOne, 0));
-    auto const oneLast(rmsOfQuarter(blockOne, 3));
-    auto const twoFirst(rmsOfQuarter(blockTwo, 0));
+    auto const oneFirst(rmsOfQuarter(blockOne + blockTwo, 0, running.hop()));
+    auto const oneLast(rmsOfQuarter(blockOne + blockTwo, 3, running.hop()));
+    auto const twoFirst(rmsOfQuarter(blockTwo + blockThree, 0, running.hop()));
 
     CAPTURE(oneFirst, oneLast, twoFirst);
 

@@ -48,7 +48,22 @@ class ChannelBuffers
     ChannelData &channelData() { return channelData_; }
     ChannelData const &channelData() const { return channelData_; }
 
-    void reset(std::uint16_t initialSilenceSamples);
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Puts both FIFOs back to the state a stream starts in.
+    ///
+    /// \param initialInputSilence how much silence the input FIFO pretends to
+    ///        have already received, so that the first real hop completes a
+    ///        window rather than waiting for a whole one. `windowSize - stepSize`.
+    ///
+    /// \param initialReadyOutput how much silence the output FIFO starts out
+    ///        holding, so that a caller asking for a partial hop can always be
+    ///        answered. `stepSize`, and the second argument is what makes the
+    ///        engine's delay independent of the block size it is called with.
+    ///        \see doc/tech/latency.md.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void reset(std::uint16_t initialInputSilence, std::uint16_t initialReadyOutput);
     void resize(StorageFactors const &, Storage &);
     static std::uint32_t requiredStorage(StorageFactors const &);
 

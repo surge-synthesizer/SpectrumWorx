@@ -269,27 +269,22 @@ TEST_CASE("The configured block size does not change the sound", "[chunking][blo
 /// analysis/synthesis path with nothing in it. If this fails, the WOLA itself
 /// carries per-call state and no effect result below means anything.
 ///
-/// \note **Block sizes that are whole multiples of the hop.** That restriction is
-/// not a convenience and it is not the property being weakened to fit -- it is
-/// where the property turns out to hold and where it turns out not to. Measured
-/// on the bypassed chain at 512/4, hop 128:
+/// \note **Block sizes that are and are not whole multiples of the hop**, which
+/// is the whole point since #83. 480 and 500 leave a short last call of 96 and
+/// 116 against the 128-sample hop, and 500 leaves 244 against the 256-sample one
+/// -- and a short last call is what the plugin produces on every block whenever
+/// the host's block size does not divide by the hop, which is most of the time.
 ///
-///     one call of 512 against four calls of 128     identical
-///     one call of 512 against one call of 500       differs from sample 768
-///     one call of 512 against one call of 116       differs from sample 2
-///     one call of 500 against 128,128,128,116       differs from sample 10752
-///
-///   The second and third lines have no chunking in them at all. **The engine has
-/// never been indifferent to a call whose length is not a multiple of the hop**,
-/// and `SpectrumWorxCLAP::process()` chunking at the hop did not introduce that
-/// -- it inherited it, and reaches it through the short last call of a block. The
-/// case below is what states it, and issue #83 is where the engine bug lives.
+///   Before #83 was fixed this is where it failed: the engine could not answer a
+/// partial hop and emitted silence into a running stream instead, so a 500-sample
+/// block rendered 116 samples later than a 512-sample one, for ever. \see
+/// doc/tech/latency.md.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("The engine's own WOLA path does not care how the block was cut up", "[chunking]")
 {
-    auto const hostBlock(GENERATE(std::uint32_t{512}, 1024, 2048));
+    auto const hostBlock(GENERATE(std::uint32_t{512}, 1024, 2048, 480, 500));
     SWTest::Slot const bypassed[]{{-1, {}}};
 
     for (auto const &configuration : configurations)
@@ -308,15 +303,16 @@ TEST_CASE("The engine's own WOLA path does not care how the block was cut up", "
 ///     Freqverb    differs from sample 259, worst 4.30
 ///     Whisperer   differs from sample 3,   worst 0.90
 ///
-///   Every other effect is bit-identical, so this is not the engine's WOLA
-/// bookkeeping -- that is pinned above and passes. `ModuleDSP::preProcess()`
+///   Every other effect is bit-identical, so this is **not** #83 and it survived
+/// #83's fix: the engine's WOLA bookkeeping is pinned above and passes, at whole
+/// hops and at partial ones. These two move with the *number of `process()`
+/// calls*, which is a different quantity. `ModuleDSP::preProcess()`
 /// (`module.cpp:27`) runs `updateBaseParametersFromLFOs`,
-/// `updateEffectParametersFromLFOs` and `setup()` **once per `process()` call**,
-/// and chunking multiplies the number of calls by the number of chunks. For an
-/// effect whose `setup()` merely samples its parameters that is free; for one
-/// with per-call state behind it, it is not. Which of the three it is for these
-/// two is not yet established -- neither reads the RNG, and `FreqverbImpl::setup`
-/// reads as idempotent, so the answer is somewhere under `doPreProcess`.
+/// `updateEffectParametersFromLFOs` and `setup()` once per call, and chunking
+/// multiplies the number of calls by the number of chunks. For an effect whose
+/// `setup()` merely samples its parameters that is free; for one with per-call
+/// state behind it, it is not. Which of the three it is has not been established.
+/// \see issue #86.
 ///
 ///   Both renders are deterministic -- the same render run twice is bit-identical
 /// for both effects -- so this is a real property of the engine and not an
@@ -370,7 +366,7 @@ TEST_CASE("No effect can tell how the block was cut up", "[chunking]")
     }
 }
 
-/// \brief The two above, so the exclusion carries its own reproduction.
+/// \brief The two above, so the exclusion carries its own reproduction. \see #86.
 TEST_CASE("Freqverb and Whisperer depend on the number of calls", "[.][chunking-known-bad]")
 {
     for (std::uint8_t effect(0); effect < Effects::Constants::numberOfEffects; ++effect)
@@ -386,31 +382,65 @@ TEST_CASE("Freqverb and Whisperer depend on the number of calls", "[.][chunking-
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \brief The half that does **not** hold, stated rather than left out. `[.]`, so
-/// it runs only when asked for by name or by tag.
+/// \brief What the engine's delay actually is, which is the other half of #83.
 ///
-///   A host whose block size is not a multiple of the hop -- 500 samples against a
-/// 128-sample hop, and any block at all once the FFT is large enough that the hop
-/// exceeds it -- gets a last call of `block % hop` samples, and the engine's
-/// output then depends on how the block was cut. \see issue #83 for the mechanism
-/// (`Processor::processSingleChannel` zero-fills whenever a loop iteration finds
-/// less ready output than it must produce, and never makes the shortfall up, so
-/// each occurrence inserts silence and delays everything after it).
+///   Transparency alone does not say the delay is *right* -- an engine that
+/// delayed everything by a constant thousand samples would pass every case above.
+/// This says the delay is `fftSize`, which is what `Setup::latencyInSamples()`
+/// reports to the host, for every block size.
 ///
-/// \note Hidden rather than deleted, and hidden rather than `[!mayfail]`. Deleting
-/// it would lose the reproduction; `[!mayfail]` would run two renders per effect
-/// on every CI run to record a failure nobody reads. Hidden keeps it one command
-/// away -- `./sw-dsp-tests "[chunking-known-bad]"` -- and keeps the numbers above
-/// honest by keeping the thing that produced them.
+///   Before the fix it was `fftSize - stepSize` for whole-hop blocks and crept
+/// upwards from there for any other block size. So the plugin was one hop early
+/// against its own PDC claim in the best case and drifting in the worst.
+/// \see doc/tech/latency.md.
+///
+/// \note An impulse rather than a sweep, because "where did it come out" needs an
+/// unambiguous subject. The generator puts it on a 1024-sample grid so it is hop
+/// aligned in every configuration here -- see the note in engineHarness.cpp.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("A block that is not a whole number of hops is cut-dependent", "[.][chunking-known-bad]")
+TEST_CASE("The engine delays by exactly the latency it reports", "[chunking][latency]")
 {
+    auto const hostBlock(GENERATE(std::uint32_t{128}, 256, 512, 1024, 480, 500));
+
+    std::vector<float> input(renderedFrames);
+    SWTest::generate(SWTest::Signal::Impulse, input, static_cast<float>(sampleRate));
+    auto const inputPeak(std::ranges::max_element(input) - input.begin());
+    REQUIRE(inputPeak > 0);
+
     SWTest::Slot const bypassed[]{{-1, {}}};
+
     for (auto const &configuration : configurations)
-        requireTransparent(bypassed, configuration, 500, configuration.hop(),
-                           SWTest::Signal::Sweep);
+    {
+        /// \note Clamped, which is what `SpectrumWorxCLAP::process()` does with
+        /// its own `std::min(chunk, frames_count - cursor)`: a 128-sample host
+        /// block against the 2048/8 hop of 256 is one 128-sample call, not a call
+        /// larger than the block. Unclamped this trips the harness's own
+        /// "A call larger than the engine was sized for" -- in the checked build
+        /// only, which is what the second build directory is for.
+        auto const call(std::min(configuration.hop(), hostBlock));
+
+        SWTest::RenderSetup const setup{configuration.fftSize,
+                                        configuration.overlapFactor,
+                                        channels,
+                                        sampleRate,
+                                        hostBlock,
+                                        call};
+        auto const rendered(SWTest::renderChain(setup, bypassed, input));
+
+        // De-interleave channel 0 and find where the impulse came out.
+        std::vector<float> left(renderedFrames);
+        for (std::uint32_t frame(0); frame < renderedFrames; ++frame)
+            left[frame] = rendered[std::size_t{frame} * channels];
+        auto const outputPeak(
+            std::ranges::max_element(left, {}, [](float const v) { return std::abs(v); }) -
+            left.begin());
+
+        INFO("fft " << configuration.fftSize << '/' << unsigned(configuration.overlapFactor)
+                    << ", host block " << hostBlock << " in " << call << "-sample calls");
+        CHECK((outputPeak - inputPeak) == configuration.fftSize);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

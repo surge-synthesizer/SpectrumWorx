@@ -801,10 +801,10 @@ void Processor::clearSideChannelData()
 
 void Processor::resetChannelBuffers()
 {
-    std::uint16_t const initialSilenceSamples(engineSetup().windowSize<std::uint16_t>() -
-                                              engineSetup().stepSize<std::uint16_t>());
+    auto const windowSize(engineSetup().windowSize<std::uint16_t>());
+    auto const stepSize(engineSetup().stepSize<std::uint16_t>());
     for (auto &channel : channels_)
-        channel.reset(initialSilenceSamples);
+        channel.reset(windowSize - stepSize, stepSize);
 }
 
 Processor &Processor::fromEngineSetup(Setup &engineSetup)
@@ -852,14 +852,13 @@ void Processor::Channels::resize(StorageFactors const &factors, Storage &storage
 
     std::uint16_t const windowSize(factors.fftSize);
     std::uint16_t const stepSize(factors.fftSize / factors.overlapFactor);
-    std::uint16_t const initialSilenceSamples(windowSize - stepSize);
     for (auto &channelBuffers : *this)
     {
         ChannelBuffers *LE_RESTRICT const pNewChannelBuffers(new (&channelBuffers)
                                                                  ChannelBuffers());
         LE_ASSUME(pNewChannelBuffers);
         pNewChannelBuffers->resize(factors, storage);
-        pNewChannelBuffers->reset(initialSilenceSamples);
+        pNewChannelBuffers->reset(static_cast<std::uint16_t>(windowSize - stepSize), stepSize);
     }
 }
 
