@@ -946,9 +946,14 @@ void Knob::setupForParameter(char const *const title, unsigned int const diamete
     setDoubleClickReturnValue(true, defaultValue);
 }
 
+bool Knob::hidesCursorWhileDragging() const
+{
+    return parameterEditable() && preferences().hideCursorOnKnobDrag();
+}
+
 void Knob::startedDragging() noexcept
 {
-    if (!preferences().hideCursorOnKnobDrag())
+    if (!hidesCursorWhileDragging())
         return;
 
     LE_ASSERT(juce::Desktop::getInstance().getNumMouseSources() == 1);

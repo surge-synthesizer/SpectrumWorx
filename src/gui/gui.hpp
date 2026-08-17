@@ -951,6 +951,31 @@ class Knob : public WidgetBase<juce::Slider>
 
     void showParameterMenu(juce::MouseEvent const &);
 
+  public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Whether pressing this knob hands the mouse to the knob -- cursor
+    /// hidden, movement unbounded -- for the duration of the drag.
+    ///
+    /// \note Two questions, and the second one was missing. The preference is the
+    /// user's; `parameterEditable()` is whether there is a drag to hand the mouse
+    /// over *for*. An LFO'd knob answers no to the second, because
+    /// `ModuleKnob::mouseDrag` returns at the top and the value cannot move -- so
+    /// the cursor was being hidden and unbounded for a gesture that did nothing,
+    /// and JUCE put it back inside the knob's bounds on release rather than where
+    /// the user had pressed. That is issue #82: the cursor jumps on a click that
+    /// was only ever going to select the control.
+    ///
+    /// \note Public and const because it is the only part of this a test can
+    /// reach. JUCE gates the mode on a real button being down
+    /// (`juce_MouseInputSourceImpl.h:463`, `enable = enable && isDragging()`), so
+    /// a synthesised press never turns it on and there is nothing to observe on
+    /// the far side. \see the note on `eventOver()` in moduleControlFocusTests.cpp
+    /// for the two other things a synthesised mouse cannot do.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    bool hidesCursorWhileDragging() const;
+
   protected: // juce::Component overrides
     ////////////////////////////////////////////////////////////////////////////
     /// \note All three, and not only the press. juce::Slider::mouseDown is what

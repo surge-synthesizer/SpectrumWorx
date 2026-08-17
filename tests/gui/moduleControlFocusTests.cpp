@@ -28,6 +28,7 @@
 
 #include "gui/modules/moduleControl.hpp"
 #include "gui/modules/moduleUI.hpp"
+#include "gui/preferences.hpp" // hideCursorOnKnobDrag, for the fourth LFO gesture
 
 #include "le/parameters/lfoImpl.hpp"
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
@@ -349,6 +350,37 @@ TEST_CASE("An LFO switches every gesture that would move the knob under it", "[g
     CHECK(knob.isScrollWheelEnabled());
     CHECK(knob.isDoubleClickReturnEnabled());
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The fourth gesture, and it was the odd one out until 16.08.2026.
+    /// Pressing a knob hands the mouse over to it -- cursor hidden, movement
+    /// unbounded -- and that was asked of the preference alone, not of whether
+    /// there was a drag to hand it over *for*. On an LFO'd knob there is not:
+    /// `mouseDrag` returns at the top and the value cannot move. So the cursor
+    /// went invisible for a gesture that did nothing, and JUCE put it back inside
+    /// the knob's bounds on release rather than where the press had been --
+    /// which is the jump in issue #82.
+    ///
+    /// \note The preference is *set* rather than assumed, and put back after.
+    /// `GUI::preferences()` is one object for the process, so whether it happens
+    /// to be on here depends on which cases ran first -- and the knob answers
+    /// `false` when it is off for a reason that has nothing to do with the LFO,
+    /// which would leave this passing without testing anything. Asserting it
+    /// first caught exactly that: the case passed alone and failed in the full
+    /// suite, behind preferencesTests.cpp.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    struct HideCursorPreference
+    {
+        bool const previous{GUI::preferences().hideCursorOnKnobDrag()};
+        HideCursorPreference() { GUI::preferences().setHideCursorOnKnobDrag(true); }
+        ~HideCursorPreference() { GUI::preferences().setHideCursorOnKnobDrag(previous); }
+    } const hideCursor;
+
+    REQUIRE(GUI::preferences().hideCursorOnKnobDrag());
+    auto &asKnob(dynamic_cast<GUI::Knob &>(control.widget()));
+    CHECK(asKnob.hidesCursorWhileDragging());
+
     auto const valueBefore(control.getValue());
 
     control.lfo().parameters().set<Parameters::LFOImpl::Enabled>(true);
@@ -356,6 +388,7 @@ TEST_CASE("An LFO switches every gesture that would move the knob under it", "[g
 
     CHECK(!knob.isScrollWheelEnabled());
     CHECK(!knob.isDoubleClickReturnEnabled());
+    CHECK(!asKnob.hidesCursorWhileDragging());
     // ...and the third, which used to be spelt setEnabled( false ) inside
     // mouseDown and is now a return at the top of mouseDrag.
     dragKnob(knob);
