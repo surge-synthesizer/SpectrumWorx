@@ -61,9 +61,9 @@ namespace Parameters
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-UI_NAME(SW::Engine::FFTSize, "FFT size")
-UI_NAME(SW::Engine::OverlapFactor, "Overlap factor")
-UI_NAME(SW::Engine::WindowFunction, "Window type")
+UI_NAME(SW::Engine::FFTSize, "FFT Size")
+UI_NAME(SW::Engine::OverlapFactor, "Overlap Factor")
+UI_NAME(SW::Engine::WindowFunction, "Window Type")
 
 //...mrmlj...this does not work yet because the Window enum is not a member
 //...of the WindowFunction parameter class...fix this...
@@ -86,9 +86,9 @@ UI_NAME(SW::Engine::WindowFunction, "Window type")
 /// and this parameter has no enumerators to name.
 template <>
 constexpr DiscreteValues<SW::Engine::WindowFunction>::Strings
-    DiscreteValues<SW::Engine::WindowFunction>::strings{"Hann",           "Hamming",  "Blackman",
-                                                        "BlackmanHarris", "Gaussian", "FlatTop",
-                                                        "Welch",          "Triangle", "Rectangle"};
+    DiscreteValues<SW::Engine::WindowFunction>::strings{
+        "Hann",     "Hamming", "Blackman", "Blackman-Harris", "Gaussian",
+        "Flat Top", "Welch",   "Triangle", "Rectangle"};
 
 } // namespace Parameters
 

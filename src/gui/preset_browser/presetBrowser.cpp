@@ -728,7 +728,7 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
         juce::File const startFrom(
             LE::IO::pathToJuceFile(haveCurrent ? currentDirectory_ : GUI::presetsFolder()));
         folderChooser_ = std::make_unique<juce::FileChooser>(
-            "Please select a folder with SW presets...", startFrom);
+            "Please select a folder with SpectrumWorx presets...", startFrom);
         folderChooser_->launchAsync(
             juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
             [self = juce::Component::SafePointer<PresetBrowser>(this)](
@@ -802,7 +802,7 @@ void PresetBrowser::hideFilenameEditBox()
 
 void PresetBrowser::askForOverwrite(std::function<void(bool)> onAnswer)
 {
-    GUI::warningOkCancelBox(_T( "File already exists." ), _T( "Overwrite?" ), std::move(onAnswer));
+    GUI::warningOkCancelBox(_T( "File already exists!" ), _T( "Overwrite?" ), std::move(onAnswer));
 }
 
 void PresetBrowser::setNewFolder(fs::path const &file)
@@ -1120,7 +1120,8 @@ void PresetBrowser::paint(juce::Graphics &graphics)
 {
     BackgroundImage::paint(graphics);
     graphics.setColour(juce::Colours::white);
-    graphics.drawFittedText(locationLabel(), 9, 8, 162, 17, juce::Justification::centredLeft, 1);
+    graphics.setFont(13);
+    graphics.drawFittedText(locationLabel(), 13, 10, 155, 12, juce::Justification::centredLeft, 1);
 }
 
 bool PresetBrowser::Item::operator==(Item const &other) const { return name == other.name; }

@@ -967,27 +967,17 @@ juce::String SpectrumWorxEditor::effectMenuHeader(EffectMenuTarget const target)
     switch (target.action)
     {
     case EffectMenuTarget::replace:
-    {
-        auto const effect(effectInRackSlot(target.slot));
-        /// \note An empty slot cannot be reached from effectMenuTargetAt(), which
-        /// only names a replacement for a slot with a strip in it. Guarded rather
-        /// than asserted because the alternative is indexing the name table with
-        /// `noModule`.
-        if (effect == AutomatedModuleChain::noModule)
-            return "Replace effect";
-        return juce::String("Replace ") + Effects::effectName(static_cast<std::uint8_t>(effect)) +
-               " Effect";
-    }
+        return "Replace Effect";
     case EffectMenuTarget::insert:
-        return "Insert effect";
+        return "Insert Effect";
     case EffectMenuTarget::append:
-        return "Add effect";
+        return "Add Effect";
     case EffectMenuTarget::none:
         break;
     }
     /// \note `none` never gets this far -- showEffectMenuAt() answers it by not
     /// opening a menu -- so this is the switch being total, not a fourth heading.
-    return "Add effect";
+    return "Add Effect";
 }
 
 PopupMenu::OnChosen SpectrumWorxEditor::effectMenuCallback(EffectMenuTarget const target)
@@ -1302,9 +1292,9 @@ juce::String SpectrumWorxEditor::engineStateText() const
 {
     auto const state(currentEngineState());
 
-    /// \note "no rate" rather than "0 Hz": before a host has activated the
+    /// \note "No sample rate" rather than "0 Hz": before a host has activated the
     /// plugin there is no answer, and a zero would read as one.
-    juce::String rate("no rate");
+    juce::String rate("No sample rate");
     if (state.sampleRate > 0)
         rate = juce::String(state.sampleRate,
                             (state.sampleRate == std::floor(state.sampleRate)) ? 0 : 1) +
@@ -3577,7 +3567,7 @@ void SpectrumWorxEditor::Settings::EnginePage::setNewQualityFactor(float const &
     /// -- wrote to a read-only page. Every case that opened the settings panel
     /// segfaulted here.
     ///                                       (05.08.2026.) (SW port)
-    engineQuality_ = "Ripple amount: ";
+    engineQuality_ = "Ripple Amount: ";
     engineQuality_ += buffer;
     engineQuality_ += description;
 }
@@ -3613,9 +3603,9 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
     Engine::Setup const &engineSetup(settings.editor().engineSetup());
     juce::String tmp;
     tmp.preallocateBytes(sizeof(juce::String::CharPointerType::CharType) * 64);
-    printEngineDiagnostics(tmp, "Frequency resolution", engineSetup.frequencyRangePerBin<float>(),
+    printEngineDiagnostics(tmp, "Frequency Resolution", engineSetup.frequencyRangePerBin<float>(),
                            "Hz", yMargin + yStep * 5 + 20, g);
-    printEngineDiagnostics(tmp, "Time resolution", engineSetup.stepTime() * 1000, "ms",
+    printEngineDiagnostics(tmp, "Time Resolution", engineSetup.stepTime() * 1000, "ms",
                            yMargin + yStep * 5 + 40, g);
     printEngineDiagnostics(tmp, "Latency", engineSetup.latencyInMilliseconds(), "ms",
                            yMargin + yStep * 5 + 60, g);
@@ -3627,8 +3617,8 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     : BackgroundImage(resourceArtwork<SettingsIntrfcBg>()),
       zoom_(*this, xMargin, yMargin + 0 * yStep, "Zoom"),
-      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 1 * yStep, "Mouse over reaction"),
-      lfoUpdateBehaviour_(*this, xMargin, yMargin + 2 * yStep, "LFO update behaviour"),
+      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 1 * yStep, "Mouse Over Reaction"),
+      lfoUpdateBehaviour_(*this, xMargin, yMargin + 2 * yStep, "LFO Update Behaviour"),
       hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 3 * yStep, "Hide cursor on knob drag")
 {
     Settings &parent(
@@ -3647,8 +3637,7 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
 
     moduleUIMouseOverReaction_.addItem(Preferences::Never, "Never");
     moduleUIMouseOverReaction_.addItem(Preferences::WhenParentModuleSelected, "Module selected");
-    moduleUIMouseOverReaction_.addItem(Preferences::WhenParentOrNothingSelected,
-                                       "Module/nothing selected");
+    moduleUIMouseOverReaction_.addItem(Preferences::WhenParentOrNothingSelected, "Always");
     moduleUIMouseOverReaction_.setSelectedIndex(preferences().moduleUIMouseOverReaction());
 
     lfoUpdateBehaviour_.addItem(Preferences::NoUpdate, "Never");
