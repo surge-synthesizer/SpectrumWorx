@@ -90,6 +90,21 @@ struct PresetLoader
     static bool wantsSampleFile() { return false; }
     static void setSample(std::string_view) {}
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The side chain's source, which this harness records rather than
+    /// applies -- there is no host under it to load a file on.
+    ///
+    /// \note Recorded all the same, because the *migration* is a claim about the
+    /// format rather than about the plugin: a 2.x file's `Input_mode` becoming
+    /// `Main` or `Host` is exactly the sort of thing presetCorpusTests exists to
+    /// pin. \see doc/tech/sidechain-approach.md.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static bool wantsSideChain() { return true; }
+    void setSideChain(std::string_view recordedSource, std::optional<unsigned int> legacyInputMode,
+                      std::string_view sampleFileName) const;
+
     bool setNewGlobalParameters(LE::SW::GlobalParameters::Parameters const &) const;
 
     static void moduleChainFinished(std::uint8_t /*moduleCount*/, bool /*syncedLFOFound*/) {}

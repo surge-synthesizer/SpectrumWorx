@@ -6,6 +6,8 @@
 		<p n="FFT size" v="2048" />
 		<p n="Overlap factor" v="4" />
 		<p n="Window type" v="1" />
+		<p n="Side chain source" v="main" />
+		<p n="Input mode" v="1" />
 	</Global>
 	<Modules>
 		<Module effect="Pitch Shifter">

@@ -243,6 +243,11 @@ TEST_CASE("Text that is not a value is declined rather than guessed", "[clap][te
     CHECK_FALSE(params.text_to_value(&*plugin, windowType, "3", &value));
     CHECK(params.text_to_value(&*plugin, windowType, "Blackman", &value));
     CHECK(value == 2);
+
+    /// \note There is no third global to check here. `Input mode` was one for a
+    /// day, on 17.08.2026, and is not a parameter at all now: what feeds the side
+    /// channel is the audio-file selector's answer rather than an automatable
+    /// value, and it streams beside the sample. \see issue #113.
 }
 
 TEST_CASE("A typed value is read in display units, not storage units", "[clap][text]")

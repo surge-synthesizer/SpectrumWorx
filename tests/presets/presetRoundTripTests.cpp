@@ -287,7 +287,7 @@ TEST_CASE("A saved preset loads back as itself", "[preset-roundtrip]")
 
             original = dump(engine).text;
 
-            saved = savePreset({}, "round trip", engine.program());
+            saved = savePreset({}, engine.sideChainSource(), "round trip", engine.program());
             REQUIRE_FALSE(saved.empty());
         }
 
@@ -381,7 +381,7 @@ TEST_CASE("Saving while an LFO is running stores the setting, not the sweep",
         [&](ModuleParameters const &module) { liveValue = module.getBaseParameter(gain); });
     REQUIRE(liveValue != setValue);
 
-    auto const saved(savePreset({}, "lfo running", engine.program()));
+    auto const saved(savePreset({}, engine.sideChainSource(), "lfo running", engine.program()));
     REQUIRE_FALSE(saved.empty());
 
     INFO("saved preset:\n" << saved);
@@ -412,7 +412,7 @@ TEST_CASE("A parameter under an enabled LFO takes its value from the LFO", "[pre
 
         REQUIRE(drivenValue != 0);
 
-        saved = savePreset({}, "lfo", engine.program());
+        saved = savePreset({}, engine.sideChainSource(), "lfo", engine.program());
         REQUIRE_FALSE(saved.empty());
     }
 
@@ -491,7 +491,8 @@ TEST_CASE("A preset saved to a file loads back from it", "[preset-roundtrip]")
 
         original = dump(engine).text;
 
-        auto const preset(savePreset({}, "through a file", engine.program()));
+        auto const preset(
+            savePreset({}, engine.sideChainSource(), "through a file", engine.program()));
         REQUIRE(
             writePresetFile(file, preset.c_str(), static_cast<unsigned int>(preset.size() + 1)));
     }
@@ -570,7 +571,7 @@ TEST_CASE("A preset saved under the host's locale is a preset anywhere else",
             });
 
         original = dump(engine).text;
-        saved = savePreset({}, "written abroad", engine.program());
+        saved = savePreset({}, engine.sideChainSource(), "written abroad", engine.program());
         REQUIRE_FALSE(saved.empty());
     }
 
@@ -639,6 +640,19 @@ TEST_CASE("The committed 3.0 fixture loads without the writer's help", "[preset-
     CHECK(globals.get<GlobalParameters::InputGain>().getValue() == Catch::Approx(0.5f));
     CHECK(globals.get<GlobalParameters::OutputGain>().getValue() == Catch::Approx(1.25f));
     CHECK(globals.get<GlobalParameters::MixPercentage>().getValue() == Catch::Approx(0.75f));
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The side chain's source, and the fixture is built so that only one
+    /// reading of it passes. `main` is not the default -- that is `host` -- so a
+    /// build that failed to find the element would answer `host`. And the fixture
+    /// *also* carries `Input mode="1"`, which migrates to `host`, so a build that
+    /// preferred the legacy key over the recorded source would answer `host` too.
+    /// `main` is only reachable by reading `Side chain source` and letting it win.
+    /// \see issue #113 and doc/tech/sidechain-approach.md.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    CHECK(engine.sideChainSource() == SideChainSource::Main);
 
     /// Two modules, in document order, named by their streaming names.
     std::vector<std::string> effects;

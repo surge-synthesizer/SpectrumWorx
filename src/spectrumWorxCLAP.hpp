@@ -28,6 +28,7 @@
 #include "core/threading/valueMailbox.hpp"
 #include "external_audio/sample.hpp"
 #include "gui/editor/editorHost.hpp"
+#include "le/spectrumworx/sideChainSource.hpp"
 
 #include "le/plugins/clap/tag.hpp"
 
@@ -287,6 +288,9 @@ class SpectrumWorxCLAP final
 
     fs::path currentSampleFile() const override { return sampleFile_; }
     char const *setNewSample(fs::path const &) override;
+
+    SideChainSource sideChainSource() const override { return sideChainSourceMain_; }
+    void setSideChainSource(SideChainSource) override;
     /// \note Always false while the load above is synchronous: by the time
     /// anything can ask, it has finished. See the note on the interface.
     bool isSampleLoadInProgress() const override { return false; }
@@ -411,6 +415,9 @@ class SpectrumWorxCLAP final
 
     /// \brief Installs \p pNewSample (owned, null clears) as the side channel's
     /// source. `[main-thread]` \see the definition.
+    /// \brief One message either way: a new sample with the source that goes
+    /// with it, or a source on its own with whatever sample is loaded left alone.
+    void publishSideChain(Sample *pNewSample, bool replacesSample, SideChainSource);
     void publishSample(Sample *pNewSample);
 
     /// \brief Decodes \p sampleFile for the engine's current rate and installs
@@ -627,6 +634,21 @@ class SpectrumWorxCLAP final
     Sample *pSample_{nullptr};
     fs::path sampleFile_;
     unsigned int decodedSampleRate_{0};
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What feeds the side channel, split the same way and for the same
+    /// reason as the sample above it.
+    ///
+    /// \note `sideChainSource_` is the engine's and travels in the same message
+    /// as a sample swap, so the audio thread never holds a source and a sample
+    /// that disagree. `sideChainSourceMain_` is what the interface shows and what
+    /// `stateSave` writes, and it is the main thread's outright.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    SideChainSource sideChainSource_{defaultSideChainSource};
+    SideChainSource sideChainSourceMain_{defaultSideChainSource};
 
     /// \note Owned by the shim, which destroys it before this. Cleared in the
     /// editor's own destructor path so a queued notification cannot reach a

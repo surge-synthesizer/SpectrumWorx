@@ -1294,9 +1294,7 @@ juce::String SpectrumWorxEditor::buildStampText()
 
 SpectrumWorxEditor::EngineState SpectrumWorxEditor::currentEngineState() const
 {
-    auto const &core(editorHost().core());
-    return {core.getSampleRate(), core.numberOfInputChannels(), core.numberOfSideChannels(),
-            core.numberOfOutputChannels()};
+    return {editorHost().core().getSampleRate()};
 }
 
 /// \see the note on the declaration.
@@ -1312,9 +1310,7 @@ juce::String SpectrumWorxEditor::engineStateText() const
                             (state.sampleRate == std::floor(state.sampleRate)) ? 0 : 1) +
                " Hz";
 
-    return rate + "  " + juce::String(int{state.mainChannels}) + "main," +
-           juce::String(int{state.sideChannels}) + "side in, " +
-           juce::String(int{state.outputChannels}) + "main out";
+    return rate;
 }
 
 juce::Rectangle<int> SpectrumWorxEditor::buildStampBar() const
@@ -1433,9 +1429,26 @@ void SpectrumWorxEditor::updateSampleName(juce::String const &newSampleName)
     updateString(currentSampleName, sampleNameVerticalOffset, textBoxHeight, newSampleName);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The box shows the **source**, which is a file's name only when a file is
+/// what was selected. It is never empty: "nothing" is not one of the three
+/// answers, and an empty box was 2016's way of saying `Main` without a word for
+/// it. \see doc/tech/sidechain-approach.md.
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void SpectrumWorxEditor::updateSampleName()
 {
-    updateSampleName(LE::IO::pathToJuceString(editorHost_.currentSampleFile().stem()));
+    switch (editorHost_.sideChainSource())
+    {
+    case SideChainSource::File:
+        return updateSampleName(LE::IO::pathToJuceString(editorHost_.currentSampleFile().stem()));
+    case SideChainSource::Main:
+        return updateSampleName("Main as sidechain");
+    case SideChainSource::Host:
+        return updateSampleName("Host sidechain");
+    }
 }
 
 /// \note "Async" is 2016's, and the branch it names is currently unreachable:
@@ -1470,6 +1483,20 @@ void SpectrumWorxEditor::setSampleLoadingStatus()
 /// `setNewSample` is a preset or a session being loaded, where there is nobody to
 /// answer a modal box and possibly no window to put one in.
 ///                                           (08.08.2026.) (SW port)
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Picking one of these **discards** a loaded file. The box has three
+/// answers and it should not be hiding a fourth piece of state behind one of
+/// them; \see the note on `SpectrumWorxCLAP::setSideChainSource()`.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::sideChainSourceSelected(SideChainSource const source)
+{
+    editorHost_.setSideChainSource(source);
+    updateSampleName();
+}
+
 void SpectrumWorxEditor::newSampleFileSelected(fs::path const &file)
 {
     auto const *const pErrorMessage(editorHost_.setNewSample(file));
@@ -1635,9 +1662,17 @@ void SpectrumWorxEditor::savePreset(fs::path const &presetFile, bool const ignor
 {
     fs::path const externalSample(ignoreExternalSample ? fs::path()
                                                        : editorHost_.currentSampleFile());
+    /// \note A preset saved with the browser's "Ignore external audio" on names
+    /// no file, so it cannot honestly say its side channel comes from one. The
+    /// other two sources are unaffected: what that toggle withholds is somebody
+    /// else's audio, not the patch's routing.
+    auto source(editorHost_.sideChainSource());
+    if (externalSample.empty() && (source == SideChainSource::File))
+        source = SideChainSource::Main;
+
     /// \note Where the interface's `juce::String` becomes the format's bytes, and
     /// the last thing presetFile.cpp used to do before it was deleted.
-    SW::savePreset(presetFile, externalSample,
+    SW::savePreset(presetFile, externalSample, source,
                    std::string_view(comment.toRawUTF8(), comment.getNumBytesAsUTF8()), program());
 }
 
@@ -3260,9 +3295,11 @@ void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
 {
     SpectrumWorxEditor &editor(this->editor());
     juce::ModifierKeys const mouseButtons(event.mods);
+    /// \note The right button used to clear the file, which meant "the main
+    /// input" without saying so. It says so.
     if (mouseButtons.isRightButtonDown())
     {
-        editor.newSampleFileSelected({});
+        editor.sideChainSourceSelected(SideChainSource::Main);
         return;
     }
     if (!mouseButtons.isLeftButtonDown() || menu_.menuActive())
@@ -3273,16 +3310,30 @@ void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
     enum : PopupMenu::ItemID
     {
         browse = 0,
-        clear,
+        mainAsSideChain,
+        hostSideChain,
         firstFactorySample
     };
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The three sources first, because they are what this control is for,
+    /// and "No external audio" is gone from among them: it named the *absence* of
+    /// one source rather than the presence of another, which is why a user who
+    /// cleared a file could not say what they wanted instead. \see issue #113.
+    ///
+    /// \note Neither of the two is disabled when it is already selected. They are
+    /// a choice rather than a command, and greying out the current one is how the
+    /// old `clear` entry came to be disabled in exactly the state a user most
+    /// wanted to see what it said.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
     menu_.clear();
+    menu_.addItem(mainAsSideChain, "Main as sidechain");
+    menu_.addItem(hostSideChain, "Host sidechain");
+    menu_.addSectionHeader("Audio file");
     menu_.addItem(browse, "Load audio file...");
-    menu_.addItem(clear, "No external audio",
-                  /*icon*/ nullptr,
-                  /*enabled*/ !editor.editorHost().currentSampleFile().empty());
-    menu_.addSectionHeader("Factory samples");
     for (std::size_t sample(0); sample < factorySamples.size(); ++sample)
         menu_.addItem(static_cast<PopupMenu::ItemID>(firstFactorySample + sample),
                       LE::IO::pathToUTF8(factorySamples[sample].stem()).c_str());
@@ -3295,8 +3346,10 @@ void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
         {
         case browse:
             return browseForFile();
-        case clear:
-            return pEditor->newSampleFileSelected({});
+        case mainAsSideChain:
+            return pEditor->sideChainSourceSelected(SideChainSource::Main);
+        case hostSideChain:
+            return pEditor->sideChainSourceSelected(SideChainSource::Host);
         default:
             return pEditor->newSampleFileSelected(factorySamples[*chosen - firstFactorySample]);
         }

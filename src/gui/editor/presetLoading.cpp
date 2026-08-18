@@ -163,6 +163,12 @@ struct Loader
 
     bool wantsSampleFile() const { return !ignoreSampleFile && !onlySetParameters(); }
 
+    /// \note Wider than wantsSampleFile(): a patch loaded with "Ignore external
+    /// audio" on still says where its side channel comes from, and the answer is
+    /// then one of the two that is not a file. Only a load into a Program copy,
+    /// which has no host to set anything on, wants none of this.
+    bool wantsSideChain() const { return !onlySetParameters(); }
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \note The sample is the one thing a preset can name that a preset failing
@@ -231,6 +237,49 @@ struct Loader
 
         if (pEditor)
             pEditor->updateSampleNameAsync();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The audio file and the side-chain source together, because the
+    /// second is not decidable without the first.
+    ///
+    /// \note **The sample is applied exactly as it always was**, independently of
+    /// the source: a patch that names a file loads it and a patch that names none
+    /// clears whatever the last one left, because a preset is a statement about
+    /// everything it can name. What is new is only the source, which is then
+    /// allowed to be `Main` or `Host` with a file still loaded and ready to be
+    /// switched back to.
+    ///
+    /// \note **The migration.** A patch that records no source is a 2.x file, or
+    /// a 3.0 file this build's predecessor wrote, and 2016's rule is recoverable
+    /// exactly: the file wins if there is one, and otherwise `Input_mode`'s odd
+    /// values are the ones that asked the host. That reproduces the old truth
+    /// table row for row, including for the 84 shipped presets that name a
+    /// carrier and the ten in `Sidechainables` that ask for a send.
+    ///
+    ///   `Ignore external audio` falls out of it rather than being a case: with
+    /// the toggle on no sample is applied, so a patch that named one migrates to
+    /// `Input_mode`'s answer instead of to `File`, which is what a user who asked
+    /// not to be given somebody else's audio meant.
+    ///
+    /// \note A source of `File` with nothing loaded is not a state this leaves
+    /// behind. A named file that will not decode is reported and cleared, and the
+    /// source falls to `Main` -- so the selector never shows a file that is not
+    /// there, and the engine never has a source it cannot honour.
+    ///                                       (18.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    void setSideChain(std::string_view const recordedSource,
+                      std::optional<unsigned int> const legacyInputMode,
+                      std::string_view const sampleFileName) const
+    {
+        if (wantsSampleFile())
+            setSample(sampleFileName);
+
+        host.setSideChainSource(resolveSideChainSource(recordedSource, legacyInputMode,
+                                                       !host.currentSampleFile().empty()));
     }
 
     bool setNewGlobalParameters(GlobalParameters::Parameters const &newParameters) const

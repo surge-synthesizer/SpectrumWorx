@@ -29,6 +29,7 @@
 #define editorHost_hpp__0C5A1E7B_9D34_4F82_A6E1_37B0C4D8F925
 //------------------------------------------------------------------------------
 #include "core/threading/messages.hpp"
+#include "le/spectrumworx/sideChainSource.hpp"
 #include "core/threading/valueMailbox.hpp"
 
 #include "le/utility/platformSpecifics.hpp"
@@ -281,6 +282,21 @@ class EditorHost
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual char const *setNewSample(fs::path const &) = 0;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What feeds the side channel, which is the audio-file selector's
+    /// answer and travels with the patch. \see sideChainSource.hpp.
+    ///
+    /// \note A pair of plain accessors rather than a parameter, because "load
+    /// this file" and "take the host's port" are one act and one selection. The
+    /// setter publishes to the audio thread; `SpectrumWorxCLAP` sends it in the
+    /// same command as a sample swap so that the two can never be seen apart.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    virtual SideChainSource sideChainSource() const = 0;
+    virtual void setSideChainSource(SideChainSource) = 0;
+
     virtual bool isSampleLoadInProgress() const = 0;
     virtual void registerSampleLoadedListener(SpectrumWorxEditor &) = 0;
     virtual void deregisterSampleLoadedListener(SpectrumWorxEditor const &) = 0;

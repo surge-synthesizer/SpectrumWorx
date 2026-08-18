@@ -90,6 +90,20 @@ class Instance final : public GUI::EditorHost
         return *pEditor_;
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The side chain's source, held and handed back.
+    ///
+    /// \note No sample loader under this harness, so `File` is not reachable
+    /// through it -- what the editor cases are about is that the selector *shows*
+    /// the source and that picking one reaches the host. \see
+    /// tests/external_audio/sampleFeedTests.cpp for what each source does to the
+    /// audio.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    SideChainSource sideChainSource() const override { return sideChainSource_; }
+    void setSideChainSource(SideChainSource const source) override { sideChainSource_ = source; }
+
     SpectrumWorxCore &core() override { return engine_; }
     Plugin2HostInteropControler &automation() override { return notifications_; }
 
@@ -205,6 +219,7 @@ class Instance final : public GUI::EditorHost
     mutable Threading::ToEngineQueue toEngine_;
     Threading::ValueMailbox values_;
     std::unique_ptr<GUI::SpectrumWorxEditor> pEditor_;
+    SideChainSource sideChainSource_{defaultSideChainSource};
 }; // class Instance
 
 /// \brief JUCE, owned the way the shim owns it: one reference held across

@@ -28,6 +28,7 @@
 /// `isAnEvent`, which is what "an event always streams off" is spelt with.
 #include "le/parameters/trigger/tag.hpp"
 #include "le/spectrumworx/engine/parameters.hpp"
+#include "le/spectrumworx/sideChainSource.hpp"
 #include "le/utility/countof.hpp"
 #include "le/utility/lexicalCast.hpp"
 #include "le/utility/platformSpecifics.hpp"
@@ -527,6 +528,31 @@ class ParametersLoader : private PresetHandler
 
     std::string_view getSampleFileName();
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What the patch says feeds its side channel, as written -- empty
+    /// when it does not say, which is every 2.x file and every 3.0 file older
+    /// than 18.08.2026.
+    ///
+    /// \note Handed back as text rather than as a `SideChainSource`, so that "the
+    /// patch does not say" and "the patch says something this build does not
+    /// know" are the caller's to tell apart. The first migrates; the second is a
+    /// file from a newer SpectrumWorx and takes the default.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::string_view getSideChainSource();
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief 2016's `Input_mode`, for migrating a patch that records no source.
+    ///
+    /// \note Read and **not** counted as a parameter: it is not one any more, so
+    /// a file that omits it is not missing anything. \see
+    /// sideChainSourceFromLegacyInputMode().
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    std::optional<unsigned int> getLegacyInputMode();
+
     bool syncedLFOFound() const { return syncedLFOFound_; }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -740,6 +766,7 @@ class ParametersSaver : private PresetHandler
     //...mrmlj...temporarily reverting to old code for the 2.1 release...
     //void setSampleFileName( juce::String const & sampleFileName );
     void setSampleFileName(std::string_view const &sampleFileName);
+    void setSideChainSource(SideChainSource);
 
     std::string saveTo() const;
 
@@ -898,17 +925,21 @@ bool loadPreset(char *LE_RESTRICT const inMemoryPreset, bool const ignoreExterna
 
         auto loader(consumer.presetLoader(ignoreExternalSample));
 
-        if (loader.wantsSampleFile())
-        {
-            // Implementation note:
-            //   The sample file name must be fetched before switching to module
-            // parameters (see the implementation of the
-            // ParametersLoader::getSampleFileName() member function).
-            //                                (15.12.2011.) (Domagoj Saric)
-            /// \todo Clean up this spaghetti.
-            ///                               (15.12.2011.) (Domagoj Saric)
-            loader.setSample(parametersLoader.getSampleFileName());
-        }
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \note Both read before the reader switches to module parameters --
+        /// `getSampleFileName()`'s own assertion says why -- and both handed over
+        /// in one call, because the source is only decidable with the sample name
+        /// in hand: a patch that names a file and records no source is a 2.x
+        /// patch, and 2.x played the file. \see Loader::setSideChain() and
+        /// doc/tech/sidechain-approach.md.
+        ///
+        ////////////////////////////////////////////////////////////////////////
+        auto const sampleFileName(parametersLoader.getSampleFileName());
+        auto const recordedSource(parametersLoader.getSideChainSource());
+        auto const legacyInputMode(parametersLoader.getLegacyInputMode());
+        if (loader.wantsSideChain())
+            loader.setSideChain(recordedSource, legacyInputMode, sampleFileName);
 
         GlobalParameters::Parameters newParameters;
         LE::Parameters::forEach(newParameters, parametersLoader);
@@ -966,11 +997,15 @@ class Program;
 /// type either.
 ///
 /// \param externalSampleFilePath empty when no sample is loaded.
+/// \param sideChainSource what feeds the side channel. Written beside the sample
+/// rather than with the parameters, because it is the same answer -- the file
+/// selector's -- and not an automatable value. \see sideChainSource.hpp.
 /// \param pDawExtraState null for a `.swp`, which carries only what the plugin
 /// sounds like; non-null for the session state a host holds, which carries that
 /// plus where the user had got to. See DawExtraState.
-std::string savePreset(std::string_view externalSampleFilePath, std::string_view comment,
-                       Program const &, DawExtraState const *pDawExtraState = nullptr);
+std::string savePreset(std::string_view externalSampleFilePath, SideChainSource sideChainSource,
+                       std::string_view comment, Program const &,
+                       DawExtraState const *pDawExtraState = nullptr);
 
 } // namespace SW
 

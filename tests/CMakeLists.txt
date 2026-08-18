@@ -90,6 +90,7 @@ add_executable(sw-plugin-tests
         gui/overlayPanelTests.cpp
         gui/pathsTests.cpp
         gui/preferencesTests.cpp
+        gui/sideChainSelectorTests.cpp
         gui/skinTests.cpp
         gui/twoInstanceTests.cpp
         io/jucePathTests.cpp

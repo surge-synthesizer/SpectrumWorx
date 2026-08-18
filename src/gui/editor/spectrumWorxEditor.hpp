@@ -525,6 +525,14 @@ class SpectrumWorxEditor final : private SkinLifetime,
   private:
     void newSampleFileSelected(fs::path const &);
 
+  public:
+    /// \brief One of the two sources that is not a file, which is what the sample
+    /// menu's first two entries pick. Public because the menu itself is not
+    /// reachable headlessly -- opening one needs a message loop -- so this is
+    /// where a test stands in for a click.
+    void sideChainSourceSelected(SideChainSource);
+
+  private:
     /// \brief Parents \p panel to the editor, on top, wherever the placement puts
     /// it.
     void showPanel(juce::Component &panel);
@@ -569,24 +577,22 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \brief The other end of the same bar: what the engine currently believes
-    /// it is running at -- sample rate, and how many channels in and out.
+    /// \brief The other end of the same bar: the rate the engine is running at,
+    /// or "no rate" before a host has activated it.
     ///
-    ///   Reads `2main,0side in, 2main out`. The side count is spelt out rather
-    /// than folded into a total, because it is the interesting one and a sum
-    /// hides it: `4 in` could be four main channels or two and a side chain, and
-    /// those are different plugins.
-    ///
-    ///   Whether the host actually *patched* anything into that port is a
-    /// different question and a per-block one -- `SpectrumWorxCLAP::runEngine()`
-    /// decides it from `clap_audio_buffer::constant_mask` every callback and
-    /// falls back to the main input -- so it is deliberately not claimed here.
-    /// What this says is what the engine is *configured* for.
+    /// \note The channel layout was drawn here too until 18.08.2026 --
+    /// `2main,0side in, 2main out` -- and it is gone rather than shortened. It is
+    /// a *bus topology*, which is a handshake between the plugin, the host and
+    /// the track and not something a user acts on; the plugin declares the same
+    /// one unconditionally, so the readout was three constants beside a number
+    /// that moves. What a user does decide about the side chain is which source
+    /// feeds it, and that is answerable where they choose it. \see
+    /// doc/tech/sidechain-approach.md and issue #113.
     ///
     /// \note Live, where buildStampText() is fixed for the life of the process:
-    /// a host can change the sample rate or the layout under an open editor, so
+    /// a host can change the sample rate under an open editor, so
     /// `timerCallback()` watches for it. \see currentEngineState().
-    ///                                       (17.08.2026.)
+    ///                                       (18.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     juce::String engineStateText() const;
@@ -611,9 +617,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
     struct EngineState
     {
         float sampleRate{0};
-        std::uint8_t mainChannels{0};
-        std::uint8_t sideChannels{0};
-        std::uint8_t outputChannels{0};
 
         bool operator==(EngineState const &) const = default;
     }; // struct EngineState

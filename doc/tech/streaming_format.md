@@ -181,6 +181,7 @@ version; both went with the parameter on 07.08.2026.
 		<p n="In" v="1" />
 		<p n="FFT size" v="4096" />
 		<p n="Sample" v="Carrier.mp3" />
+		<p n="Side chain source" v="file" />
 	</Global>
 	<Modules>
 		<Module effect="Ah-ah">
@@ -197,6 +198,23 @@ The external sample is a `<p>` like everything else rather than an attribute on
 It is not a parameter, but it is a global scalar keyed by name, and giving it the
 same shape means the reader needs no special case for it: `getSampleFileName()`
 goes through the same lookup as `In` and `FFT size`.
+
+`Side chain source` (18.08.2026) is the second of those, and it is the sample's
+companion: what feeds the side channel is the audio-file selector's answer, so it
+is a selection rather than an automatable value. Two things about it are
+deliberate and neither is the norm here —
+
+- **It streams by name**, `file` / `main` / `host`, where every *parameter*
+  streams as a number. A fourth value appended later then cannot change what an
+  existing file means. The preferences file already streams its two enumerations
+  this way (§4.4).
+- **It is written always**, where the sample name is written only when there is
+  one. A patch that omitted it would be indistinguishable from a 2.x file and
+  would be *migrated* rather than read.
+
+A patch with no `Side chain source` is migrated from 2016's `Input_mode`, which
+all 288 shipped presets carry and which is no longer a parameter — read at load,
+never written. See [`sidechain-approach.md`](sidechain-approach.md) §4.
 
 Against 2.x:
 

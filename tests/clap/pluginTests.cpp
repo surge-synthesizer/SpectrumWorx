@@ -46,6 +46,7 @@
 #include <filesystem>
 #include <cstring>
 #include <numbers>
+#include <optional>
 #include <functional>
 #include <set>
 #include <vector>
@@ -322,6 +323,12 @@ TEST_CASE("Audio ports are stereo in, stereo out, plus a side chain", "[clap]")
 /// engine receives, and that the two ways a host can decline to fill it both
 /// fall back rather than fault.
 ///
+/// \note **Every run here is in the default source, which is `Host`.** The port
+/// is read because the patch says to read it, and a fresh instance says to --
+/// which is deliberate, so that a user who has patched a send hears it without
+/// going looking for a setting. The case below this one is what pins the
+/// selection itself. \see issue #113.
+///
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("What a host puts on the side chain port reaches the engine", "[clap][side-chain]")
@@ -449,6 +456,95 @@ TEST_CASE("What a host puts on the side chain port reaches the engine", "[clap][
     ///
     ////////////////////////////////////////////////////////////////////////////
     CHECK(silentButUndeclared != noPort);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The other half, and the one the selector exists for: a fully patched,
+/// signal-carrying port is **ignored** while the patch's source is `Main`.
+/// Nothing about the host changes between the two runs below -- same buffers,
+/// same carrier, same port count -- so the only thing that can move the output is
+/// the selection, which is the property that was missing while the source was
+/// inferred from what the host handed over.
+///
+/// \note And the `Main` run is bit-identical to one with no port at all, rather
+/// than merely different: "ignored" is a stronger claim than "weighted less", and
+/// it is what makes `sidechain=main` mean what it says -- an effect sees the same
+/// spectrum on both channels. \see issue #113.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The patch's source decides whether the side chain port is read at all",
+          "[clap][side-chain][issue-113]")
+{
+    constexpr float sampleRate{48000};
+    constexpr std::uint32_t blockSize{512};
+    constexpr unsigned int blocks{24}; // past the engine's latency
+
+    auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
+
+    /// \param source what to select, or nothing to leave the instance in whatever
+    ///        a fresh one is in -- which is what says what the default *is*
+    ///        rather than merely that the two values differ.
+    /// \param connectPort whether the host offers a second port at all.
+    auto const run(
+        [&](std::optional<LE::SW::SideChainSource> const source, bool const connectPort) {
+            Entry const entry;
+            ActivePlugin plugin(sampleRate, blockSize);
+
+            OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
+            parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
+            plugin.pumpMainThread();
+
+            if (source)
+                editorHostOf(*plugin).setSideChainSource(*source);
+
+            std::vector<float> leftIn(blockSize), rightIn(blockSize);
+            std::vector<float> sideLeft(blockSize, 0.0f), sideRight(blockSize, 0.0f);
+            std::vector<float> leftOut(blockSize), rightOut(blockSize);
+
+            if (connectPort)
+                plugin.connectSideChain(sideLeft, sideRight);
+
+            for (unsigned int block(0); block < blocks; ++block)
+            {
+                fillWithSine(leftIn, sampleRate, 440.0f, block * blockSize);
+                rightIn = leftIn;
+                fillWithSine(sideLeft, sampleRate, 1100.0f, block * blockSize);
+                sideRight = sideLeft;
+
+                plugin.process(leftIn, rightIn, leftOut, rightOut);
+                REQUIRE(allFinite(leftOut));
+            }
+            return leftOut;
+        });
+
+    using LE::SW::SideChainSource;
+
+    auto const noPort(run(SideChainSource::Host, false));
+    auto const heard(run(SideChainSource::Host, true));
+    auto const ignored(run(SideChainSource::Main, true));
+    auto const byDefault(run(std::nullopt, true));
+
+    REQUIRE(noPort.size() == heard.size());
+    CHECK(peak(heard) > 0);
+
+    // The control: with `Host` selected, the carrier reaches the engine.
+    CHECK(heard != noPort);
+
+    // The claim: the same carrier, on the same port, with `Main` selected, does
+    // not -- and not merely less of it.
+    CHECK(ignored == noPort);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And an untouched patch reads it, because the default source is
+    /// `Host`. Pinned here rather than left to the enum's declaration, because it
+    /// is the default's *audible* consequence: a user who has patched a send and
+    /// touched nothing else hears it.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    CHECK(byDefault == heard);
 }
 
 TEST_CASE("The engine reports the latency its FFT size implies", "[clap]")

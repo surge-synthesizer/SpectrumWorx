@@ -141,22 +141,22 @@ TEST_CASE("The stamp names a date, a time and a commit", "[gui][buildstamp]")
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \brief The other end of the bar: what the plugin believes it is running at.
+/// \brief The other end of the bar: the rate, and only the rate.
 ///
-/// \note The channel count is the reason this is worth drawing, and the side
-/// count is spelt out rather than summed into the input total: `4 in` could be
-/// four main channels or two and a side chain, and those are different plugins.
+/// \note The channel layout was drawn here too until 18.08.2026 --
+/// `2main,0side in, 2main out` -- and this case asserted it against the engine.
+/// It is gone rather than shortened: a layout is a *bus topology*, which is a
+/// handshake between the plugin, the host and the track rather than anything a
+/// user acts on, and the plugin declares the same one unconditionally. So it was
+/// three constants sitting beside the one number in that bar that moves.
 ///
-/// \note What the readout deliberately does not claim is whether the host
-/// patched anything into that port. `runEngine()` decides that per block from
-/// `clap_audio_buffer::constant_mask` and falls back to the main input, so it is
-/// not a property of the configuration at all -- which is also why this case
-/// asserts against the engine rather than against a literal.
-///                                           (17.08.2026.)
+///   What a user does decide about the side chain is which of three sources
+/// feeds it, and that is answerable where they choose it rather than in a
+/// diagnostic strip. \see doc/tech/sidechain-approach.md and issue #113.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("The bar says the rate and the channel layout", "[gui][buildstamp]")
+TEST_CASE("The bar says the rate", "[gui][buildstamp]")
 {
     SWTest::HostSideJuce const juce;
     SWTest::Instance instance;
@@ -169,13 +169,8 @@ TEST_CASE("The bar says the rate and the channel layout", "[gui][buildstamp]")
     /// decimal point -- "48000 Hz" rather than "48000.0 Hz".
     CHECK(line.contains("48000 Hz"));
 
-    /// \note Built from the engine rather than written out, so this says "the
-    /// bar reports the configuration" rather than "the harness is stereo" --
-    /// which is the claim worth making and the one that survives the harness
-    /// being reconfigured.
-    auto const &core(instance.core());
-    auto const layout(std::to_string(core.numberOfInputChannels()) + "main," +
-                      std::to_string(core.numberOfSideChannels()) + "side in, " +
-                      std::to_string(core.numberOfOutputChannels()) + "main out");
-    CHECK(line.contains(layout.c_str()));
+    /// \note And nothing else. Asserted by length rather than by naming the
+    /// strings that are gone, so that anything new appearing in this half of the
+    /// bar has to come past this case.
+    CHECK(line.trim() == "48000 Hz");
 }

@@ -93,6 +93,25 @@ struct Arrangement
 {
     bool loadSample{false};
     bool connectPort{false};
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Which of the three sources the patch selects.
+    ///
+    /// \note Defaulted to `Main`, which is **not** the plugin's default -- that
+    /// is `Host`. This field is the arrangement a case asks for rather than the
+    /// one a fresh instance is in, and `run()` always sets it, so an omitted
+    /// `.source` means "the source in which neither the port nor a file is
+    /// heard". That is the arrangement every case in this file was implicitly in
+    /// before there was anything to name. \see pluginTests.cpp for the default.
+    ///
+    /// \note `loadSample` and `source` are independent on purpose. A file can be
+    /// loaded while another source is selected -- that is the whole of what the
+    /// old "a loaded file always wins" precedence could not express, and the case
+    /// below is about it.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    LE::SW::SideChainSource source{LE::SW::SideChainSource::Main};
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -130,6 +149,10 @@ std::vector<float> run(Arrangement const arrangement)
         REQUIRE(editorHostOf(*plugin).currentSampleFile().filename() == "Carrier.mp3");
     }
 
+    /// \note After the load, because loading a file *is* selecting it -- a case
+    /// that wants a file loaded and a different source has to say so second.
+    editorHostOf(*plugin).setSideChainSource(arrangement.source);
+
     for (unsigned int block(0); block < blocks; ++block)
     {
         fillWithSine(leftIn, 440.0f, block * blockSize);
@@ -150,39 +173,121 @@ std::vector<float> run(Arrangement const arrangement)
 } // anonymous namespace
 //------------------------------------------------------------------------------
 
-TEST_CASE("A loaded sample feeds the side channel in place of the port",
-          "[external-audio][side-chain]")
+TEST_CASE("Each of the three sources reaches the DSP, and only the selected one",
+          "[external-audio][side-chain][issue-113]")
 {
     juce::ScopedJuceInitialiser_GUI const juceIsUp;
 
-    auto const nothing(run({.loadSample = false, .connectPort = false}));
-    auto const portOnly(run({.loadSample = false, .connectPort = true}));
-    auto const sampleOnly(run({.loadSample = true, .connectPort = false}));
-    auto const both(run({.loadSample = true, .connectPort = true}));
+    using LE::SW::SideChainSource;
 
-    REQUIRE(nothing.size() == blockSize);
-    CHECK(peak(nothing) > 0); // the effect is producing audio at all
+    ////////////////////////////////////////////////////////////////////////////
+    // The three, each alone.
+    ////////////////////////////////////////////////////////////////////////////
 
-    // The sample reached the DSP: with nothing on the port, loading a file
-    // changed what came out.
-    CHECK(sampleOnly != nothing);
+    auto const self(run({.loadSample = false, .connectPort = false}));
+    auto const file(
+        run({.loadSample = true, .connectPort = false, .source = SideChainSource::File}));
+    auto const host(
+        run({.loadSample = false, .connectPort = true, .source = SideChainSource::Host}));
 
-    // The control, so that the line above is about the *sample* rather than
-    // about anything a second source does: the port reaches the engine too.
-    CHECK(portOnly != nothing);
-    CHECK(portOnly != sampleOnly);
+    REQUIRE(self.size() == blockSize);
+    CHECK(peak(self) > 0); // the effect is producing audio at all
+
+    // Three genuinely different renders, or nothing below distinguishes anything.
+    CHECK(file != self);
+    CHECK(host != self);
+    CHECK(host != file);
 
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note And the claim the case is named for. `runEngine()` overwrites
-    /// `sideChannels` with the sample's chunks *after* choosing the port, so a
-    /// loaded sample wins outright -- the port is not mixed with it, not
-    /// preferred over it, and not used for the channels the sample does not
-    /// have. Bit-identical to the sample alone is the only outcome consistent
-    /// with that, and it is what a user assumes when they load a file.
+    /// \note And now with everything present at once, three times over. The
+    /// selected source is the *only* one heard: not preferred, not mixed with,
+    /// not used for the channels another does not have. Bit-identical to the same
+    /// source alone is the only outcome consistent with that.
+    ///
+    ///   Two of these three were unaskable before 18.08.2026, and that is the
+    /// point of the change rather than a by-product of it. A loaded file beat the
+    /// port unconditionally, so "the host's send, and keep my file loaded" had no
+    /// spelling at all, and "the main input, with a file loaded" had none either.
+    /// \see issue #113.
     ///
     ////////////////////////////////////////////////////////////////////////////
-    CHECK(both == sampleOnly);
+
+    CHECK(run({.loadSample = true, .connectPort = true, .source = SideChainSource::File}) == file);
+    CHECK(run({.loadSample = true, .connectPort = true, .source = SideChainSource::Host}) == host);
+    CHECK(run({.loadSample = true, .connectPort = true, .source = SideChainSource::Main}) == self);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note What each source does when the thing it names is not there. Neither is
+/// an error and both land on the main input, which is what makes "an unpatched
+/// side chain blends the signal with itself" true of all three.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A source with nothing behind it is the main input",
+          "[external-audio][side-chain][issue-113]")
+{
+    juce::ScopedJuceInitialiser_GUI const juceIsUp;
+
+    using LE::SW::SideChainSource;
+
+    auto const self(run({.loadSample = false, .connectPort = false}));
+    REQUIRE(self.size() == blockSize);
+
+    // `Host` with no second port offered.
+    CHECK(run({.loadSample = false, .connectPort = false, .source = SideChainSource::Host}) ==
+          self);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note `File` with nothing loaded is not a state that can be reached at
+    /// all: the setter refuses it and leaves `Main` selected, so the selector can
+    /// never come to be showing a file that is not there and the engine can never
+    /// hold a source it cannot honour. Asserted on the *host* rather than only
+    /// through the audio, because "it sounds like Main" and "it is Main" are two
+    /// different claims and the second is the one being made.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    {
+        Entry const entry;
+        SWTest::ScopedProblemCounter const quiet;
+        ActivePlugin plugin(sampleRate, blockSize);
+
+        REQUIRE(editorHostOf(*plugin).currentSampleFile().empty());
+        editorHostOf(*plugin).setSideChainSource(SideChainSource::File);
+        CHECK(editorHostOf(*plugin).sideChainSource() == SideChainSource::Main);
+
+        // ...and with one loaded it is honoured, so the refusal is about the
+        // absent file rather than about the value.
+        editorHostOf(*plugin).setNewSample(carrier());
+        editorHostOf(*plugin).setSideChainSource(SideChainSource::File);
+        CHECK(editorHostOf(*plugin).sideChainSource() == SideChainSource::File);
+
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \note And selecting either of the others **discards** the file rather
+        /// than leaving it loaded and unheard. That is what keeps the selector's
+        /// three answers the whole of the state: a patch cannot come to carry
+        /// audio nothing will play, and `stateSave` cannot write a `Sample=` its
+        /// own source contradicts.
+        ///
+        ///   Which also puts `File` back out of reach, by the rule above -- the
+        /// two assertions together are the invariant, not two separate facts.
+        ///
+        ////////////////////////////////////////////////////////////////////////
+        editorHostOf(*plugin).setSideChainSource(SideChainSource::Host);
+        CHECK(editorHostOf(*plugin).sideChainSource() == SideChainSource::Host);
+        CHECK(editorHostOf(*plugin).currentSampleFile().empty());
+
+        editorHostOf(*plugin).setSideChainSource(SideChainSource::File);
+        CHECK(editorHostOf(*plugin).sideChainSource() == SideChainSource::Main);
+    }
+
+    CHECK(run({.loadSample = false, .connectPort = false, .source = SideChainSource::File}) ==
+          self);
+    CHECK(run({.loadSample = false, .connectPort = true, .source = SideChainSource::File}) == self);
 }
 
 TEST_CASE("The sample is read forwards rather than held", "[external-audio][side-chain]")
@@ -235,12 +340,20 @@ TEST_CASE("The sample is read forwards rather than held", "[external-audio][side
     CHECK(peak(captured[63]) > 0);
 }
 
-TEST_CASE("Clearing the sample gives the port back", "[external-audio][side-chain]")
+TEST_CASE("Clearing the sample stops it being heard", "[external-audio][side-chain]")
 {
     /// \note The other half of the swap, and the one a user reaches by loading a
     /// file and then removing it. `publishSample(nullptr)` has to leave the
-    /// engine reading the port again rather than the last chunk it saw -- a
+    /// engine reading its fallback again rather than the last chunk it saw -- a
     /// stale `pSample_` would keep feeding a file nothing has open.
+    ///
+    /// \note The case was "Clearing the sample gives the port back" until
+    /// 18.08.2026, and the port is not what it gives back any more: clearing a
+    /// file selects `Main`, so the fallback is the main input and the port is not
+    /// consulted either before the clear or after it. The port stays connected
+    /// below all the same, because a stale-pointer bug that only shows up when a
+    /// second source is present is exactly the shape this is watching for.
+    /// \see issue #113.
     juce::ScopedJuceInitialiser_GUI const juceIsUp;
 
     Entry const entry;

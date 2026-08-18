@@ -87,7 +87,7 @@ void copyPresetName(char const *name, std::span<char> target);
 ////////////////////////////////////////////////////////////////////////////////
 
 void savePreset(std::filesystem::path const &file, std::filesystem::path const &externalSample,
-                std::string_view comment, Program const &);
+                SideChainSource sideChainSource, std::string_view comment, Program const &);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///

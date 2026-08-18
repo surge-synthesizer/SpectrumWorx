@@ -107,6 +107,16 @@ char const globalParametersNodeName_[] = "Global";
 char const moduleParametersNodeName_[] = "Modules";
 char const sampleAttributeName_[] = "Sample";
 
+/// \note Beside the sample and keyed like it, because it answers the same
+/// question -- \see sideChainSource.hpp. No 2.x file has one; `Input_mode` below
+/// is what those are migrated from.
+char const sideChainSourceAttributeName_[] = "Side chain source";
+
+/// \note 2016's parameter, which every one of the 288 shipped presets carries
+/// and which is no longer a parameter here. Read once, at load, and never
+/// written. \see doc/tech/sidechain-approach.md.
+char const legacyInputModeAttributeName_[] = "Input mode";
+
 /// \name The 3.0 grammar's own names.
 /// \note Short on purpose: `<p>` and its two attributes are repeated once per
 /// parameter, up to 55 times per preset, and this is a format read by machines
@@ -703,6 +713,24 @@ std::string_view ParametersLoader::getSampleFileName()
     return pSampleFileName ? std::string_view(pSampleFileName) : std::string_view();
 }
 
+std::string_view ParametersLoader::getSideChainSource()
+{
+    LE_ASSERT_MSG(!switchedToModuleParameters(),
+                  "The side chain source must be fetched before switching to module parameters.");
+    auto const *const pSource(getParameterAttribute(sideChainSourceAttributeName_));
+    return pSource ? std::string_view(pSource) : std::string_view();
+}
+
+std::optional<unsigned int> ParametersLoader::getLegacyInputMode()
+{
+    LE_ASSERT_MSG(!switchedToModuleParameters(),
+                  "The input mode must be fetched before switching to module parameters.");
+    auto const *const pInputMode(getParameterAttribute(legacyInputModeAttributeName_));
+    if (!pInputMode)
+        return std::nullopt;
+    return Utility::lexical_cast<unsigned int>(pInputMode);
+}
+
 namespace
 {
 class LFODataLoader
@@ -1067,6 +1095,15 @@ void ParametersSaver::setSampleFileName(std::string_view const &sampleFileName)
     saveParameter(sampleAttributeName_, std::string(sampleFileName));
 }
 
+/// \note Written always, where the sample name is written only when there is one.
+/// The sample is a thing a patch may or may not have; the source is a thing every
+/// patch has, and a file that omitted it would be indistinguishable from a 2.x
+/// file and get migrated rather than read.
+void ParametersSaver::setSideChainSource(SideChainSource const source)
+{
+    saveParameter(sideChainSourceAttributeName_, std::string(toString(source)));
+}
+
 /// \note It took JUCE's file and string types and converted both to UTF-8 here,
 /// under a `JUCE_STRING_UTF_TYPE` switch with an `_alloca` in one arm. The
 /// conversion belongs at the interface's edge rather than in the format layer,
@@ -1079,8 +1116,8 @@ void ParametersSaver::setSampleFileName(std::string_view const &sampleFileName)
 /// and it is converted by the editor. \see tests/checkNoJuceFile.cmake.
 ///                                           (09.08.2026.) (SW port)
 std::string savePreset(std::string_view const externalSampleFilePath,
-                       std::string_view const comment, Program const &program,
-                       DawExtraState const *const pDawExtraState)
+                       SideChainSource const sideChainSource, std::string_view const comment,
+                       Program const &program, DawExtraState const *const pDawExtraState)
 {
     PresetHeader const presetHeader(comment);
     SavedPreset preset;
@@ -1111,6 +1148,8 @@ std::string savePreset(std::string_view const externalSampleFilePath,
         */
         parametersSaver.setSampleFileName(externalSampleFilePath);
     }
+
+    parametersSaver.setSideChainSource(sideChainSource);
 
     parametersSaver.saveEffectModuleChain(program.moduleChain());
 

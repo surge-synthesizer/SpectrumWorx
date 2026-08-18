@@ -132,7 +132,8 @@ void copyPresetName(char const *const name, std::span<char> const target)
 }
 
 void savePreset(std::filesystem::path const &file, std::filesystem::path const &externalSample,
-                std::string_view const comment, Program const &program)
+                SideChainSource const sideChainSource, std::string_view const comment,
+                Program const &program)
 {
     std::error_code error;
     LE_ASSERT(std::filesystem::is_directory(file.parent_path(), error));
@@ -143,7 +144,7 @@ void savePreset(std::filesystem::path const &file, std::filesystem::path const &
     /// layer up, in presetFile.cpp, and it was the only thing that file did.
     auto const sample(externalSample.u8string());
 
-    auto const preset(savePreset(sample, comment, program));
+    auto const preset(savePreset(sample, sideChainSource, comment, program));
 
     if (!writePresetFile(file, preset.c_str(), static_cast<unsigned int>(preset.size() + 1)))
         reportPresetProblem(PresetProblem::SaveFailed);

@@ -1,6 +1,6 @@
 # SpectrumWorx — the tech documents
 
-Five documents, and every one of them describes the tree **as it is now** — how
+Six documents, and every one of them describes the tree **as it is now** — how
 something works, not what is left to do about it. Nothing here is a plan being
 executed or a record of how the port got where it is; that is in [`old/`](old/).
 
@@ -14,6 +14,7 @@ executed or a record of how the port got where it is; that is in [`old/`](old/).
 | [`streaming_format.md`](streaming_format.md) | What goes into a preset and into session state: the on-disk names, the snapshot tests that pin them, and the rules for changing any of it. |
 | [`latency.md`](latency.md) | Why the delay is one FFT window, why it cannot be less, the two FIFO primings that hold it constant, and the block-splitting bug that happened without the second one. |
 | [`how-lfo-rates-work.md`](how-lfo-rates-work.md) | What an LFO's period holds, which bar it is a fraction of, and what tempo sync does and does not move. |
+| [`sidechain-approach.md`](sidechain-approach.md) | The three things that can feed the side channel, why the choice is a *source* and not a bus topology, and what an old preset's `Input_mode` turns into. |
 
 ## What is left — the issue tracker
 
@@ -25,7 +26,7 @@ carried. All three are now
 where somebody looking for something to do will actually look, and which can be
 assigned, closed and argued with.
 
-So: **if it is a claim about how the tree behaves, it belongs in one of the five
+So: **if it is a claim about how the tree behaves, it belongs in one of the six
 documents above. If it is something somebody should do about it, it is an
 issue.** The rule that made the old files worth reading still applies to both —
 a claim carries its date and its evidence — and the one that made them work

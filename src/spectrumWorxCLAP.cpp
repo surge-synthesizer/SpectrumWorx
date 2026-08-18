@@ -1429,7 +1429,23 @@ void SpectrumWorxCLAP::runEngine(clap_process const *const process, std::uint32_
     ///
     ////////////////////////////////////////////////////////////////////////////
 
-    bool const sideChainCarriesSignal((process->audio_inputs_count > 1) &&
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And whether the port is consulted at all is the patch's, through
+    /// `SideChainSource` -- which is the audio-file selector's answer rather than
+    /// a claim about bus topology. \see doc/tech/sidechain-approach.md and issue
+    /// #113. `Host` is the only value that reads port 1; the fallbacks above are
+    /// what it gets when the host has not filled it.
+    ///
+    /// \note `sideChainSource_` is the engine's copy, set by `drainCommands()` in
+    /// the same message that swaps the sample -- so a block can never be rendered
+    /// with a new source and the sample the previous one named.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    bool const hostSideChainWanted(sideChainSource_ == SideChainSource::Host);
+
+    bool const sideChainCarriesSignal(hostSideChainWanted && (process->audio_inputs_count > 1) &&
                                       process->audio_inputs[1].data32 &&
                                       !isDeclaredSilent(process->audio_inputs[1]));
 
@@ -1437,7 +1453,7 @@ void SpectrumWorxCLAP::runEngine(clap_process const *const process, std::uint32_
                                                             : input.data32);
 
     ////////////////////////////////////////////////////////////////////////////
-    // An external audio file, when one is loaded, in place of the port.
+    // The decoded audio file, when that is what the patch selected.
     //
     // \note A `try_lock` on the processing lock stood around this, because the
     // message thread swapped the decoded data under the reader. Nothing swaps
@@ -1447,13 +1463,25 @@ void SpectrumWorxCLAP::runEngine(clap_process const *const process, std::uint32_
     // another thread happened to be busy.
     //                                        (02.08.2026.) (SW port)
     ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note **`File` is a selection now, not a precedence.** Until 18.08.2026
+    /// this block simply overwrote whatever the port arm had chosen, which is
+    /// 2016's "we give higher priority to external samples loaded through SW"
+    /// -- correct in its effects and unable to say why. It says why now: the
+    /// three sources are exclusive and this is one of them.
+    ///
+    ///   `pSample_` is still tested rather than trusted. Nothing should be able
+    /// to leave `File` selected with no sample loaded -- both the setter and the
+    /// preset loader refuse it -- and a source the engine cannot honour falls
+    /// back to the main input rather than to a null dereference.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
 
-    /// \note A Sample is always stereo, so a wider engine configuration -- which
-    /// nothing produces today; activate() asks for 2 x 2 -- keeps the port.
     float const *sampleChannels[Sample::numberOfChannels];
     bool sideIsScratch(false);
-    if (pSample_ && *pSample_ && (channels <= std::size(sampleChannels)) &&
-        (buffers().numberOfSideChannels() >= channels) && (frames <= buffers().blockSize()))
+    if ((sideChainSource_ == SideChainSource::File) && pSample_ && *pSample_ &&
+        (channels <= std::size(sampleChannels)) && (buffers().numberOfSideChannels() >= channels) &&
+        (frames <= buffers().blockSize()))
     {
         auto const startingPosition(pSample_->samplePosition());
         std::uint32_t position(startingPosition);
@@ -1608,6 +1636,12 @@ void SpectrumWorxCLAP::drainCommands()
 
         case Threading::ToEngine::Kind::SwapSample:
         {
+            /// \note The source always; the sample only when one travelled.
+            /// Picking `Main` or `Host` leaves a loaded file where it is, so that
+            /// switching back to it needs no second decode.
+            sideChainSource_ = static_cast<SideChainSource>(command.swapSample.source);
+            if (!command.swapSample.replacesSample)
+                break;
             auto *const pOutgoing(
                 std::exchange(pSample_, static_cast<Sample *>(command.swapSample.pSample)));
             clearSideChannelData();
@@ -2275,7 +2309,8 @@ try
     /// \note `u8string()`, and the format's own `std::string_view` overload: the
     /// sample path goes into `<p n="Sample">` as UTF-8 bytes on every platform,
     /// which is what makes a session written on one openable on another.
-    auto const state(savePreset(LE::IO::pathToUTF8(sampleFile_), {}, programMain_, &dawExtraState));
+    auto const state(savePreset(LE::IO::pathToUTF8(sampleFile_), sideChainSourceMain_, {},
+                                programMain_, &dawExtraState));
 
     /// \note The terminator goes into the stream, because loadFrom() parses a
     /// C string and a host is free to hand back exactly what it was given with
@@ -2650,29 +2685,93 @@ char const *SpectrumWorxCLAP::setNewSample(fs::path const &newSampleFile)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-void SpectrumWorxCLAP::publishSample(Sample *const pNewSample)
+void SpectrumWorxCLAP::publishSideChain(Sample *const pNewSample, bool const replacesSample,
+                                        SideChainSource const source)
 {
     auto const recordWhatTheEngineHasNow([&] {
-        sampleFile_ = pNewSample ? pNewSample->sampleFile() : fs::path();
-        decodedSampleRate_ = pNewSample ? pNewSample->sampleRate() : 0;
+        if (replacesSample)
+        {
+            sampleFile_ = pNewSample ? pNewSample->sampleFile() : fs::path();
+            decodedSampleRate_ = pNewSample ? pNewSample->sampleRate() : 0;
+        }
+        sideChainSourceMain_ = source;
     });
 
     if (!engineIsRunning())
     {
-        delete std::exchange(pSample_, pNewSample);
-        clearSideChannelData();
+        sideChainSource_ = source;
+        if (replacesSample)
+        {
+            delete std::exchange(pSample_, pNewSample);
+            clearSideChannelData();
+        }
         recordWhatTheEngineHasNow();
         return;
     }
 
-    if (pushed(toEngine_.push(Threading::swapSample(pNewSample)),
-               "The command queue is full; a sample load was dropped."))
+    if (pushed(toEngine_.push(Threading::swapSample(pNewSample, replacesSample,
+                                                    static_cast<std::uint8_t>(source))),
+               "The command queue is full; a side chain change was dropped."))
     {
         recordWhatTheEngineHasNow();
         return;
     }
 
     delete pNewSample;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Loading a file *is* selecting it as the source, and clearing one is
+/// selecting the main input -- there is no arrangement in which a file is loaded
+/// and unheard by accident. A user who wants the host's port with a file still
+/// loaded says so through `setSideChainSource()`, which leaves the file alone.
+/// \see doc/tech/sidechain-approach.md.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxCLAP::publishSample(Sample *const pNewSample)
+{
+    publishSideChain(pNewSample, true,
+                     pNewSample ? SideChainSource::File
+                                : ((sideChainSourceMain_ == SideChainSource::File)
+                                       ? SideChainSource::Main
+                                       : sideChainSourceMain_));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **Selecting `Main` or `Host` discards the loaded file**, rather than
+/// leaving it loaded and unheard. Keeping it was tried and reverted on
+/// 18.08.2026: it made the box's three answers hide a fourth piece of state, so a
+/// patch could carry an audio file nothing would ever play, `stateSave` would
+/// write a `Sample=` the source contradicted, and "what is my side chain" had two
+/// answers that had to be read together. One selection, one thing selected.
+///
+///   The cost is a second decode if a user switches back, and it is the right
+/// cost: the alternative is a plugin that quietly remembers.
+///
+/// \note `File` is the exception and does not clear anything -- it is reached
+/// with a sample already published, from `Loader::setSideChain()` restoring a
+/// patch that names one. With no sample it is refused outright: the selector
+/// would otherwise show a file that is not there and the engine would hold a
+/// source it cannot honour.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxCLAP::setSideChainSource(SideChainSource const source)
+{
+    LE_ASSERT(Threading::isMainThread() || !Threading::isAudioThread());
+
+    if (source == SideChainSource::File)
+    {
+        if (sampleFile_.empty())
+            return setSideChainSource(SideChainSource::Main);
+        return publishSideChain(nullptr, false, SideChainSource::File);
+    }
+
+    publishSideChain(nullptr, true /*the file goes with it*/, source);
+    markCurrentProgramAsModified();
 }
 
 bool SpectrumWorxCLAP::registerOrUnregisterTimer(clap_id &id, int const milliseconds,

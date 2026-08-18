@@ -496,7 +496,8 @@ TEST_CASE("Session state is the preset format plus a dawExtraState block", "[cla
     /// opening somebody's preset would silently overwrite where your browser was
     /// pointing and which settings you had -- the exact confusion between "what
     /// this sounds like" and "where I was" that the block exists to avoid.
-    auto const asPreset(LE::SW::savePreset({}, {}, plugin.implementation().program()));
+    auto const asPreset(LE::SW::savePreset({}, LE::SW::defaultSideChainSource, {},
+                                           plugin.implementation().program()));
     CHECK(asPreset.find("<SpectrumWorxPreset") != std::string::npos);
     CHECK(asPreset.find("<dawExtraState") == std::string::npos);
 }

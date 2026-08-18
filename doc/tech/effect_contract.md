@@ -485,14 +485,21 @@ restates it: **all processing is in place, side-channel data is read only.**
 plugged in. Silence is what you get when it is not, so an effect that multiplies
 by the side chain goes silent rather than misbehaving.
 
-**What the engine is handed when the host's side-chain port is unpatched is the
+**Which of three sources fills it is the patch's, and an effect cannot tell them
+apart** — `data.side()` is the same span whichever one it came from. The user
+picks a file, the main input, or the host's second port;
+[`sidechain-approach.md`](sidechain-approach.md) is the whole of it, including
+what an old preset's `Input_mode` migrates to. Nothing about it reaches an effect,
+which is the point: side-chain routing is not a DSP concern.
+
+**What the engine is handed when the selected source has nothing behind it is the
 main input, not silence** — so a Blender with nothing patched blends the signal
-with itself. Three arrangements take that fallback, and the third is the only one
-a real DAW produces: no second port at all, a second port with no `data32`, and a
-second port whose channels the host declares constant and zero through
-`clap_audio_buffer::constant_mask`. The mask is a hint and a host that sets none
-is indistinguishable from one carrying real silence, which is what issue #13
-is still open about.
+with itself, and one in `Main` does so always. For the host's port that is three
+arrangements, of which the third is the only one a real DAW produces: no second
+port at all, a second port with no `data32`, and a second port whose channels the
+host declares constant and zero through `clap_audio_buffer::constant_mask`. The
+mask is a hint and a host that sets none is indistinguishable from one carrying
+real silence, which is what issue #13 is still open about.
 
 > **Nothing declares that an effect reads the side chain, and nothing should.**
 > The `process()` overload is the declaration: take a `MainSideChannelData` and

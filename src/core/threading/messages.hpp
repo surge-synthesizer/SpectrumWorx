@@ -57,7 +57,11 @@ struct ToEngine
         /// ToUI::Retire, now holding what used to be live -- so nothing is ever
         /// destroyed under the callback.
         SwapChain,
-        /// Likewise a decoded Sample.
+        /// Likewise a decoded Sample -- and, in the same message, what the side
+        /// channel is to be fed from. The two travel together because they are
+        /// one user act ("play this file", "take the host's port") and because a
+        /// block that saw one without the other would be a block fed from the
+        /// wrong place. \see SideChainSource.
         SwapSample,
         /// An LFO sub-parameter that has no `ParameterID` -- Waveform and
         /// SyncTypes, both past `ParameterCounts::lfoExportedParameters`.
@@ -101,9 +105,26 @@ struct ToEngine
             void *pChain;
         } swapChain;
 
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \note `replacesSample` distinguishes "here is a new sample, or none"
+        /// from "keep the one you have, only the source has changed". Selecting
+        /// `Main` or `Host` sends the first, with a null pointer, because those
+        /// discard a loaded file; restoring a patch that names one sends the
+        /// second, because the sample it refers to has just been published and
+        /// must not be cleared by the source arriving behind it.
+        ///
+        /// \note `source` is `std::uint8_t` rather than the enum for the reason
+        /// the note above `swapChain` gives: this header is the protocol and has
+        /// no business including anything. The two sites that put a value in and
+        /// take it out are one file apart.
+        ///
+        ////////////////////////////////////////////////////////////////////////
         struct
         {
             void *pSample;
+            bool replacesSample;
+            std::uint8_t source;
         } swapSample;
 
         /// \note The value in the parameter's own units, as a float, which is
@@ -246,11 +267,12 @@ inline ToEngine swapChain(void *const pChain)
 }
 
 /// \param pSample an `LE::Sample *`, owned by the message.
-inline ToEngine swapSample(void *const pSample)
+inline ToEngine swapSample(void *const pSample, bool const replacesSample,
+                           std::uint8_t const source)
 {
     ToEngine message{};
     message.kind = ToEngine::Kind::SwapSample;
-    message.swapSample = {pSample};
+    message.swapSample = {pSample, replacesSample, source};
     return message;
 }
 

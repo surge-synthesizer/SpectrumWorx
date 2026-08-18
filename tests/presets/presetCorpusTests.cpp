@@ -203,7 +203,7 @@ Loaded loadBuffer(std::vector<char> data, bool &succeeded, std::string *const pR
     CHECK(SWTest::presetProblems().unknownEffect == 0);
 
     if (pRewritten)
-        *pRewritten = savePreset({}, {}, engine.program());
+        *pRewritten = savePreset({}, engine.sideChainSource(), {}, engine.program());
 
     succeeded = true;
     auto loaded(dump(engine));
@@ -430,6 +430,74 @@ TEST_CASE("Every factory preset survives translation into the 3.0 format", "[pre
         /// is the one thing that legitimately differs between the two dumps.
         CHECK(reloaded.missing == 0); // a file this build wrote cannot be missing a parameter
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// What the shipped files say about their side chain
+// -------------------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   Every shipped preset carries `Input_mode`, and until 18.08.2026 nothing read
+/// it: the 2016 parameter behind it was compiled out and then deleted, so 288
+/// files had been recording an intention the plugin had no way to act on. It is
+/// not a parameter here and never will be again -- bus topology is not a setting
+/// -- but it is exactly enough to recover what those files *meant*, which is
+/// which of the three sources feeds their side channel. \see
+/// doc/tech/sidechain-approach.md and issue #113.
+///
+///   In this harness no sample is ever applied (`wantsSampleFile()` declines
+/// them, as the browser's "Ignore external audio" does), so every preset takes
+/// the migration's second arm and `Input_mode` decides alone. The bank named
+/// `Sidechainables` is the ten that asked for a host send; everything else is
+/// self side chain. A build that read the attribute wrongly -- wrong key, an
+/// off-by-one, odd-vs-even inverted -- would either lose all ten or gain the
+/// other 278.
+///
+/// \note What this cannot show is the arm those ten take *in the plugin*, where
+/// a sample is applied and the file wins: all ten name a carrier chosen to match.
+/// `tests/external_audio/sampleFeedTests.cpp` is where that half lives.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("An old preset's input mode becomes the source it always meant",
+          "[preset-corpus][side-chain][issue-113]")
+{
+    auto const files(corpus());
+    REQUIRE_FALSE(files.empty());
+
+    std::vector<std::string> fromHost;
+    for (auto const &[key, path] : files)
+    {
+        INFO("preset " << key);
+
+        bool succeeded{false};
+        auto const loaded(load(path, succeeded, nullptr));
+        REQUIRE(succeeded);
+
+        /// \note One or the other and never neither, and never `file`: nothing
+        /// here loads a sample, so a `file` row would be a migration that had
+        /// invented a source it cannot honour.
+        auto const readsHost(loaded.text.find("side chain source = host\n") != std::string::npos);
+        CHECK((readsHost || (loaded.text.find("side chain source = main\n") != std::string::npos)));
+
+        if (readsHost)
+            fromHost.push_back(key);
+    }
+
+    /// \note The bank rather than the count, so that a preset added to or removed
+    /// from `Sidechainables` reads as ordinary content work and a preset
+    /// *elsewhere* that starts asking for a host send reads as a finding.
+    REQUIRE_FALSE(fromHost.empty());
+    for (auto const &key : fromHost)
+        CHECK(std::string_view(key).starts_with("Sidechainables/"));
+
+    /// ...and the whole bank, not part of it.
+    std::size_t inTheBank{0};
+    for (auto const &[key, path] : files)
+        inTheBank += std::string_view(key).starts_with("Sidechainables/");
+    CHECK(fromHost.size() == inTheBank);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

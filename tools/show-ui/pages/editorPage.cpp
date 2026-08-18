@@ -171,10 +171,22 @@ class HarnessHost final : public GUI::EditorHost
     /// state. Loading one is what sampleTests.cpp covers.
     fs::path currentSampleFile() const override { return {}; }
     char const *setNewSample(fs::path const &) override { return nullptr; }
+
+    /// \note `Main`, not the plugin's default, so that a rendered page is a
+    /// function of the build rather than of what would be selected on a track
+    /// nobody has patched. \see doc/tech/sidechain-approach.md.
+    SideChainSource sideChainSource() const override { return sideChainSource_; }
+    void setSideChainSource(SideChainSource const source) override { sideChainSource_ = source; }
+
     bool isSampleLoadInProgress() const override { return false; }
+
     void registerSampleLoadedListener(GUI::SpectrumWorxEditor &) override {}
     void deregisterSampleLoadedListener(GUI::SpectrumWorxEditor const &) override {}
 
+  private:
+    SideChainSource sideChainSource_{SideChainSource::Main};
+
+  public:
     bool completelyDisableIOChanges() const override { return false; }
 
   private:

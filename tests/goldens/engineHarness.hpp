@@ -24,6 +24,7 @@
 #include "le/spectrumworx/effects/configuration/constants.hpp"
 #include "le/spectrumworx/engine/moduleParameters.hpp"
 #include "le/spectrumworx/engine/parameters.hpp"
+#include "le/spectrumworx/sideChainSource.hpp"
 #include "le/utility/buffers.hpp"
 
 #include <cmath>
@@ -81,8 +82,17 @@ class Engine : public LE::SW::SpectrumWorxCore
 
     LE::SW::GlobalParameters::Parameters &parameters() { return program_.parameters(); }
 
+    /// \brief What a loaded preset said feeds the side channel.
+    ///
+    /// \note Recorded rather than acted on: this harness has no sample loader and
+    /// no host port, so what it can test about the side chain is the *format's*
+    /// half -- which is where the 2.x migration lives. \see PresetLoader.
+    LE::SW::SideChainSource sideChainSource() const { return sideChainSource_; }
+    void setSideChainSource(LE::SW::SideChainSource const source) { sideChainSource_ = source; }
+
   private:
     Program program_;
+    LE::SW::SideChainSource sideChainSource_{LE::SW::defaultSideChainSource};
 }; // class Engine
 
 //------------------------------------------------------------------------------

@@ -167,6 +167,19 @@ void countProblem(PresetProblem const problem, std::string_view const /*detail*/
 } // anonymous namespace
 //------------------------------------------------------------------------------
 
+void PresetLoader::setSideChain(std::string_view const recordedSource,
+                                std::optional<unsigned int> const legacyInputMode,
+                                std::string_view const sampleFileName) const
+{
+    /// \note `false` for "have a sample": wantsSampleFile() declines them, so a
+    /// preset that names one loads without it -- which is exactly the arrangement
+    /// the browser's "Ignore external audio" produces, and therefore exactly the
+    /// migration arm those files take there too.
+    LE::Utility::ignoreUnused(sampleFileName);
+    engine.setSideChainSource(
+        LE::SW::resolveSideChainSource(recordedSource, legacyInputMode, false));
+}
+
 bool PresetLoader::setNewGlobalParameters(
     LE::SW::GlobalParameters::Parameters const &newParameters) const
 {
@@ -218,6 +231,11 @@ Loaded dump(Engine &engine)
     });
 
     loaded.text += "modules = " + std::to_string(loaded.modules) + '\n';
+
+    /// \note In the dump, so that the 2.x migration is inside what
+    /// presetFixtures.txt hashes -- a shipped preset whose `Input_mode` stopped
+    /// being read would move its row rather than passing quietly.
+    loaded.text += std::string("side chain source = ") + toString(engine.sideChainSource()) + '\n';
     return loaded;
 }
 
