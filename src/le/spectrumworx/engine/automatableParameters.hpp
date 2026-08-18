@@ -61,6 +61,9 @@ namespace Parameters
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+STREAMING_NAME(SW::Engine::FFTSize, "FFT size")
+STREAMING_NAME(SW::Engine::OverlapFactor, "Overlap factor")
+STREAMING_NAME(SW::Engine::WindowFunction, "Window type")
 UI_NAME(SW::Engine::FFTSize, "FFT Size")
 UI_NAME(SW::Engine::OverlapFactor, "Overlap Factor")
 UI_NAME(SW::Engine::WindowFunction, "Window Type")

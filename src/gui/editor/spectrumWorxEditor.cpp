@@ -1491,8 +1491,7 @@ void SpectrumWorxEditor::newSampleFileSelected(fs::path const &file)
 {
     auto const *const pErrorMessage(editorHost_.setNewSample(file));
     if (pErrorMessage)
-        GUI::warningMessageBox("SpectrumWorx: error loading selected sample file.", pErrorMessage,
-                               false);
+        GUI::warningMessageBox("Error loading selected sample file!", pErrorMessage, false);
     updateSampleNameAsync();
 }
 
