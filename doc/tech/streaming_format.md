@@ -115,7 +115,7 @@ spirit for two of the four tuples; this finishes it.
 | | pins | moves when |
 |---|---|---|
 | `tests/parameters/data/streamingNames.txt` | every string that reaches a file — 57 effects, their parameters, the globals, the LFO. Its third column, an effect's title, is *recorded* rather than pinned | a key changes. **Always a break.** A title moving is reported and passes |
-| `tests/parameters/data/parameterTable.txt` | display names, types, ranges, defaults, units, and the host-visible id space, keyed by streaming name | a label changes, or a range does. Not when an effect is retitled |
+| `tests/parameters/data/parameterTable.txt` | types, ranges and defaults, keyed by streaming name, and the host-visible id space. Everything right of ` ;; ` — the display name, the unit, the enumerator strings — is *recorded* rather than pinned, like the title column above it | a range, a type or a default changes, or an id appears or disappears. A relabelling is reported and passes. Not when an effect is retitled |
 | `tests/presets/data/presetCorpus.txt` | what all 303 factory presets load into, by two routes: read directly, and read → rewritten as 3.0 → read again | a preset loads differently, or the translation into 3.0 loses something |
 | `tests/presets/data/format3.swp` | the 3.0 grammar itself — hand written, read by a test that never runs the writer | the grammar moves. A rename applied to writer *and* reader passes every round-trip test and orphans every file already saved; this is what does not pass. |
 | `tests/clap/stateTests.cpp` | `clap_plugin_state`: the round trip through a second instance, the bytes, the sample, and what a host may do to a stream | state stops being a preset, or stops surviving a truncated / mis-sized / hostile one |
@@ -375,9 +375,15 @@ simply skipped when there is nowhere to draw.
   new rows only.
 - **Renaming a knob.** Change `EFFECT_PARAMETER_NAME`, add
   `EFFECT_PARAMETER_STREAMING_NAME` in the effect's **header** with the *old*
-  string. `parameterTable.txt` moves; `streamingNames.txt` and
-  `presetCorpus.txt` must not. If either does, the pin is not visible where the
-  parameter table is built.
+  string. Nothing fails: the label lives right of ` ;; ` in
+  `parameterTable.txt`, so the run reports it and passes. Regenerate that file
+  to record it. `streamingNames.txt` and the preset fixtures must not move —
+  if either does, the pin is not visible where the parameter table is built.
+- **Relabelling in bulk.** A capitalisation pass over the interface is the
+  same case, several hundred times: one aggregated warning, no failures, one
+  regeneration of `parameterTable.txt`. Nothing a user sees is held still by a
+  test, deliberately — the strings that reach a file are, and those are the
+  other two files.
 - **Retitling an effect.** The same, with `LE_SW_EFFECT_STREAMING_NAME` in
   `effectNames.cpp`. Then regenerate `streamingNames.txt`: the `effect/NN` rows
   carry both columns, so the diff shows the title moving beside a streaming name

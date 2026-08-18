@@ -125,7 +125,10 @@ and slot 1's selector is `0x01000000`.
 `effect/` rows, which are the per-effect parameter descriptions presets bind to
 — keyed by the effect's *streaming* name, so that retitling one does not drag
 its rows with it (`streaming_format.md` §6) — and 388 `id/` rows keyed by the
-packed ID. The second is deliberately larger than
+packed ID. What each row holds still is its type, range and default; the label,
+the unit and the enumerator strings sit right of ` ;; ` and are recorded rather
+than checked, so that relabelling the interface is not a test failure. The `id/`
+rows pin nothing but their keys — the identifier space *is* the claim there. The second is deliberately larger than
 the 286 above — it also covers what a host cannot address, the two LFO
 sub-parameters that are not exported. **286 is the number a host sees**, and
 `pluginTests.cpp` asserts `params.count()` against the constant rather than

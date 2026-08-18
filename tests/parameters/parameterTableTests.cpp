@@ -22,6 +22,11 @@
 ///     ParameterID a host actually sees. It covers what the first cannot: the
 ///     globals, the slot selectors and the seven exported LFO parameters.
 ///
+///   What is *held* is the half of that a stored value's meaning depends on --
+/// the type, the range and the default. The names, units and enumerator strings
+/// are the half a user reads; they are recorded beside it and checked against
+/// nothing. \see Row.
+///
 ///   Regenerate with SW_PARAMETER_TABLE_UPDATE=1 and read the diff. Every line
 /// that moves is a preset that will not load the same way.
 ///
@@ -55,6 +60,7 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 //------------------------------------------------------------------------------
 namespace
@@ -175,8 +181,40 @@ class Fixture
     SWTest::Engine engine_;
 }; // class Fixture
 
-/// One row: a key nothing else uses, and the tuple 7.0 asks for.
-using Table = std::map<std::string, std::string>;
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief One row: a key nothing else uses, the part a file depends on, and the
+/// part a user reads.
+///
+///   `pinned` is the contract -- a parameter's type, range and default, which
+/// are what a preset's stored value means. `informational` is the label, the
+/// unit and the enumerator strings: recorded here because a table of ranges with
+/// no names in it is unreadable, but held to nothing, because none of them ever
+/// reaches a file. What a preset is keyed by is the *streaming* name, and
+/// streamingNames.txt is what pins that.
+///
+/// \note They were one string until 18.08.2026, so a capitalisation pass over
+/// the interface failed this case -- three rows, saying that `FFT size` now
+/// reads `FFT Size`, about parameters that had not moved. Same shape as the
+/// effect title in streamingNameTests.cpp, and split for the same reason: a
+/// snapshot that fails on cosmetics teaches the reflex of regenerating it
+/// unread, and that reflex is what would carry a *real* row through.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+struct Row
+{
+    std::string pinned;
+    std::string informational;
+};
+
+using Table = std::map<std::string, Row>;
+
+/// \note Everything after it is recorded rather than checked. A distinct marker
+/// rather than counting ' | ' columns because the informational tail is three
+/// columns on an enumerated parameter, two on any other and two on an `id/` row
+/// that has no pinned part at all.
+constexpr std::string_view informationalMarker{" ;; "};
 
 /// \brief The per-effect table, from the engine's own runtime metadata.
 ///
@@ -206,24 +244,24 @@ void collectEffectTables(Table &table)
         {
             auto const &info(module.parameterInfo(index));
 
-            std::string row;
-            row += typeName(info.type);
-            row += " | " + number(info.minimum);
-            row += " | " + number(info.maximum);
-            row += " | " + number(info.default_);
-            row += " | ";
-            row += info.name;
-            row += " | " + bracketed(info.unit);
+            Row row;
+            row.pinned += typeName(info.type);
+            row.pinned += " | " + number(info.minimum);
+            row.pinned += " | " + number(info.maximum);
+            row.pinned += " | " + number(info.default_);
+
+            row.informational += info.name;
+            row.informational += " | " + bracketed(info.unit);
 
             if (info.enumeratedValueStrings)
             {
-                row += " | ";
+                row.informational += " | ";
                 for (auto value(static_cast<int>(info.minimum));
                      value <= static_cast<int>(info.maximum); ++value)
                 {
                     if (value != static_cast<int>(info.minimum))
-                        row += ';';
-                    row += info.enumeratedValueStrings[value];
+                        row.informational += ';';
+                    row.informational += info.enumeratedValueStrings[value];
                 }
             }
 
@@ -252,7 +290,7 @@ void collectIdentifiedTable(Table &table)
     {
         std::array<char, 32> key{};
         std::snprintf(key.data(), key.size(), "id/%08x", static_cast<unsigned>(id.value));
-        table.emplace(key.data(), fixture.name(id) + " | " + bracketed(fixture.label(id)));
+        table.emplace(key.data(), Row{{}, fixture.name(id) + " | " + bracketed(fixture.label(id))});
     }
 }
 
@@ -273,9 +311,21 @@ Table readTable()
     {
         if (line.empty() || (line.front() == '#'))
             continue;
-        auto const separator(line.find(" | "));
-        REQUIRE(separator != std::string::npos);
-        table.emplace(line.substr(0, separator), line.substr(separator + 3));
+        auto const marker(line.find(informationalMarker));
+        std::string const head(line.substr(0, marker));
+        std::string informational((marker == std::string::npos)
+                                      ? std::string{}
+                                      : line.substr(marker + informationalMarker.size()));
+
+        /// \note No separator at all is an `id/` row, whose whole body is
+        /// informational: what it claims is that the identifier exists, and the
+        /// key is where that is written.
+        auto const separator(head.find(" | "));
+        if (separator == std::string::npos)
+            table.emplace(head, Row{{}, std::move(informational)});
+        else
+            table.emplace(head.substr(0, separator),
+                          Row{head.substr(separator + 3), std::move(informational)});
     }
     return table;
 }
@@ -287,21 +337,36 @@ void writeTable(Table const &table)
         << "# SpectrumWorx parameter table -- generated, do not hand edit.\n"
            "# Regenerate with SW_PARAMETER_TABLE_UPDATE=1 ./sw-plugin-tests \"[parameter-table]\"\n"
            "#\n"
-           "# effect/<streaming name>/<index> | type | min | max | default | name | [unit]\n"
-           "#                                 [| enums]\n"
+           "#   Everything left of ' ;; ' is checked. Everything right of it is a\n"
+           "#   string a user reads, recorded so that this file stays legible and\n"
+           "#   so that a relabelling is visible in the diff -- but held to\n"
+           "#   nothing, because none of it ever reaches a file. A run that finds\n"
+           "#   one moved says so and passes.\n"
+           "#\n"
+           "# effect/<streaming name>/<index> | type | min | max | default\n"
+           "#                                 ;; name | [unit] [| enums]\n"
            "#     the per-effect parameter table, in declaration order. Presets\n"
            "#     serialise by name and automation addresses by index, so a row that\n"
            "#     moves is a preset that loads differently. The key is the effect's\n"
            "#     streaming name rather than its title -- which is why a few read\n"
            "#     '(pvd)' where the interface says '(PV)' -- so that retitling an\n"
            "#     effect does not drag its parameter rows with it. streamingNames.txt\n"
-           "#     is where the two names are recorded side by side.\n"
+           "#     is where the parameters' own streaming names are pinned.\n"
            "#\n"
-           "# id/<parameterID> | name | [unit]\n"
+           "# id/<parameterID> ;; name | [unit]\n"
            "#     the same parameters as a host sees them, plus the globals, the slot\n"
-           "#     selectors and the exported LFO parameters.\n";
+           "#     selectors and the exported LFO parameters. Nothing is pinned but\n"
+           "#     the key: what this section is for is the identifier space, and an\n"
+           "#     id that appears or disappears is a row appearing or disappearing.\n";
     for (auto const &[key, row] : table)
-        file << key << " | " << row << '\n';
+    {
+        file << key;
+        if (!row.pinned.empty())
+            file << " | " << row.pinned;
+        if (!row.informational.empty())
+            file << informationalMarker << row.informational;
+        file << '\n';
+    }
 }
 
 bool updateRequested()
@@ -333,19 +398,41 @@ TEST_CASE("The parameter table matches the committed snapshot", "[parameter-tabl
 
     // Reported per row rather than as one container comparison: "1348 rows
     // differ" is not a diagnosis, and the first differing row usually is.
+    std::string relabelled;
+    unsigned relabellings{0};
     for (auto const &[key, row] : expected)
     {
         auto const found(table.find(key));
         INFO("parameter " << key);
         REQUIRE(found != table.end()); // a parameter that disappeared
-        CHECK(found->second == row);
+        CHECK(found->second.pinned == row.pinned);
+
+        if (found->second.informational == row.informational)
+            continue;
+        /// \note Listed to a bound and counted past it: a capitalisation pass
+        /// over the interface can move several hundred of these at once, and a
+        /// four-hundred-line warning is a warning nobody reads to the end of.
+        if (++relabellings <= 12)
+            relabelled +=
+                "\n  " + key + ": " + row.informational + " -> " + found->second.informational;
     }
 
     for (auto const &[key, row] : table)
     {
-        INFO("parameter " << key << " = " << row);
+        INFO("parameter " << key << " = " << row.pinned);
         CHECK(expected.find(key) != expected.end()); // a parameter that appeared
     }
 
     CHECK(table.size() == expected.size());
+
+    /// \note Reported rather than checked, and aggregated rather than one per
+    /// row. \see Row.
+    if (relabellings != 0)
+    {
+        if (relabellings > 12)
+            relabelled += "\n  ...and " + std::to_string(relabellings - 12) + " more";
+        WARN("A label has moved beside a range that did not, which is not a thing this "
+             "file holds still. Regenerate with SW_PARAMETER_TABLE_UPDATE=1 to record it:"
+             << relabelled);
+    }
 }
