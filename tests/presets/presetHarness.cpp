@@ -75,12 +75,19 @@ struct LFODumper
     template <class Parameter> result_type operator()(Parameter const &parameter) const
     {
         out += ' ';
-        out += LE::Parameters::Name<Parameter>::string_;
+        out += LE::Parameters::streamingName<Parameter>();
         out += '=';
         out += number(static_cast<float>(parameter.getValue()));
     }
 }; // struct LFODumper
 
+/// \note Streaming names here and in LFODumper, for the reason dumpModule()
+/// gives at length: what this hashes has to move when a preset loads
+/// differently and stay put when a label is retitled. The globals are where it
+/// bites -- they are the only parameters whose display name and streaming name
+/// differ -- so relabelling `FFT size` to `FFT Size` moved all eight fixture
+/// digests while every preset went on loading identically.
+///                                       (18.08.2026.) (SW port)
 struct GlobalDumper
 {
     using result_type = void;
@@ -90,7 +97,7 @@ struct GlobalDumper
     template <class Parameter> result_type operator()(Parameter const &parameter) const
     {
         out += "global ";
-        out += LE::Parameters::Name<Parameter>::string_;
+        out += LE::Parameters::streamingName<Parameter>();
         out += " = ";
         out += number(static_cast<float>(parameter.getValue()));
         out += '\n';
