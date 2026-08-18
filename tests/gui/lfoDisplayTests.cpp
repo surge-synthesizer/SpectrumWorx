@@ -153,11 +153,19 @@ class PanelUnderTest
     /// \brief Clicks the panel's \p name button, the way a mouse would.
     juce::Button &click(juce::StringRef const name) const
     {
+        auto &button(this->button(name));
+        button.setToggleState(!button.getToggleState(), juce::sendNotificationSync);
+        return button;
+    }
+
+    juce::Button &button(juce::StringRef const name) const
+    {
         auto *const pButton(buttonNamed(instance_.editor(), name));
         REQUIRE(pButton != nullptr);
-        pButton->setToggleState(!pButton->getToggleState(), juce::sendNotificationSync);
         return *pButton;
     }
+
+    bool lit(juce::StringRef const name) const { return button(name).getToggleState(); }
 
   private:
     SWTest::Instance &instance_;
@@ -199,14 +207,19 @@ TEST_CASE("A sync mode set in the interface is queued for the engine", "[gui][lf
     CHECK(queued->setUnexportedLFOParameter.moduleIndex == 0);
 }
 
-TEST_CASE("Each of N, T and D queues the whole mask rather than its own bit", "[gui][lfo]")
+TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
 {
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note `SyncType` is a bit mask -- Quarter|Triplet|Dotted, `Free` being
-    /// none of them -- and the engine applies what it is given rather than
-    /// merging it, so what crosses has to be the whole thing. Three buttons each
-    /// sending their own bit would work for exactly one click.
+    /// \note Issue #111. `SyncType` is a bit mask -- Quarter|Triplet|Dotted,
+    /// `Free` being none of them -- and `snapSyncedPeriod()` picks whichever of
+    /// the enabled grids lands nearest to the current period. With more than one
+    /// enabled that is the quarter grid nearly everywhere, so lighting T or D on
+    /// top of N read as "the button does nothing". The panel now selects one
+    /// grid at a time.
+    ///
+    ///   What crosses to the engine is still the whole mask and not a bit: the
+    /// engine applies what it is given rather than merging it.
     ///
     ////////////////////////////////////////////////////////////////////////////
     SWTest::HostSideJuce const juceIsUp;
@@ -214,20 +227,39 @@ TEST_CASE("Each of N, T and D queues the whole mask rather than its own bit", "[
     SWTest::Instance instance;
     PanelUnderTest const panel(instance);
 
-    panel.click(" T "); // Quarter is already on, so this is Quarter|Triplet
+    REQUIRE(panel.lit(" N ")); // Quarter is the default.
+
+    panel.click(" T ");
     {
         auto const queued(lastUnexportedEdit(drain(instance.toEngine()), syncTypesIndex));
         REQUIRE(queued.has_value());
-        CHECK(queued->setUnexportedLFOParameter.value ==
-              static_cast<float>(LFO::Quarter | LFO::Triplet));
+        CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::Triplet));
+        CHECK(panel.lfo().syncTypes() == LFO::Triplet);
+        CHECK_FALSE(panel.lit(" N ")); // ...and the one that was lit went out
+        CHECK(panel.lit(" T "));
+        CHECK_FALSE(panel.lit(" D "));
     }
 
     panel.click(" D ");
     {
         auto const queued(lastUnexportedEdit(drain(instance.toEngine()), syncTypesIndex));
         REQUIRE(queued.has_value());
-        CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::All));
-        CHECK(panel.lfo().syncTypes() == LFO::All);
+        CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::Dotted));
+        CHECK(panel.lfo().syncTypes() == LFO::Dotted);
+        CHECK_FALSE(panel.lit(" T "));
+        CHECK(panel.lit(" D "));
+    }
+
+    // Clicking the lit one is how Free is reached, as it always was.
+    panel.click(" D ");
+    {
+        auto const queued(lastUnexportedEdit(drain(instance.toEngine()), syncTypesIndex));
+        REQUIRE(queued.has_value());
+        CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::Free));
+        CHECK(panel.lfo().syncTypes() == LFO::Free);
+        CHECK_FALSE(panel.lit(" N "));
+        CHECK_FALSE(panel.lit(" T "));
+        CHECK_FALSE(panel.lit(" D "));
     }
 }
 

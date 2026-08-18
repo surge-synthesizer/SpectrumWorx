@@ -3022,14 +3022,16 @@ void SpectrumWorxEditor::LFODisplay::resyncEnabledSwitch()
     repaint();
 }
 
+/// \note No `auto &lfo( this->lfo() )` at the top any more: the sync branch below
+/// stopped reading the mask when the three buttons became one choice, which left
+/// the reference used by nothing but two `LE_ASSERT`s -- and those are gone in a
+/// release build, where an unused variable is an error.
 void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
 {
-    auto &lfo(this->lfo());
-
     if (pButton == &switch_)
     {
         bool const enable(switch_.getToggleState());
-        LE_ASSERT(enable != lfo.enabled());
+        LE_ASSERT(enable != lfo().enabled());
         /// \note Through the editor, which is where the knob's own menu goes as
         /// well -- see setLFOEnabled(). The button has already toggled itself,
         /// so the resync that comes back is a no-op here.
@@ -3085,13 +3087,28 @@ void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
         /// round.
         ///                                   (06.08.2026.) (SW port)
         ///
+        /// \note **The three buttons are one choice, not three toggles.** The
+        /// mask can hold any combination and `snapSyncedPeriod()` then picks
+        /// whichever of the enabled grids lands nearest -- so with all three lit
+        /// the period reads N almost everywhere and T and D look broken, which is
+        /// issue #111. Selecting a grid therefore clears the other two, and
+        /// clicking the lit one goes back to Free.
+        ///
+        ///   The *parameter* is still a mask and the file grammar is untouched:
+        /// two shipped presets carry `sync="5"` and `sync="7"`, they load and
+        /// snap exactly as they always did, and `updateSnapControls()` lights
+        /// both of their grids. What has gone is the panel's ability to make such
+        /// a value.
+        ///                                   (18.08.2026.) (SW port)
+        ///
         ////////////////////////////////////////////////////////////////////////
-        bool const addSyncType(pButton->getToggleState());
-        LE_ASSERT(addSyncType != lfo.hasEnabledSync(syncType));
+        bool const selectSyncType(pButton->getToggleState());
+        LE_ASSERT(selectSyncType != lfo().hasEnabledSync(syncType));
 
-        auto const syncTypes(static_cast<unsigned>(lfo.syncTypes()));
-        updateParameterAndNotifyHost<LFO::SyncTypes>(
-            addSyncType ? (syncTypes | syncType) : (syncTypes & ~static_cast<unsigned>(syncType)));
+        updateParameterAndNotifyHost<LFO::SyncTypes>(selectSyncType ? syncType : LFO::Free);
+
+        // ...which is what un-lights whichever of the three was lit before.
+        updateSnapControls();
 
         updatePeriodControl();
         updateLFOAndHostFromPeriodControl();

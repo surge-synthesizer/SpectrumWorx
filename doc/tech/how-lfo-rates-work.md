@@ -53,10 +53,20 @@ Free = 0, Quarter = 1 << 0, Triplet = 1 << 1, Dotted = 1 << 2,
 All = (Quarter | Triplet | Dotted)
 ```
 
-It is the set of grids the period may snap to, and the N, T and D buttons are
-three independent toggles over it — "all three off" *is* `Free`. Two factory
-presets carry `sync="5"` (`Quarter|Dotted`) and one carries `sync="7"` (`All`),
-which is what that looks like in a file.
+It is the set of grids the period may snap to, and `Free` is none of them.
+
+**The panel offers one of them at a time.** N, T and D were three independent
+toggles over the mask until 18.08.2026, which is what issue #111 was: with more
+than one lit, `snapSyncedPeriod()` returns whichever of the enabled grids lands
+nearest to the current period, and that is the quarter grid nearly everywhere —
+so T and D read as buttons that do nothing. Selecting a grid now clears the other
+two, and clicking the lit one is still how `Free` is reached.
+
+The *parameter* is still a mask, because files hold masks and the grammar is not
+worth breaking over this: `Gamma Shift/Clutter Dropout` carries `sync="5"`
+(`Quarter|Dotted`), `Overt Dynamics/Toybox Demons` carries `sync="7"` (`All`),
+both load and snap exactly as they always did, and the panel lights both of the
+first one's grids. What has gone is the panel's ability to *make* such a value.
 
 `snapPeriodScale( value, mask )` returns the snapped value **and which grid won**
 (`SnappedPeriod`), because that is what the panel labels the reading with.
