@@ -201,6 +201,56 @@ valueStrings(ValueString const (&pairs)[count])
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
+/// \struct ShortValues
+///
+/// \brief What an enumerated parameter's values are *read* as, where the full
+/// value strings do not fit.
+///
+/// \details A popup menu is as wide as it needs to be and a module strip's combo
+/// box is sixty pixels; "Main: >Thr >Side" fits one of those. So a value carries
+/// two strings -- the one the menu lists it under and the one the widget shows
+/// once it is chosen -- and everything else (the host's readout, a preset, the
+/// knob menu) keeps the full one. \see issue #120.
+///
+/// \note **Empty by default, and asked about with a requires-expression** rather
+/// than carrying StreamingName's null-pointer sentinel. That shape is right for a
+/// `char const *`, whose default can be a null *value*; the default here would
+/// have to be a null *address*, and `pointer ? *pointer : fallback` over
+/// `&shortStrings` is a condition GCC can see through -- "the address of ... will
+/// never be NULL", `-Werror=address`, which is a Linux-only build failure that
+/// clang does not raise. There is nothing to be null now: either the
+/// specialisation has the array or it does not.
+///                                           (19.08.2026.) (SW port)
+///
+/// \note Seeding a default with `DiscreteValues<Parameter>::strings` would ask
+/// every enumerated parameter to instantiate a variable template it may not have
+/// seen, which is why the fallback is in shortValueStrings() rather than here --
+/// StreamingName's argument, and `if constexpr` is what keeps the unused arm
+/// uninstantiated.
+///
+/// \note And, as with STREAMING_NAME, the specialisation belongs in the header
+/// that declares the parameter -- a translation unit that does not see it gets
+/// the full strings in the widget rather than a diagnostic.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+template <class Parameter> struct ShortValues
+{
+};
+
+/// \brief \p Parameter's abbreviations if it has any, its full value strings if
+/// it has not.
+template <class Parameter>
+constexpr typename DiscreteValues<Parameter>::Strings const &shortValueStrings()
+{
+    if constexpr (requires { ShortValues<Parameter>::strings; })
+        return ShortValues<Parameter>::strings;
+    else
+        return DiscreteValues<Parameter>::strings;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
 /// 'Transforms' the value of a parameter into a value that should be used for
 /// displaying on a user interface.
 ///
@@ -300,6 +350,38 @@ template <class Parameter> struct DisplayValueTransformer
     namespace LE::Parameters                                                                       \
     {                                                                                              \
     ENUMERATED_PARAMETER_STRINGS(SW::Effects::parentClass, parameter, __VA_ARGS__)                                                                   \
+    }                                                                                              \
+    namespace LE::SW::Effects                                                                      \
+    {
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \def ENUMERATED_PARAMETER_SHORT_STRINGS
+///
+/// \brief The same list again, abbreviated to what a module strip's combo box
+/// can show. \see ShortValues, and issue #120.
+///
+/// \note Optional and written in the same shape as the full list, value by
+/// value, so that the pair check reads both: an abbreviation against the wrong
+/// value is the one bug worth a compile error here, and the full list already
+/// pays for the machinery.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+#define ENUMERATED_PARAMETER_SHORT_STRINGS(parentNameSpaceOrClass, parameter, ...)                 \
+    template <> struct ShortValues<parentNameSpaceOrClass::parameter>                              \
+    {                                                                                              \
+        static constexpr DiscreteValues<parentNameSpaceOrClass::parameter>::Strings strings{[] {   \
+            using enum parentNameSpaceOrClass::parameter::value_type;                              \
+            return Detail::valueStrings<parentNameSpaceOrClass::parameter>({__VA_ARGS__});         \
+        }()};                                                                                      \
+    };
+
+#define EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS(parentClass, parameter, ...)                     \
+    }                                                                                              \
+    namespace LE::Parameters                                                                       \
+    {                                                                                              \
+    ENUMERATED_PARAMETER_SHORT_STRINGS(SW::Effects::parentClass, parameter, __VA_ARGS__)                                                             \
     }                                                                                              \
     namespace LE::SW::Effects                                                                      \
     {

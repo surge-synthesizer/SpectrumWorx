@@ -89,6 +89,20 @@ EFFECT_ENUMERATED_PARAMETER_STRINGS(Vaxateer, Mode,
     {M7, "Side: <Thr >Main"},
     {M8, "Side: <Thr <Main"})
 
+/// \note Eight conditions, sixteen characters each, in a sixty-pixel box: the
+/// widget squeezed them to a tenth of their width and the reading was a smear.
+/// The menu still lists them in full -- this is only what the box reads once one
+/// is chosen. \see ShortValues and issue #120.
+EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS(Vaxateer, Mode,
+    {M1, "M:>T >S"},
+    {M2, "M:>T <S"},
+    {M3, "M:<T >S"},
+    {M4, "M:<T <S"},
+    {M5, "S:>T >M"},
+    {M6, "S:>T <M"},
+    {M7, "S:<T >M"},
+    {M8, "S:<T <M"})
+
 } // namespace LE::SW::Effects
 
 #endif // vaxateer_hpp

@@ -526,9 +526,17 @@ PopupMenu::PopupMenu() : menuHeight_(0), menuWidth_(0) {}
 void PopupMenu::addItem(ItemID const newItemId, char const *const newItemText,
                         Artwork const *const icon, bool const enabled)
 {
+    addItem(newItemId, newItemText, newItemText, icon, enabled);
+}
+
+void PopupMenu::addItem(ItemID const newItemId, char const *const newItemText,
+                        char const *const shortText, Artwork const *const icon, bool const enabled)
+{
     juce::String text(newItemText);
+    /// \note The *menu's* width, from the full text, whichever of the two the
+    /// widget goes on to show.
     updateDimensionsForNewItem(text);
-    items_.push_back({newItemId, std::move(text), icon, enabled, false, false, nullptr});
+    items_.push_back({newItemId, std::move(text), shortText, icon, enabled, false, false, nullptr});
 }
 
 void PopupMenu::addSubMenu(PopupMenu &subMenu, char const *const name)
@@ -536,7 +544,7 @@ void PopupMenu::addSubMenu(PopupMenu &subMenu, char const *const name)
     LE_ASSERT(name);
     juce::String text(name);
     updateDimensionsForNewItem(text);
-    items_.push_back({0, std::move(text), nullptr, true, false, false, &subMenu});
+    items_.push_back({0, text, text, nullptr, true, false, false, &subMenu});
 }
 
 void PopupMenu::addSectionHeader(char const *const title)
@@ -544,12 +552,15 @@ void PopupMenu::addSectionHeader(char const *const title)
     LE_ASSERT(title);
     juce::String text(title);
     updateDimensionsForNewItem(text);
-    items_.push_back({0, std::move(text), nullptr, false, true, false, nullptr});
+    items_.push_back({0, text, text, nullptr, false, true, false, nullptr});
 }
 
 /// \note Nothing added to the measured height: a rule is a few pixels and the
 /// height is only used to centre showCenteredAtRight().
-void PopupMenu::addSeparator() { items_.push_back({0, {}, nullptr, false, false, true, nullptr}); }
+void PopupMenu::addSeparator()
+{
+    items_.push_back({0, {}, {}, nullptr, false, false, true, nullptr});
+}
 
 void PopupMenu::updateDimensionsForNewItem(juce::String const &itemText)
 {
@@ -662,6 +673,11 @@ juce::String const &PopupMenu::getItemText(unsigned int const itemIndex) const
     return items_[itemIndex].text;
 }
 
+juce::String const &PopupMenu::getItemShortText(unsigned int const itemIndex) const
+{
+    return items_[itemIndex].shortText;
+}
+
 PopupMenuWithSelection::PopupMenuWithSelection() : currentSelection_(0), currentSelectionID_(0) {}
 
 unsigned int PopupMenuWithSelection::getSelectedIndex() const
@@ -699,6 +715,11 @@ void PopupMenuWithSelection::setSelectedID(unsigned int const newSelectionID)
 juce::String const &PopupMenuWithSelection::getSelectedItemText() const
 {
     return getItemText(static_cast<unsigned int>(currentSelection_));
+}
+
+juce::String const &PopupMenuWithSelection::getSelectedItemShortText() const
+{
+    return getItemShortText(static_cast<unsigned int>(currentSelection_));
 }
 
 Artwork const *PopupMenuWithSelection::getSelectedItemIcon() const
@@ -783,7 +804,9 @@ void ComboBox::paint(juce::Graphics &graphics)
 
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
     graphics.setFont(Theme::singleton().labelFont());
-    graphics.drawFittedText(getSelectedItemText(), textMargin, 2, getWidth() - 2 * textMargin,
+    /// \note The short reading, which for all but a handful of values is the
+    /// only one there is. \see PopupMenu::addItem() and issue #120.
+    graphics.drawFittedText(getSelectedItemShortText(), textMargin, 2, getWidth() - 2 * textMargin,
                             boxHeight_ - 3, juce::Justification::centred, 1, 0.1f);
 }
 
@@ -1576,15 +1599,18 @@ void addPowerOfTwoValueStringsToComboBox(unsigned int const firstValue,
 }
 
 void addEnumeratedParameterValueStringsToComboBox(LE::Utility::Span<char const *const> strings,
+                                                  LE::Utility::Span<char const *const> shortStrings,
                                                   ComboBox &comboBox)
 {
     LE_ASSERT_MSG(comboBox.numberOfItems() == 0, "ComboBox already filled.");
+    LE_ASSERT(strings.size() == shortStrings.size());
     ComboBox::value_type parameterValue(0);
     while (strings)
     {
-        comboBox.addItem(parameterValue, strings.front());
+        comboBox.addItem(parameterValue, strings.front(), shortStrings.front());
         ++parameterValue;
         strings.advance_begin(1);
+        shortStrings.advance_begin(1);
     }
     comboBox.setValue(0);
 }

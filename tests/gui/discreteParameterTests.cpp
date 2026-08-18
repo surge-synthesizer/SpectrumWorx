@@ -27,6 +27,9 @@
 
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/spectrumworx/effects/tune_worx/tuneWorx.hpp"
+#include "le/spectrumworx/effects/vaxateer/vaxateer.hpp"
+
+#include "le/parameters/parametersUtilities.hpp" // IndexOf
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -57,6 +60,15 @@ GUI::ComboBox *firstComboBox(GUI::ModuleUI &moduleUI)
             return pComboBox;
     }
     return nullptr;
+}
+
+/// \brief \p moduleUI's combo box for effect-specific parameter \p index.
+GUI::ComboBox &comboBoxFor(GUI::ModuleUI &moduleUI, std::uint8_t const index)
+{
+    auto &control(moduleUI.effectSpecificParameterControl(index));
+    auto *const pComboBox(dynamic_cast<GUI::ComboBox *>(&control.widget()));
+    REQUIRE(pComboBox != nullptr);
+    return *pComboBox;
 }
 
 /// \brief The one strip of \p effectName, in slot 0.
@@ -147,4 +159,76 @@ TEST_CASE("Every black key is named both ways", "[gui][modules][combo]")
     CHECK(std::string(names[Key::E]) == "E");
     CHECK(std::string(names[Key::F]) == "F");
     CHECK(std::string(names[Key::G]) == "G");
+}
+
+TEST_CASE("A swap condition is listed in full and read abbreviated", "[gui][modules][combo]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Issue #120. A menu is as wide as its longest line; the box that
+    /// shows what was picked is sixty pixels, and "Main: >Thr >Side" in sixty
+    /// pixels is a smear. So a value carries two strings and Vaxateer's swap
+    /// condition is the example: the menu keeps the sentence, the box gets the
+    /// initials.
+    ///
+    ///   Nothing else moves -- `getItemText()` is what the host readout, the
+    /// knob menu and a preset all go through, and it is still the full one.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    instance.openEditor();
+
+    auto &strip(stripFor(instance.editor(), "Vaxateer"));
+
+    /// \note By index rather than by "the first combo box": Vaxateer's RMS target
+    /// is one too, and it is the one before this.
+    using Mode = Effects::Vaxateer::Mode;
+    auto &comboBox(
+        comboBoxFor(strip, Parameters::IndexOf<Effects::Vaxateer::Parameters, Mode>::value));
+
+    REQUIRE(comboBox.numberOfItems() == Mode::numberOfDiscreteValues);
+
+    comboBox.setSelectedID(Mode::M6);
+    CHECK(comboBox.getSelectedItemText() == "Side: >Thr <Main");
+    CHECK(comboBox.getSelectedItemShortText() == "S:>T <M");
+
+    // Every row, so that a list that grows an entry cannot go half-abbreviated.
+    auto const &full(Parameters::DiscreteValues<Mode>::strings);
+    auto const &shortened(Parameters::shortValueStrings<Mode>());
+    for (unsigned int row(0); row < comboBox.numberOfItems(); ++row)
+    {
+        INFO("row " << row);
+        CHECK(comboBox.getItemText(row) == juce::String(full[row]));
+        CHECK(comboBox.getItemShortText(row) == juce::String(shortened[row]));
+        CHECK(comboBox.getItemShortText(row).length() < comboBox.getItemText(row).length());
+    }
+}
+
+TEST_CASE("A parameter with no abbreviations reads the same either way", "[gui][modules][combo]")
+{
+    /// \note The other half of issue #120, and the half that covers 22 of the 23
+    /// enumerated parameters: `ShortValues` defaults to null and
+    /// `shortValueStrings()` hands back the full list, so a box shows what its
+    /// menu says. Vaxateer's own RMS target is the nearest one to ask.
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    instance.openEditor();
+
+    auto &strip(stripFor(instance.editor(), "Vaxateer"));
+
+    using RMSTarget = Effects::Vaxateer::RMSTarget;
+    auto &comboBox(
+        comboBoxFor(strip, Parameters::IndexOf<Effects::Vaxateer::Parameters, RMSTarget>::value));
+
+    REQUIRE(comboBox.numberOfItems() == RMSTarget::numberOfDiscreteValues);
+    for (unsigned int row(0); row < comboBox.numberOfItems(); ++row)
+    {
+        INFO("row " << row);
+        CHECK(comboBox.getItemShortText(row) == comboBox.getItemText(row));
+    }
+
+    CHECK(comboBox.getItemText(RMSTarget::SideRMS) == "Side");
 }

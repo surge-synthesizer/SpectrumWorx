@@ -262,6 +262,12 @@ Use `EFFECT_PARAMETER_STREAMING_NAME` only when a display name has to move after
 files have been written naming the old one. A new effect's parameters have no
 history; their display name is their streaming name.
 
+`EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS` is the fourth of these and is
+optional: the same values again, abbreviated to what a sixty-pixel combo box can
+show, used by that box and by nothing else. Reach for it when a value string does
+not fit — `Vaxateer::Mode` is the shipped example. `parameter_system.md`, "A value
+may be read differently from how it is listed", has the rule.
+
 ### How many parameters you get
 
 Five. `maxNumberOfParametersPerModule` is 10 (`src/configuration/constants.hpp:22`)

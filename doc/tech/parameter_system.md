@@ -426,6 +426,36 @@ and it has to be **declared before the point of instantiation**. There is one
 such point — `WidgetInitialiser` in `moduleWidgets.cpp`, which is also where
 `ModuleKnob::QuantizationFor< PitchMagnet::Target >` lives for the same reason.
 
+### A value may be read differently from how it is listed
+
+The menu is as wide as its longest line. The combo box on a module strip is sixty
+pixels, and `Vaxateer::Mode`'s eight swap conditions are sixteen characters each
+— `drawFittedText` squeezed them to a tenth of their width and the reading was a
+smear. So a value carries **two** strings:
+
+```cpp
+EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS( Vaxateer, Mode,
+    { M1, "M:>T >S" },
+    …
+    { M8, "S:<T <M" } )
+```
+
+`ShortValues<Parameter>::strings_` (`uiElements.hpp`) is null by default and
+`shortValueStrings<Parameter>()` then hands back the full list, exactly as
+`StreamingName` / `streamingName()` do for a name — so a parameter that has not
+been given abbreviations reads what its menu says, which is 22 of the 23
+enumerated parameters as of 18.08.2026.
+
+**Only the widget showing the selection uses them** — `ComboBox::paint()`, by way
+of `getSelectedItemShortText()`. The menu row, `getItemText()`, the knob menu, the
+host's `value_to_text` and everything written to a file stay the full string;
+nothing abbreviated ever reaches a preset or an automation lane. Issue #120;
+`tests/gui/discreteParameterTests.cpp` holds both halves.
+
+The specialisation belongs in the header beside the parameter, and a translation
+unit that does not see it gets the full strings in the widget rather than a
+diagnostic — §9's argument again, in its silent form.
+
 Power-of-two parameters print *through* the transformer like everything else as
 of 07.08.2026. They used to be the one exception — the note said they "do not
 currently support/use the DisplayValueTransformer functionality" and the overlap

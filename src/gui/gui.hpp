@@ -71,6 +71,12 @@ namespace Parameters
 {
 template <class Parameter> struct DiscreteValues;
 template <class Parameter> struct Name;
+/// \note Declared rather than included, as the two above are: the definition is
+/// in uiElements.hpp and reaches this header's one caller
+/// (fillComboBoxForParameter) through the translation unit that instantiates it.
+/// \see issue #120.
+template <class Parameter>
+constexpr typename DiscreteValues<Parameter>::Strings const &shortValueStrings();
 } // namespace Parameters
 
 namespace SW
@@ -575,6 +581,16 @@ class PopupMenu
 
     void addItem(ItemID, char const *newItemText, Artwork const *icon = nullptr,
                  bool enabled = true);
+    /// \brief An entry the menu lists as \p newItemText and the widget showing
+    /// the selection reads as \p shortText.
+    ///
+    /// \note The menu is as wide as its longest line and a module strip's combo
+    /// box is sixty pixels, so the two cannot always be the same string. Every
+    /// other reading of the value -- the host's, the knob menu's, a preset's --
+    /// stays the full one; this is the widget's alone. \see issue #120,
+    /// LE::Parameters::ShortValues.
+    void addItem(ItemID, char const *newItemText, char const *shortText,
+                 Artwork const *icon = nullptr, bool enabled = true);
     void addSubMenu(PopupMenu &, char const *name);
     void addSectionHeader(char const *title);
     void addSeparator();
@@ -583,6 +599,9 @@ class PopupMenu
 
     unsigned int numberOfItems() const;
     juce::String const &getItemText(unsigned int itemIndex) const;
+    /// \brief The same entry as the widget reads it, which is its full text
+    /// unless addItem() was given a shorter one.
+    juce::String const &getItemShortText(unsigned int itemIndex) const;
 
     /// \note Asynchronous. JUCE 8 defaults JUCE_MODAL_LOOPS_PERMITTED to 0, and
     /// showMenu() -- which blocked until the user chose -- is gone with it.
@@ -615,6 +634,9 @@ class PopupMenu
     {
         ItemID id;
         juce::String text;
+        /// What a widget showing this selection reads; equal to `text` unless a
+        /// shorter one was given. \see addItem().
+        juce::String shortText;
         Artwork const *icon;
         bool enabled;
         bool isSectionHeader;
@@ -685,6 +707,8 @@ class PopupMenuWithSelection : public PopupMenu
     void setSelectedIndex(unsigned int newSelectionIndex);
 
     juce::String const &getSelectedItemText() const;
+    /// \brief The selection as the widget reads it. \see getItemShortText().
+    juce::String const &getSelectedItemShortText() const;
     Artwork const *getSelectedItemIcon() const;
 
     void showCenteredAtRight(juce::Component const &, OnSelection);
@@ -1235,7 +1259,12 @@ void addPowerOfTwoValueStringsToComboBox(unsigned int firstValue, unsigned int l
 /// \note Not LE_RESTRICT const: DiscreteValues::strings is a std::array now, and
 /// a restrict-qualified element type is not something a template argument can
 /// carry.
+///
+/// \note Two lists of the same length: what the menu lists each value under and
+/// what the box reads once it is chosen. They are the same array for every
+/// parameter that has not been given abbreviations. \see issue #120.
 void addEnumeratedParameterValueStringsToComboBox(LE::Utility::Span<char const *const> strings,
+                                                  LE::Utility::Span<char const *const> shortStrings,
                                                   ComboBox &comboBox);
 
 template <class Parameter>
@@ -1248,7 +1277,8 @@ template <class Parameter>
 void fillComboBoxForParameter(ComboBox &comboBox, LE::Parameters::EnumeratedParameterTag)
 {
     addEnumeratedParameterValueStringsToComboBox(
-        LE::Utility::makeSpan(LE::Parameters::DiscreteValues<Parameter>::strings), comboBox);
+        LE::Utility::makeSpan(LE::Parameters::DiscreteValues<Parameter>::strings),
+        LE::Utility::makeSpan(LE::Parameters::shortValueStrings<Parameter>()), comboBox);
 }
 } // namespace Detail
 
