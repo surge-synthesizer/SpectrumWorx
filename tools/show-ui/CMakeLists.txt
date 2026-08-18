@@ -148,8 +148,8 @@ if (SW_BUILD_TESTS)
 
     set(effectIndex 0)
     foreach (entry IN LISTS effectListEntries)
-        # x( folder, module, EffectName, GroupName )
-        string(REGEX REPLACE "^[ \t\n]*x\\([^,]+,[^,]+,[ \t]*([A-Za-z0-9_]+)[ \t]*,.*$" "\\1"
+        # x( folder, module, EffectName )
+        string(REGEX REPLACE "^[ \t\n]*x\\([^,]+,[^,]+,[ \t]*([A-Za-z0-9_]+)[ \t]*\\).*$" "\\1"
                 effect "${entry}")
         add_test(NAME show-ui-renders-module-${effect}
                 COMMAND sw-show-ui --render editor-module

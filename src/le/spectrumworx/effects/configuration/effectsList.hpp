@@ -3,19 +3,27 @@
 /// \file effectsList.hpp
 /// ---------------
 ///
-/// The single source of truth for which effects exist, in which order, and in
-/// which menu group. **The order is ABI**: presets and host automation refer to
-/// effects by index, so entries may be appended but never reordered or removed.
+/// The single source of truth for which effects exist and in which order.
+/// **The order is ABI**: presets and host automation refer to effects by index,
+/// so entries may be appended but never reordered or removed.
+///
+/// \note **It is not what the menu looks like.** A fourth column named each
+/// effect's menu group until 18.08.2026, and the menu was a walk over this table
+/// that started a new sub-menu wherever that column changed -- so the menu's
+/// order was this table's order, which is the one order that may never move.
+/// gui/editor/moduleMenuLayout.cpp is where the groups and their order live now;
+/// see issue #121. The `/* … */` markers below are a reading aid and nothing
+/// reads them.
 ///
 /// This used to be effectsList.cmake, which string-concatenated nine headers
 /// through configure_file() into the source tree. The "edition" mechanism it
 /// existed for -- shipping a subset of the effects per SKU -- went with the
 /// licence manager, so every effect is now always built.
 ///
-/// Consumers define a four-argument macro and expand LE_SW_EFFECT_LIST over it:
+/// Consumers define a three-argument macro and expand LE_SW_EFFECT_LIST over it:
 ///
 /// \code
-///     #define LE_SW_AUX_IMPL(folder, module, name, group) name##Impl,
+///     #define LE_SW_AUX_IMPL(folder, module, name) name##Impl,
 ///     using EffectImpls = std::tuple<LE_SW_EFFECT_LIST(LE_SW_AUX_IMPL) void>;
 ///     #undef LE_SW_AUX_IMPL
 /// \endcode
@@ -30,7 +38,7 @@
 #define effectsList_hpp__F3A21C64_9E17_4A0B_8D55_1E7C0B94A2D6
 //------------------------------------------------------------------------------
 
-/// \brief x( folder, module, EffectName, GroupName )
+/// \brief x( folder, module, EffectName )
 ///
 /// \note One entry per line, and clang-format is told to leave it that way.
 /// This is not only about reading it: tools/show-ui/CMakeLists.txt parses this
@@ -43,84 +51,83 @@
 /// of a macro and the table is a definition; the off/on pair is what does.
 // clang-format off
 #define LE_SW_EFFECT_LIST(x)                                                          \
-    /* Pitch */                                                                        \
-    x(pitch_shifter,           pitchShifter,          PitchShifter,          Pitch)    \
-    x(pitch_follower,          pitchFollower,         PitchFollower,         Pitch)    \
-    x(tune_worx,               tuneWorx,              TuneWorx,              Pitch)    \
-    x(pitch_magnet,            pitchMagnet,           PitchMagnet,           Pitch)    \
-    x(sumo_pitch,              sumoPitch,             SumoPitch,             Pitch)    \
-    x(pitch_spring,            pitchSpring,           PitchSpring,           Pitch)    \
-    x(octaver,                 octaver,               Octaver,               Pitch)    \
-                                                                                       \
-    /* Timbre */                                                                       \
-    x(bandpass,                bandpass,              Bandpass,              Timbre)   \
-    x(bandpass,                bandpass,              Bandstop,              Timbre)   \
-    x(ah_ah,                   ahAh,                  AhAh,                  Timbre)   \
-    x(smoother,                smoother,              Smoother,              Timbre)   \
-    x(sharper,                 sharper,               Sharper,               Timbre)   \
-    x(centroid_extractor,      centroidExtractor,     CentroidExtractor,     Timbre)   \
-    x(tonal,                   tonal,                 Tonal,                 Timbre)   \
-    x(tonal,                   tonal,                 Atonal,                Timbre)   \
-                                                                                       \
-    /* Time */                                                                         \
-    x(freeze,                  freeze,                Freeze,                Time)     \
-    x(slicer,                  slicer,                Slicer,                Time)     \
-    x(wobbler,                 wobbler,               Wobbler,               Time)     \
-    x(reverser,                reverser,              Reverser,              Time)     \
-    x(eximploder,              exImploder,            Imploder,              Time)     \
-    x(eximploder,              exImploder,            Exploder,              Time)     \
-                                                                                       \
-    /* Space */                                                                        \
-    x(frecho,                  frecho,                Frecho,                Space)    \
-    x(frecho,                  frecho,                Frevcho,               Space)    \
-    x(freqverb,                freqverb,              Freqverb,              Space)    \
-                                                                                       \
-    /* Phase */                                                                        \
-    x(robotizer,               robotizer,             Robotizer,             Phase)    \
-    x(whisperer,               whisperer,             Whisperer,             Phase)    \
-    x(phasevolution,           phasevolution,         Phasevolution,         Phase)    \
-    x(phlip,                   phlip,                 Phlip,                 Phase)    \
-                                                                                       \
-    /* Loudness */                                                                     \
-    x(gain,                    gain,                  Gain,                  Loudness) \
-    x(exaggerator,             exaggerator,           Exaggerator,           Loudness) \
-    x(denoiser,                denoiser,              Denoiser,              Loudness) \
-    x(quiet_boost,             quietBoost,            QuietBoost,            Loudness) \
-    x(freqnamics,              freqnamics,            Freqnamics,            Loudness) \
-                                                                                       \
-    /* Combine */                                                                      \
-    x(talking_wind,            talkingWind,           TalkingWind,           Combine)  \
-    x(convolver,               convolver,             Convolver,             Combine)  \
-    x(ethereal,                ethereal,              Ethereal,              Combine)  \
-    x(vaxateer,                vaxateer,              Vaxateer,              Combine)  \
-    x(shapeless,               shapeless,             Shapeless,             Combine)  \
-    x(colorifer,               colorifer,             Colorifer,             Combine)  \
-    x(merger,                  merger,                Merger,                Combine)  \
-    x(blender,                 blender,               Blender,               Combine)  \
-    x(inserter,                inserter,              Inserter,              Combine)  \
-    x(burrito,                 burrito,               Burrito,               Combine)  \
-                                                                                       \
-    /* PV Domain */                                                                    \
-    x(phase_vocoder_analysis,  phaseVocoderAnalysis,  PhaseVocoderAnalysis,  PVD)      \
-    x(pitch_shifter,           pitchShifter,          PVPitchShifter,        PVD)      \
-    x(pitch_follower,          pitchFollower,         PitchFollowerPVD,      PVD)      \
-    x(tune_worx,               tuneWorx,              TuneWorxPVD,           PVD)      \
-    x(pitch_magnet,            pitchMagnet,           PitchMagnetPVD,        PVD)      \
-    x(pitch_spring,            pitchSpring,           PitchSpringPVD,        PVD)      \
-    x(eximploder,              exImploder,            PVImploder,            PVD)      \
-    x(eximploder,              exImploder,            PVExploder,            PVD)      \
-    x(phase_vocoder_synthesis, phaseVocoderSynthesis, PhaseVocoderSynthesis, PVD)      \
-                                                                                       \
-    /* Misc */                                                                         \
-    x(armonizer,               armonizer,             Armonizer,             Misc)     \
-    x(slew_limiter,            slewLimiter,           SlewLimiter,           Misc)     \
-    x(shifter,                 shifter,               Shifter,               Misc)     \
-    x(swappah,                 swappah,               Swappah,               Misc)     \
-    x(quantizer,               quantizer,             Quantizer,             Misc)
+    /* Pitch */                                                                       \
+    x(pitch_shifter,           pitchShifter,          PitchShifter)                   \
+    x(pitch_follower,          pitchFollower,         PitchFollower)                  \
+    x(tune_worx,               tuneWorx,              TuneWorx)                       \
+    x(pitch_magnet,            pitchMagnet,           PitchMagnet)                    \
+    x(sumo_pitch,              sumoPitch,             SumoPitch)                      \
+    x(pitch_spring,            pitchSpring,           PitchSpring)                    \
+    x(octaver,                 octaver,               Octaver)                        \
+                                                                                      \
+    /* Timbre */                                                                      \
+    x(bandpass,                bandpass,              Bandpass)                       \
+    x(bandpass,                bandpass,              Bandstop)                       \
+    x(ah_ah,                   ahAh,                  AhAh)                           \
+    x(smoother,                smoother,              Smoother)                       \
+    x(sharper,                 sharper,               Sharper)                        \
+    x(centroid_extractor,      centroidExtractor,     CentroidExtractor)              \
+    x(tonal,                   tonal,                 Tonal)                          \
+    x(tonal,                   tonal,                 Atonal)                         \
+                                                                                      \
+    /* Time */                                                                        \
+    x(freeze,                  freeze,                Freeze)                         \
+    x(slicer,                  slicer,                Slicer)                         \
+    x(wobbler,                 wobbler,               Wobbler)                        \
+    x(reverser,                reverser,              Reverser)                       \
+    x(eximploder,              exImploder,            Imploder)                       \
+    x(eximploder,              exImploder,            Exploder)                       \
+                                                                                      \
+    /* Space */                                                                       \
+    x(frecho,                  frecho,                Frecho)                         \
+    x(frecho,                  frecho,                Frevcho)                        \
+    x(freqverb,                freqverb,              Freqverb)                       \
+                                                                                      \
+    /* Phase */                                                                       \
+    x(robotizer,               robotizer,             Robotizer)                      \
+    x(whisperer,               whisperer,             Whisperer)                      \
+    x(phasevolution,           phasevolution,         Phasevolution)                  \
+    x(phlip,                   phlip,                 Phlip)                          \
+                                                                                      \
+    /* Loudness */                                                                    \
+    x(gain,                    gain,                  Gain)                           \
+    x(exaggerator,             exaggerator,           Exaggerator)                    \
+    x(denoiser,                denoiser,              Denoiser)                       \
+    x(quiet_boost,             quietBoost,            QuietBoost)                     \
+    x(freqnamics,              freqnamics,            Freqnamics)                     \
+                                                                                      \
+    /* Combine */                                                                     \
+    x(talking_wind,            talkingWind,           TalkingWind)                    \
+    x(convolver,               convolver,             Convolver)                      \
+    x(ethereal,                ethereal,              Ethereal)                       \
+    x(vaxateer,                vaxateer,              Vaxateer)                       \
+    x(shapeless,               shapeless,             Shapeless)                      \
+    x(colorifer,               colorifer,             Colorifer)                      \
+    x(merger,                  merger,                Merger)                         \
+    x(blender,                 blender,               Blender)                        \
+    x(inserter,                inserter,              Inserter)                       \
+    x(burrito,                 burrito,               Burrito)                        \
+                                                                                      \
+    /* PV Domain */                                                                   \
+    x(phase_vocoder_analysis,  phaseVocoderAnalysis,  PhaseVocoderAnalysis)           \
+    x(pitch_shifter,           pitchShifter,          PVPitchShifter)                 \
+    x(pitch_follower,          pitchFollower,         PitchFollowerPVD)               \
+    x(tune_worx,               tuneWorx,              TuneWorxPVD)                    \
+    x(pitch_magnet,            pitchMagnet,           PitchMagnetPVD)                 \
+    x(pitch_spring,            pitchSpring,           PitchSpringPVD)                 \
+    x(eximploder,              exImploder,            PVImploder)                     \
+    x(eximploder,              exImploder,            PVExploder)                     \
+    x(phase_vocoder_synthesis, phaseVocoderSynthesis, PhaseVocoderSynthesis)          \
+                                                                                      \
+    /* Misc */                                                                        \
+    x(armonizer,               armonizer,             Armonizer)                      \
+    x(slew_limiter,            slewLimiter,           SlewLimiter)                    \
+    x(shifter,                 shifter,               Shifter)                        \
+    x(swappah,                 swappah,               Swappah)                        \
+    x(quantizer,               quantizer,             Quantizer)
 // clang-format on
 
 #define LE_SW_NUMBER_OF_EFFECTS 57
-#define LE_SW_NUMBER_OF_EFFECT_GROUPS 9
 
 //------------------------------------------------------------------------------
 #endif // effectsList_hpp

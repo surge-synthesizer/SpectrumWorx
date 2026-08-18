@@ -16,7 +16,7 @@
 #include "le/spectrumworx/effects/configuration/constants.hpp"
 #include "le/utility/cstdint.hpp"
 
-#include <array>
+#include <vector>
 
 namespace LE::SW::GUI
 {
@@ -27,20 +27,16 @@ namespace LE::SW::GUI
 ///
 /// \brief Constructs the menu for SpectrumWorx modules.
 ///
-///    It uses the Modules typelist defined by the moduleList.hpp header, the
-/// group hierarchy defined in the effectGroups.hpp header and the traits/
-/// metadata provided by each module class (namely the parent group) to detect
-/// interrelationships between individual modules and groups.
+///    One sub-menu per group, filled from ModuleMenuLayout -- which is where the
+/// groups, their order and the order of the effects within them are declared.
 ///
-///    To speed up compilation, the current implementation has been vastly
-/// simplified, it no longer supports submenus/nested groups and complex
-/// hierarchies nor can it be configured through template parameters. This is
-/// sufficient for the current SW design, check the SVN history (before revision
-/// 2748) if a more complex implementation becomes necessary again.
-///    As a further compile time optimization, the number of groups used (and
-/// thus menus) is specified directly/hardcoded in the header (to prevent the
-/// inclusion of the moduleList.hpp header) and then compile-time check in the
-/// .cpp file.
+/// \note It read the effect list itself until 18.08.2026: a compile-time
+/// recursion over `LE_SW_EFFECT_LIST` that took the effects in index order and
+/// started a new sub-menu wherever a fourth column's group changed. That made
+/// the menu a rendering of a table whose order is ABI and can therefore never
+/// move, which is issue #121. The class-template configurability the 2010
+/// version had -- nested groups, arbitrary hierarchies -- went in 2010 and has
+/// not come back; a deeper menu would be another table, not another traversal.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -55,7 +51,12 @@ class ModuleMenuHolder
         Effects::Constants::numberOfIncludedEffects >= minimumEffectsForSubMenus;
 
     using Menu = GUI::PopupMenu;
-    using Menus = std::array<Menu, 1 + (hasSubMenus ? Effects::Constants::numberOfGroups : 0)>;
+    /// \note A vector, sized from ModuleMenuLayout, rather than a std::array
+    /// sized from a `numberOfGroups` constant kept beside the effect list. How
+    /// many groups there are is now a property of the table that lists them, and
+    /// a PopupMenu is neither copyable nor movable -- which `std::vector<Menu>
+    /// v( n )` does not ask it to be. \see issue #121.
+    using Menus = std::vector<Menu>;
 
   public: // Public interface.
     ModuleMenuHolder();

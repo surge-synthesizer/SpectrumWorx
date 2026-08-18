@@ -62,12 +62,11 @@ namespace
 {
 using EffectNames = std::array<char const *LE_RESTRICT const, Constants::numberOfEffects>;
 
-#define LE_SW_AUX_EFFECT_TITLE(folder, module, name, group) name::title,
+#define LE_SW_AUX_EFFECT_TITLE(folder, module, name) name::title,
 EffectNames const effectNames = {{LE_SW_EFFECT_LIST(LE_SW_AUX_EFFECT_TITLE)}};
 #undef LE_SW_AUX_EFFECT_TITLE
 
-#define LE_SW_AUX_EFFECT_STREAMING_NAME(folder, module, name, group)                               \
-    EffectStreamingName<name>::string_,
+#define LE_SW_AUX_EFFECT_STREAMING_NAME(folder, module, name) EffectStreamingName<name>::string_,
 EffectNames const effectStreamingNames = {{LE_SW_EFFECT_LIST(LE_SW_AUX_EFFECT_STREAMING_NAME)}};
 #undef LE_SW_AUX_EFFECT_STREAMING_NAME
 } // anonymous namespace

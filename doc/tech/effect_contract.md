@@ -523,20 +523,27 @@ real silence, which is what issue #13 is still open about.
 
 ## 1.9 Registering it
 
-Six files, and one of them is the one that matters.
+Six files, and two of them are load-bearing: the first, which is where the effect
+comes into existence, and the last, which is where it becomes reachable.
 
 **1. `src/le/spectrumworx/effects/configuration/effectsList.hpp`** — the single
 source of truth. Append one line:
 
 ```cpp
-    x( my_effect,  myEffect,  MyEffect,  Timbre )
-//    folder       module     class      group
+    x( my_effect,  myEffect,  MyEffect )
+//    folder       module     class
 ```
 
 and bump `LE_SW_NUMBER_OF_EFFECTS`. Consumers expand this table over a
-four-argument macro to build the impl tuple (`indexToEffectImplMapping.hpp:28`),
-the group tuple (`effectIndexToGroupMapping.hpp:29`) and the name arrays
-(`effectNames.cpp:48`, `:54`).
+three-argument macro to build the impl tuple (`indexToEffectImplMapping.hpp:28`)
+and the name arrays (`effectNames.cpp:48`, `:54`).
+
+> A fourth column named the effect's menu group until 18.08.2026, and the menu
+> was a walk over this table that started a sub-menu wherever that column
+> changed — so the menu's order *was* this table's order, the one order that may
+> never move. Grouping is now `gui/editor/moduleMenuLayout.cpp` (issue #121, and
+> step 6 below). The `/* … */` markers left in the table are a reading aid and
+> nothing parses them.
 
 > **The order is ABI.** Presets resolve an effect by name but automation
 > addresses a slot's *content* by index, and `effectsListTests.cpp:117` pins the
@@ -569,12 +576,26 @@ nothing tells you.** That is exactly how the four effects in §3.2 rotted.
 compile otherwise. Lines 122-126 additionally pin `names.front()`,
 `names.back()`, `names[7]` and `names[8]` against reordering.
 
-**6. Only if you need a group that does not exist** — three edits, and they must
-agree: a `SUB_GROUP_BEGIN( Name, "Label" ) SUB_GROUP_END` in `effectGroups.hpp`,
-an entry in the `Groups` type list in `effectIndexToGroupMapping.hpp:37-40`
-(**that list is the menu order**, and it is deliberately not the declaration
-order), and a bump of `LE_SW_NUMBER_OF_EFFECT_GROUPS`. The nine are Pitch,
-Timbre, Time, Space, Phase, Loudness, Combine, PVD, Misc.
+**6. `src/gui/editor/moduleMenuLayout.cpp`** — put the effect in a menu group, by
+its **streaming name**, at the position in that group's array where you want it
+listed. This one is not optional: the layout is checked on the first menu and an
+effect in no group **terminates the plugin**, because a menu missing an entry is
+an effect no user can reach and nothing else would notice. See issue #121, and
+`tests/gui/moduleMenuTests.cpp`, which asks the same question in the form a test
+can survive.
+
+> Adding a group is one line in the same file's `layout[]` table, in the position
+> the menu should draw it. **That order is the menu's order**, and moving a line
+> is all moving a group takes — Phase Vocoder sits after Phase because somebody
+> moved that line, which is what issue #121 was opened for. The nine groups are
+> Pitch, Timbre, Time, Space, Phase, Phase Vocoder, Loudness, Combine and
+> Miscellaneous; read `layout[]` for the order rather than this sentence, and
+> note that no test restates it.
+>
+> The names are streaming names rather than titles: nine effects were retitled
+> after presets had named them, so the table says `"PVD start"` where the menu
+> shows "To PV". Keying it this way is what makes the next retitling leave the
+> layout alone.
 
 Note the 46-to-57 gap: one `.cpp` can back several rows. Nine folders contribute
 more than one entry — `eximploder` contributes four, the other eight two each.
@@ -583,9 +604,10 @@ more than one entry — `eximploder` contributes four, the other eight two each.
 
 All of these are derived from the table and update themselves:
 `constants.hpp`, `includedEffects.hpp`, `indexToEffectImplMapping.hpp`,
-`effectIndexToGroupMapping.hpp` (unless adding a group), `effectNames.cpp`, the
-factory's runtime-index → compile-time-type dispatch (`factory.cpp:156-189`), the
-parameter table, the module menu, the GUI widgets, and the `show-ui` render test.
+`effectNames.cpp`, the factory's runtime-index → compile-time-type dispatch
+(`factory.cpp:156-189`), the parameter table, the GUI widgets, and the `show-ui`
+render test. **The module menu is not among them** — it has its own table, which
+is step 6 above.
 
 `effectNames.cpp`'s pin table in particular: **a new effect adds nothing there.**
 `LE_SW_EFFECT_STREAMING_NAME` exists only for an effect whose title moved after

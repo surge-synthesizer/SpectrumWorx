@@ -87,6 +87,7 @@ add_executable(sw-plugin-tests
         gui/lfoDisplayTests.cpp
         gui/moduleControlFocusTests.cpp
         gui/moduleDragTests.cpp
+        gui/moduleMenuTests.cpp
         gui/overlayPanelTests.cpp
         gui/paletteTests.cpp
         gui/pathsTests.cpp

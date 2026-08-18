@@ -24,7 +24,7 @@
 namespace LE::SW::Effects
 {
 
-#define LE_SW_AUX_EFFECT_IMPL(folder, module, name, group) name##Impl,
+#define LE_SW_AUX_EFFECT_IMPL(folder, module, name) name##Impl,
 using EffectImpls = std::tuple<LE_SW_EFFECT_LIST(LE_SW_AUX_EFFECT_IMPL) void>;
 #undef LE_SW_AUX_EFFECT_IMPL
 

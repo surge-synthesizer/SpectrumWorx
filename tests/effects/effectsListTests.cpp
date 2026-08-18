@@ -14,7 +14,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //------------------------------------------------------------------------------
 #include "le/spectrumworx/effects/configuration/constants.hpp"
-#include "le/spectrumworx/effects/configuration/effectIndexToGroupMapping.hpp"
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/spectrumworx/effects/configuration/effectsList.hpp"
 #include "le/spectrumworx/effects/configuration/includedEffects.hpp"
@@ -34,7 +33,7 @@ namespace Effects = LE::SW::Effects;
 
 namespace
 {
-#define LE_SW_AUX_COUNT(folder, module, name, group) +1
+#define LE_SW_AUX_COUNT(folder, module, name) +1
 constexpr unsigned int listedEffects{0 LE_SW_EFFECT_LIST(LE_SW_AUX_COUNT)};
 #undef LE_SW_AUX_COUNT
 
@@ -51,7 +50,6 @@ TEST_CASE("The list and the counts agree", "[effects]")
 {
     static_assert(listedEffects == Effects::Constants::numberOfEffects);
     static_assert(Effects::Constants::numberOfEffects == 57);
-    static_assert(Effects::Constants::numberOfGroups == 9);
     static_assert(Effects::Constants::numberOfIncludedEffects ==
                   Effects::Constants::numberOfEffects);
 }
@@ -85,14 +83,13 @@ TEST_CASE("Every index maps to a distinct implementation type", "[effects]")
         std::is_same_v<Effects::ImplForIndex<Effects::Constants::numberOfEffects>::type, void>);
 }
 
-TEST_CASE("Every index maps to one of the nine groups", "[effects]")
-{
-    static_assert(std::tuple_size_v<Effects::EffectGroups> ==
-                  Effects::Constants::numberOfEffects + 1);
-    static_assert(
-        std::is_same_v<Effects::Group<0>::type, std::tuple_element_t<0, Effects::EffectGroups>>);
-    static_assert(Effects::Groups::size == Effects::Constants::numberOfGroups);
-}
+/// \note `Every index maps to one of the nine groups` stood here, over
+/// `Effects::EffectGroups` -- a tuple of tag types built from a fourth column of
+/// the effect list. The column, the tags and the case are gone together: which
+/// group an effect is in is a menu question, and the menu answers it in
+/// gui/editor/moduleMenuLayout.cpp, where the answer can also say what *order*
+/// the groups come in. `tests/gui/moduleMenuTests.cpp` is what holds it.
+///                                           (18.08.2026.) \see issue #121
 
 TEST_CASE("Effect names are present and unique", "[effects]")
 {

@@ -104,6 +104,7 @@ add_library(sw-gui STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/editor/auxiliaryComponents.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/editor/editorHost.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/editor/moduleMenuHolder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/editor/moduleMenuLayout.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/editor/presetLoading.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/editor/spectrumWorxEditor.cpp
 

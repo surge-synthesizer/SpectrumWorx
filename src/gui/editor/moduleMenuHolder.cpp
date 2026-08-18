@@ -10,10 +10,10 @@
 //------------------------------------------------------------------------------
 #include "moduleMenuHolder.hpp"
 
-#include "le/spectrumworx/effects/configuration/effectIndexToGroupMapping.hpp"
+#include "moduleMenuLayout.hpp"
+
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/spectrumworx/effects/configuration/includedEffects.hpp"
-#include "le/utility/typeList.hpp"
 
 namespace LE::SW::GUI
 {
@@ -38,80 +38,22 @@ void addModuleToMenuEntry(Menu &menu, std::uint8_t const moduleIndex)
     menu.addItem(menuEntryID, moduleName, nullptr, moduleEnabled);
 }
 
-template <unsigned int moduleIndex, unsigned int subMenuIndex>
-void addModulesToMenu(Menus &, std::true_type /*end reached*/)
-{
-}
-
-template <unsigned int moduleIndex, unsigned int subMenuIndex>
-LE_FORCEINLINE void addModulesToMenu(Menus &menus, std::false_type /*end not reached*/)
-{
-    std::uint8_t const menuIndex(1 + subMenuIndex);
-    addModuleToMenuEntry(menus[menuIndex], moduleIndex);
-
-    using LastModule = std::bool_constant<(moduleIndex + 1) == Effects::Constants::numberOfEffects>;
-    unsigned int const nextModuleIndex(moduleIndex + !LastModule::value);
-
-    typedef typename Effects::Group<moduleIndex>::type CurrentModuleGroup;
-    typedef typename Effects::Group<nextModuleIndex>::type NextModuleGroup;
-    unsigned int const nextSubMenuIndex(subMenuIndex +
-                                        !std::is_same_v<CurrentModuleGroup, NextModuleGroup>);
-
-    addModulesToMenu<nextModuleIndex, nextSubMenuIndex>(menus, LastModule());
-}
-
-////////////////////////////////////////////////////////////////////////////
-///
-/// \class TopMenusAdder
-///
-/// \brief A helper functor for adding menus from a ModuleMenuHolder to a
-/// parent menu.
-///
-////////////////////////////////////////////////////////////////////////////
-
-class TopMenusAdder
-{
-  public:
-    TopMenusAdder(Menus &menus) : pCurrentMenu_(&menus[1]), parentMenu_(menus.front()) {}
-
-    template <class Group> void operator()()
-    {
-        parentMenu_.addSubMenu(*pCurrentMenu_++, Group::name());
-    }
-
-  private:
-    void operator=(TopMenusAdder const &);
-
-    Menu *pCurrentMenu_;
-    Menu &parentMenu_;
-};
-
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-
-struct FlatMenuAdder
-{
-    typedef void result_type;
-    template <typename ModuleMenuIndex> void operator()() const
-    {
-        addModuleToMenuEntry(menus[0], ModuleMenuIndex::value);
-    }
-    Menus &menus;
-};
-
-#pragma warning(pop)
-
 /// \brief The effects themselves, which is the part that is built once.
+///
+/// \note A walk over ModuleMenuLayout rather than the compile-time recursion
+/// over the effect list this used to be. That recursion took the effects in
+/// index order and started a new sub-menu wherever the group changed, which made
+/// the menu a *rendering* of `LE_SW_EFFECT_LIST` -- and that list's order is ABI.
+/// \see issue #121.
 void fillSubMenus(Menus &menus, std::true_type /*has sub menus*/)
 {
-    // Implementation note:
-    //   Our own implementation of the boost::mpl::detail::execute() helper
-    // template function that passes along all intermediate results for
-    // vastly improved compilation times (on GCC atleast).
-    //                                    (23.09.2010.) (Domagoj Saric)
-    addModulesToMenu<0, 0>(menus, std::false_type());
+    std::uint8_t menuIndex{1};
+    for (auto const &group : ModuleMenuLayout::groups())
+    {
+        auto &menu(menus[menuIndex++]);
+        for (auto const effect : group.effects)
+            addModuleToMenuEntry(menu, effect);
+    }
 }
 
 /// \note One of each pair below is chosen by hasSubMenus and the other is not
@@ -123,14 +65,17 @@ void fillSubMenus(Menus &menus, std::true_type /*has sub menus*/)
 /// effects for that to be worth a level of nesting, one per effect.
 void fillTopMenu(Menus &menus, std::true_type /*has sub menus*/)
 {
-    TopMenusAdder topMenusAdder(menus);
-    Utility::forEach<Effects::Groups>(topMenusAdder);
+    auto &topMenu(menus.front());
+    std::uint8_t menuIndex{1};
+    for (auto const &group : ModuleMenuLayout::groups())
+        topMenu.addSubMenu(menus[menuIndex++], group.title);
 }
 
 [[maybe_unused]] void fillTopMenu(Menus &menus, std::false_type /*does not have sub menus*/)
 {
-    FlatMenuAdder const adder = {menus};
-    Utility::forEach<Effects::ValidIndices>(adder);
+    for (auto const &group : ModuleMenuLayout::groups())
+        for (auto const effect : group.effects)
+            addModuleToMenuEntry(menus.front(), effect);
 }
 } // namespace
 
@@ -143,9 +88,18 @@ void fillTopMenu(Menus &menus, std::true_type /*has sub menus*/)
 ///
 /// \throws std::bad_alloc Out of memory.
 ///
+/// \note The menu count comes from the layout rather than from a constant beside
+/// the effect list: how many groups there are is a property of the table that
+/// declares them. `ModuleMenuLayout::groups()` is also what terminates if that
+/// table has lost an effect, so building the menu is the moment the check runs.
+///
 ////////////////////////////////////////////////////////////////////////////////
 
-ModuleMenuHolder::ModuleMenuHolder() { fillSubMenus(menus_, std::bool_constant<hasSubMenus>()); }
+ModuleMenuHolder::ModuleMenuHolder()
+    : menus_(1 + (hasSubMenus ? ModuleMenuLayout::groups().size() : 0))
+{
+    fillSubMenus(menus_, std::bool_constant<hasSubMenus>());
+}
 
 ModuleMenuHolder::Menu const &ModuleMenuHolder::menuWithHeader(char const *const title)
 {
