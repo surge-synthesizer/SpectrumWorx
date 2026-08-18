@@ -44,7 +44,7 @@ namespace LE::SW::GUI
 /// pages use (skin file 17) rather than of an about-specific one. What that
 /// buys: the three tabs are the same panel with different contents, which is
 /// what they always looked like and now is.
-class AboutPage final : public BackgroundImage
+class AboutPage final : public PanelBackground
 {
   public:
     AboutPage();

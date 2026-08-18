@@ -44,21 +44,21 @@ static char_t const presetExtension[] = _T( ".swp" );
 #pragma warning(disable : 4355) // 'this' used in base member initializer list.
 
 PresetBrowser::PresetBrowser()
-    : BackgroundImage(resourceArtwork<PresetBackground>()),
-      save_(*this, resourceArtwork<PresetSaveDown>(), resourceArtwork<PresetSaveUp>(),
-            juce::Colours::transparentWhite, false),
-      saveAs_(*this, resourceArtwork<PresetSaveAsDown>(), resourceArtwork<PresetSaveAsUp>(),
-              juce::Colours::transparentWhite, false),
-      delete_(*this, resourceArtwork<PresetDeleteDown>(), resourceArtwork<PresetDeleteUp>(),
-              juce::Colours::transparentWhite, false),
-      browseArrow_(*this, resourceArtwork<ChangeWaveform>(), resourceArtwork<ChangeWaveform>(),
-                   juce::Colours::white.withAlpha(0.5f), false),
+    : PanelBackground(Browser),
+      /// \note 54 x 22 where the artwork was 48 x 16: the extra six is the room
+      /// a lit button's halo needs, and the pills land where they always did
+      /// because the three positions below moved in by the same three pixels.
+      ///                                       (18.08.2026.)
+      save_(*this, "Save", 54, 22, false), saveAs_(*this, "Save as", 54, 22, false),
+      delete_(*this, "Delete", 54, 22, false),
+      browseArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
+                   ColourMap::getColour(ColourMap::MouseOverGlow)),
       ignoreExternalSamples_(*this, 15, 58, "Ignore external audio"), ignoreSelectionChange_(false),
       addOneRow_(false), newPresetPending_(false), dirtyCommentPresetIndex_(-1)
 {
     listBox_.setModel(this);
 
-    setSizeFromImage(*this, this->image());
+    setSizeFromPanel();
 
     /// \note All three start disabled and refresh() decides Save-As from there.
     /// It used to be settled once, here, where location_ is still its default
@@ -86,18 +86,19 @@ PresetBrowser::PresetBrowser()
     restoreLastPlace();
 
     browseArrow_.setTopLeftPosition(174, 10);
-    save_.setTopLeftPosition(17, 33);
-    saveAs_.setTopLeftPosition(17 + 55, 33);
-    delete_.setTopLeftPosition(17 + 55 + 55, 33);
+    save_.setTopLeftPosition(14, 30);
+    saveAs_.setTopLeftPosition(14 + 55, 30);
+    delete_.setTopLeftPosition(14 + 55 + 55, 30);
     listBox_.setBounds(11, 79, getWidth() - 22, 234);
     comment().setBounds(8, 322, getWidth() - 13, 29);
 
     addChildComponent(&presetNameEditBox_);
     presetNameEditBox_.setAlwaysOnTop(true);
-    presetNameEditBox_.setFont(Theme::singleton().whiteFont());
-    presetNameEditBox_.setColour(juce::TextEditor::backgroundColourId, juce::Colours::black);
+    presetNameEditBox_.setFont(Theme::singleton().labelFont());
+    presetNameEditBox_.setColour(juce::TextEditor::backgroundColourId,
+                                 ColourMap::getColour(ColourMap::Ground));
     presetNameEditBox_.setColour(juce::TextEditor::focusedOutlineColourId,
-                                 Theme::singleton().blueColour());
+                                 ColourMap::getColour(ColourMap::Blue));
     presetNameEditBox_.addListener(this);
 
     listBox_.setOpaque(false);
@@ -111,9 +112,11 @@ PresetBrowser::PresetBrowser()
     comment().setMultiLine(true);
     comment().setReturnKeyStartsNewLine(true);
     comment().setPopupMenuEnabled(true);
-    comment().setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
-    comment().setColour(juce::TextEditor::textColourId, Theme::singleton().blueColour());
-    comment().setColour(juce::TextEditor::highlightColourId, juce::Colours::lightgrey);
+    comment().setColour(juce::TextEditor::backgroundColourId,
+                        ColourMap::getColour(ColourMap::Transparent));
+    comment().setColour(juce::TextEditor::textColourId, ColourMap::getColour(ColourMap::Blue));
+    comment().setColour(juce::TextEditor::highlightColourId,
+                        ColourMap::getColour(ColourMap::TextDimmed));
     comment().addListener(this);
     {
         juce::Font font(Theme::singleton().Theme::getPopupMenuFont());
@@ -367,7 +370,7 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
 
     unsigned int const x(isDirectory ? 16 : 4);
 
-    graphics.setColour(juce::Colours::black);
+    graphics.setColour(ColourMap::getColour(ColourMap::Ground));
 
     if (isDirectory)
     {
@@ -1118,8 +1121,8 @@ juce::String PresetBrowser::locationLabel() const
 
 void PresetBrowser::paint(juce::Graphics &graphics)
 {
-    BackgroundImage::paint(graphics);
-    graphics.setColour(juce::Colours::white);
+    PanelBackground::paint(graphics);
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
     graphics.setFont(13);
     graphics.drawFittedText(locationLabel(), 13, 10, 155, 12, juce::Justification::centredLeft, 1);
 }

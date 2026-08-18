@@ -45,7 +45,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <map>
 #include <string>
 //------------------------------------------------------------------------------
@@ -124,6 +126,40 @@ juce::Image rendered(Editor &editor)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \brief How far apart two pixels are, on their worst channel.
+int channelDistance(juce::Colour const left, juce::Colour const right)
+{
+    auto const apart([](juce::uint8 const a, juce::uint8 const b) {
+        return std::abs(static_cast<int>(a) - static_cast<int>(b));
+    });
+    return std::max({apart(left.getRed(), right.getRed()), apart(left.getGreen(), right.getGreen()),
+                     apart(left.getBlue(), right.getBlue()),
+                     apart(left.getAlpha(), right.getAlpha())});
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief What the same drawing at two offsets is allowed to differ by and still
+/// be the same drawing.
+///
+///   One part in 255, which is a rasteriser rounding an antialiased edge and
+/// nothing else. Windows failed both placement cases at 0.05 % of the module
+/// rack -- some sixty pixels of a hundred and twenty thousand -- where macOS and
+/// Linux were bit-identical, and a whole-pixel translation of one picture cannot
+/// change it by more than rounding.
+///
+/// \note A tolerance on the *pixel*, not on the fraction. `< 0.001` of the area
+/// would pass just as happily with sixty pixels of the wrong thing in them,
+/// which is the failure these cases exist to catch: a panel bleeding into the
+/// rack shows up as a handful of pixels that are completely wrong, not as a
+/// handful that are one off. Anything worse than rounding still fails, and
+/// differenceOver() says how much worse.
+///                                       (18.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+int constexpr rasteriserRounding{1};
+
 double differenceOver(juce::Image const &left, juce::Rectangle<int> const &leftArea,
                       juce::Image const &right, juce::Rectangle<int> const &rightArea)
 {
@@ -138,10 +174,21 @@ double differenceOver(juce::Image const &left, juce::Rectangle<int> const &leftA
     auto const offset(rightArea.getPosition() - leftArea.getPosition());
 
     std::size_t different{0};
+    int worst{0};
     for (int y(leftArea.getY()); y < leftArea.getBottom(); ++y)
         for (int x(leftArea.getX()); x < leftArea.getRight(); ++x)
-            different += (leftPixels.getPixelColour(x, y) !=
-                          rightPixels.getPixelColour(x + offset.x, y + offset.y));
+        {
+            auto const apart(
+                channelDistance(leftPixels.getPixelColour(x, y),
+                                rightPixels.getPixelColour(x + offset.x, y + offset.y)));
+            worst = std::max(worst, apart);
+            different += (apart > rasteriserRounding);
+        }
+
+    //   So that a failure says how far off it was rather than only how much of
+    // it was off: one channel apart is a rasteriser, forty is a bug.
+    if (worst > 0)
+        UNSCOPED_INFO("worst channel difference: " << worst << " of 255");
 
     return double(different) / double(leftArea.getWidth() * leftArea.getHeight());
 }
@@ -177,7 +224,8 @@ juce::Rectangle<int> differenceBoundsOutside(juce::Image const &left, juce::Imag
         {
             if (ignore.contains(x, y))
                 continue;
-            if (leftPixels.getPixelColour(x, y) == rightPixels.getPixelColour(x, y))
+            if (channelDistance(leftPixels.getPixelColour(x, y),
+                                rightPixels.getPixelColour(x, y)) <= rasteriserRounding)
                 continue;
             bounds =
                 bounds.isEmpty() ? juce::Rectangle<int>(x, y, 1, 1) : bounds.getUnion({x, y, 1, 1});

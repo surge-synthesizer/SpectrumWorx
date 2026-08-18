@@ -32,7 +32,7 @@ namespace GUI
 
 class SpectrumWorxEditor;
 
-class PresetBrowser final : public BackgroundImage,
+class PresetBrowser final : public PanelBackground,
                             private juce::ListBoxModel,
                             private juce::Button::Listener,
                             private juce::TextEditor::Listener
@@ -200,16 +200,16 @@ class PresetBrowser final : public BackgroundImage,
     Item const *findPreset(juce::String const &presetName) const;
 
     juce::TextEditor &comment() { return commentBox_; }
-    BackgroundImage &background() { return *this; }
+    PanelBackground &background() { return *this; }
 
   private: // friend class Detail::BackgroundWithCurrentFolder;
     juce::TextEditor presetNameEditBox_;
     juce::TextEditor commentBox_;
     juce::ListBox listBox_;
-    BitmapButton save_;
-    BitmapButton saveAs_;
-    BitmapButton delete_;
-    BitmapButton browseArrow_;
+    PaintedButton save_;
+    PaintedButton saveAs_;
+    PaintedButton delete_;
+    ArrowButton browseArrow_;
     LEDTextButton ignoreExternalSamples_;
 
     bool ignoreSelectionChange_;

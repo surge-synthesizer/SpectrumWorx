@@ -1,0 +1,255 @@
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \file colourMap.hpp
+/// -------------------
+///
+///   Every colour the editor paints with, in one place and asked for by name.
+///
+///   The skin used to be pixels, so its palette was not written down anywhere:
+/// it was inside the PNGs. As the artwork is redrawn in code -- the two knobs
+/// first, then the buttons and the tabs -- those colours have to live
+/// somewhere, and "a constant beside the drawing that uses it" is how a tree
+/// ends up with the accent blue spelled five slightly different ways. It was
+/// already spelled four: 0x13B5EA in Theme, 0x13B7EA on a module knob's wedge,
+/// #13b4e9 around a module strip and #12b4ea on a button's rim, none of which
+/// anybody chose and no two of which are more than three parts in 255 apart.
+///
+///   So: one enumerator per colour the skin *chooses*, and a switch that
+/// answers it. Transparency is not in here -- it is an absence rather than a
+/// choice, and juce::Colours::transparentBlack says so better than a name
+/// would.
+///
+/// \note A switch rather than a table so that the answer can grow a condition
+/// -- a second palette, a host-supplied accent -- without every call site
+/// learning about it. Nothing needs that yet.
+///
+/// \note Sits in the same layer as theme.hpp and below everything else in
+/// src/gui, and depends on juce_graphics and nothing of ours.
+///
+/// Copyright (c) 2026 the SpectrumWorx contributors.
+/// SPDX-License-Identifier: GPL-3.0-or-later
+///
+////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
+#ifndef colourMap_hpp__DD5E31D8_98D4_41FF_A352_7AA31EFA1DA1
+#define colourMap_hpp__DD5E31D8_98D4_41FF_A352_7AA31EFA1DA1
+//------------------------------------------------------------------------------
+#include <juce_graphics/juce_graphics.h>
+
+namespace LE::SW::GUI
+{
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \class ColourMap
+///
+////////////////////////////////////////////////////////////////////////////////
+
+class ColourMap
+{
+  public:
+    /// \brief What a colour is *for*, which is what a call site knows.
+    ///
+    ///   Named after the thing on screen rather than after the pigment, so that
+    /// retuning one does not need every use of it re-read: `ModuleKnobDomeRim`
+    /// says where it goes, `0xFF0A0909` does not.
+    enum Name
+    {
+        ////////////////////////////////////////////////////////////////////////
+        /// \name The skin's own three
+        ///
+        ///   Blue is the accent and it means one thing throughout: *this is the
+        /// value*, *this one is selected*, *this is on*. Everything that is not
+        /// the accent is text on a dark ground, at one of three weights.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        Blue,
+        Text,       ///< what a label or a value is written in
+        TextDimmed, ///< present, but not what is being looked at
+        TextFaint,  ///< there because leaving it out would be a lie
+        ///@}
+
+        ////////////////////////////////////////////////////////////////////////
+        /// \name The editor's knob
+        ///
+        /// \see EditorKnobStyle in gui.hpp for the geometry these are laid on.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        EditorKnobBevelShadow, ///< the bevel in its own shade
+        EditorKnobBevelMid,    ///< and coming up out of it
+        EditorKnobBevelRim,    ///< to white where it turns over
+        EditorKnobRingTop,     ///< the teal ring, lit from above
+        EditorKnobRingBottom,  ///< and in shadow below
+        EditorKnobCap,         ///< the cap the value is printed on
+        EditorKnobTick,        ///< the eight fixed marks
+        EditorKnobRim,         ///< the bright edge past the bevel
+        EditorKnobRimOutline,  ///< and the dark line around it
+        EditorKnobPointer,     ///< the bar that turns
+        ///@}
+
+        ////////////////////////////////////////////////////////////////////////
+        /// \name A module's knob
+        ///
+        /// \note Its wedge is not here: the wedge is the accent, so it asks for
+        /// Blue. \see ModuleKnobStyle in modules/moduleUI.hpp.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        ModuleKnobDomeCentre, ///< the dome where the cap ends
+        ModuleKnobDomeRim,    ///< the dome at its rim, and the hairline on it
+        ModuleKnobCap,        ///< the cap over the wedge's inside
+        ///@}
+
+        /// The halo around whichever control has the keyboard focus.
+        FocusHalo,
+
+        ////////////////////////////////////////////////////////////////////////
+        /// \name Buttons and tabs
+        ///
+        ///   A button's face is a vertical ramp from a lit top edge to black,
+        /// and its caption is dark ink on that. A tab is the same shape in
+        /// slightly softer greys, or in the accent when it is the one showing.
+        ///
+        /// \note The selected tab's ramp runs from Blue to TabFaceBottom, so it
+        /// has no top colour of its own. \see buttonPainter.hpp.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        ButtonFaceTop,
+        ButtonFaceBottom,
+        ButtonCaption, ///< the text on either, which is dark on both
+        TabFaceTop,
+        TabFaceBottom,
+        ///@}
+
+        /// \brief The settings panel and the preset browser, behind everything
+        /// they hold -- and drawn up behind the tab bar, which is what makes a
+        /// tab meet its page rather than sit above it.
+        PanelBackground,
+
+        /// \brief The hairline around a field on a panel -- the preset list,
+        /// the comment box, the folder the browser is in.
+        PanelFrame,
+
+        ////////////////////////////////////////////////////////////////////
+        /// \name The capsule that says something is running
+        ///
+        /// \note Lit, it is Blue with a halo going from white to blue as it
+        /// spreads. Dark, it is a ramp across its own width -- almost black at
+        /// the left and a cold steel at the right, which is the whole of the
+        /// sheen on a shape five pixels tall. \see capsulePainter.hpp.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        CapsuleBodyLeft,
+        CapsuleBodyRight,
+        CapsuleRim,    ///< the hairline around a dark one
+        CapsuleRimLit, ///< and around a lit one, darker so the blue reads
+        ///@}
+
+        ////////////////////////////////////////////////////////////////////
+        /// \name The bead an LFO slider is dragged by
+        ///
+        /// \note A lit cylinder in four colours, and a duller blue than the
+        /// skin's accent -- it is furniture to be held rather than a value to
+        /// be read. \see sliderThumbPainter.hpp.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        ThumbHighlight, ///< where the light lands, along the top
+        ThumbFace,      ///< the body of it
+        ThumbSheen,     ///< the second, weaker highlight near its foot
+        ThumbFoot,
+        ThumbShadow, ///< down its left side, at an alpha the painter sets
+        ///@}
+
+        ////////////////////////////////////////////////////////////////////
+        /// \name The editor's own chassis
+        ///
+        /// \note Two darks and a rule. Every panel in the editor is one of the
+        /// darks eased into Blue by an amount of its own, which is the whole of
+        /// what its six gradients were. \see backgroundPainter.hpp.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        EditorSurround, ///< the flat grey the rounded body sits on
+        EditorPanel,    ///< the two big panels, before they are lifted
+        EditorWell,     ///< and the boxes between them, which start a shade darker
+        EditorWellFace, ///< inside the disc a knob sits in
+        EditorRule,     ///< the hairline round every one of them
+        Wordmark,       ///< "Spectrum Worx" down the left edge
+        ///@}
+
+        /// \brief Inside the tongue that ejects an effect, behind its cross.
+        EjectFace,
+
+        /// \brief Inside a combo box, behind the name of what is selected.
+        ComboBackground,
+
+        /// \brief Inside a module's frame, behind its controls.
+        ///
+        /// \note The rim around it is Blue and the halo on the focused one is
+        /// FocusHalo, so this is the whole of what a strip adds to the palette.
+        /// \see ModuleStripStyle in modules/moduleUI.hpp.
+        ModuleBackground,
+
+        ////////////////////////////////////////////////////////////////////////
+        /// \name Under the pointer
+        ///
+        ///   A button says "the mouse is on me" by filling its shape with one
+        /// of these. Which one depends on what the shape is: a pale glyph on a
+        /// dark strip cannot be lifted any further, so the eject tongue is
+        /// washed down instead.
+        ///
+        /// \note Both carry their own alpha. That is the whole of the effect --
+        /// a tint at full opacity would replace the drawing rather than shade
+        /// it -- so it belongs with the colour rather than at the call site.
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        MouseOverGlow,  ///< the lift an arrow gets
+        MouseOverShade, ///< and the wash the eject cross gets instead
+        ///@}
+
+        ////////////////////////////////////////////////////////////////////////
+        /// \name Menus
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        MenuBackground,
+        MenuOutline,
+        ///@}
+
+        ////////////////////////////////////////////////////////////////////////
+        /// \name The furniture: fields, lists, sliders, scroll bars
+        ////////////////////////////////////////////////////////////////////////
+        ///@{
+        Ground,          ///< the flat black under a combo box, a button, the build stamp
+        FieldBackground, ///< and behind something being typed into, which is lighter
+        ListBackground,
+        ListOutline,
+        ListHighlight,  ///< the row the mouse is choosing
+        SliderTrack,    ///< the line an LFO's thumbs run along
+        ScrollBarThumb, ///< \see Theme::drawScrollbar
+        AlertBackground,
+        ///@}
+
+        /// \brief No colour at all.
+        ///
+        ///   Named because it has to be said out loud a dozen times -- a JUCE
+        /// LookAndFeel turns a piece of furniture off by painting it in nothing,
+        /// and this skin turns a lot of furniture off. \see the note in
+        /// theme.cpp's constructor.
+        ///
+        /// \note Where a *gradient* fades a colour out, ask that colour for
+        /// `withAlpha( 0.0f )` rather than reaching for this: a gradient
+        /// interpolates the channels as well as the alpha, so ending on
+        /// something else\'s black is how a white highlight picks up a grey
+        /// cast on its way out.
+        Transparent,
+
+        numberOfColours
+    }; // enum Name
+
+    static juce::Colour getColour(Name);
+
+  public:
+    ColourMap() = delete; // a namespace with a nested enum, not an object
+}; // class ColourMap
+
+} // namespace LE::SW::GUI
+
+#endif // colourMap_hpp

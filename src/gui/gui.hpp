@@ -31,6 +31,16 @@
 /// half of that menu is addressed by ID. \see Knob::parameterID().
 #include "core/parameterID.hpp"
 
+#include "painters/arrowPainter.hpp"
+#include "painters/backgroundPainter.hpp"
+#include "painters/buttonPainter.hpp"
+#include "painters/capsulePainter.hpp"
+#include "painters/ejectPainter.hpp"
+#include "painters/editorKnobPainter.hpp"
+#include "painters/framePainter.hpp"
+#include "painters/knobPainter.hpp"
+#include "painters/panelPainter.hpp"
+
 #include "resources.hpp"
 #include "theme.hpp"
 
@@ -478,67 +488,56 @@ class DrawableText
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \class BitmapButton
+/// \namespace PointerFeedback
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \note Was a juce::ImageButton, which can only hold a juce::Image and so
-/// pinned every button to 1x no matter what its artwork was. It holds two
-/// Artworks now and paints them itself, which is all it took for a converted
-/// file to reach the screen as a vector -- juce::ImageButton's own painting was
-/// four lines of LookAndFeel_V2::drawImageButton, reproduced in paintButton().
-///                                       (06.08.2026.) (SW port)
-class BitmapButton : public WidgetBase<juce::Button>
+/// \brief How much a button dims to say the pointer is on it, or that it cannot
+/// be pressed at all.
+///
+/// \note These were BitmapButton's, which held two Artworks and blitted
+/// whichever the button's state called for. Nothing constructs one any more --
+/// every button in the editor draws itself -- so the class is gone and what it
+/// is remembered by is the three numbers every one of them still dims by, and
+/// therefore dims by *together*.
+///                                       (18.08.2026.)
+namespace PointerFeedback
 {
-  public: // ModuleUI control traits
-    typedef bool value_type;
-    typedef value_type param_type;
+float constexpr normal{1.00f};
+float constexpr over{0.88f};
 
-    static value_type valueRangeMinimum() { return false; }
-    static value_type valueRangeMaximum() { return true; }
-    static value_type valueRangeQuantum() { return true - false; }
+/// As juce::LookAndFeel_V2::drawImageButton dimmed a disabled one.
+float constexpr disabled{0.30f};
+} // namespace PointerFeedback
 
-    value_type getValue() const { return getToggleState(); }
-    void setValue(param_type const newValue)
-    {
-        setToggleState(newValue, juce::dontSendNotification);
-    }
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \class PaintedButton
+///
+////////////////////////////////////////////////////////////////////////////////
 
+/// \brief A caption on a ButtonPainter pill.
+///
+///   What a BitmapButton is where the artwork was a *button* rather than a
+/// symbol: Presets and Settings, and the preset browser's Save, Save as and
+/// Delete. \see buttonPainter.hpp for what those fourteen files were.
+///
+/// \note Held down or toggled on is what "selected" means here, which is the
+/// rule a BitmapButton picked its artwork by -- and which the browser's three
+/// had backwards. `save_( *this, PresetSaveDown, PresetSaveUp )` handed the
+/// *plain* variant in as the button's `on`, so Save was lit at rest and went
+/// dark under the finger. Exactly the mistake issue #73 found on the Settings
+/// button, in the file names rather than at the call site.
+///                                       (18.08.2026.)
+class PaintedButton : public WidgetBase<juce::Button>
+{
   public:
-    BitmapButton(juce::Component &parent, Artwork const &on, Artwork const &off,
-                 juce::Colour const &overlayColourWhenOver = defaultOverOverlay(),
-                 bool toggled = true);
-
-  public:
-    /// Whichever of the two the button is showing: `on` while held down or
-    /// toggled on, `off` otherwise. There is no separate hover artwork -- JUCE
-    /// fell back to the normal image for that, and so does this.
-    Artwork const &currentArtwork() const;
-
-    void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
-
-    static juce::Colour const &normalOverlay();
-    static juce::Colour const &downOverlay();
-    static juce::Colour const &defaultOverOverlay();
-
-    static float normalOpacity() { return 1.00f; }
-    static float downOpacity() { return 1.00f; }
-    static float overOpacity() { return 0.88f; }
-
-  protected:
-    static char const *getTextFromValue(unsigned int const booleanValue)
-    {
-        static char const *const strings[] = {"off", "on"};
-        return strings[booleanValue];
-    }
+    PaintedButton(juce::Component &parent, juce::String const &text, int width, int height,
+                  bool toggled = true);
 
   private:
-    Artwork const *pOn_{nullptr};
-    Artwork const *pOff_{nullptr};
-    juce::Colour overOverlay_;
-
-    using juce::Button::getToggleStateValue;
-}; // class BitmapButton
+    void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
+}; // class PaintedButton
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -710,6 +709,43 @@ class PopupMenuWithSelection : public PopupMenu
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
+/// \name The two combo boxes
+///
+///   Skin files 59 to 62 until 18.08.2026: the same rounded box at two sizes,
+/// twice each, and the two copies differing only in the colour of the hairline
+/// around them. It is blue at rest and white when the box has the keyboard
+/// focus, which is what those four files were.
+///
+/// \note Two styles rather than one. The 60 x 18 box and the 150 x 21 one
+/// disagree about their corner radius by a pixel and a third and about their
+/// insets by half a pixel, and averaging them would move two controls to no
+/// purpose. \see framePainter.hpp.
+///
+////////////////////////////////////////////////////////////////////////////////
+///@{
+/// The widget each is drawn in, which was its artwork's size.
+int constexpr moduleComboWidth{60};
+int constexpr moduleComboHeight{18};
+int constexpr settingsComboWidth{150};
+int constexpr settingsComboHeight{21};
+
+FrameStyle constexpr moduleComboFrame{
+    /* insets */ 1.73f, 2.23f,  1.45f,
+    /* corner */ 5.64f,
+    /* rim    */ 1.02f,
+    /* halo   */ 3u,    0.042f, 0.018f,
+};
+
+FrameStyle constexpr settingsComboFrame{
+    /* insets */ 2.0f,  2.94f,  3.44f,
+    /* corner */ 6.93f,
+    /* rim    */ 1.04f,
+    /* halo   */ 3u,    0.035f, 0.022f,
+};
+///@}
+
+////////////////////////////////////////////////////////////////////////////////
+///
 /// \class ComboBox
 ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -736,8 +772,11 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
     void setSelectedIndex(unsigned int newSelectionIndex);
 
   protected:
-    ComboBox(juce::Component &parent, Artwork const &normalBackground,
-             Artwork const &selectedBackground);
+    /// \note \p height is the box's own, which for a TitledComboBox is not the
+    /// widget's: that one is fifteen pixels taller and paints its title in the
+    /// difference. It was `normalBackground_.getHeight()` while there was
+    /// artwork to ask.
+    ComboBox(juce::Component &parent, FrameStyle const &, int width, int height);
 
     void showMenu(std::function<void(bool)> onValueChanged);
 
@@ -745,30 +784,44 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
     void paint(juce::Graphics &) override;
 
   private:
-    Artwork const &normalBackground_;
-    Artwork const &selectedBackground_;
+    FrameStyle const &frame_;
+    int const boxHeight_;
 }; // class ComboBox
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \class BackgroundImage
+/// \class PanelBackground
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-class BackgroundImage : public WidgetBase<>
+/// \brief A widget whose whole job is the panel behind everything on it.
+///
+/// \note Was `BackgroundImage`, holding a pointer to one skin file. There were
+/// only ever two panels and only ever two files -- 07 and 17, the second of
+/// them shared by all three settings pages -- and both are drawn now.
+/// \see panelPainter.hpp.
+///                                       (18.08.2026.)
+class PanelBackground : public WidgetBase<>
 {
-  protected:
-    BackgroundImage(Artwork const &artwork) : pArtwork_(&artwork) {};
+  public:
+    enum Which
+    {
+        Browser,     ///< the preset browser, rounded on all four corners
+        SettingsPage ///< a settings page, square where its tabs meet it
+    };
 
-    Artwork const &image() const;
-    void setImage(Artwork const &);
+  protected:
+    PanelBackground(Which const which) : which_(which) {}
+
+    /// The size this panel is drawn at, which the caller usually wants too.
+    void setSizeFromPanel();
 
   protected: // juce::Component overrides
     void paint(juce::Graphics &) override;
 
   private:
-    Artwork const *pArtwork_;
-}; // class BackgroundImage
+    Which const which_;
+}; // class PanelBackground
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -776,17 +829,102 @@ class BackgroundImage : public WidgetBase<>
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Detail
+/// \brief A capsule that lights up, and nothing else.
+///
+/// \note Was a BitmapButton holding two skin files. What it keeps of that class
+/// is the control traits, which is how a module strip's bypass reports a
+/// boolean; \see CapsulePainter for the drawing.
+///                                       (18.08.2026.)
+class CapsuleButton : public WidgetBase<juce::Button>
 {
-void paintTextButton(BitmapButton const &, juce::Graphics &, unsigned int textX, unsigned int textY,
-                     unsigned int imageX, unsigned int imageY, bool isMouseOverButton,
-                     bool isButtonDown);
-} // namespace Detail
+  public: // ModuleUI control traits
+    typedef bool value_type;
+    typedef value_type param_type;
 
-class LEDTextButton : public BitmapButton
+    static value_type valueRangeMinimum() { return false; }
+    static value_type valueRangeMaximum() { return true; }
+    static value_type valueRangeQuantum() { return true - false; }
+
+    value_type getValue() const { return getToggleState(); }
+    void setValue(param_type const newValue)
+    {
+        setToggleState(newValue, juce::dontSendNotification);
+    }
+
+  public:
+    /// \param litWhenOn false where the toggle state is the *opposite* of what
+    /// the capsule shows. A module strip's bypass is the one: its state is
+    /// "bypassed" and its capsule says "running", which is what the artwork
+    /// said by handing the muted file over as the button's `on`.
+    CapsuleButton(juce::Component &parent, CapsuleStyle const &, int width, int height,
+                  bool litWhenOn = true);
+
+  protected:
+    /// \brief Draws this button's capsule into \p bounds, at whatever the mouse
+    /// has made of its opacity.
+    void paintCapsule(juce::Graphics &, juce::Rectangle<int> bounds, bool isMouseOverButton,
+                      bool isButtonDown);
+
+  protected: // juce::Component overrides
+    void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
+
+  private:
+    CapsuleStyle const *pStyle_;
+    bool litWhenOn_;
+
+    using juce::Button::getToggleStateValue;
+}; // class CapsuleButton
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \class ArrowButton
+///
+////////////////////////////////////////////////////////////////////////////////
+
+/// \brief A triangle pointing right, which is three of the editor's buttons:
+/// the one that adds an effect, and the two that step to the next of something.
+///
+/// \note Was a BitmapButton handed the same artwork twice -- these have no
+/// second state, only a tint under the pointer. \see ArrowPainter.
+class ArrowButton : public WidgetBase<juce::Button>
+{
+  public:
+    ArrowButton(juce::Component &parent, int width, int height, bool fadeFromBase,
+                juce::Colour tintWhenOver);
+
+  private: // juce::Component overrides
+    void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
+
+  private:
+    bool const fadeFromBase_;
+    juce::Colour const tintWhenOver_;
+}; // class ArrowButton
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \class EjectButton
+///
+////////////////////////////////////////////////////////////////////////////////
+
+/// \brief The tongue at the top of a module strip that takes the effect out.
+class EjectButton : public WidgetBase<juce::Button>
+{
+  public:
+    EjectButton(juce::Component &parent);
+
+  private: // juce::Component overrides
+    void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
+}; // class EjectButton
+
+/// \brief One of those with a caption beside it.
+class LEDTextButton : public CapsuleButton
 {
   public:
     LEDTextButton(juce::Component &parent, unsigned int x, unsigned int y, char const *text);
+
+    /// What the capsule takes out of the widget, the caption having the rest.
+    static int constexpr ledWidth{25};
+    static int constexpr ledHeight{14};
 
   protected: // juce::Component overrides
     void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
@@ -808,55 +946,6 @@ class TextButton : public WidgetBase<juce::Button>
 
     static unsigned int const height = 11;
 }; // class TextButton
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \namespace KnobStyle
-///
-////////////////////////////////////////////////////////////////////////////////
-
-/// \brief What the editor's two kinds of knob have in common, now that both draw
-/// themselves rather than blitting a film strip.
-///
-///   Which is less than it looks: a module knob is a grey dome with a blue wedge
-/// (\see ModuleKnobStyle in gui/modules/moduleUI.hpp) and an editor knob is a
-/// bevel with a teal ring and a rotating pointer (\see EditorKnobStyle below).
-/// Nothing about their colours or their radii is shared, and pretending
-/// otherwise would only mean one namespace neither could be read out of.
-///
-///   The travel is shared, and genuinely so: both film strips were fitted
-/// independently and both came back -135 to +135 degrees. A knob that turned
-/// through a different arc from the one beside it would be a bug, so there is
-/// one number for it.
-namespace KnobStyle
-{
-/// Half the travel, in degrees clockwise from twelve o'clock.
-float constexpr halfSweepDegrees{135.0f};
-
-/// \brief Where \p normalisedValue points, in degrees clockwise from twelve
-/// o'clock: -135 at the bottom of the range, 0 straight up, +135 at the top.
-constexpr float angleFor(float const normalisedValue)
-{
-    return (2 * normalisedValue - 1) * halfSweepDegrees;
-}
-
-/// \brief A radial gradient about \p centre whose parameter runs 0 to 1 over
-/// \p radius, so that every stop can be written as the fraction of the knob's
-/// radius it was measured at.
-juce::ColourGradient radialAbout(juce::Point<float> centre, float radius, juce::Colour inner,
-                                 juce::Colour outer);
-
-/// \brief Paints \p gradient through the annulus between \p inner and \p outer,
-/// both about \p centre.
-///
-/// \note A ring rather than a disc because these all have something to protect:
-/// the editor knob's bright rim would cover its own teal, and the module knob's
-/// focus halo its wedge. Filling the whole disc with a gradient that happens to
-/// be transparent in the middle does work, and needs two stops spent saying so
-/// -- an even-odd path says it once and cannot be got subtly wrong.
-void fillRing(juce::Graphics &, juce::Point<float> centre, float inner, float outer,
-              juce::ColourGradient const &gradient);
-} // namespace KnobStyle
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -1060,78 +1149,6 @@ class Knob : public WidgetBase<juce::Slider>
     using juce::Slider::getMinValueObject;
     using juce::Slider::getValueObject;
 }; // class Knob
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \namespace EditorKnobStyle
-///
-////////////////////////////////////////////////////////////////////////////////
-
-/// \brief Everything the editor's in, out and mix knobs are drawn from.
-///
-///   Until 15.08.2026 this knob was skin file 02, a film strip of 127 square
-/// frames that were all the same picture at a different angle -- 140 KB of PNG
-/// to rotate one bar. It is the numbers below now, for the reasons in
-/// ModuleKnobStyle: 127 steps of resolution, and a knob made of pixels cannot
-/// follow the editor's zoom.
-///
-///   The layers, in the order they go down: a bevel disc whose shading is *not*
-/// concentric -- it is lit from above left, so its gradient is centred a little
-/// down and to the right of the knob -- then a teal ring under a black cap with
-/// a soft edge, then eight ticks and the bright rim and its dark outline, and
-/// last the pointer, the one thing that moves.
-///
-/// \note Radii, widths and gradient stops are all fractions of the knob's own
-/// radius. There is only one editor knob size, so nothing turns on that; it is
-/// how ModuleKnobStyle reads and the two are meant to be read together.
-namespace EditorKnobStyle
-{
-std::uint32_t constexpr bevelShadow{0xFF7E8A8E};  ///< the bevel in its own shade
-std::uint32_t constexpr bevelMid{0xFFC4C4C4};     ///< and coming up out of it
-std::uint32_t constexpr bevelRim{0xFFFDFDFD};     ///< to white where it turns over
-std::uint32_t constexpr ringTop{0xFF75B3C2};      ///< the teal ring, lit from above
-std::uint32_t constexpr ringBottom{0xFF094756};   ///< and in shadow below
-std::uint32_t constexpr centreFill{0xFF000000};   ///< the cap the value is printed on
-std::uint32_t constexpr tick{0xFF000000};         ///< the eight fixed marks
-std::uint32_t constexpr rimHighlight{0xFFF2F2F2}; ///< the bright edge past the bevel
-std::uint32_t constexpr rimOutline{0x9D000000};   ///< and the dark line around it
-std::uint32_t constexpr pointer{0xFF161616};      ///< the bar that turns
-
-float constexpr bevelRadius{0.898f};
-/// How far off centre the bevel is lit from, as (x, y) -- down and to the right.
-float constexpr bevelShadingX{0.091f};
-float constexpr bevelShadingY{0.039f};
-/// The bevel's gradient reaches its far edge from that point, not from the
-/// middle: bevelRadius + the distance the shading is offset by.
-float constexpr bevelReach{0.997f};
-float constexpr bevelShadowStop{0.606f}; ///< fractions of bevelReach, not of the knob
-float constexpr bevelMidStop{0.725f};
-float constexpr bevelRimStop{0.916f};
-
-float constexpr ringRadius{0.688f};
-float constexpr capRadius{0.568f};      ///< where the cap has faded out entirely
-float constexpr capSolidRadius{0.423f}; ///< and where it starts to
-
-float constexpr tickInnerRadius{0.685f};
-float constexpr tickOuterRadius{0.829f};
-float constexpr tickHalfWidth{0.015f};
-unsigned int constexpr numberOfTicks{8};
-
-float constexpr rimHighlightInner{0.853f}; ///< a hard edge, hidden under the bevel
-float constexpr rimHighlightSolid{0.907f}; ///< out to here, then fading to
-float constexpr rimHighlightOuter{0.952f};
-float constexpr rimOutlineRadius{0.972f};
-float constexpr rimOutlineThickness{0.033f};
-
-float constexpr pointerInnerRadius{0.113f};
-float constexpr pointerOuterRadius{0.672f};
-float constexpr pointerInnerHalfWidth{0.058f}; ///< very slightly tapered
-float constexpr pointerOuterHalfWidth{0.061f};
-} // namespace EditorKnobStyle
-
-/// \brief Draws an editor knob into the square \p bounds, its pointer at
-/// \p normalisedValue.
-void paintEditorKnob(juce::Graphics &, juce::Rectangle<float> bounds, float normalisedValue);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///

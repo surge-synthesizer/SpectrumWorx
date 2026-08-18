@@ -222,6 +222,15 @@ add_test(NAME no-juce-file-outside-the-edge
         -D "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/checkNoJuceFile.cmake")
 
+# And the palette. The skin is drawn in code rather than blitted, so its colours
+# are written down in src/gui/colourMap.hpp -- and a colour named anywhere else
+# is how the accent blue came to have four values nobody chose. Also a source
+# scan, so it runs under every generator.
+add_test(NAME no-colours-outside-the-palette
+        COMMAND ${CMAKE_COMMAND}
+        -D "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/checkNoColourLiterals.cmake")
+
 # \note check_gui_flag_parity.py was wired in here, to compile every sw-dsp
 # source at both settings of LE_SW_GUI and compare the objects. It did its job:
 # it kept the two configurations honest for exactly as long as there were two.

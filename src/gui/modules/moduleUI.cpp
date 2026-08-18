@@ -37,7 +37,7 @@ ModuleLEDTextButton::ModuleLEDTextButton(juce::Component &parent, unsigned int c
 {
     setName(control().name());
     //...mrmlj...for temporary test selection...
-    setSize(resourceArtwork<ModuleComboOn>().getWidth(), getHeight() + 2);
+    setSize(moduleComboWidth, getHeight() + 2);
 }
 
 void ModuleLEDTextButton::clicked() { moduleParameterChanged(); }
@@ -87,19 +87,31 @@ void ModuleLEDTextButton::mouseDown(juce::MouseEvent const &event)
 void ModuleLEDTextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton,
                                       bool const isButtonDown)
 {
+    /// \note A combo box's focused background, borrowed: this button stands
+    /// where one does and says it has the focus the same way. It was
+    /// `paintImage( ModuleComboOn )` while that was a file.
     if (hasDirectFocus())
-        paintImage(g, resourceArtwork<ModuleComboOn>(), 0, -1);
+        FramePainter::paint(g,
+                            juce::Rectangle<float>(0, -1, static_cast<float>(moduleComboWidth),
+                                                   static_cast<float>(moduleComboHeight)),
+                            moduleComboFrame, ColourMap::getColour(ColourMap::FocusHalo),
+                            ColourMap::getColour(ColourMap::ComboBackground), true /*halo*/);
     g.setOrigin(3, 1);
     LEDTextButton::paintButton(g, isMouseOverButton, isButtonDown);
 }
 
 TriggerButton::TriggerButton(juce::Component &parent, unsigned int const x, unsigned int const y)
-    : BitmapButton(parent, resourceArtwork<TriggerBtnOn>(), resourceArtwork<TriggerBtnOff>(),
-                   juce::Colours::transparentWhite, false)
 {
     setName(control().name());
 
-    setBounds(x, y, ModuleUI::width, getHeight() + 13);
+    setWantsKeyboardFocus(false);
+    setMouseClickGrabsKeyboardFocus(false);
+    setClickingTogglesState(false);
+    addToParentAndShow(parent, *this);
+
+    /// \note The thirteen is the caption's room under the face, which the
+    /// artwork's height used to be added to. \see paintButton().
+    setBounds(x, y, ModuleUI::width, TriggerButtonStyle::diameter + 13);
 
     setTriggeredOnMouseDown(true);
 
@@ -115,8 +127,8 @@ void TriggerButton::setValue(param_type const newValue)
 /// across the strip at the top. The thirteen pixels under it are the caption.
 juce::Rectangle<int> TriggerButton::faceBounds() const
 {
-    auto const &artwork(currentArtwork());
-    return {(ModuleUI::width - artwork.getWidth()) / 2, 0, artwork.getWidth(), artwork.getHeight()};
+    auto const face(static_cast<int>(TriggerButtonStyle::diameter));
+    return {(ModuleUI::width - face) / 2, 0, face, face};
 }
 
 bool TriggerButton::isOnFace(juce::Point<int> const position) const
@@ -161,7 +173,7 @@ void TriggerButton::mouseDown(juce::MouseEvent const &e)
 
     if (!isLFOEnabled())
     {
-        BitmapButton::mouseDown(e);
+        juce::Button::mouseDown(e);
         moduleParameterChanged();
     }
 }
@@ -177,95 +189,37 @@ void TriggerButton::mouseUp(juce::MouseEvent const &e) noexcept
 
     if (!isLFOEnabled())
     {
-        BitmapButton::mouseUp(e);
+        juce::Button::mouseUp(e);
         moduleParameterChanged();
     }
 }
 
+/// \note The caption sits above the face in the paint order and below it on the
+/// screen, which is what Detail::paintTextButton() did for this and still does
+/// for an LED button. It is spelled out here because the face is no longer an
+/// Artwork to hand that function.
 void TriggerButton::paintButton(juce::Graphics &graphics, bool const isMouseOverButton,
                                 bool const isButtonDown)
 {
-    unsigned int const imageWidth(51);
-    unsigned int const imageHeight(51);
-    LE_ASSERT(currentArtwork().getWidth() == imageWidth);
-    LE_ASSERT(currentArtwork().getHeight() == imageHeight);
-    Detail::paintTextButton(*this, graphics, 0, imageHeight + 2, (ModuleUI::width - imageWidth) / 2,
-                            0, isMouseOverButton, isButtonDown);
+    auto const face(faceBounds());
+
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
+    graphics.setFont(DrawableText::defaultFont());
+    graphics.drawFittedText(getName(), 0, face.getHeight() + 2, getWidth(), 11,
+                            juce::Justification::horizontallyCentred, 1);
+
+    bool const fade(isMouseOverButton && !isButtonDown);
+    if (fade)
+        graphics.beginTransparencyLayer(PointerFeedback::over);
+
+    paintTriggerButton(graphics, face.toFloat(), isButtonDown || getToggleState());
+
+    if (fade)
+        graphics.endTransparencyLayer();
+
     if (this->hasDirectFocus())
-    {
-        paintImage(graphics, resourceArtwork<ModuleKnobSelected>(),
-                   (ModuleUI::width - imageWidth) / 2 - 1, -1);
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// paintModuleKnob()
-// -----------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
-void paintModuleKnob(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
-                     float const normalisedValue, bool const bipolar, bool const drawWedge,
-                     bool const selected)
-{
-    using namespace ModuleKnobStyle;
-
-    LE_ASSERT(bounds.getWidth() == bounds.getHeight());
-
-    auto const centre(bounds.getCentre());
-    auto const radius(bounds.getWidth() / 2);
-    auto const value(juce::jlimit(0.0f, 1.0f, normalisedValue));
-
-    /// \note A radial juce::ColourGradient runs from its first point outwards to
-    /// its second, so the inner colour is repeated at innerGradientRadius to
-    /// hold it flat under the cap and start the ramp where the artwork's did.
-    auto dome(KnobStyle::radialAbout(centre, radius, juce::Colour(innerGradient),
-                                     juce::Colour(outerGradient)));
-    dome.addColour(innerGradientRadius, juce::Colour(innerGradient));
-    graphics.setGradientFill(dome);
-    graphics.fillEllipse(bounds);
-
-    /// \note How far the wedge has opened, which the cap's radius follows -- and
-    /// so zero when there is no wedge to follow. A cap sized off a value the
-    /// knob is not showing is the one thing the LFO state could still leak.
-    auto const openness(!drawWedge ? 0.0f : bipolar ? std::abs(2 * value - 1) : value);
-
-    if (drawWedge)
-    {
-        // The far edge is the value; the near one is the stop it opens from.
-        auto const to(KnobStyle::angleFor(value));
-        auto const from(bipolar ? 0.0f : -KnobStyle::halfSweepDegrees);
-        juce::Path pie;
-        pie.addPieSegment(
-            bounds.withSizeKeepingCentre(2 * radius * wedgeRadius, 2 * radius * wedgeRadius),
-            juce::degreesToRadians(std::min(from, to)), juce::degreesToRadians(std::max(from, to)),
-            0.0f);
-        graphics.setColour(juce::Colour(wedge));
-        graphics.fillPath(pie);
-    }
-
-    auto const cap(radius * (capRadiusClosed + (capRadiusOpen - capRadiusClosed) * openness));
-    graphics.setColour(juce::Colour(centreFill));
-    graphics.fillEllipse(bounds.withSizeKeepingCentre(2 * cap, 2 * cap));
-
-    if (selected)
-    {
-        /// \note The soft ring the ModuleKnobSelected bitmaps were: white on the
-        /// rim and gone a couple of pixels either side of it. A plain stroke
-        /// reads as a hard outline against the dome's black edge, which is not
-        /// what "this knob has the focus" looked like.
-        auto const reach(radius + selectionGlow);
-        auto halo(KnobStyle::radialAbout(centre, reach, juce::Colours::transparentWhite,
-                                         juce::Colours::transparentWhite));
-        halo.addColour(radius / reach, juce::Colour(selectedOuterEdge));
-        KnobStyle::fillRing(graphics, centre, radius - selectionGlow, reach, halo);
-    }
-    else
-    {
-        graphics.setColour(juce::Colour(outerGradient));
-        graphics.drawEllipse(bounds.reduced(rimThickness / 2), rimThickness);
-    }
+        KnobPainter::paintFocusRing(graphics, face.getCentre().toFloat(),
+                                    static_cast<float>(face.getWidth()) / 2);
 }
 
 ModuleKnob::ModuleKnob(juce::Component &parent, unsigned int const x, unsigned int const y)
@@ -337,9 +291,9 @@ void ModuleKnob::paint(juce::Graphics &graphics)
         value, polarity_ == Bipolar, !control().isLFOEnabled() || shouldUpdateLFOControl(control()),
         this->hasDirectFocus());
 
-    graphics.setColour(juce::Colours::lightgrey);
+    graphics.setColour(ColourMap::getColour(ColourMap::TextDimmed));
     {
-        juce::Font font(Theme::singleton().whiteFont());
+        juce::Font font(Theme::singleton().labelFont());
         font.setHeight(10);
         graphics.setFont(font);
     }
@@ -510,7 +464,7 @@ unsigned int const ModuleKnob::spaceForText /* = 18*/;
 
 DiscreteParameter::DiscreteParameter(juce::Component &parent, unsigned int const x,
                                      unsigned int const y)
-    : ComboBox(parent, resourceArtwork<ModuleCombo>(), resourceArtwork<ModuleComboOn>())
+    : ComboBox(parent, moduleComboFrame, moduleComboWidth, moduleComboHeight)
 {
     setName(control().name());
     DiscreteParameter::setTopLeftPosition(x, y);
@@ -555,25 +509,17 @@ void DiscreteParameter::focusChanged() { repaint(); }
 ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Module> pModule,
                    std::uint8_t const slotIndex)
     : editor_(editor), pModule_(std::move(pModule)),
-      bypass_(*this, resourceArtwork<ModuleMuted>(), resourceArtwork<ModuleOn>()),
-      eject_(*this, resourceArtwork<Eject>(), resourceArtwork<Eject>(),
-             juce::Colours::darkgrey.withAlpha(0.4f))
+      bypass_(*this, bypassCapsule, bypassWidgetWidth, bypassWidgetHeight, false /*lit when on*/),
+      eject_(*this)
 {
     LE_ASSERT(isThisTheGUIThread() ||
               juce::MessageManager::getInstance()->currentThreadHasLockedMessageManager());
     LE_ASSERT(pModule_);
 
-    LE_ASSERT(resourceArtwork<ModuleBgSelected>().getWidth() ==
-              resourceArtwork<ModuleBg>().getWidth());
-    LE_ASSERT(resourceArtwork<ModuleBgSelected>().getHeight() ==
-              resourceArtwork<ModuleBg>().getHeight());
-    LE_ASSERT(resourceArtwork<ModuleBgSelected>().getWidth() == width);
-    LE_ASSERT(resourceArtwork<ModuleBgSelected>().getHeight() == height);
-
     setSize(width, height);
 
     bypass_.setTopLeftPosition((ModuleUI::width / 2) - (bypass_.getWidth() / 2),
-                               ModuleUI::height - 26 - resourceArtwork<ModuleOn>().getHeight());
+                               ModuleUI::height - 26 - bypassWidgetHeight);
 
     eject_.setTopLeftPosition((ModuleUI::width - eject_.getWidth()) / 2, -3);
 
@@ -689,11 +635,8 @@ void ModuleUI::moveToSlot(std::uint8_t const slotIndex)
 
 void ModuleUI::paint(juce::Graphics &graphics)
 {
-    bool const isActive(selected());
-    graphics.setOpacity(isActive ? 1.0f : 0.5f);
-    paintImage(graphics,
-               isActive ? resourceArtwork<ModuleBgSelected>() : resourceArtwork<ModuleBg>());
-    graphics.setColour(Theme::singleton().blueColour());
+    paintModuleStrip(graphics, getLocalBounds().toFloat(), selected());
+    graphics.setColour(ColourMap::getColour(ColourMap::Blue));
     graphics.drawHorizontalLine(nameRule, static_cast<float>(ModuleUI::border),
                                 Math::convert<float>(getWidth() - ModuleUI::border));
 
@@ -713,7 +656,7 @@ void ModuleUI::paint(juce::Graphics &graphics)
     ///                                       (16.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
-    graphics.setFont(Theme::singleton().whiteFont());
+    graphics.setFont(Theme::singleton().labelFont());
     graphics.drawFittedText(getName(), textMargin, nameRule, width - 2 * textMargin, 28,
                             juce::Justification::centred, 2, 0.8f);
 }

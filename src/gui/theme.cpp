@@ -26,24 +26,20 @@ namespace
 {
 std::optional<Theme> singleton_;
 
-/// \note The film-strip thumb is drawn at 5/3 while dragged, which is what the
-/// enlarge flag means. Lifted unchanged from gui.cpp.
-void paintSliderThumb(juce::Graphics &graphics, Artwork const &image, float const position,
+/// \note Drawn at 5/3 while dragged, which is what the enlarge flag means -- it
+/// was a bitmap blown up by Artwork::drawScaled() and is a drawing asked for at
+/// a bigger size now, so the enlarged one is no longer soft.
+void paintSliderThumb(juce::Graphics &graphics, float const position,
                       int const sliderVerticalPosition, int const sliderHeight, bool const enlarge)
 {
-    auto const thumbWidth(image.getWidth());
-    auto const thumbHeight(image.getHeight());
+    auto const scale(enlarge ? 5.0f / 3 : 1.0f);
+    auto const width(SliderThumbStyle::width * scale);
+    auto const height(SliderThumbStyle::height * scale);
 
-    auto const scaledThumbWidth(enlarge ? thumbWidth * 5 / 3 : thumbWidth);
-    auto const scaledThumbHeight(enlarge ? thumbHeight * 5 / 3 : thumbHeight);
-
-    auto const horizontalPosition(juce::roundToInt(position) - (scaledThumbWidth / 2));
-    auto const verticalPosition(sliderVerticalPosition + (sliderHeight / 2) -
-                                (scaledThumbHeight / 2));
-
-    image.drawScaled(graphics,
-                     {horizontalPosition, verticalPosition, scaledThumbWidth, scaledThumbHeight},
-                     {0, 0, thumbWidth, thumbHeight});
+    SliderThumbPainter::paint(
+        graphics, juce::Rectangle<float>(position - width / 2,
+                                         sliderVerticalPosition + (sliderHeight - height) / 2,
+                                         width, height));
 }
 } // anonymous namespace
 
@@ -61,62 +57,69 @@ void paintSliderThumb(juce::Graphics &graphics, Artwork const &image, float cons
 /// page's title asks for.
 ///                                       (16.08.2026.)
 Theme::Theme()
-    : blueFont_(juce::FontOptions(regularTypeface()).withHeight(14.0f)),
-      whiteFont_(juce::FontOptions(regularTypeface()).withHeight(12.0f))
+    : headingFont_(juce::FontOptions(regularTypeface()).withHeight(14.0f)),
+      labelFont_(juce::FontOptions(regularTypeface()).withHeight(12.0f))
 {
     setDefaultSansSerifTypeface(regularTypeface());
 
-    setColour(juce::PopupMenu::textColourId, juce::Colours::lightgrey);
-    setColour(juce::PopupMenu::headerTextColourId, juce::Colours::white);
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colours::transparentWhite);
-    setColour(juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
-    setColour(juce::PopupMenu::backgroundColourId, juce::Colours::black.withAlpha(0.8f));
+    /// \note Every colour here comes out of ColourMap, and the ones that are
+    /// not there are transparent -- an absence rather than a choice. \see
+    /// colourMap.hpp.
+    auto const colour([](ColourMap::Name const name) { return ColourMap::getColour(name); });
 
-    setColour(juce::TextButton::buttonColourId, juce::Colours::black);
-    setColour(juce::TextButton::buttonOnColourId, blueColour());
-    setColour(juce::TextButton::textColourOnId, juce::Colours::white);
-    setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    setColour(juce::PopupMenu::textColourId, colour(ColourMap::TextDimmed));
+    setColour(juce::PopupMenu::headerTextColourId, colour(ColourMap::Text));
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, colour(ColourMap::Transparent));
+    setColour(juce::PopupMenu::highlightedTextColourId, colour(ColourMap::Text));
+    setColour(juce::PopupMenu::backgroundColourId,
+              colour(ColourMap::MenuBackground).withAlpha(0.8f));
 
-    setColour(juce::AlertWindow::backgroundColourId, juce::Colours::darkgrey);
-    setColour(juce::AlertWindow::textColourId, juce::Colours::white);
+    setColour(juce::TextButton::buttonColourId, colour(ColourMap::Ground));
+    setColour(juce::TextButton::buttonOnColourId, colour(ColourMap::Blue));
+    setColour(juce::TextButton::textColourOnId, colour(ColourMap::Text));
+    setColour(juce::TextButton::textColourOffId, colour(ColourMap::Text));
 
-    setColour(juce::ComboBox::backgroundColourId, juce::Colours::black);
-    setColour(juce::ComboBox::buttonColourId, juce::Colours::lightgrey);
-    setColour(juce::ComboBox::textColourId, juce::Colours::white);
+    setColour(juce::AlertWindow::backgroundColourId, colour(ColourMap::AlertBackground));
+    setColour(juce::AlertWindow::textColourId, colour(ColourMap::Text));
 
-    setColour(juce::Label::backgroundColourId, juce::Colours::transparentWhite);
-    setColour(juce::Label::outlineColourId, juce::Colours::transparentWhite);
-    setColour(juce::Label::textColourId, juce::Colours::white);
+    setColour(juce::ComboBox::backgroundColourId, colour(ColourMap::Ground));
+    setColour(juce::ComboBox::buttonColourId, colour(ColourMap::TextDimmed));
+    setColour(juce::ComboBox::textColourId, colour(ColourMap::Text));
 
-    setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x88000000));
-    setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
-    setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
-    setColour(juce::TextEditor::highlightColourId, blueColour());
-    setColour(juce::TextEditor::highlightedTextColourId, juce::Colours::white);
-    setColour(juce::TextEditor::textColourId, juce::Colours::white);
-    setColour(juce::CaretComponent::caretColourId, blueColour());
+    setColour(juce::Label::backgroundColourId, colour(ColourMap::Transparent));
+    setColour(juce::Label::outlineColourId, colour(ColourMap::Transparent));
+    setColour(juce::Label::textColourId, colour(ColourMap::Text));
 
-    setColour(juce::ListBox::backgroundColourId, juce::Colour(0x11000000));
-    setColour(juce::ListBox::outlineColourId, juce::Colour(0xAA000000));
-    setColour(juce::ListBox::textColourId, juce::Colours::white);
+    setColour(juce::TextEditor::backgroundColourId, colour(ColourMap::FieldBackground));
+    setColour(juce::TextEditor::focusedOutlineColourId, colour(ColourMap::Transparent));
+    setColour(juce::TextEditor::outlineColourId, colour(ColourMap::Transparent));
+    setColour(juce::TextEditor::highlightColourId, colour(ColourMap::Blue));
+    setColour(juce::TextEditor::highlightedTextColourId, colour(ColourMap::Text));
+    setColour(juce::TextEditor::textColourId, colour(ColourMap::Text));
+    setColour(juce::CaretComponent::caretColourId, colour(ColourMap::Blue));
 
-    setColour(juce::DirectoryContentsDisplayComponent::highlightColourId, juce::Colour(0x88ffffff));
-    setColour(juce::DirectoryContentsDisplayComponent::textColourId, juce::Colours::white);
+    setColour(juce::ListBox::backgroundColourId, colour(ColourMap::ListBackground));
+    setColour(juce::ListBox::outlineColourId, colour(ColourMap::ListOutline));
+    setColour(juce::ListBox::textColourId, colour(ColourMap::Text));
 
-    setColour(juce::TabbedButtonBar::tabOutlineColourId, juce::Colours::transparentBlack);
-    setColour(juce::TabbedButtonBar::tabTextColourId, juce::Colours::transparentBlack);
-    setColour(juce::TabbedButtonBar::frontOutlineColourId, juce::Colours::transparentBlack);
-    setColour(juce::TabbedButtonBar::frontTextColourId, juce::Colours::transparentBlack);
+    setColour(juce::DirectoryContentsDisplayComponent::highlightColourId,
+              colour(ColourMap::ListHighlight));
+    setColour(juce::DirectoryContentsDisplayComponent::textColourId, colour(ColourMap::Text));
 
-    setColour(juce::TabbedComponent::backgroundColourId, juce::Colours::transparentBlack);
-    setColour(juce::TabbedComponent::outlineColourId, juce::Colours::transparentBlack);
+    setColour(juce::TabbedButtonBar::tabOutlineColourId, colour(ColourMap::Transparent));
+    setColour(juce::TabbedButtonBar::tabTextColourId, colour(ColourMap::Transparent));
+    setColour(juce::TabbedButtonBar::frontOutlineColourId, colour(ColourMap::Transparent));
+    setColour(juce::TabbedButtonBar::frontTextColourId, colour(ColourMap::Transparent));
+
+    setColour(juce::TabbedComponent::backgroundColourId, colour(ColourMap::Transparent));
+    setColour(juce::TabbedComponent::outlineColourId, colour(ColourMap::Transparent));
 
     /// \note `ScrollBar::trackColourId, lightgrey` stood here and was the whole
     /// of issue #90's contrast complaint: it made the groove the brightest
     /// rectangle in the preset browser and left the white thumb sitting on it
     /// almost invisible. drawScrollbar() paints no groove now, so there is no
     /// track colour to name; the thumb is the only mark a scroll bar makes.
-    setColour(juce::ScrollBar::thumbColourId, juce::Colours::white);
+    setColour(juce::ScrollBar::thumbColourId, colour(ColourMap::ScrollBarThumb));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -175,18 +178,18 @@ void Theme::drawPopupMenuBackground(juce::Graphics &graphics, int const width, i
     bool cut = juce::Desktop::canUseSemiTransparentWindows();
     if (cut)
     {
-        graphics.setColour(juce::Colour(0x10, 0x10, 0x12).withAlpha(0.9f));
+        graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground).withAlpha(0.9f));
         graphics.fillRoundedRectangle(0.f, 0.f, static_cast<float>(width),
                                       static_cast<float>(height), 10.f);
-        graphics.setColour(juce::Colour(0x25, 0x25, 0x35));
+        graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
         graphics.drawRoundedRectangle(0.f, 0.f, static_cast<float>(width),
                                       static_cast<float>(height), 10.f, 1.f);
     }
     else
     {
-        graphics.setColour(juce::Colour(0x10, 0x10, 0x12));
+        graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground));
         graphics.fillRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height));
-        graphics.setColour(juce::Colour(0x25, 0x25, 0x35));
+        graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
         graphics.drawRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height), 1.f);
     }
 }
@@ -210,7 +213,8 @@ juce::Drawable const *Theme::getDefaultFolderImage()
             folderIcon_ = base->createCopy();
             // Was Image::desaturate(); a Drawable has no equivalent, and a
             // colour overlay is the closest faithful thing.
-            folderIcon_->replaceColour(juce::Colours::white, juce::Colours::lightgrey);
+            folderIcon_->replaceColour(ColourMap::getColour(ColourMap::Text),
+                                       ColourMap::getColour(ColourMap::TextDimmed));
         }
     }
     return folderIcon_.get();
@@ -226,7 +230,7 @@ int Theme::getMenuWindowFlags()
 
 juce::Font Theme::getPopupMenuFont()
 {
-    // whiteFont_ with the weight taken off: the regular face rather than
+    // labelFont_ with the weight taken off: the regular face rather than
     // Font::setBold(false), which does nothing once a typeface is explicit.
     return juce::Font(juce::FontOptions(regularTypeface()).withHeight(12.0f));
 }
@@ -245,7 +249,7 @@ void Theme::drawLinearSliderBackground(juce::Graphics &graphics, int const x, in
 {
     LE_VERIFY((style == juce::Slider::LinearHorizontal) ||
               (style == juce::Slider::TwoValueHorizontal));
-    graphics.setColour(juce::Colours::white);
+    graphics.setColour(ColourMap::getColour(ColourMap::SliderTrack));
     graphics.drawHorizontalLine(y + (height / 2), static_cast<float>(x),
                                 static_cast<float>(x + width));
 }
@@ -255,19 +259,17 @@ void Theme::drawLinearSliderThumb(juce::Graphics &graphics, int const /*x*/, int
                                   float const minSliderPos, float const maxSliderPos,
                                   juce::Slider::SliderStyle const style, juce::Slider &slider)
 {
-    auto const &thumb(resourceArtwork<LFOSliderThumb>());
-
     auto const activeThumb(selectedOrDraggedThumb(slider));
 
     switch (style)
     {
     case juce::Slider::LinearHorizontal:
-        paintSliderThumb(graphics, thumb, sliderPos, y, height, activeThumb == 0);
+        paintSliderThumb(graphics, sliderPos, y, height, activeThumb == 0);
         break;
 
     case juce::Slider::TwoValueHorizontal:
-        paintSliderThumb(graphics, thumb, minSliderPos, y, height, activeThumb == 1);
-        paintSliderThumb(graphics, thumb, maxSliderPos, y, height, activeThumb == 2);
+        paintSliderThumb(graphics, minSliderPos, y, height, activeThumb == 1);
+        paintSliderThumb(graphics, maxSliderPos, y, height, activeThumb == 2);
         break;
 
     default:
@@ -276,10 +278,7 @@ void Theme::drawLinearSliderThumb(juce::Graphics &graphics, int const /*x*/, int
     }
 }
 
-int Theme::getSliderThumbRadius(juce::Slider &)
-{
-    return resourceArtwork<LFOSliderThumb>().getWidth() / 2;
-}
+int Theme::getSliderThumbRadius(juce::Slider &) { return SliderThumbStyle::width / 2; }
 
 void Theme::createSingleton() { singleton_.emplace(); }
 

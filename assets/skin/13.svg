@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="51" height="51" viewBox="0 0 51 51">
-<defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="25.5" cy="25.5" r="25.5">
-<stop offset="0" stop-color="#000000"/><stop offset=".1716" stop-color="#000000"/><stop offset=".201" stop-color="#0e0f0f"/><stop offset=".2206" stop-color="#444644"/><stop offset=".2402" stop-color="#747373"/><stop offset=".2598" stop-color="#b8b7b7"/><stop offset=".2892" stop-color="#c5c4c4"/><stop offset=".3284" stop-color="#b0aeaf"/><stop offset=".848" stop-color="#373435"/><stop offset=".8676" stop-color="#2f2b2c"/><stop offset=".8873" stop-color="#1f1c1d" stop-opacity=".999"/><stop offset=".9167" stop-color="#0d0b0b" stop-opacity=".982"/><stop offset=".9363" stop-color="#0b0b0b" stop-opacity=".937"/><stop offset=".9657" stop-color="#161616" stop-opacity=".463"/><stop offset=".9853" stop-color="#0b0b0b" stop-opacity=".195"/><stop offset="1" stop-color="#0d0d0d" stop-opacity=".035"/>
-</radialGradient></defs>
-<path d="M0 25.5A25.5 25.5 0 1 0 51 25.5A25.5 25.5 0 1 0 0 25.5Z" fill="url(#g)"/>
-</svg>

@@ -9,8 +9,25 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 add_library(sw-gui-resources STATIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/colourMap.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/resources.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/theme.cpp
+
+        # Every drawing the skin used to be a file of. One per shape, and none
+        # of them a juce::Component: a widget calls into these and holds no
+        # artwork. \see gui/painters/knobPainter.hpp for the arrangement.
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/arrowPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/backgroundPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/buttonPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/capsulePainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/editorKnobPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/ejectPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/framePainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/knobPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/moduleKnobPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/moduleStripPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/panelPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/sliderThumbPainter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/le/utility/assertionHandler.cpp
 )
 

@@ -75,19 +75,19 @@ class ThemePage final : public juce::Component
 
         auto const &theme(GUI::Theme::singleton());
 
-        graphics.setColour(juce::Colours::white);
-        graphics.setFont(theme.blueFont());
+        graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Text));
+        graphics.setFont(theme.headingFont());
         graphics.drawText("Theme -- LookAndFeel_V2", 20, 16, 400, 22,
                           juce::Justification::centredLeft);
 
-        graphics.setColour(GUI::Theme::blueColour());
-        graphics.setFont(theme.blueFont());
-        graphics.drawText("blueFont, blueColour", 20, 46, 400, 20,
+        graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Blue));
+        graphics.setFont(theme.headingFont());
+        graphics.drawText("headingFont, ColourMap::Blue", 20, 46, 400, 20,
                           juce::Justification::centredLeft);
 
-        graphics.setColour(juce::Colours::white);
-        graphics.setFont(theme.whiteFont());
-        graphics.drawText("whiteFont -- SpectrumWorx 0123456789", 20, 68, 400, 18,
+        graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Text));
+        graphics.setFont(theme.labelFont());
+        graphics.drawText("labelFont -- SpectrumWorx 0123456789", 20, 68, 400, 18,
                           juce::Justification::centredLeft);
 
         graphics.setFont(GUI::Theme::singleton().getPopupMenuFont());
@@ -109,7 +109,7 @@ class ThemePage final : public juce::Component
 
         graphics.setColour(juce::Colours::grey);
         graphics.setFont(juce::FontOptions(11.0f));
-        graphics.drawText("LinearHorizontal -- thumb is skin bitmap 40", 20, 148, 460, 16,
+        graphics.drawText("LinearHorizontal -- thumb is SliderThumbPainter", 20, 148, 460, 16,
                           juce::Justification::centredLeft);
         graphics.drawText("TwoValueHorizontal -- two thumbs", 20, 208, 460, 16,
                           juce::Justification::centredLeft);
@@ -128,15 +128,23 @@ class ThemePage final : public juce::Component
     }
 
   private:
-    /// The bitmap the thumb is supposed to be, beside the sliders, so a
-    /// mismatch is obvious rather than a matter of memory.
+    /// The thumb on its own beside the sliders, at rest and at the 5/3 a drag
+    /// enlarges it to, so that a mismatch is obvious rather than a matter of
+    /// memory.
     static void drawThumbReference(juce::Graphics &graphics)
     {
-        auto const &thumb(GUI::resourceBitmap(GUI::LFOSliderThumb));
         graphics.setColour(juce::Colours::grey);
         graphics.setFont(juce::FontOptions(11.0f));
-        graphics.drawText("bitmap 40:", 510, 172, 80, 16, juce::Justification::centredLeft);
-        graphics.drawImageAt(thumb, 580, 172 - thumb.getHeight() / 2 + 8);
+        graphics.drawText("thumb, and dragged:", 480, 172, 120, 16,
+                          juce::Justification::centredLeft);
+
+        auto const at([&](float const x, float const scale) {
+            auto const w(GUI::SliderThumbStyle::width * scale);
+            auto const h(GUI::SliderThumbStyle::height * scale);
+            GUI::SliderThumbPainter::paint(graphics, {x, 180 - h / 2, w, h});
+        });
+        at(606, 1.0f);
+        at(620, 5.0f / 3);
     }
 
     juce::Slider single_, range_;

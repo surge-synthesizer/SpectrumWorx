@@ -135,7 +135,10 @@ class ZoomedEditor final : public juce::Component
     /// \note Black, for the half pixel that rounding can leave down the right
     /// and bottom edges when the scaled size is not integral. The same reason
     /// the shim paints its own holder black.
-    void paint(juce::Graphics &graphics) override { graphics.fillAll(juce::Colours::black); }
+    void paint(juce::Graphics &graphics) override
+    {
+        graphics.fillAll(ColourMap::getColour(ColourMap::Ground));
+    }
 
   private:
     ////////////////////////////////////////////////////////////////////////////

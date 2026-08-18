@@ -10,35 +10,41 @@
 # JUCE_MODULES_ONLY and none of the juce_add_* helpers exist under it.
 #
 # \note One library rooted at assets/, not one per kind: what the consumers want
-# is a path ("skin/01.png", "presets/Echoes/LE Boiler.swp", "samples/Carrier.mp3"),
+# is a path ("skin/01.svg", "presets/Echoes/LE Boiler.swp", "samples/Carrier.mp3"),
 # and the skin and the presets are wanted by the same binary in every
 # configuration that has either.
 #
-# **Not everything under assets/ is an asset in that sense.** `LOGO.png` and
-# `installer/` are the packaging side -- the icons, the wizard banner, the
-# licence the installers show -- and belong in the .pkg and the .exe rather than
-# in the binary. Nothing below reaches them, because every glob here names the
-# subdirectory it wants; a `GLOB_RECURSE *.png` added later would put a 1024px
-# application icon in the plugin, which is the kind of thing that is only ever
-# noticed as an unexplained megabyte.
+# **Not everything under assets/ is an asset in that sense.** `LOGO.svg`,
+# `LOGO.png` and `installer/` are the packaging side -- the mark itself, the
+# icons cut from it, the wizard banner, the licence the installers show -- and
+# belong in the .pkg and the .exe rather than in the binary. Nothing below
+# reaches them, because every glob here names the subdirectory it wants; a
+# `GLOB_RECURSE *.svg` added later would put a 1024px application icon in the
+# plugin, which is the kind of thing that is only ever noticed as an
+# unexplained megabyte.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 include(CmakeRC)
 
-# CONFIGURE_DEPENDS so that adding a skin bitmap or a factory preset does not
-# also mean editing this file. The sets are small and change rarely; the
-# reconfigure cost is noise.
+# CONFIGURE_DEPENDS so that adding a skin file or a factory preset does not also
+# mean editing this file. The sets are small and change rarely; the reconfigure
+# cost is noise.
 #
-# \note Both *.png and *.svg, deliberately. The skin is being redrawn as
-# vectors a few files at a time, and resources.cpp prefers "NN.svg" over
-# "NN.png" wherever both are present -- so a converted button is one added file
-# rather than a deleted one, and reverting a conversion is deleting the .svg.
+# \note *.svg and not *.png. The skin was redrawn as vectors a few files at a
+# time and both forms were embedded while that was happening; there is no bitmap
+# left, and resources.cpp no longer knows how to decode one.
 file(GLOB SW_SKIN_FILES CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/skin/*.png"
         "${CMAKE_CURRENT_SOURCE_DIR}/skin/*.svg"
         "${CMAKE_CURRENT_SOURCE_DIR}/skin/*.ttf"
 )
+
+# \note And the logo, by name rather than by glob, because it is the one file
+# under assets/ that is on both sides of the line above: it is the mark the
+# installers cut their icons from *and* the mark the editor draws down its left
+# edge. Named here so there is one of it -- a copy in skin/ would be a second
+# logo free to drift from this one.
+list(APPEND SW_SKIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/LOGO.svg")
 
 file(GLOB_RECURSE SW_PRESET_FILES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/presets/*.swp"

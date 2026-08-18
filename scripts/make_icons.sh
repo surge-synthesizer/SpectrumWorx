@@ -2,12 +2,19 @@
 #
 # Every packaged icon, from one PNG.
 #
-# assets/LOGO.png is the only drawing anybody maintains. The standalone app
-# wants an .icns on macOS and an .ico on Windows, the .pkg wants its icon as a
-# Rez resource fork, and Inno Setup wants a tall wizard banner -- four formats,
-# eight sizes and a resource fork, none of which any of the others can be
-# derived from at build time. So they are generated here and committed, and this
-# script is the record of how.
+# assets/LOGO.png is what this reads. The standalone app wants an .icns on
+# macOS and an .ico on Windows, the .pkg wants its icon as a Rez resource fork,
+# and Inno Setup wants a tall wizard banner -- four formats, eight sizes and a
+# resource fork, none of which any of the others can be derived from at build
+# time. So they are generated here and committed, and this script is the record
+# of how.
+#
+# \note **assets/LOGO.svg is the mark, and this does not use it yet.** The two
+# are the same drawing; the PNG is a 509x460 composition of it on a flat dark
+# field, and everything below extends that field, reads its colour out of it and
+# crops against it. Pointing this at the vector is a rewrite of the cropping and
+# a change to every icon, so it is a job of its own rather than a side effect of
+# adding the file.
 #
 # **macOS only, and deliberately.** iconutil, Rez and DeRez ship with the Xcode
 # command line tools and have no equivalent elsewhere, so the Windows and Linux

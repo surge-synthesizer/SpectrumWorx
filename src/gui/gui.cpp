@@ -444,85 +444,65 @@ juce::Font DrawableText::defaultFont()
     return font;
 }
 
-void BackgroundImage::paint(juce::Graphics &graphics) { paintImage(graphics, image()); }
-
-Artwork const &BackgroundImage::image() const
+void PanelBackground::paint(juce::Graphics &graphics)
 {
-    LE_ASSERT(pArtwork_);
-    return *pArtwork_;
+    auto const bounds(getLocalBounds().toFloat());
+    if (which_ == Browser)
+        PanelPainter::paintPresetBrowser(graphics, bounds);
+    else
+        PanelPainter::paintSettingsPage(graphics, bounds);
 }
 
-void BackgroundImage::setImage(Artwork const &artwork) { pArtwork_ = &artwork; }
-
-BitmapButton::BitmapButton(juce::Component &parent, Artwork const &on, Artwork const &off,
-                           juce::Colour const &overlayColourWhenOver, bool const toggled)
-    : pOn_(&on), pOff_(&off), overOverlay_(overlayColourWhenOver)
+void PanelBackground::setSizeFromPanel()
 {
-    //...mrmlj...the settings bitmaps are currently broken...
-    /// \note Either of the pair, because which one is the button's `on` is the
-    /// caller's choice and the settings button swapped them. \see issue #73.
-    LE_ASSERT((on.getHeight() == off.getHeight()) || (&on == &resourceArtwork<SettingsOn>()) ||
-              (&on == &resourceArtwork<SettingsOff>()));
-    LE_ASSERT(on.getWidth() == off.getWidth());
+    setSize(PanelPainter::width, (which_ == Browser) ? PanelPainter::presetBrowserHeight
+                                                     : PanelPainter::settingsPageHeight);
+}
 
-    /// \note The 2013 comment here explained that juce::Button registered itself
-    /// as a listener of its own Value, so a value set through automation or an
-    /// LFO came back asynchronously and generated a bogus "value changed"; the
-    /// fix was to cut the Button->Value->Button loop with
-    /// getToggleStateValue().removeListener(this).
-    ///
-    ///   That is neither possible nor needed against JUCE 8. Button is no longer
-    /// a Value::Listener -- it holds a private helper object (juce_Button.cpp:40)
-    /// which this class cannot reach -- and that helper calls setToggleState
-    /// with dontSendNotification for the click notification (juce_Button.cpp:58),
-    /// on top of an early-out when the state has not actually changed
-    /// (juce_Button.cpp:174). JUCE cuts the loop itself now.
-    ///
-    ///   Read from JUCE's sources rather than observed, so it is worth watching
-    /// for doubled automation writes the first time this runs under a host.
-    ///                                       (28.07.2026.) (SW port)
+////////////////////////////////////////////////////////////////////////////////
+//
+// PaintedButton
+// -------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+PaintedButton::PaintedButton(juce::Component &parent, juce::String const &text, int const width,
+                             int const height, bool const toggled)
+{
+    setButtonText(text);
 
     setWantsKeyboardFocus(false);
     setMouseClickGrabsKeyboardFocus(false);
 
-    // What setImages(resizeButtonNowToFitThisImage) used to do.
-    setSize(off.getWidth(), off.getHeight());
-
+    setSize(width, height);
     setClickingTogglesState(toggled);
 
     addToParentAndShow(parent, *this);
 }
 
-/// \note juce::ImageButton::getCurrentImage() had a third case, isOver(), which
-/// asked for an over-image this class never supplied; getOverImage() then fell
-/// back to the normal one. So hovering always drew `off`, and the hover is
-/// expressed entirely through opacity and the overlay colour in paintButton().
-Artwork const &BitmapButton::currentArtwork() const
-{
-    LE_ASSERT(pOn_ && pOff_);
-    return (isDown() || getToggleState()) ? *pOn_ : *pOff_;
-}
-
-void BitmapButton::paintButton(juce::Graphics &graphics, bool isMouseOverButton, bool isButtonDown)
+/// \note A transparency layer rather than a colour with an alpha in it: what is
+/// being faded is a drawing of half a dozen fills, and fading each of them
+/// separately would show their overlaps.
+void PaintedButton::paintButton(juce::Graphics &graphics, bool isMouseOverButton,
+                                bool const isButtonDown)
 {
     if (!isEnabled())
-        isMouseOverButton = isButtonDown = false;
+        isMouseOverButton = false;
 
-    auto opacity(isButtonDown ? downOpacity()
-                              : (isMouseOverButton ? overOpacity() : normalOpacity()));
+    auto opacity(isMouseOverButton ? PointerFeedback::over : PointerFeedback::normal);
     if (!isEnabled())
-        opacity *= 0.3f; // as LookAndFeel_V2::drawImageButton dimmed a disabled one
+        opacity *= PointerFeedback::disabled;
 
-    currentArtwork().draw(graphics, 0, 0, opacity,
-                          isButtonDown ? downOverlay()
-                                       : (isMouseOverButton ? overOverlay_ : normalOverlay()));
+    bool const fade(opacity < 1.0f);
+    if (fade)
+        graphics.beginTransparencyLayer(opacity);
+
+    ButtonPainter::paint(graphics, getLocalBounds().toFloat(), ButtonPainter::Rectangular,
+                         isEnabled() && (isButtonDown || getToggleState()), getButtonText());
+
+    if (fade)
+        graphics.endTransparencyLayer();
 }
-
-juce::Colour const &BitmapButton::downOverlay() { return juce::Colours::transparentWhite; }
-
-juce::Colour const &BitmapButton::defaultOverOverlay() { return juce::Colours::transparentWhite; }
-
-juce::Colour const &BitmapButton::normalOverlay() { return juce::Colours::transparentWhite; }
 
 // Implementation note:
 //   The built in JUCE ComboBox does not allow enough customization so we had to
@@ -771,14 +751,11 @@ void PopupMenuWithSelection::showCenteredBelow(juce::Component const &owner,
         });
 }
 
-ComboBox::ComboBox(juce::Component &parent, Artwork const &normalBackground,
-                   Artwork const &selectedBackground)
-    : normalBackground_(normalBackground), selectedBackground_(selectedBackground)
+ComboBox::ComboBox(juce::Component &parent, FrameStyle const &frame, int const width,
+                   int const height)
+    : frame_(frame), boxHeight_(height)
 {
-    LE_ASSERT(normalBackground.getWidth() == selectedBackground.getWidth());
-    LE_ASSERT(normalBackground.getHeight() == selectedBackground.getHeight());
-
-    setSizeFromImage(*this, normalBackground);
+    setSize(width, height);
     addToParentAndShow(parent, *this);
 }
 
@@ -789,13 +766,20 @@ ComboBox::ComboBox(juce::Component &parent, Artwork const &normalBackground,
 ///                                           (16.08.2026.)
 void ComboBox::paint(juce::Graphics &graphics)
 {
-    paintImage(graphics, hasDirectFocus() ? selectedBackground_ : normalBackground_);
+    /// \note The rim is the whole of "this box has the focus" -- white rather
+    /// than the skin's blue. The halo is under both, which is what the artwork
+    /// did and what keeps the box from jumping in size when it is picked.
+    FramePainter::paint(
+        graphics,
+        juce::Rectangle<float>(0, 0, static_cast<float>(getWidth()),
+                               static_cast<float>(boxHeight_)),
+        frame_, ColourMap::getColour(hasDirectFocus() ? ColourMap::FocusHalo : ColourMap::Blue),
+        ColourMap::getColour(ColourMap::ComboBackground), true /*halo*/);
 
-    graphics.setColour(juce::Colours::white);
-    graphics.setFont(Theme::singleton().whiteFont());
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
+    graphics.setFont(Theme::singleton().labelFont());
     graphics.drawFittedText(getSelectedItemText(), textMargin, 2, getWidth() - 2 * textMargin,
-                            normalBackground_.getHeight() - 3, juce::Justification::centred, 1,
-                            0.1f);
+                            boxHeight_ - 3, juce::Justification::centred, 1, 0.1f);
 }
 
 /// \note \p onValueChanged runs later, on the message thread, and only if the
@@ -837,44 +821,138 @@ void ComboBox::setSelectedIndex(unsigned int const newSelectionIndex)
     repaint();
 }
 
-void Detail::paintTextButton(BitmapButton const &button, juce::Graphics &g,
-                             unsigned int const textX, unsigned int const textY,
-                             unsigned int const imageX, unsigned int const imageY,
-                             bool const isMouseOverButton, bool const isButtonDown)
-{
-    g.setColour(juce::Colours::white);
-    g.setFont(DrawableText::defaultFont());
-    g.drawFittedText(button.getName(), textX, textY, button.getWidth() - textX, 11,
-                     juce::Justification::horizontallyCentred, 1);
+////////////////////////////////////////////////////////////////////////////////
+//
+// CapsuleButton
+// -------------
+//
+////////////////////////////////////////////////////////////////////////////////
 
-    button.currentArtwork().draw(
-        g, static_cast<int>(imageX), static_cast<int>(imageY),
-        isButtonDown
-            ? BitmapButton::downOpacity()
-            : (isMouseOverButton ? BitmapButton::overOpacity() : BitmapButton::normalOpacity()),
-        isButtonDown ? BitmapButton::downOverlay()
-                     : (isMouseOverButton ? BitmapButton::defaultOverOverlay()
-                                          : BitmapButton::normalOverlay()));
+CapsuleButton::CapsuleButton(juce::Component &parent, CapsuleStyle const &style, int const width,
+                             int const height, bool const litWhenOn)
+    : pStyle_(&style), litWhenOn_(litWhenOn)
+{
+    setWantsKeyboardFocus(false);
+    setMouseClickGrabsKeyboardFocus(false);
+
+    setSize(width, height);
+    setClickingTogglesState(true);
+
+    addToParentAndShow(parent, *this);
+}
+
+/// \note \see PointerFeedback, which is what every button in the editor dims by.
+void CapsuleButton::paintCapsule(juce::Graphics &graphics, juce::Rectangle<int> const bounds,
+                                 bool isMouseOverButton, bool const isButtonDown)
+{
+    if (!isEnabled())
+        isMouseOverButton = false;
+
+    auto opacity(isMouseOverButton ? PointerFeedback::over : PointerFeedback::normal);
+    if (!isEnabled())
+        opacity *= PointerFeedback::disabled;
+
+    bool const fade(opacity < 1.0f);
+    if (fade)
+        graphics.beginTransparencyLayer(opacity);
+
+    CapsulePainter::paint(graphics, bounds.toFloat(), *pStyle_,
+                          (isButtonDown || getToggleState()) == litWhenOn_);
+
+    if (fade)
+        graphics.endTransparencyLayer();
+}
+
+void CapsuleButton::paintButton(juce::Graphics &graphics, bool const isMouseOverButton,
+                                bool const isButtonDown)
+{
+    paintCapsule(graphics, getLocalBounds(), isMouseOverButton, isButtonDown);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ArrowButton and EjectButton
+// ---------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+/// What a BitmapButton's `overlayColourWhenOver` did: the shape is drawn, then
+/// filled again in the overlay colour where the pointer is on it.
+void withPointerTint(juce::Button const &button, juce::Graphics &graphics,
+                     bool const isMouseOverButton, juce::Colour const tint,
+                     std::function<void(juce::Colour)> const &fill)
+{
+    if (button.isEnabled() && isMouseOverButton && !tint.isTransparent())
+        fill(tint);
+}
+} // anonymous namespace
+
+ArrowButton::ArrowButton(juce::Component &parent, int const width, int const height,
+                         bool const fadeFromBase, juce::Colour const tintWhenOver)
+    : fadeFromBase_(fadeFromBase), tintWhenOver_(tintWhenOver)
+{
+    setWantsKeyboardFocus(false);
+    setMouseClickGrabsKeyboardFocus(false);
+
+    setSize(width, height);
+    setClickingTogglesState(false);
+
+    addToParentAndShow(parent, *this);
+}
+
+void ArrowButton::paintButton(juce::Graphics &graphics, bool const isMouseOverButton,
+                              bool const /*isButtonDown*/)
+{
+    auto const bounds(getLocalBounds().toFloat());
+    ArrowPainter::paint(graphics, bounds, fadeFromBase_);
+    withPointerTint(*this, graphics, isMouseOverButton, tintWhenOver_,
+                    [&](juce::Colour const tint) { ArrowPainter::tint(graphics, bounds, tint); });
+}
+
+EjectButton::EjectButton(juce::Component &parent)
+{
+    setWantsKeyboardFocus(false);
+    setMouseClickGrabsKeyboardFocus(false);
+
+    setSize(EjectStyle::widgetWidth, EjectStyle::widgetHeight);
+    setClickingTogglesState(false);
+
+    addToParentAndShow(parent, *this);
+}
+
+void EjectButton::paintButton(juce::Graphics &graphics, bool const isMouseOverButton,
+                              bool const /*isButtonDown*/)
+{
+    auto const bounds(getLocalBounds().toFloat());
+    EjectPainter::paint(graphics, bounds);
+    withPointerTint(*this, graphics, isMouseOverButton,
+                    ColourMap::getColour(ColourMap::MouseOverShade),
+                    [&](juce::Colour const tint) { EjectPainter::tint(graphics, bounds, tint); });
 }
 
 LEDTextButton::LEDTextButton(juce::Component &parent, unsigned int const x, unsigned int const y,
                              char const *const text)
-    : BitmapButton(parent, resourceArtwork<LEDOn>(), resourceArtwork<LEDOff>())
+    : CapsuleButton(parent, ledCapsule, ledWidth, ledHeight)
 {
     setName(text);
 
     setBounds(x, y,
-              getWidth() +
+              ledWidth +
                   juce::GlyphArrangement::getStringWidthInt(DrawableText::defaultFont(), getName()),
-              14);
+              ledHeight);
 }
 
 void LEDTextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton,
                                 bool const isButtonDown)
 {
-    std::size_t const imageWidth(25);
-    LE_ASSERT(currentArtwork().getWidth() == imageWidth);
-    Detail::paintTextButton(*this, g, imageWidth, 3, 0, 0, isMouseOverButton, isButtonDown);
+    g.setColour(ColourMap::getColour(ColourMap::Text));
+    g.setFont(DrawableText::defaultFont());
+    g.drawFittedText(getName(), ledWidth, 3, getWidth() - ledWidth, 11,
+                     juce::Justification::horizontallyCentred, 1);
+
+    paintCapsule(g, {0, 0, ledWidth, ledHeight}, isMouseOverButton, isButtonDown);
 }
 
 TextButton::TextButton(juce::Component &parent, unsigned int const x, unsigned int const y,
@@ -882,7 +960,7 @@ TextButton::TextButton(juce::Component &parent, unsigned int const x, unsigned i
 {
     setName(text);
 
-    juce::Font font(Theme::singleton().whiteFont());
+    juce::Font font(Theme::singleton().labelFont());
     font.setHeight(static_cast<float>(height));
 
     setBounds(x, y, juce::GlyphArrangement::getStringWidthInt(font, getName()), height);
@@ -902,10 +980,10 @@ void TextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton, bo
 
     unsigned char const alpha(alphas[getToggleState()][isMouseOverButton]);
 
-    juce::Font font(Theme::singleton().whiteFont());
+    juce::Font font(Theme::singleton().labelFont());
     font.setHeight(static_cast<float>(height));
 
-    g.setColour(juce::Colour((Theme::blueColour().getARGB() & 0x00FFFFFF) | (alpha << 24)));
+    g.setColour(ColourMap::getColour(ColourMap::Blue).withAlpha(alpha));
     g.setFont(font);
     g.drawSingleLineText(getName(), 0, height);
 }
@@ -1249,110 +1327,6 @@ Knob::param_type Knob::getNormalisedValue() const
         fullRangeValue, minimumValue, maximumValue);
 }
 
-namespace KnobStyle
-{
-juce::ColourGradient radialAbout(juce::Point<float> const centre, float const radius,
-                                 juce::Colour const inner, juce::Colour const outer)
-{
-    return juce::ColourGradient(inner, centre, outer, centre.translated(radius, 0), true);
-}
-
-void fillRing(juce::Graphics &graphics, juce::Point<float> const centre, float const inner,
-              float const outer, juce::ColourGradient const &gradient)
-{
-    LE_ASSERT(inner < outer);
-
-    juce::Path ring;
-    ring.setUsingNonZeroWinding(false); // even-odd, so the inner disc is a hole
-    ring.addEllipse(centre.x - outer, centre.y - outer, 2 * outer, 2 * outer);
-    ring.addEllipse(centre.x - inner, centre.y - inner, 2 * inner, 2 * inner);
-
-    graphics.setGradientFill(gradient);
-    graphics.fillPath(ring);
-}
-} // namespace KnobStyle
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// paintEditorKnob()
-// -----------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
-void paintEditorKnob(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
-                     float const normalisedValue)
-{
-    using namespace EditorKnobStyle;
-
-    LE_ASSERT(bounds.getWidth() == bounds.getHeight());
-
-    auto const centre(bounds.getCentre());
-    auto const radius(bounds.getWidth() / 2);
-    auto const value(juce::jlimit(0.0f, 1.0f, normalisedValue));
-    auto const disc([&](float const r) { return bounds.withSizeKeepingCentre(2 * r, 2 * r); });
-
-    /// \note The bevel is lit from above left, so its shading is concentric with
-    /// a point below and right of the knob rather than with the knob. Fitting
-    /// that offset is what took the residual in this ring from 18/255 to 1/255 --
-    /// a concentric gradient cannot describe a lit surface.
-    auto const shading(centre.translated(bevelShadingX * radius, bevelShadingY * radius));
-    auto bevel(KnobStyle::radialAbout(shading, bevelReach * radius, juce::Colour(bevelShadow),
-                                      juce::Colour(bevelRim)));
-    bevel.addColour(bevelShadowStop, juce::Colour(bevelShadow));
-    bevel.addColour(bevelMidStop, juce::Colour(bevelMid));
-    bevel.addColour(bevelRimStop, juce::Colour(bevelRim));
-    graphics.setGradientFill(bevel);
-    graphics.fillEllipse(disc(bevelRadius * radius));
-
-    // The teal ring: a plain vertical ramp, the same grey added to every channel.
-    graphics.setGradientFill(juce::ColourGradient(
-        juce::Colour(ringTop), centre.translated(0, -ringRadius * radius), juce::Colour(ringBottom),
-        centre.translated(0, ringRadius * radius), false));
-    graphics.fillEllipse(disc(ringRadius * radius));
-
-    // The cap, whose edge is soft: it is a shadow on the teal, not a disc on it.
-    auto cap(KnobStyle::radialAbout(centre, capRadius * radius, juce::Colour(centreFill),
-                                    juce::Colours::transparentBlack));
-    cap.addColour(capSolidRadius / capRadius, juce::Colour(centreFill));
-    graphics.setGradientFill(cap);
-    graphics.fillEllipse(disc(capRadius * radius));
-
-    graphics.setColour(juce::Colour(tick));
-    for (unsigned int t(0); t < numberOfTicks; ++t)
-    {
-        juce::Path mark;
-        mark.addRectangle(-tickHalfWidth * radius, -tickOuterRadius * radius,
-                          2 * tickHalfWidth * radius, (tickOuterRadius - tickInnerRadius) * radius);
-        mark.applyTransform(juce::AffineTransform::rotation(
-            juce::degreesToRadians(360.0f * t / numberOfTicks), 0, 0));
-        graphics.fillPath(mark, juce::AffineTransform::translation(centre));
-    }
-
-    /// \note The rim's inner edge deliberately sits under the bevel rather than
-    /// against it. Two antialiased edges meeting exactly leave a seam -- half
-    /// coverage over half coverage composites to three quarters, not to one.
-    auto rim(KnobStyle::radialAbout(centre, rimHighlightOuter * radius, juce::Colour(rimHighlight),
-                                    juce::Colours::transparentWhite));
-    rim.addColour(rimHighlightSolid / rimHighlightOuter, juce::Colour(rimHighlight));
-    KnobStyle::fillRing(graphics, centre, rimHighlightInner * radius, rimHighlightOuter * radius,
-                        rim);
-
-    graphics.setColour(juce::Colour(rimOutline));
-    graphics.drawEllipse(disc(rimOutlineRadius * radius), rimOutlineThickness * radius);
-
-    // The pointer, and the only thing here that moves.
-    juce::Path bar;
-    bar.startNewSubPath(-pointerInnerHalfWidth * radius, -pointerInnerRadius * radius);
-    bar.lineTo(-pointerOuterHalfWidth * radius, -pointerOuterRadius * radius);
-    bar.lineTo(pointerOuterHalfWidth * radius, -pointerOuterRadius * radius);
-    bar.lineTo(pointerInnerHalfWidth * radius, -pointerInnerRadius * radius);
-    bar.closeSubPath();
-    bar.applyTransform(
-        juce::AffineTransform::rotation(juce::degreesToRadians(KnobStyle::angleFor(value)), 0, 0));
-    graphics.setColour(juce::Colour(pointer));
-    graphics.fillPath(bar, juce::AffineTransform::translation(centre));
-}
-
 EditorKnob::EditorKnob(SpectrumWorxEditor &parent, unsigned int const x, unsigned int const y)
     : Knob(parent.mainArea(), x, y, 0, 0), parameterIndex_(0)
 {
@@ -1433,9 +1407,9 @@ void EditorKnob::paint(juce::Graphics &graphics)
                     static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())));
 
     // For main knobs we display the value within the knob itself.
-    graphics.setColour(juce::Colours::white);
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
     {
-        juce::Font font(Theme::singleton().whiteFont());
+        juce::Font font(Theme::singleton().labelFont());
         font.setHeight(11);
         graphics.setFont(font);
     }
@@ -1553,7 +1527,7 @@ SpectrumWorxEditor &EditorKnob::editor() const { return SpectrumWorxEditor::from
 
 TitledComboBox::TitledComboBox(juce::Component &parent, unsigned int const x, unsigned int const y,
                                char const *const title)
-    : ComboBox(parent, resourceArtwork<SettingsCombo>(), resourceArtwork<SettingsComboOn>()),
+    : ComboBox(parent, settingsComboFrame, settingsComboWidth, settingsComboHeight),
       title_(title, 4, 0, getWidth() - 8, 13, juce::Justification::left)
 {
     TitledComboBox::setBounds(x, y, getWidth(), getHeight() + 15);

@@ -4,7 +4,9 @@
 /// --------------------------
 ///
 ///   The box under the LFO panel, which used to be called "External audio" and
-/// used to be able to say only two things: the name of a file, or nothing.
+/// used to be able to say only two things: the name of a file, or nothing. It
+/// is labelled "Sidechain source" as of 18.08.2026, the old name having been
+/// outlines in the artwork until then.
 ///
 ///   "Nothing" was 2016's way of writing `Main` without a word for it, which is
 /// why a user who cleared a file could not say what they wanted instead, and why

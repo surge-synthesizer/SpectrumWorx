@@ -51,14 +51,14 @@ struct ResourceGuard
 };
 } // anonymous namespace
 
-TEST_CASE("Every named skin bitmap is embedded and decodes", "[gui][skin]")
+TEST_CASE("Every named skin file is embedded and parses", "[gui][skin]")
 {
     ResourceGuard const guard;
 
     std::vector<std::string> missing;
 #define LE_SW_AUX_CHECK_BITMAP(name, number)                                                       \
     if (!GUI::hasResourceBitmap(number))                                                           \
-        missing.push_back(#name " (" #number ".png)");
+        missing.push_back(#name " (" #number ".svg)");
     LE_SW_RESOURCE_BITMAP_LIST(LE_SW_AUX_CHECK_BITMAP)
 #undef LE_SW_AUX_CHECK_BITMAP
 
@@ -71,7 +71,7 @@ TEST_CASE("Every named skin bitmap is embedded and decodes", "[gui][skin]")
     CHECK_FALSE(GUI::hasResourceBitmap(GUI::numberOfResourceBitmaps + 1));
 }
 
-TEST_CASE("Skin bitmaps have plausible dimensions", "[gui][skin]")
+TEST_CASE("Skin files have plausible dimensions", "[gui][skin]")
 {
     ResourceGuard const guard;
 
@@ -111,22 +111,19 @@ TEST_CASE("Releasing the cache is idempotent and reloads", "[gui][skin]")
 {
     ResourceGuard const guard;
 
-    REQUIRE(GUI::resourceBitmap(GUI::EditorBackground).isValid());
+    REQUIRE(GUI::resourceBitmap(GUI::LFOSine).isValid());
     GUI::releaseCachedResources();
     GUI::releaseCachedResources();
-    CHECK(GUI::resourceBitmap(GUI::EditorBackground).isValid());
+    CHECK(GUI::resourceBitmap(GUI::LFOSine).isValid());
 }
 
-TEST_CASE("Skin vectors render at the size their bitmap had", "[gui][skin]")
+TEST_CASE("Every skin vector renders at the size its file says", "[gui][skin]")
 {
     ResourceGuard const guard;
 
-    //   These are the files that have been redrawn as SVG; resources.cpp
-    // prefers the vector, so what these numbers now return is a rasterised
-    // juce::Drawable rather than a decoded PNG. Every widget that draws them
-    // is still laid out from getWidth()/getHeight(), so a vector that comes
-    // back a different size from the bitmap it replaced moves controls around
-    // the editor.
+    //   What a number returns is a rasterised juce::Drawable, and every widget
+    // that draws one is laid out from getWidth()/getHeight() -- so a vector
+    // that comes back the wrong size moves controls around the editor.
     //
     //   That is not a hypothetical: JUCE gives a DrawableComposite bounds that
     // are the union of its children -- the ink -- and the pill in 09.svg stops
@@ -135,21 +132,16 @@ TEST_CASE("Skin vectors render at the size their bitmap had", "[gui][skin]")
     // where the skin says 57x24, and the preset button lands in the wrong
     // place.
     //
-    //   The size *equality* is asserted by resources.cpp, which is the one
-    // place holding both forms while the skin is half converted. This walks
-    // the numbering rather than listing files, so it covers whatever has been
-    // converted since without anyone remembering to add it here -- and it
-    // reaches the numbers LE_SW_RESOURCE_BITMAP_LIST does not name (19, 25,
-    // 26, 29, 36..39), which is what the case above cannot see.
+    //   This walks the numbering rather than listing files, so it reaches the
+    // numbers LE_SW_RESOURCE_BITMAP_LIST does not name, which is what the case
+    // above cannot see.
     //
     //   A malformed SVG is what this is for: a Drawable that fails to parse
-    // hands back an invalid or zero-sized image, and every widget laid out
-    // from getWidth()/getHeight() then lands in the wrong place.
+    // hands back an invalid or zero-sized image.
     //
-    // \note No floor on how many vectors there are. Which files have been
-    // redrawn is a property of the artwork rather than of the code, and a
-    // count here would make replacing an SVG with a PNG -- or the reverse --
-    // a test failure rather than a decision.
+    // \note No floor on how many there are. Which files the skin holds is a
+    // property of the artwork rather than of the code, and a count here would
+    // make retiring one a test failure rather than a decision.
     unsigned int vectors(0);
     for (unsigned int number(1); number <= GUI::numberOfResourceBitmaps; ++number)
     {
@@ -171,10 +163,10 @@ TEST_CASE("Skin vectors render at the size their bitmap had", "[gui][skin]")
 ///
 /// \note Four cases stood below this line until 14.08.2026 and all four were
 /// about *which artwork* the skin holds rather than about the code that serves
-/// it: pixel probes into 08.svg and 09.svg (the pill is opaque in the middle,
-/// the lit variant's rim is bluer than it is red), an inventory of the six
-/// files redrawn as SVG, a 2x rasterisation of PresetOn measured against an
-/// upscale of itself, and 15/18/54 pinned as holes in the numbering.
+/// it: pixel probes into two button files (the pill is opaque in the middle,
+/// the lit variant\'s rim is bluer than it is red), an inventory of the files
+/// redrawn as SVG, a 2x rasterisation of one measured against an upscale of
+/// itself, and 15/18/54 pinned as holes in the numbering.
 ///
 ///   Every one of them fails when the skin is redrawn, which is now ordinary
 /// work rather than a rare event -- and none of them fails for a reason about

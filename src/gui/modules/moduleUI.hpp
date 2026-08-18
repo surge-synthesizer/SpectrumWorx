@@ -14,6 +14,8 @@
 #define moduleUI_hpp__8228E5F3_535E_4B08_9AD0_072C9fA7AD93
 //------------------------------------------------------------------------------
 #include "gui/gui.hpp"
+#include "gui/painters/moduleKnobPainter.hpp"
+#include "gui/painters/moduleStripPainter.hpp"
 #include "gui/modules/moduleControl.hpp"
 #include "gui/modules/moduleWidgets.hpp"
 
@@ -67,65 +69,6 @@ class Setup;
 
 namespace GUI
 {
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \namespace ModuleKnobStyle
-///
-////////////////////////////////////////////////////////////////////////////////
-
-/// \brief Everything a module knob is drawn from: five colours and the radii and
-/// angles they are laid out at.
-///
-///   Until 14.08.2026 a module knob was a film strip -- 127 square frames
-/// stacked into one sheet (skin files 03, 12, 63 and 64), picked by
-/// `126 * proportion` and blitted. That is four assets for what is one drawing
-/// at two sizes and two polarities, it quantises the value to 127 steps, and it
-/// is the reason the knob could not follow the editor's zoom: the frames are
-/// pixels. This is the same drawing as paint calls, so it resolves at whatever
-/// the graphics context is and every number below is in one place.
-///
-///   The shape, from the middle out: a black cap, then the value wedge in the
-/// skin's blue out to `wedgeRadius`, then a dome that ramps from `innerGradient`
-/// where the cap ends to `outerGradient` at the rim. The wedge opens clockwise
-/// from `-halfSweepDegrees` for a unipolar parameter and from twelve o'clock for
-/// a bipolar one, and the cap grows with it -- which is what the artwork did,
-/// and what keeps the blue a band of roughly even thickness rather than a
-/// lengthening spike.
-///
-/// \note Radii are fractions of the knob's own radius, so they hold at both the
-/// 51 px module knob and the 23 px shared one. The rim and the focus halo are in
-/// pixels instead: they are hairlines at both sizes rather than something that
-/// scales with them.
-namespace ModuleKnobStyle
-{
-std::uint32_t constexpr innerGradient{0xFFB8B6B6};     ///< the dome where the cap ends
-std::uint32_t constexpr outerGradient{0xFF0A0909};     ///< the dome at its rim
-std::uint32_t constexpr centreFill{0xFF000000};        ///< the cap over the wedge's inside
-std::uint32_t constexpr wedge{0xFF13B7EA};             ///< the skin blue
-std::uint32_t constexpr selectedOuterEdge{0xFFFFFFFF}; ///< the focused knob's halo
-
-float constexpr innerGradientRadius{0.26f}; ///< the dome holds innerGradient in to here
-float constexpr wedgeRadius{0.717f};
-float constexpr capRadiusClosed{0.22f}; ///< with the wedge shut
-float constexpr capRadiusOpen{0.48f};   ///< with it fully open
-
-/// \note The wedge's travel is KnobStyle::halfSweepDegrees, shared with the
-/// editor knob's pointer -- see the note there.
-
-float constexpr rimThickness{1.0f};  ///< px
-float constexpr selectionGlow{2.0f}; ///< px, either side of the rim
-} // namespace ModuleKnobStyle
-
-/// \brief Draws a module knob into the square \p bounds.
-///
-/// \param normalisedValue where the value sits in its range, 0 to 1; for a
-/// \p bipolar knob 0.5 is the centre the wedge opens from.
-/// \param drawWedge false while an LFO drives the parameter, when the knob's own
-/// value says nothing -- what the ModuleKnobLFOed bitmap used to be.
-/// \param selected whether it has the keyboard focus.
-void paintModuleKnob(juce::Graphics &, juce::Rectangle<float> bounds, float normalisedValue,
-                     bool bipolar, bool drawWedge, bool selected);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -284,11 +227,17 @@ class ModuleLEDTextButton : public LEDTextButton, public ModuleControl<ModuleLED
     //                                        (21.07.2011.) (Domagoj Saric)
     static double valueRangeQuantum() { return 0; }
 
-    using BitmapButton::getTextFromValue;
+    /// The two words a boolean reads as, which BitmapButton lent this while
+    /// there was a bitmap to hold.
+    static char const *getTextFromValue(unsigned int const booleanValue)
+    {
+        static char const *const strings[] = {"off", "on"};
+        return strings[booleanValue];
+    }
     char const *getValueText() const { return getTextFromValue(getValue()); }
 
   public:
-    typedef BitmapButton BaseWidget;
+    typedef CapsuleButton BaseWidget;
 
   private:
     void clicked() override;
@@ -300,8 +249,23 @@ class ModuleLEDTextButton : public LEDTextButton, public ModuleControl<ModuleLED
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-class TriggerButton : public BitmapButton, public ModuleControl<TriggerButton>
+/// \note Was a BitmapButton, holding skin files 13 and 14 -- which were the
+/// module knob's dome with a cap that turns blue. It paints itself now, from
+/// KnobPainter and TriggerButtonStyle, and what is left of that class here is
+/// the two words a boolean reads as.
+///                                       (18.08.2026.)
+class TriggerButton : public WidgetBase<juce::Button>, public ModuleControl<TriggerButton>
 {
+  public: // ModuleUI control traits
+    /// \note BitmapButton's, which this inherited while it was one. A trigger
+    /// is a boolean and reads its own value off the mouse rather than off a
+    /// toggle state, so getValue() below is its own; the range is not.
+    typedef bool value_type;
+    typedef value_type param_type;
+
+    static value_type valueRangeMinimum() { return false; }
+    static value_type valueRangeMaximum() { return true; }
+
   protected:
     TriggerButton(juce::Component &parent, unsigned int x, unsigned int y);
 
@@ -318,7 +282,11 @@ class TriggerButton : public BitmapButton, public ModuleControl<TriggerButton>
     //                                        (21.07.2011.) (Domagoj Saric)
     static double valueRangeQuantum() { return 0; }
 
-    using BitmapButton::getTextFromValue;
+    static char const *getTextFromValue(unsigned int const booleanValue)
+    {
+        static char const *const strings[] = {"off", "on"};
+        return strings[booleanValue];
+    }
     char const *getValueText() const { return getTextFromValue(getValue()); }
 
   public:
@@ -337,7 +305,7 @@ class TriggerButton : public BitmapButton, public ModuleControl<TriggerButton>
     void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
 
   private:
-    /// Where paintButton() puts the artwork: centred across the strip, at the top.
+    /// Where paintButton() puts the face: centred across the strip, at the top.
     juce::Rectangle<int> faceBounds() const;
 }; // class TriggerButton
 
@@ -534,8 +502,8 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     /// The module this strip is for, kept alive for as long as the strip is.
     LE::Utility::IntrusivePtr<SW::Module> pModule_;
 
-    BitmapButton bypass_;
-    BitmapButton eject_;
+    CapsuleButton bypass_;
+    EjectButton eject_;
 
     /// \note After the two buttons: the effect's own controls are children added
     /// in order, and `effectSpecificParameterControl()` indexes past `baseWidgets`

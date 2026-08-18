@@ -24,6 +24,9 @@
 #ifndef theme_hpp__A1E7C204_53B8_4D96_BF31_0C7A5E2D8946
 #define theme_hpp__A1E7C204_53B8_4D96_BF31_0C7A5E2D8946
 //------------------------------------------------------------------------------
+#include "colourMap.hpp"
+#include "painters/sliderThumbPainter.hpp"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <memory>
@@ -89,10 +92,16 @@ class Theme final : public juce::LookAndFeel_V2
     ~Theme() override;
 
   public:
-    static juce::Colour blueColour() { return juce::Colour(19, 181, 234); }
-
-    juce::Font const &blueFont() const { return blueFont_; }
-    juce::Font const &whiteFont() const { return whiteFont_; }
+    /// \brief The two sizes the skin writes in.
+    ///
+    /// \note These were blueFont() and whiteFont() until the palette moved to
+    /// ColourMap, and the names were already not true: whiteFont() is what a
+    /// TextButton draws its caption in, and it draws it *blue*. A font has a
+    /// face and a size and nothing else, so these are named for what asks for
+    /// them -- the name of a thing, and the text under or inside it.
+    ///                                       (18.08.2026.)
+    juce::Font const &headingFont() const { return headingFont_; }
+    juce::Font const &labelFont() const { return labelFont_; }
 
   public: // juce::LookAndFeel_V2 overrides
     void drawLinearSliderBackground(juce::Graphics &, int x, int y, int width, int height,
@@ -155,8 +164,8 @@ class Theme final : public juce::LookAndFeel_V2
     static int constexpr scrollBarThickness{6};
 
   private:
-    juce::Font const blueFont_;
-    juce::Font const whiteFont_;
+    juce::Font const headingFont_;
+    juce::Font const labelFont_;
 
     std::unique_ptr<juce::Drawable> folderIcon_;
 }; // class Theme

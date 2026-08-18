@@ -847,7 +847,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \class ModuleMenuButton
     ////////////////////////////////////////////////////////////////////////////
 
-    class ModuleMenuButton final : public BitmapButton
+    class ModuleMenuButton final : public ArrowButton
     {
       public:
         ModuleMenuButton(SpectrumWorxEditor &parent);
@@ -1061,7 +1061,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \internal
     /// \class SampleArea
     ///
-    /// \brief The "External audio" strip: what the side channel is being fed
+    /// \brief The "Sidechain source" strip: what the side channel is being fed
     /// from, and the click that changes it.
     ////////////////////////////////////////////////////////////////////////////
 
@@ -1232,11 +1232,11 @@ class SpectrumWorxEditor final : private SkinLifetime,
         }
 
       private:
-        BitmapButton switch_;
+        CapsuleButton switch_;
         TextButton quarter_;
         TextButton triplet_;
         TextButton dotted_;
-        BitmapButton typeArrow_;
+        ArrowButton typeArrow_;
         Period period_;
         AsyncSlider phase_;
         AsyncSlider range_;
@@ -1272,14 +1272,32 @@ class SpectrumWorxEditor final : private SkinLifetime,
         void refillFrameSize(Engine::Setup const &);
 
       private: // JUCE component overrides.
-        void paint(juce::Graphics &) override {}
+        /// \note The strip the tabs stand in, and nothing else -- the pages are
+        /// children and paint themselves. It runs to the right edge of the last
+        /// tab, which is what makes the tabs read as sitting on the page rather
+        /// than as a bar across it. \see PanelPainter::paintTabStrip().
+        void paint(juce::Graphics &graphics) override
+        {
+            PanelPainter::paintTabStrip(graphics, {0.0f, 0.0f, static_cast<float>(tabStripWidth()),
+                                                   static_cast<float>(ButtonStyle::tabHeight)});
+        }
+
+        /// \brief Where the last tab ends, which is where the strip does.
+        int tabStripWidth()
+        {
+            auto &bar(getTabbedButtonBar());
+            auto const last(bar.getNumTabs() - 1);
+            if (auto const *const button = (last >= 0) ? bar.getTabButton(last) : nullptr)
+                return button->getRight();
+            return 0;
+        }
         juce::TabBarButton *createTabButton(juce::String const &tabName, int tabIndex) override;
 
       private: // JUCE ButtonListener overrides.
         void buttonClicked(juce::Button *) override;
 
       private:
-        class EnginePage : public BackgroundImage
+        class EnginePage : public PanelBackground
         {
           public:
             EnginePage();
@@ -1293,7 +1311,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
             juce::String engineQuality_;
         }; // class EnginePage
 
-        class InterfacePage : public BackgroundImage
+        class InterfacePage : public PanelBackground
         {
           public:
             InterfacePage();
@@ -1387,8 +1405,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// and its own nested class's.
     SampleArea sampleArea_;
 
-    BitmapButton preset_;
-    BitmapButton settingsButton_;
+    PaintedButton preset_;
+    PaintedButton settingsButton_;
 
     // Optional/auxiliary components
     friend class SharedModuleControls;

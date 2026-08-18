@@ -128,7 +128,7 @@ int constexpr authorsY{authorsHeadingY + lineHeight + 10};
 namespace
 {
 juce::Font titleFont() { return juce::Font(juce::FontOptions(boldTypeface()).withHeight(17.0f)); }
-juce::Font headingFont() { return Theme::singleton().blueFont(); }
+juce::Font headingFont() { return Theme::singleton().headingFont(); }
 juce::Font bodyFont() { return DrawableText::defaultFont(); }
 
 /// \brief One line of Content, as a juce::String.
@@ -263,7 +263,7 @@ void AboutPage::Link::paintButton(juce::Graphics &graphics, bool const isMouseOv
 {
     auto const alpha(isButtonDown ? 0.6f : (isMouseOverButton ? 1.0f : 0.8f));
 
-    graphics.setColour(Theme::blueColour().withAlpha(alpha));
+    graphics.setColour(ColourMap::getColour(ColourMap::Blue).withAlpha(alpha));
     graphics.setFont(font());
     graphics.drawText(asText(flashing_ ? flashText_ : text_), getLocalBounds(),
                       juce::Justification::centredLeft);
@@ -278,7 +278,7 @@ void AboutPage::Link::paintButton(juce::Graphics &graphics, bool const isMouseOv
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-AboutPage::AboutPage() : BackgroundImage(resourceArtwork<SettingsAboutBg>())
+AboutPage::AboutPage() : PanelBackground(SettingsPage)
 {
     setName("About");
 
@@ -360,11 +360,11 @@ juce::String AboutPage::information()
 
 void AboutPage::paint(juce::Graphics &graphics)
 {
-    BackgroundImage::paint(graphics);
+    PanelBackground::paint(graphics);
 
     auto const width(getWidth());
 
-    graphics.setColour(juce::Colours::white);
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
     graphics.setFont(titleFont());
     graphics.drawFittedText(asText(Content::title), Layout::margin, Layout::titleY,
                             width - 2 * Layout::margin, Layout::titleHeight,
@@ -374,7 +374,8 @@ void AboutPage::paint(juce::Graphics &graphics)
         auto y(Layout::versionY);
         for (auto const &line : versionLines())
         {
-            drawLine(graphics, line, y, bodyFont(), juce::Colours::lightgrey, width);
+            drawLine(graphics, line, y, bodyFont(), ColourMap::getColour(ColourMap::TextDimmed),
+                     width);
             y += Layout::lineHeight;
         }
     }
@@ -383,7 +384,8 @@ void AboutPage::paint(juce::Graphics &graphics)
         auto y(Layout::portedByY);
         for (auto const *const line : Content::portedBy)
         {
-            drawLine(graphics, asText(line), y, bodyFont(), juce::Colours::white, width);
+            drawLine(graphics, asText(line), y, bodyFont(), ColourMap::getColour(ColourMap::Text),
+                     width);
             y += Layout::lineHeight;
         }
     }
@@ -392,19 +394,21 @@ void AboutPage::paint(juce::Graphics &graphics)
         auto y(Layout::copyrightY);
         for (auto const *const line : Content::copyright)
         {
-            drawLine(graphics, asText(line), y, bodyFont(), juce::Colours::grey, width);
+            drawLine(graphics, asText(line), y, bodyFont(),
+                     ColourMap::getColour(ColourMap::TextFaint), width);
             y += Layout::lineHeight;
         }
     }
 
     drawLine(graphics, asText(Content::originalAuthorsHeading), Layout::authorsHeadingY,
-             headingFont(), Theme::blueColour(), width);
+             headingFont(), ColourMap::getColour(ColourMap::Blue), width);
 
     {
         auto y(Layout::authorsY);
         for (auto const &author : originalAuthors())
         {
-            drawLine(graphics, author, y, bodyFont(), juce::Colours::white, width, Layout::indent);
+            drawLine(graphics, author, y, bodyFont(), ColourMap::getColour(ColourMap::Text), width,
+                     Layout::indent);
             y += Layout::lineHeight;
         }
     }

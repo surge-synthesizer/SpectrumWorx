@@ -33,19 +33,28 @@ cmrc::embedded_filesystem skin() { return cmrc::swAssets::get_filesystem(); }
 
 /// \brief Reads one embedded file, or returns an empty span if it is not there.
 ///
-/// \note assets/skin has gaps -- 15, 18 and 54 do not exist, and 19, 25, 26, 29
-/// and 36 to 39 exist but nothing references them -- so a miss is a normal
-/// answer for a number in range, not an error.
-std::pair<char const *, std::size_t> embeddedFile(juce::String const &name)
+/// \note assets/skin has gaps -- 2, 3, 12, 15, 18, 19, 20, 25, 26, 29, 36 to 39
+/// and 54 are not there -- so a miss is a normal answer for a number in range,
+/// not an error.
+std::pair<char const *, std::size_t> embeddedFile(juce::String const &path)
 {
     auto const filesystem(skin());
-    // The resource library is rooted at assets/ and holds the factory presets
-    // too (stage 8.2), hence the prefix.
-    auto const path(("skin/" + name).toStdString());
-    if (!filesystem.exists(path))
+    auto const name(path.toStdString());
+    if (!filesystem.exists(name))
         return {nullptr, 0};
-    auto const file(filesystem.open(path));
+    auto const file(filesystem.open(name));
     return {file.begin(), static_cast<std::size_t>(file.end() - file.begin())};
+}
+
+/// \brief One skin file, by name.
+///
+/// \note The resource library is rooted at assets/ and holds the factory
+/// presets and samples too, hence the prefix. The one file that does not take
+/// it is the logo, which lives beside skin/ rather than in it. \see
+/// logoArtwork().
+std::pair<char const *, std::size_t> skinFile(juce::String const &name)
+{
+    return embeddedFile("skin/" + name);
 }
 
 /// \brief Draws one embedded SVG through a juce::Drawable.
@@ -93,72 +102,46 @@ Artwork loadVector(char const *const data, std::size_t const size)
     return Artwork(std::move(drawable), juce::roundToInt(width), juce::roundToInt(height));
 }
 
-/// \brief One skin file: the vector if it has been redrawn, else the bitmap.
+////////////////////////////////////////////////////////////////////////////////
+//
+// loadArtwork()
+// -------------
+//
+////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note The conversion is file by file (assets/skin/08.svg and friends), so
-/// both forms are embedded and the vector wins where there is one. Reverting a
-/// conversion is deleting the .svg.
+/// \brief One skin file, which is a vector.
+///
+/// \note **`NN.png` was the other half of this and there is no longer any.**
+/// The skin was converted file by file, so both forms were embedded and the
+/// vector won where there was one; the last bitmap went with the module knobs'
+/// film strips and the About page, and what was left was a PNG decoder, a
+/// debug-only check that a redrawn file had kept its bitmap's canvas, and a
+/// glob that had nothing to pick up. Restoring the bitmap path is a dozen lines
+/// if the skin ever wants a photograph.
+///                                       (18.08.2026.)
+///
+/// \note Two things went with it that are worth not having to rediscover. The
+/// 2016 loader ran an in-place `pow( x, 2.2 / 1.8 )` over every byte of every
+/// bitmap on macOS, to convert artwork authored for a PC's gamma to the Mac's
+/// -- a correction Apple made wrong in 2009 and which walked the buffer with no
+/// regard for pixel stride, so it gamma-corrected the alpha channel too. And
+/// the canvas check was not hypothetical: a vector that comes back a different
+/// size from the bitmap it replaced moves controls around the editor silently.
+/// What guards that now is the size assertion in loadVector() and the case in
+/// skinTests.cpp that walks the whole numbering.
+///
+////////////////////////////////////////////////////////////////////////////////
+
 Artwork loadArtwork(unsigned int const number)
 {
-    // "01" ... "68": zero padded to two digits, as the files are named.
+    // "01" ... "62": zero padded to two digits, as the files are named.
     auto const stem(juce::String(number).paddedLeft('0', 2));
 
-    if (auto const [vector, vectorSize](embeddedFile(stem + ".svg")); vector)
-    {
-        if (auto artwork(loadVector(vector, vectorSize)); artwork.isValid())
-        {
-#if !defined(NDEBUG)
-            ////////////////////////////////////////////////////////////////////
-            ///
-            /// \note A conversion has to keep its bitmap's canvas, because the
-            /// widgets lay themselves out from getWidth()/getHeight() and a
-            /// vector that comes back a different size moves controls around
-            /// the editor -- silently, and only on the screens nobody
-            /// screenshotted. Both forms are still embedded while the skin is
-            /// half converted, so the check is free to make and this is the one
-            /// place that has both. Debug only: it costs a PNG decode.
-            ///
-            ////////////////////////////////////////////////////////////////////
-            if (auto const [bitmap, bitmapSize](embeddedFile(stem + ".png")); bitmap)
-            {
-                juce::MemoryInputStream original(bitmap, bitmapSize, false);
-                auto const wasImage(juce::PNGImageFormat().decodeImage(original));
-                LE_ASSERT_MSG((wasImage.getWidth() == artwork.getWidth()) &&
-                                  (wasImage.getHeight() == artwork.getHeight()),
-                              "Skin vector does not have its bitmap's size.");
-            }
-#endif // NDEBUG
-            return artwork;
-        }
-        // a broken .svg has already asserted; fall through to the bitmap
-    }
-
-    auto const [data, size](embeddedFile(stem + ".png"));
-    if (!data)
+    auto const [vector, size](skinFile(stem + ".svg"));
+    if (!vector)
         return {}; // a gap in the numbering, not an error -- see the header
 
-    juce::MemoryInputStream stream(data, size, false);
-    juce::Image image(juce::PNGImageFormat().decodeImage(stream));
-    LE_ASSERT_MSG(image.isValid() && image.getWidth() && image.getHeight(), "Corrupt skin bitmap.");
-
-    /// \note Deliberately no gamma correction here.
-    ///
-    ///   The 2016 loader ran an in-place pow( x, 2.2 / 1.8 ) over every byte of
-    /// every bitmap on macOS, to convert artwork authored for a PC's 2.2 gamma
-    /// to the Mac's 1.8. Apple moved macOS to 2.2 in Snow Leopard, in 2009, so
-    /// the correction was already wrong when this code shipped: it darkens the
-    /// skin on every Mac made since, and makes the Mac build disagree with the
-    /// Windows one, which never did it.
-    ///
-    ///   It also walked the buffer a byte at a time with no regard for pixel
-    /// stride, so it gamma-corrected the *alpha* channel along with the colour
-    /// -- there is no reading of that which is correct.
-    ///
-    ///   Removing it changes how the plugin looks on macOS. It changes it to
-    /// what the artwork says and to what Windows has always drawn.
-    ///                                       (28.07.2026.) (SW port)
-
-    return Artwork(image);
+    return loadVector(vector, size);
 }
 
 std::array<Artwork, numberOfResourceBitmaps + 1> artworkCache;
@@ -167,7 +150,7 @@ juce::Typeface::Ptr loadTypeface(juce::String const &name, juce::Typeface::Ptr &
 {
     if (cache == nullptr)
     {
-        auto const [data, size](embeddedFile(name));
+        auto const [data, size](skinFile(name));
         if (data)
             cache = juce::Typeface::createSystemTypefaceFor(data, size);
         LE_ASSERT_MSG(cache != nullptr, "Cannot load the skin typeface.");
@@ -177,17 +160,14 @@ juce::Typeface::Ptr loadTypeface(juce::String const &name, juce::Typeface::Ptr &
 
 juce::Typeface::Ptr regularTypefaceCache;
 juce::Typeface::Ptr boldTypefaceCache;
+
+Artwork logoCache;
 } // anonymous namespace
 
 Artwork::Artwork() = default;
 Artwork::Artwork(Artwork &&) noexcept = default;
 Artwork &Artwork::operator=(Artwork &&) noexcept = default;
 Artwork::~Artwork() = default;
-
-Artwork::Artwork(juce::Image image)
-    : image_(std::move(image)), width_(image_.getWidth()), height_(image_.getHeight())
-{
-}
 
 Artwork::Artwork(std::unique_ptr<juce::Drawable> drawable, int const width, int const height)
     : drawable_(std::move(drawable)), width_(width), height_(height)
@@ -270,6 +250,12 @@ void Artwork::drawScaled(juce::Graphics &graphics, juce::Rectangle<int> const ta
                        source.getX(), source.getY(), source.getWidth(), source.getHeight());
 }
 
+void Artwork::drawWithin(juce::Graphics &graphics, juce::Rectangle<float> const area) const
+{
+    if (drawable_ != nullptr)
+        drawable_->drawWithin(graphics, area, juce::RectanglePlacement::centred, 1.0f);
+}
+
 std::unique_ptr<juce::Drawable> Artwork::drawableCopy() const
 {
     return (drawable_ != nullptr) ? drawable_->createCopy() : nullptr;
@@ -314,6 +300,18 @@ bool resourceIsVector(unsigned int const number)
     return (number <= numberOfResourceBitmaps) && resourceArtwork(number).isVector();
 }
 
+Artwork const &logoArtwork()
+{
+    if (!logoCache.isValid())
+    {
+        auto const [data, size](embeddedFile("LOGO.svg"));
+        LE_ASSERT_MSG(data, "The logo is not embedded.");
+        if (data)
+            logoCache = loadVector(data, size);
+    }
+    return logoCache;
+}
+
 juce::Typeface::Ptr regularTypeface() { return loadTypeface("Vera.ttf", regularTypefaceCache); }
 juce::Typeface::Ptr boldTypeface() { return loadTypeface("VeraBd.ttf", boldTypefaceCache); }
 
@@ -321,6 +319,7 @@ void releaseCachedResources()
 {
     for (auto &artwork : artworkCache)
         artwork = Artwork();
+    logoCache = Artwork();
     regularTypefaceCache = nullptr;
     boldTypefaceCache = nullptr;
 }

@@ -1,4 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="53" height="53" viewBox="0 0 53 53">
-<defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="26.5" cy="26.5" r="29"><stop offset="0" stop-color="#ffffff" stop-opacity="0"/><stop offset=".7241" stop-color="#ffffff" stop-opacity="0"/><stop offset=".7586" stop-color="#ffffff" stop-opacity=".012"/><stop offset=".7931" stop-color="#ffffff" stop-opacity=".059"/><stop offset=".8276" stop-color="#ffffff" stop-opacity=".262"/><stop offset=".8621" stop-color="#ffffff" stop-opacity=".943"/><stop offset=".8966" stop-color="#ffffff" stop-opacity=".314"/><stop offset=".931" stop-color="#ffffff" stop-opacity=".082"/><stop offset=".9655" stop-color="#ffffff" stop-opacity=".019"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>
-<path d="M-2.5 26.5A29 29 0 0 0 55.5 26.5A29 29 0 0 0-2.5 26.5Z" fill="url(#g)"/>
-</svg>

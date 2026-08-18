@@ -114,7 +114,13 @@ unsigned int const sampleNameVerticalOffset = 306;
 SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement const placement)
     : editorHost_(editorHost), panelPlacement_(placement), nextAvailableModuleSlot_(0),
 
-      in_(*this, 18, 37), out_(*this, 18, 110), mix_(*this, 18, 185),
+      /// \note The chassis draws a well under each of these and a caption over
+      /// it, from constants of its own -- a painter two layers below the editor
+      /// cannot see one. The assertions at the top of the body are what keep
+      /// the two from drifting apart.
+      in_(*this, BackgroundStyle::knobWells[0].x, BackgroundStyle::knobWells[0].y),
+      out_(*this, BackgroundStyle::knobWells[1].x, BackgroundStyle::knobWells[1].y),
+      mix_(*this, BackgroundStyle::knobWells[2].x, BackgroundStyle::knobWells[2].y),
 
       moduleMenuButton_(*this), dropIndicator_(mainArea_),
 
@@ -126,8 +132,11 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
       // buttons...
       /// \note These two lines never changed for issue #73 and never needed to:
       /// what was wrong was which file each name pointed at. \see resources.hpp.
-      preset_(mainArea_, resourceArtwork<PresetOn>(), resourceArtwork<PresetOff>()),
-      settingsButton_(mainArea_, resourceArtwork<SettingsOn>(), resourceArtwork<SettingsOff>())
+      /// \note The size was the artwork's -- 57 x 24, of which 50 x 17 was the
+      /// pill and the rest the room its halo needed. It is written down here
+      /// now, and the two are placed three pixels apart as they were.
+      ///                                       (18.08.2026.)
+      preset_(mainArea_, "PRESETS", 57, 24), settingsButton_(mainArea_, "SETTINGS", 57, 24)
 {
     using LE::Parameters::IndexOf;
     using namespace GlobalParameters;
@@ -1138,14 +1147,17 @@ struct EditorMainAreaText
 // Clang 2.8 on OS X) we do not use the JUCE static Colours::white object
 // but construct our own white juce::Colour here.
 //                                        (25.01.2011.) (Domagoj Saric)
+//
+/// \note ColourMap::getColour() keeps that property -- it is a call returning
+/// by value, so there is no other object to be initialised before this one.
 EditorMainAreaText mainAreaTexts[] = {
-    {0, 0, Theme::blueColour(), Constants::Layout::moduleNameVerticalOffset,
+    {0, 0, ColourMap::getColour(ColourMap::Blue), Constants::Layout::moduleNameVerticalOffset,
      juce::Justification::centred, 1}, // active module name
-    {0, 0, juce::Colour(0xFFFFFFFF), Constants::Layout::controlNameVerticalOffset,
+    {0, 0, ColourMap::getColour(ColourMap::Text), Constants::Layout::controlNameVerticalOffset,
      juce::Justification::top | juce::Justification::horizontallyCentred, 2}, // control name
-    {0, 0, juce::Colour(0xFFFFFFFF), Constants::Layout::controlValueVerticalOffset,
+    {0, 0, ColourMap::getColour(ColourMap::Text), Constants::Layout::controlValueVerticalOffset,
      juce::Justification::centred, 1}, // control value
-    {0, 0, Theme::blueColour(), Constants::Layout::sampleNameVerticalOffset,
+    {0, 0, ColourMap::getColour(ColourMap::Blue), Constants::Layout::sampleNameVerticalOffset,
      juce::Justification::centred, 1}, // sample name
 };
 
@@ -1171,7 +1183,7 @@ void drawMainAreaText(juce::Graphics &graphics, EditorMainAreaText const &text)
 
 SpectrumWorxEditor::MainArea::MainArea()
 {
-    setSizeFromImage(*this, resourceArtwork<EditorBackground>());
+    setSize(BackgroundStyle::width, BackgroundStyle::height);
     setOpaque(true);
 
     /// \note Neither wanted nor grabbed: this is a background, and the component
@@ -1199,11 +1211,11 @@ void SpectrumWorxEditor::MainArea::paint(juce::Graphics &graphics)
 {
     auto &editor(this->editor());
 
-    GUI::paintImage(graphics, resourceArtwork<EditorBackground>());
+    BackgroundPainter::paint(graphics, getLocalBounds().toFloat());
 
-    juce::Font const &moduleNameFont(Theme::singleton().blueFont());
+    juce::Font const &moduleNameFont(Theme::singleton().headingFont());
     juce::Font const &sampleNameFont(DrawableText::defaultFont());
-    juce::Font const &controlTextFont(Theme::singleton().whiteFont());
+    juce::Font const &controlTextFont(Theme::singleton().labelFont());
 
     mainAreaTexts[0].pText = &editor.string(activeModuleName);
     mainAreaTexts[0].pFont = &moduleNameFont;
@@ -1264,14 +1276,14 @@ void SpectrumWorxEditor::MainArea::mouseDown(juce::MouseEvent const &event)
 
 void SpectrumWorxEditor::paint(juce::Graphics &graphics)
 {
-    auto const &background(resourceArtwork<EditorBackground>());
-
-    /// \note background.getHeight() rather than getHeight(): the editor is taller
-    /// than its artwork by the build-stamp bar, and that bar runs the full width
-    /// in one piece.
+    /// \note BackgroundStyle::height rather than getHeight(): the editor is
+    /// taller than its chassis by the build-stamp bar, and that bar runs the
+    /// full width in one piece.
     if (auto const column(mainArea_.getX()); column > 0)
-        background.drawScaled(graphics, {0, 0, column, background.getHeight()},
-                              {0, 0, 1, background.getHeight()});
+    {
+        graphics.setColour(BackgroundPainter::gutterColour());
+        graphics.fillRect(0, 0, column, int{BackgroundStyle::height});
+    }
 
     paintBuildStamp(graphics);
 }
@@ -1327,13 +1339,13 @@ void SpectrumWorxEditor::paintBuildStamp(juce::Graphics &graphics) const
 {
     auto const bar(buildStampBar());
 
-    graphics.setColour(juce::Colours::black);
+    graphics.setColour(ColourMap::getColour(ColourMap::Ground));
     graphics.fillRect(bar);
 
     /// \note The skin's own accent, at the smallest size its font stays legible
     /// at. This is a developer's readout on a user's window, so it should be
     /// readable when looked for and quiet when not.
-    graphics.setColour(Theme::blueColour());
+    graphics.setColour(ColourMap::getColour(ColourMap::Blue));
     graphics.setFont(juce::Font(juce::FontOptions(regularTypeface()).withHeight(11.0f)));
 
     auto const text(bar.reduced(8, 0));
@@ -2448,8 +2460,8 @@ void SpectrumWorxEditor::updateModuleParameterAndNotifyHost(ModuleUI &moduleUI,
 }
 
 SpectrumWorxEditor::ModuleMenuButton::ModuleMenuButton(SpectrumWorxEditor &parent)
-    : BitmapButton(parent.mainArea(), resourceArtwork<AddModule>(), resourceArtwork<AddModule>(),
-                   Theme::singleton().blueColour())
+    : ArrowButton(parent.mainArea(), ArrowStyle::addModuleWidth, ArrowStyle::addModuleHeight,
+                  true /*fades in from its base*/, ColourMap::getColour(ColourMap::Blue))
 {
 }
 
@@ -2537,7 +2549,7 @@ void SpectrumWorxEditor::DropIndicator::showInsert(std::uint8_t const gapIndex)
 /// through -- which is what says *which* strip is being pointed at.
 void SpectrumWorxEditor::DropIndicator::paint(juce::Graphics &graphics)
 {
-    auto const blue(Theme::blueColour());
+    auto const blue(ColourMap::getColour(ColourMap::Blue));
 
     if (insert_)
     {
@@ -2601,11 +2613,11 @@ SpectrumWorxEditor::LFODisplay::ComponentPtr const
 #pragma warning(disable : 4355) // 'this' used in base member initializer list.
 
 SpectrumWorxEditor::LFODisplay::LFODisplay()
-    : switch_(*this, resourceArtwork<LEDOn>(), resourceArtwork<LEDOff>()),
+    : switch_(*this, ledCapsule, LEDTextButton::ledWidth, LEDTextButton::ledHeight),
       quarter_(*this, 62, 5, " N "), triplet_(*this, 62 + 18 * 1, 5, " T "),
       dotted_(*this, 62 + 18 * 2 - 2, 5, " D "),
-      typeArrow_(*this, resourceArtwork<ChangeWaveform>(), resourceArtwork<ChangeWaveform>(),
-                 juce::Colours::white.withAlpha(0.5f)),
+      typeArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
+                 ColourMap::getColour(ColourMap::MouseOverGlow)),
       pModuleControl_(nullptr)
 {
     for (auto const pComponent : componentsToDisableKeyboardGrabingFor)
@@ -2877,7 +2889,7 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
 
     {
         graphics.setFont(DrawableText::defaultFont());
-        graphics.setColour(juce::Colours::white);
+        graphics.setColour(ColourMap::getColour(ColourMap::Text));
 
         for (auto const &text : fixedText)
             graphics.drawSingleLineText(text.string, 9, text.verticalPosition);
@@ -3419,20 +3431,21 @@ SpectrumWorxEditor::Settings::Settings() /// \throws std::bad_alloc Out of memor
     /// window, and would not be as an overlay over the editor. So it is the sum
     /// of what it draws, which is also what the preset browser measures.
     ///                                       (01.08.2026.) (SW port)
-    this->setSize(resourceArtwork<SettingsEngineBg>().getWidth(),
-                  resourceArtwork<SettingsEngineOn>().getHeight() +
-                      resourceArtwork<SettingsEngineBg>().getHeight());
+    this->setSize(PanelPainter::width, ButtonStyle::tabHeight + PanelPainter::settingsPageHeight);
 
     updateEnginePage();
 
     setOutline(0);
     setIndent(0);
-    setTabBarDepth(resourceArtwork<SettingsEngineOn>().getHeight());
+    setTabBarDepth(ButtonStyle::tabHeight);
 
-    juce::String const dummyName("a");
-    addTab(dummyName, juce::Colours::transparentBlack, &enginePage_, false);
-    addTab(dummyName, juce::Colours::transparentBlack, &interfacePage_, false);
-    addTab(dummyName, juce::Colours::transparentBlack, &aboutPage_, false);
+    /// \note Real names, not the `dummyName( "a" )` that stood here: the three
+    /// captions were baked into six bitmaps, so what a tab was called was
+    /// nobody\'s business but the artwork\'s and the name JUCE held said
+    /// nothing. \see SettingsTab.
+    addTab("Engine", ColourMap::getColour(ColourMap::Transparent), &enginePage_, false);
+    addTab("GUI", ColourMap::getColour(ColourMap::Transparent), &interfacePage_, false);
+    addTab("About", ColourMap::getColour(ColourMap::Transparent), &aboutPage_, false);
 
     LE_ASSERT(getNumTabs() == numberOfSettingsPages);
 
@@ -3530,10 +3543,7 @@ void SpectrumWorxEditor::Settings::updateEnginePage()
     enginePage_.setNewQualityFactor(engineSetup.wolaRippleFactor());
 }
 
-SpectrumWorxEditor::Settings::EnginePage::EnginePage()
-    : BackgroundImage(resourceArtwork<SettingsEngineBg>())
-{
-}
+SpectrumWorxEditor::Settings::EnginePage::EnginePage() : PanelBackground(SettingsPage) {}
 
 void SpectrumWorxEditor::Settings::EnginePage::setNewQualityFactor(float const &qualityFactorParam)
 {
@@ -3590,8 +3600,8 @@ void printEngineDiagnostics(juce::String &buffer, char const *const title, float
 
 void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 {
-    BackgroundImage::paint(g);
-    g.setColour(juce::Colours::white);
+    PanelBackground::paint(g);
+    g.setColour(ColourMap::getColour(ColourMap::Text));
     g.setFont(DrawableText::defaultFont());
     g.drawFittedText(engineQuality_, xMargin + 4, yMargin + yStep * 5, 142, 12,
                      juce::Justification::centred, 1);
@@ -3613,8 +3623,7 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 }
 
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
-    : BackgroundImage(resourceArtwork<SettingsIntrfcBg>()),
-      zoom_(*this, xMargin, yMargin + 0 * yStep, "Zoom"),
+    : PanelBackground(SettingsPage), zoom_(*this, xMargin, yMargin + 0 * yStep, "Zoom"),
       moduleUIMouseOverReaction_(*this, xMargin, yMargin + 1 * yStep, "Mouse Over Reaction"),
       lfoUpdateBehaviour_(*this, xMargin, yMargin + 2 * yStep, "LFO Update Behaviour"),
       hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 3 * yStep, "Hide cursor on knob drag")
@@ -3651,8 +3660,8 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
 
 void SpectrumWorxEditor::Settings::InterfacePage::paint(juce::Graphics &graphics)
 {
-    graphics.setColour(juce::Colours::white);
-    BackgroundImage::paint(graphics);
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
+    PanelBackground::paint(graphics);
 }
 
 #pragma warning(pop)
@@ -3660,52 +3669,38 @@ void SpectrumWorxEditor::Settings::InterfacePage::paint(juce::Graphics &graphics
 /// \note SpectrumWorxEditor::Settings::AboutPage's constructor and paint() stood
 /// here. \see gui/about.cpp.
 
+/// \note Was a pair of bitmaps per tab -- six files, one caption baked into
+/// each, so the three tabs could not be renamed without redrawing them. They
+/// are the tab's name and a ButtonPainter now, which is also what makes the
+/// widths below follow the words rather than the artwork.
+///                                       (18.08.2026.)
 class SettingsTab : public juce::TabBarButton
 {
   public:
-    using Images = std::array<Artwork const *, 2>; // [ inactive, active ]
-
-  public:
-    SettingsTab(juce::String const &tabName, juce::TabbedButtonBar &ownerBar, Images const &images)
-        : TabBarButton(tabName, ownerBar), images_(images)
+    SettingsTab(juce::String const &tabName, juce::TabbedButtonBar &ownerBar)
+        : TabBarButton(tabName, ownerBar)
     {
     }
 
   private:
-    int getBestTabLength(int /*depth*/) override { return images_[false]->getWidth(); }
+    int getBestTabLength(int /*depth*/) override
+    {
+        return ButtonPainter::widthFor(getButtonText(), ButtonPainter::Tab);
+    }
 
     bool hitTest(int /*mx*/, int /*my*/) override { return true; }
 
     void paint(juce::Graphics &graphics) override
     {
-        paintImage(graphics, *images_[getToggleState()]);
+        ButtonPainter::paint(graphics, getLocalBounds().toFloat(), ButtonPainter::Tab,
+                             getToggleState(), getButtonText());
     }
-
-  private:
-    Images const images_;
 };
 
 juce::TabBarButton *SpectrumWorxEditor::Settings::createTabButton(juce::String const &tabName,
-                                                                  int const tabIndex)
+                                                                  int const /*tabIndex*/)
 {
-    SettingsTab::Images images;
-    switch (tabIndex)
-    {
-    case 0:
-        images[0] = &resourceArtwork<SettingsEngineOff>();
-        images[1] = &resourceArtwork<SettingsEngineOn>();
-        break;
-    case 1:
-        images[0] = &resourceArtwork<SettingsGUIOff>();
-        images[1] = &resourceArtwork<SettingsGUIOn>();
-        break;
-    case 2:
-        images[0] = &resourceArtwork<SettingsAboutOff>();
-        images[1] = &resourceArtwork<SettingsAboutOn>();
-        break;
-        LE_DEFAULT_CASE_UNREACHABLE();
-    }
-    return new SettingsTab(tabName, getTabbedButtonBar(), images);
+    return new SettingsTab(tabName, getTabbedButtonBar());
 }
 
 SpectrumWorxEditor &SpectrumWorxEditor::Settings::editor()

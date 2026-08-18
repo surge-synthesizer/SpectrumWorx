@@ -21,6 +21,8 @@
 #ifndef resources_hpp__D4A81C36_7E92_4B05_9F17_2C8E6A4D530B
 #define resources_hpp__D4A81C36_7E92_4B05_9F17_2C8E6A4D530B
 //------------------------------------------------------------------------------
+#include "colourMap.hpp"
+
 #include <juce_graphics/juce_graphics.h>
 
 #include <memory>
@@ -39,27 +41,28 @@ namespace LE::SW::GUI
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \brief One piece of skin artwork: a vector where the skin has been redrawn,
-/// a bitmap where it has not.
+/// \brief One piece of skin artwork.
 ///
-///   A file that exists as `NN.svg` is kept as a juce::Drawable and painted
-/// into whatever juce::Graphics it is given, so it comes out at that context's
-/// resolution -- crisp on a 2x display, and crisp again if the editor ever
-/// scales. A file that is still `NN.png` is a juce::Image and draws exactly as
-/// it always did. Both report getWidth()/getHeight() in skin coordinates, so
-/// nothing about layout depends on which one a number turned out to be.
+///   `NN.svg` is kept as a juce::Drawable and painted into whatever
+/// juce::Graphics it is given, so it comes out at that context's resolution --
+/// crisp on a 2x display, and crisp again if the editor ever scales. It reports
+/// getWidth()/getHeight() in skin coordinates, which is what every widget lays
+/// itself out from.
 ///
-/// \note image() rasterises a vector on demand rather than refusing, so a call
-/// site that has not been moved off juce::Image keeps working the moment its
-/// artwork is converted. That is what makes the two migrations -- redrawing a
-/// file, and teaching its widget to hold an Artwork -- independent of each
-/// other. It is also the thing to grep for when a converted button still looks
-/// soft: it means the widget is asking for a bitmap.
+/// \note The skin was half bitmap and half vector while it was being redrawn,
+/// and this class is what let those two migrations -- converting a file, and
+/// teaching its widget to hold an Artwork -- happen independently. Both are
+/// finished. \see the note on loadArtwork() in resources.cpp.
+///
+/// \note image() rasterises on demand, at the artwork's own size and therefore
+/// at 1x. Two callers want it and both have a reason: a tint fills the
+/// artwork's alpha with a colour, which needs pixels, and the show-ui skin page
+/// is looking at the sheet rather than drawing it. It is also the thing to grep
+/// for when something in the editor looks soft.
 class Artwork
 {
   public:
     Artwork();
-    explicit Artwork(juce::Image);
     Artwork(std::unique_ptr<juce::Drawable>, int width, int height);
     Artwork(Artwork &&) noexcept;
     Artwork &operator=(Artwork &&) noexcept;
@@ -82,7 +85,7 @@ class Artwork
     /// vector on the vector path; a real tint needs the pixels, so it
     /// rasterises, which is no worse than the bitmap it replaced.
     void draw(juce::Graphics &, int x, int y, float opacity = 1.0f,
-              juce::Colour overlay = juce::Colour()) const;
+              juce::Colour overlay = ColourMap::getColour(ColourMap::Transparent)) const;
 
     /// \brief Draws the \p source region of the artwork into \p target.
     ///
@@ -94,10 +97,17 @@ class Artwork
     void drawScaled(juce::Graphics &, juce::Rectangle<int> target, juce::Rectangle<int> source,
                     float opacity = 1.0f) const;
 
-    /// The bitmap; a vector is rasterised at its own size on first ask.
+    /// \brief Draws the artwork to fit \p area, keeping its proportions.
+    ///
+    /// \note For the logo, which is a 64 x 64 drawing put in a rectangle that
+    /// is neither 64 x 64 nor square. Everything else in the skin is drawn at
+    /// the size it was made for.
+    void drawWithin(juce::Graphics &, juce::Rectangle<float> area) const;
+
+    /// The artwork rasterised at its own size, on first ask.
     juce::Image const &image() const;
 
-    /// \brief A copy of the drawable, or null for a bitmap.
+    /// \brief A copy of the drawable, or null if this artwork is invalid.
     ///
     /// \note For juce::PopupMenu, whose icon overloads take either a
     /// juce::Image or ownership of a juce::Drawable. Handing it the latter is
@@ -130,64 +140,7 @@ class Artwork
 /// \brief x( Name, fileNumber )
 // clang-format off
 #define LE_SW_RESOURCE_BITMAP_LIST(x)                       \
-    /* Editor */                                            \
-    x(EditorBackground,        1)                           \
-    x(AddModule,               6)                           \
-    /* \note 8 and 10 are the *lit* variants and 9 and 11 the dark ones, which  */\
-    /* is the other way round from how these four were named. The buttons       */\
-    /* passed them to BitmapButton in name order, so both lit up while their    */\
-    /* panel was shut and went dark when it opened -- the Settings button       */\
-    /* looked selected until you selected it. \see issue #73.                   */\
-    /*   Renamed rather than swapped at the call site: the call sites read      */\
-    /* correctly and always did, and a name that lies is worse where there are  */\
-    /* two of them. (16.08.2026.) (SW port)                                     */\
-    x(PresetOn,                8)                           \
-    x(PresetOff,               9)                           \
-    x(SettingsOn,             10)                           \
-    x(SettingsOff,            11)                           \
-                                                            \
-    /* Module panel */                                      \
-    x(ModuleOn,                4)                           \
-    x(ModuleMuted,             5)                           \
-    x(TriggerBtnOff,          13)                           \
-    x(TriggerBtnOn,           14)                           \
-    x(Eject,                  16)                           \
-    x(ModuleBg,               55)                           \
-    x(ModuleBgSelected,       56)                           \
-    x(ModuleKnobSelected,     58)                           \
-    x(ModuleCombo,            59)                           \
-    x(ModuleComboOn,          60)                           \
-                                                            \
-    /* Settings panel */                                    \
-    x(SettingsEngineBg,       17)                           \
-    x(SettingsIntrfcBg,       17) /* ...same as engine... */\
-    /* ...and so is About's, as of 15.08.2026. It had one */\
-    /* of its own -- 20, the whole page baked flat: logos, */\
-    /* credits and a gap for the version string. So the   */\
-    /* one thing on it nobody could correct was the text. */\
-    x(SettingsAboutBg,        17) /* \see gui/about.cpp   */\
-    x(SettingsEngineOff,      21)                           \
-    x(SettingsEngineOn,       22)                           \
-    x(SettingsGUIOff,         23)                           \
-    x(SettingsGUIOn,          24)                           \
-    x(SettingsAboutOff,       27)                           \
-    x(SettingsAboutOn,        28)                           \
-    x(SettingsCombo,          61)                           \
-    x(SettingsComboOn,        62)                           \
-                                                            \
-    /* Preset browser */                                    \
-    x(PresetBackground,        7)                           \
-    x(PresetSaveUp,           30)                           \
-    x(PresetSaveDown,         31)                           \
-    x(PresetDeleteUp,         32)                           \
-    x(PresetDeleteDown,       33)                           \
-    x(PresetSaveAsUp,         34)                           \
-    x(PresetSaveAsDown,       35)                           \
-                                                            \
     /* LFO */                                               \
-    x(LFOSliderThumb,         40)                           \
-    x(LEDOff,                 41)                           \
-    x(LEDOn,                  42)                           \
     x(LFOSine,                43)                           \
     x(LFOTriangle,            44)                           \
     x(LFOSawtooth,            45)                           \
@@ -198,8 +151,7 @@ class Artwork
     x(LFORandomSlide,         50)                           \
     x(LFORandomWhacko,        51)                           \
     x(LFODirac,               52)                           \
-    x(LFOdIRAC,               53)                           \
-    x(ChangeWaveform,         57)
+    x(LFOdIRAC,               53)
 // clang-format on
 
 enum ResourceBitmaps
@@ -220,11 +172,43 @@ unsigned int constexpr numberOfResourceBitmaps = 62;
 /// they outlived the JUCE they were allocated under. This is one array, and it
 /// can be emptied.
 ///
-/// \note The numbering has holes: 2, 3, 12, 15, 18, 20, 54 and 63 to 68 do not
-/// exist, and 19, 25, 26, 29 and 36 to 39 exist but no widget names them. A hole
-/// yields an invalid image rather than an assertion, so that iterating the range
-/// is legal; the check that every *named* bitmap resolves is a test
-/// (skinTests.cpp), which is a better place for it than every call.
+/// \note The numbering has holes, and most of it is one now: what is left is
+/// 1 and 43 to 53. A hole yields an invalid
+/// image rather than an assertion, so that iterating the range is legal; the
+/// check that every *named* file resolves is a test (skinTests.cpp), which is a
+/// better place for it than every call.
+///
+/// \note Fourteen went on 18.08.2026 and they were all the same drawing: the
+/// Presets and Settings buttons (8 to 11), the settings tabs (21 to 24, 27, 28)
+/// and the browser\'s Save, Save as and Delete (30 to 35). A rounded pill with a
+/// ramp in it and a caption baked on, at four widths. \see buttonPainter.hpp.
+///
+/// \note And eight more the same day, every one of them an outline: a module
+/// strip's frame (55, 56), the four combo-box backgrounds (59 to 62), and the
+/// two overlay panels (7, 17). \see framePainter.hpp and panelPainter.hpp.
+///
+/// \note And 58 with them, the ring that says a round control has the focus,
+/// and 13 and 14, which were a trigger button's two states -- one radial
+/// gradient each, sharing every stop with the other from the cap outward, and
+/// most of them with a module knob. \see painters/knobPainter.hpp.
+///
+/// \note And four capsules on the 18th as well -- an LFO's switch and a module
+/// strip's bypass, lit and dark (41, 42, 4, 5). One drawing at two sizes.
+/// \see painters/capsulePainter.hpp.
+///
+/// \note And the last three shapes with them: the tongue that ejects an effect
+/// (16) and the two arrows (6, 57). \see painters/ejectPainter.hpp and
+/// painters/arrowPainter.hpp.
+///
+/// \note And the bead an LFO slider is dragged by (40), which was the last
+/// shape. \see painters/sliderThumbPainter.hpp.
+///
+/// \note And 1 with it, which was the editor's whole chassis and 45 % of what
+/// was left: 52 paths, six gradients and six pieces of copy nothing could
+/// change. \see painters/backgroundPainter.hpp.
+///
+///   What is left is the eleven LFO waveform icons, which are drawings rather
+/// than shapes, and the two typefaces.
 ///
 /// \note Six of those holes are the knob film strips and what went with them:
 /// the module knob's four (3, 12, 63, 64) plus its focus ring (65) and LFO disc
@@ -237,11 +221,11 @@ unsigned int constexpr numberOfResourceBitmaps = 62;
 /// opened a PDF no installer has written since 2016. \see gui/about.cpp.
 juce::Image const &resourceBitmap(unsigned int number);
 
-/// \brief The same artwork, in the form that can still be a vector.
+/// \brief The artwork itself, which is what reaches the screen as a vector.
 ///
-/// \note Prefer this to resourceBitmap() in new code and when touching old:
-/// it is what lets a converted file reach the screen as one. The reference
-/// stays valid until releaseCachedResources(), same as resourceBitmap()'s.
+/// \note Prefer this to resourceBitmap() everywhere: asking for the bitmap
+/// rasterises at 1x and throws the resolution away. The reference stays valid
+/// until releaseCachedResources(), same as resourceBitmap()'s.
 Artwork const &resourceArtwork(unsigned int number);
 
 template <unsigned int bitmapID> Artwork const &resourceArtwork()
@@ -251,21 +235,26 @@ template <unsigned int bitmapID> Artwork const &resourceArtwork()
 
 bool hasResourceBitmap(unsigned int number);
 
-/// \brief Whether this number is served by a vector file rather than by its
-/// bitmap.
+/// \brief Whether this number resolved to a drawable.
 ///
-/// \note The skin is being redrawn as SVG a few files at a time and both forms
-/// are embedded, so which one a number resolves to is otherwise invisible from
-/// out here -- a converted button and its bitmap are the same size and, at 1x,
-/// very nearly the same pixels. Without this, a glob that quietly stopped
-/// picking up assets/skin/*.svg would leave every test passing against the
-/// artwork it was supposed to have replaced.
+/// \note Which is now the same question as "is it there at all", and the case
+/// in skinTests.cpp that walks the numbering with it is what would notice a
+/// glob that quietly stopped picking up assets/skin/*.svg -- at which point
+/// every widget in the editor is a blank rectangle and nothing else says so.
 bool resourceIsVector(unsigned int number);
 
 template <unsigned int bitmapID> juce::Image const &resourceBitmap()
 {
     return resourceBitmap(bitmapID);
 }
+
+/// \brief The SpectrumWorx mark, which the editor draws down its left edge.
+///
+/// \note assets/LOGO.svg, embedded in place rather than copied into skin/ under
+/// a number. It is also what scripts/make_icons.sh cuts the packaged icons from,
+/// and a mark that is two files is a mark that is eventually two marks.
+/// \see painters/backgroundPainter.hpp.
+Artwork const &logoArtwork();
 
 /// Bitstream Vera, the skin's font, loaded straight from the embedded bytes.
 ///

@@ -127,9 +127,9 @@ TEST_CASE("An LFO driven module knob shows no value at all", "[gui][knob]")
 
 TEST_CASE("Both knobs sweep through the same arc", "[gui][knob]")
 {
-    //   Not a measurement, a statement: KnobStyle exists so the two cannot drift
-    // apart, and both film strips were fitted to this arc independently.
-    STATIC_CHECK(GUI::KnobStyle::angleFor(0.0f) == -GUI::KnobStyle::halfSweepDegrees);
-    STATIC_CHECK(GUI::KnobStyle::angleFor(0.5f) == 0.0f);
-    STATIC_CHECK(GUI::KnobStyle::angleFor(1.0f) == GUI::KnobStyle::halfSweepDegrees);
+    //   Not a measurement, a statement: KnobPainter holds the arc so the two
+    // cannot drift apart, and both film strips were fitted to it independently.
+    STATIC_CHECK(GUI::KnobPainter::angleFor(0.0f) == -GUI::KnobPainter::halfSweepDegrees);
+    STATIC_CHECK(GUI::KnobPainter::angleFor(0.5f) == 0.0f);
+    STATIC_CHECK(GUI::KnobPainter::angleFor(1.0f) == GUI::KnobPainter::halfSweepDegrees);
 }
