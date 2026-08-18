@@ -27,7 +27,6 @@
 #include "le/parameters/lfo.hpp"
 #include "le/parameters/printer.hpp"
 #include "le/parameters/uiElements.hpp"
-#include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/spectrumworx/presetStorage.hpp"
 #include "le/spectrumworx/presets.hpp"
 #include "le/utility/countof.hpp"
