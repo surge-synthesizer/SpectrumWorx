@@ -33,6 +33,7 @@
 //------------------------------------------------------------------------------
 #include "page.hpp"
 
+#include "gui/colourMap.hpp"
 #include "gui/preferences.hpp"
 #include "gui/theme.hpp"
 #include "io/jucePath.hpp"
@@ -328,6 +329,12 @@ int renderPage(juce::String const &pageName, juce::File const &output)
 /// GUI::Preferences::zoomPercentages.
 ///                                           (16.08.2026.) (SW port)
 ///
+/// \note `SW_SHOW_UI_PALETTE` likewise, by ColourMap::nameOf() -- so
+/// `SW_SHOW_UI_PALETTE=Reds` renders any page in that palette. Both the
+/// preference and the map are set: the map because a page that builds no editor
+/// has no SkinLifetime to read the preference, and the preference so that the
+/// settings page shows the palette it is being drawn in.
+///
 ////////////////////////////////////////////////////////////////////////////////
 
 void usePreferencesOfNobodyInParticular(juce::File const &output)
@@ -345,6 +352,26 @@ void usePreferencesOfNobodyInParticular(juce::File const &output)
         else
             std::fprintf(stderr, "sw-show-ui: SW_SHOW_UI_ZOOM=%s is not an offered zoom.\n",
                          requested);
+    }
+
+    if (auto const *const requested = std::getenv("SW_SHOW_UI_PALETTE"))
+    {
+        using ColourMap = LE::SW::GUI::ColourMap;
+        for (unsigned int index(0); index < ColourMap::numberOfPalettes; ++index)
+        {
+            auto const palette(static_cast<ColourMap::Palette>(index));
+            if (std::strcmp(requested, ColourMap::nameOf(palette)) != 0)
+                continue;
+
+            LE::SW::GUI::preferences().setPalette(palette);
+            ColourMap::setPalette(palette);
+            return;
+        }
+        std::fprintf(stderr,
+                     "sw-show-ui: SW_SHOW_UI_PALETTE=%s is not a palette. There are:", requested);
+        for (unsigned int index(0); index < ColourMap::numberOfPalettes; ++index)
+            std::fprintf(stderr, " %s", ColourMap::nameOf(static_cast<ColourMap::Palette>(index)));
+        std::fputs("\n", stderr);
     }
 }
 

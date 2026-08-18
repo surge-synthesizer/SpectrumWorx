@@ -68,6 +68,11 @@ SkinLifetime::SkinLifetime()
 #if defined(_WIN32)
         juce::Process::setCurrentModuleInstanceHandle(&__ImageBase);
 #endif // _WIN32
+        /// \note Before the Theme, which takes its colours from the map in its
+        /// constructor. \see Theme::reloadColours(), which is what a *later*
+        /// change goes through.
+        ColourMap::setPalette(preferences().palette());
+
         Theme::createSingleton();
         juce::LookAndFeel::setDefaultLookAndFeel(&Theme::singleton());
     }
@@ -773,7 +778,7 @@ void ComboBox::paint(juce::Graphics &graphics)
         graphics,
         juce::Rectangle<float>(0, 0, static_cast<float>(getWidth()),
                                static_cast<float>(boxHeight_)),
-        frame_, ColourMap::getColour(hasDirectFocus() ? ColourMap::FocusHalo : ColourMap::Blue),
+        frame_, ColourMap::getColour(hasDirectFocus() ? ColourMap::FocusHalo : ColourMap::Accent),
         ColourMap::getColour(ColourMap::ComboBackground), true /*halo*/);
 
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
@@ -890,7 +895,7 @@ void withPointerTint(juce::Button const &button, juce::Graphics &graphics,
 } // anonymous namespace
 
 ArrowButton::ArrowButton(juce::Component &parent, int const width, int const height,
-                         bool const fadeFromBase, juce::Colour const tintWhenOver)
+                         bool const fadeFromBase, ColourMap::Name const tintWhenOver)
     : fadeFromBase_(fadeFromBase), tintWhenOver_(tintWhenOver)
 {
     setWantsKeyboardFocus(false);
@@ -907,7 +912,7 @@ void ArrowButton::paintButton(juce::Graphics &graphics, bool const isMouseOverBu
 {
     auto const bounds(getLocalBounds().toFloat());
     ArrowPainter::paint(graphics, bounds, fadeFromBase_);
-    withPointerTint(*this, graphics, isMouseOverButton, tintWhenOver_,
+    withPointerTint(*this, graphics, isMouseOverButton, ColourMap::getColour(tintWhenOver_),
                     [&](juce::Colour const tint) { ArrowPainter::tint(graphics, bounds, tint); });
 }
 
@@ -983,7 +988,7 @@ void TextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton, bo
     juce::Font font(Theme::singleton().labelFont());
     font.setHeight(static_cast<float>(height));
 
-    g.setColour(ColourMap::getColour(ColourMap::Blue).withAlpha(alpha));
+    g.setColour(ColourMap::getColour(ColourMap::Accent).withAlpha(alpha));
     g.setFont(font);
     g.drawSingleLineText(getName(), 0, height);
 }

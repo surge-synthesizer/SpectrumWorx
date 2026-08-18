@@ -80,9 +80,9 @@ class ThemePage final : public juce::Component
         graphics.drawText("Theme -- LookAndFeel_V2", 20, 16, 400, 22,
                           juce::Justification::centredLeft);
 
-        graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Blue));
+        graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Accent));
         graphics.setFont(theme.headingFont());
-        graphics.drawText("headingFont, ColourMap::Blue", 20, 46, 400, 20,
+        graphics.drawText("headingFont, ColourMap::Accent", 20, 46, 400, 20,
                           juce::Justification::centredLeft);
 
         graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Text));

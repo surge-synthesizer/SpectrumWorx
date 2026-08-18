@@ -58,10 +58,28 @@ void paintSliderThumb(juce::Graphics &graphics, float const position,
 ///                                       (16.08.2026.)
 Theme::Theme()
     : headingFont_(juce::FontOptions(regularTypeface()).withHeight(14.0f)),
-      labelFont_(juce::FontOptions(regularTypeface()).withHeight(12.0f))
+      labelFont_(juce::FontOptions(regularTypeface()).withHeight(12.0f)),
+      palette_(ColourMap::generation())
 {
     setDefaultSansSerifTypeface(regularTypeface());
+    takeColours();
+}
 
+void Theme::reloadColours()
+{
+    if (palette_ == ColourMap::generation())
+        return;
+
+    palette_ = ColourMap::generation();
+    takeColours();
+
+    /// \note And the folder icon, which is not a colour but has two of them
+    /// baked into it. Rebuilt on the next ask. \see getDefaultFolderImage().
+    folderIcon_.reset();
+}
+
+void Theme::takeColours()
+{
     /// \note Every colour here comes out of ColourMap, and the ones that are
     /// not there are transparent -- an absence rather than a choice. \see
     /// colourMap.hpp.
@@ -75,7 +93,7 @@ Theme::Theme()
               colour(ColourMap::MenuBackground).withAlpha(0.8f));
 
     setColour(juce::TextButton::buttonColourId, colour(ColourMap::Ground));
-    setColour(juce::TextButton::buttonOnColourId, colour(ColourMap::Blue));
+    setColour(juce::TextButton::buttonOnColourId, colour(ColourMap::Accent));
     setColour(juce::TextButton::textColourOnId, colour(ColourMap::Text));
     setColour(juce::TextButton::textColourOffId, colour(ColourMap::Text));
 
@@ -93,10 +111,10 @@ Theme::Theme()
     setColour(juce::TextEditor::backgroundColourId, colour(ColourMap::FieldBackground));
     setColour(juce::TextEditor::focusedOutlineColourId, colour(ColourMap::Transparent));
     setColour(juce::TextEditor::outlineColourId, colour(ColourMap::Transparent));
-    setColour(juce::TextEditor::highlightColourId, colour(ColourMap::Blue));
+    setColour(juce::TextEditor::highlightColourId, colour(ColourMap::Accent));
     setColour(juce::TextEditor::highlightedTextColourId, colour(ColourMap::Text));
     setColour(juce::TextEditor::textColourId, colour(ColourMap::Text));
-    setColour(juce::CaretComponent::caretColourId, colour(ColourMap::Blue));
+    setColour(juce::CaretComponent::caretColourId, colour(ColourMap::Accent));
 
     setColour(juce::ListBox::backgroundColourId, colour(ColourMap::ListBackground));
     setColour(juce::ListBox::outlineColourId, colour(ColourMap::ListOutline));

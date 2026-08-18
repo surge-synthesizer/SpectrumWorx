@@ -23,7 +23,7 @@ void CapsulePainter::paint(juce::Graphics &graphics, juce::Rectangle<float> cons
     auto const radius(style.height / 2);
 
     auto const white(ColourMap::getColour(ColourMap::FocusHalo));
-    auto const blue(ColourMap::getColour(ColourMap::Blue));
+    auto const blue(ColourMap::getColour(ColourMap::Accent));
 
     ////////////////////////////////////////////////////////////////////////////
     ///

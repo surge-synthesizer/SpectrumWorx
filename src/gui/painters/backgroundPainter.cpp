@@ -58,7 +58,7 @@ void paintRule(juce::Graphics &graphics, juce::Rectangle<float> const shape, flo
 juce::ColourGradient fillOf(Ramp const &ramp)
 {
     auto const dark(ColourMap::getColour(ramp.darkening));
-    auto const lit(dark.interpolatedWith(ColourMap::getColour(ColourMap::Blue), ramp.lift));
+    auto const lit(dark.interpolatedWith(ColourMap::getColour(ColourMap::Accent), ramp.lift));
 
     juce::ColourGradient gradient(dark, ramp.fromX, ramp.fromY, lit, ramp.toX, ramp.toY, false);
     gradient.addColour(ramp.flatStop, dark);
@@ -232,7 +232,7 @@ void BackgroundPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> c
     paintPanel(graphics, centreColumn, centreColumnRamp);
 
     paintBox(graphics, moduleNameBox, ColourMap::EditorWell, ColourMap::EditorRule);
-    paintBox(graphics, activeControlBox, ColourMap::EditorPanel, ColourMap::Blue);
+    paintBox(graphics, activeControlBox, ColourMap::EditorPanel, ColourMap::Accent);
     paintBox(graphics, controlValueBox, ColourMap::EditorWell, ColourMap::EditorRule);
 
     {
@@ -260,7 +260,7 @@ void BackgroundPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> c
     {
         paintWell(graphics, knob.x, knob.y, knobDiameter);
         paintCentredLabel(graphics, knob.label, boldFont(knobLabelHeight),
-                          knob.x + knobDiameter / 2, knob.y - knobLabelRise, ColourMap::Blue);
+                          knob.x + knobDiameter / 2, knob.y - knobLabelRise, ColourMap::Accent);
     }
 
     paintLabel(graphics, lfoLabel, boldFont(lfoLabelHeight), lfoLabelX, lfoLabelY, ColourMap::Text);

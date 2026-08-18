@@ -46,6 +46,7 @@ enum PreferenceKey
     lfoUpdateBehaviourKey,
     hideCursorOnKnobDragKey,
     zoomPercentKey,
+    paletteKey,
     numberOfPreferenceKeys
 };
 
@@ -64,6 +65,8 @@ std::string preferenceKeyName(PreferenceKey const key)
         return "hideCursorOnKnobDrag";
     case zoomPercentKey:
         return "zoomPercent";
+    case paletteKey:
+        return "palette";
     case numberOfPreferenceKeys:
         break;
     }
@@ -115,6 +118,20 @@ Enumeration valueNamed(std::string const &name, std::array<char const *, count> 
     return valueIfUnrecognised;
 }
 
+/// \note The same, over ColourMap::nameOf() rather than over a table here: the
+/// palettes are the map's own enumeration and their spellings belong with it.
+ColourMap::Palette paletteNamed(std::string const &name,
+                                ColourMap::Palette const valueIfUnrecognised)
+{
+    for (unsigned int index(0); index < ColourMap::numberOfPalettes; ++index)
+    {
+        auto const palette(static_cast<ColourMap::Palette>(index));
+        if (name == ColourMap::nameOf(palette))
+            return palette;
+    }
+    return valueIfUnrecognised;
+}
+
 /// \note An optional rather than a function-local static, because
 /// setPreferencesFolder() has to be able to replace it. `[main-thread]`, which is
 /// what makes that safe: everything that reads these runs under the host's
@@ -161,6 +178,9 @@ Preferences::Preferences(fs::path const &folder) : storage_(std::make_unique<Sto
                        lfoUpdateBehaviourKey, nameOf(lfoUpdateBehaviour_, lfoUpdateBehaviourNames)),
                    lfoUpdateBehaviourNames, lfoUpdateBehaviour_);
 
+    palette_ = paletteNamed(provider.getUserDefaultValue(paletteKey, ColourMap::nameOf(palette_)),
+                            palette_);
+
     hideCursorOnKnobDrag_ =
         provider.getUserDefaultValue(hideCursorOnKnobDragKey, hideCursorOnKnobDrag_) != 0;
 
@@ -194,6 +214,12 @@ void Preferences::setLFOUpdateBehaviour(LFOUpdateBehaviour const value)
     lfoUpdateBehaviour_ = value;
     storage_->provider.updateUserDefaultValue(lfoUpdateBehaviourKey,
                                               nameOf(value, lfoUpdateBehaviourNames));
+}
+
+void Preferences::setPalette(ColourMap::Palette const value)
+{
+    palette_ = value;
+    storage_->provider.updateUserDefaultValue(paletteKey, ColourMap::nameOf(value));
 }
 
 void Preferences::setHideCursorOnKnobDrag(bool const value)

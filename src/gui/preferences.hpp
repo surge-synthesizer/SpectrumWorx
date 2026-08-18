@@ -3,8 +3,8 @@
 /// \file preferences.hpp
 /// ---------------------
 ///
-///   The three answers the settings panel's Interface page asks for, and the
-/// file they survive in.
+///   The answers the settings panel's Interface page asks for, and the file
+/// they survive in.
 ///
 /// \note These were `Theme::Settings`, three members of a process-wide static
 /// that nothing ever read off disk or wrote back to it: every session started at
@@ -28,6 +28,9 @@
 #ifndef preferences_hpp__6F0B2C41_9D77_4A5E_8C3B_1E4A0D96B27F
 #define preferences_hpp__6F0B2C41_9D77_4A5E_8C3B_1E4A0D96B27F
 //------------------------------------------------------------------------------
+/// `ColourMap::Palette`, which is one of the answers.
+#include "colourMap.hpp"
+
 /// `fs`, for the folder the file lives in.
 #include "filesystem/import.h"
 
@@ -116,6 +119,7 @@ class Preferences
         return moduleUIMouseOverReaction_;
     }
     LFOUpdateBehaviour lfoUpdateBehaviour() const { return lfoUpdateBehaviour_; }
+    ColourMap::Palette palette() const { return palette_; }
     bool hideCursorOnKnobDrag() const { return hideCursorOnKnobDrag_; }
     /// Always one of zoomPercentages.
     unsigned int zoomPercent() const { return zoomPercent_; }
@@ -123,6 +127,10 @@ class Preferences
     /// Each of these writes the file. `[main-thread]`
     void setModuleUIMouseOverReaction(ModuleUIMouseOverReaction);
     void setLFOUpdateBehaviour(LFOUpdateBehaviour);
+    /// \note Stores it. Painting in it is ColourMap::setPalette()'s half, and
+    /// the two are done together -- \see SpectrumWorxEditor::setPalette(),
+    /// which is the only place a user changes this.
+    void setPalette(ColourMap::Palette);
     void setHideCursorOnKnobDrag(bool);
     /// \note A percentage this build does not offer is ignored, for the same
     /// reason an unrecognised enumeration name is: the file is the user's to
@@ -141,6 +149,7 @@ class Preferences
 
     ModuleUIMouseOverReaction moduleUIMouseOverReaction_{Never};
     LFOUpdateBehaviour lfoUpdateBehaviour_{Always};
+    ColourMap::Palette palette_{ColourMap::Classic};
     bool hideCursorOnKnobDrag_{true};
     unsigned int zoomPercent_{defaultZoomPercent};
 }; // class Preferences

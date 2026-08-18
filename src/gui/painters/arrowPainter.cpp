@@ -34,7 +34,7 @@ void ArrowPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const 
                          bool const fadeFromBase)
 {
     auto const base(bounds.getX() + ArrowStyle::baseInset * bounds.getWidth());
-    auto const blue(ColourMap::getColour(ColourMap::Blue));
+    auto const blue(ColourMap::getColour(ColourMap::Accent));
 
     if (fadeFromBase)
         graphics.setGradientFill(juce::ColourGradient(blue.withAlpha(0.0f), base, bounds.getY(),

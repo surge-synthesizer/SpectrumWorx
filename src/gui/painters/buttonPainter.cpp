@@ -103,7 +103,7 @@ void ButtonPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const
         paintGlow(graphics, pill, radius);
 
     if ((shape == Tab) && selected)
-        graphics.setGradientFill(face(pill, ColourMap::getColour(ColourMap::Blue),
+        graphics.setGradientFill(face(pill, ColourMap::getColour(ColourMap::Accent),
                                       ColourMap::getColour(ColourMap::TabFaceBottom),
                                       selectedTabEase, selectedTabStops));
     else if (shape == Tab)
@@ -117,7 +117,7 @@ void ButtonPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const
 
     if ((shape == Rectangular) && selected)
     {
-        graphics.setColour(ColourMap::getColour(ColourMap::Blue));
+        graphics.setColour(ColourMap::getColour(ColourMap::Accent));
         graphics.drawRoundedRectangle(pill, radius, rimThickness);
     }
 

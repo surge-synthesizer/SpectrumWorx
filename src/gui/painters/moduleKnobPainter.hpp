@@ -54,7 +54,7 @@ namespace LE::SW::GUI
 namespace ModuleKnobStyle
 {
 /// \note The five colours stood here and are ColourMap's now -- three of its
-/// ModuleKnob* entries, plus Blue for the wedge and FocusHalo for the ring. The
+/// ModuleKnob* entries, plus Accent for the wedge and FocusHalo for the ring. The
 /// wedge's was 0xFF13B7EA against Theme's 0xFF13B5EA, which is the sort of
 /// two-parts-in-255 drift a central palette exists to stop.
 ///                                       (18.08.2026.)

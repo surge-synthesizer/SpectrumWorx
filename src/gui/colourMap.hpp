@@ -20,8 +20,16 @@
 /// would.
 ///
 /// \note A switch rather than a table so that the answer can grow a condition
-/// -- a second palette, a host-supplied accent -- without every call site
-/// learning about it. Nothing needs that yet.
+/// without every call site learning about it. Five palettes need that now, and
+/// not one of the two hundred call sites changed to get them.
+///
+///   Only Classic is written out. It is traced from artwork and every tint in
+/// it leans on the accent's hue, so Reds and Greens are that hue turned -- and
+/// a colour the artwork left neutral has no hue to turn, which is what keeps
+/// the greys grey without a list of exceptions. Grays is the same trick with
+/// the colour taken out rather than moved. SST Dark is the one that is not a
+/// recolour: it inverts the chassis, so it names what it changes and turns the
+/// rest.
 ///
 /// \note Sits in the same layer as theme.hpp and below everything else in
 /// src/gui, and depends on juce_graphics and nothing of ours.
@@ -35,6 +43,8 @@
 #define colourMap_hpp__DD5E31D8_98D4_41FF_A352_7AA31EFA1DA1
 //------------------------------------------------------------------------------
 #include <juce_graphics/juce_graphics.h>
+
+#include <cstdint>
 
 namespace LE::SW::GUI
 {
@@ -58,12 +68,12 @@ class ColourMap
         ////////////////////////////////////////////////////////////////////////
         /// \name The skin's own three
         ///
-        ///   Blue is the accent and it means one thing throughout: *this is the
+        ///   The accent means one thing throughout: *this is the
         /// value*, *this one is selected*, *this is on*. Everything that is not
         /// the accent is text on a dark ground, at one of three weights.
         ////////////////////////////////////////////////////////////////////////
         ///@{
-        Blue,
+        Accent,
         Text,       ///< what a label or a value is written in
         TextDimmed, ///< present, but not what is being looked at
         TextFaint,  ///< there because leaving it out would be a lie
@@ -91,7 +101,7 @@ class ColourMap
         /// \name A module's knob
         ///
         /// \note Its wedge is not here: the wedge is the accent, so it asks for
-        /// Blue. \see ModuleKnobStyle in modules/moduleUI.hpp.
+        /// Accent. \see ModuleKnobStyle in modules/moduleUI.hpp.
         ////////////////////////////////////////////////////////////////////////
         ///@{
         ModuleKnobDomeCentre, ///< the dome where the cap ends
@@ -109,7 +119,7 @@ class ColourMap
         /// and its caption is dark ink on that. A tab is the same shape in
         /// slightly softer greys, or in the accent when it is the one showing.
         ///
-        /// \note The selected tab's ramp runs from Blue to TabFaceBottom, so it
+        /// \note The selected tab's ramp runs from Accent to TabFaceBottom, so it
         /// has no top colour of its own. \see buttonPainter.hpp.
         ////////////////////////////////////////////////////////////////////////
         ///@{
@@ -132,7 +142,7 @@ class ColourMap
         ////////////////////////////////////////////////////////////////////
         /// \name The capsule that says something is running
         ///
-        /// \note Lit, it is Blue with a halo going from white to blue as it
+        /// \note Lit, it is the accent with a halo going from white to it as it
         /// spreads. Dark, it is a ramp across its own width -- almost black at
         /// the left and a cold steel at the right, which is the whole of the
         /// sheen on a shape five pixels tall. \see capsulePainter.hpp.
@@ -163,7 +173,7 @@ class ColourMap
         /// \name The editor's own chassis
         ///
         /// \note Two darks and a rule. Every panel in the editor is one of the
-        /// darks eased into Blue by an amount of its own, which is the whole of
+        /// darks eased into Accent by an amount of its own, which is the whole of
         /// what its six gradients were. \see backgroundPainter.hpp.
         ////////////////////////////////////////////////////////////////////////
         ///@{
@@ -183,7 +193,7 @@ class ColourMap
 
         /// \brief Inside a module's frame, behind its controls.
         ///
-        /// \note The rim around it is Blue and the halo on the focused one is
+        /// \note The rim around it is Accent and the halo on the focused one is
         /// FocusHalo, so this is the whole of what a strip adds to the palette.
         /// \see ModuleStripStyle in modules/moduleUI.hpp.
         ModuleBackground,
@@ -244,7 +254,70 @@ class ColourMap
         numberOfColours
     }; // enum Name
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Which set of answers getColour() gives.
+    ///
+    /// \note Streamed by name into the preferences file, like every other
+    /// enumeration the user picks from, so the order here is free. \see
+    /// nameOf() and GUI::Preferences::palette().
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    enum Palette
+    {
+        Classic, ///< the skin as it was drawn, and the only one written out
+        SSTDark, ///< Shortcircuit XT's wireframe-dark, as near as this skin goes
+        Grays,
+        Reds,
+        Greens,
+        numberOfPalettes
+    }; // enum Palette
+
     static juce::Colour getColour(Name);
+
+    static Palette palette();
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Repaints nothing. `[main-thread]`
+    ///
+    ///   The palette is process-wide, so a second plugin instance in the same
+    /// host has just had its colours changed by a settings page it does not
+    /// know about. Telling it is generation()'s job.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    static void setPalette(Palette);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Bumped by every setPalette() that changes anything.
+    ///
+    ///   What a live editor compares against to find out that the palette moved
+    /// under it. Only ever compared for inequality -- so the wrap at 2^32 is
+    /// not a case to think about -- and only ever from the message thread,
+    /// which is what makes a plain counter enough. \see
+    /// SpectrumWorxEditor::applyPaletteIfChanged().
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    static std::uint32_t generation();
+
+    /// \brief The enumerator's own spelling, for the preferences file and for
+    /// SW_SHOW_UI_PALETTE. What a user *sees* is the settings page's business.
+    static char const *nameOf(Palette);
+
+  private:
+    ////////////////////////////////////////////////////////////////////////////
+    /// \name The two palettes that name colours rather than derive them
+    ///
+    /// \note Members rather than file statics only so that the switches inside
+    /// them can say `Accent` instead of `ColourMap::Accent` fifty-six times.
+    ///@{
+    static juce::Colour classic(Name);
+    static juce::Colour sstDark(Name);
+    ///@}
 
   public:
     ColourMap() = delete; // a namespace with a nested enum, not an object

@@ -47,6 +47,24 @@ class PresetBrowser final : public PanelBackground,
   private: // JUCE Component overrides.
     void paint(juce::Graphics &) override;
 
+    /// \note Reached from SpectrumWorxEditor::applyPaletteIfChanged(), by way
+    /// of juce::Component::sendLookAndFeelChange(). \see takeColours().
+    void lookAndFeelChanged() override { takeColours(); }
+
+  private:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Tells the two text editors what to paint themselves in.
+    ///
+    /// \note Not a one-off in the constructor, because these are the one thing
+    /// in the browser that *holds* colours rather than asking for them each
+    /// paint: juce::TextEditor::setColour() overrides the LookAndFeel's answer
+    /// for good, so a palette change leaves them in the palette they were built
+    /// under until they are told again.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void takeColours();
+
   private: // JUCE ButtonListener overrides.
     void buttonClicked(juce::Button *) override;
 

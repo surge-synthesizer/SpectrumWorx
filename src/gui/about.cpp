@@ -263,7 +263,7 @@ void AboutPage::Link::paintButton(juce::Graphics &graphics, bool const isMouseOv
 {
     auto const alpha(isButtonDown ? 0.6f : (isMouseOverButton ? 1.0f : 0.8f));
 
-    graphics.setColour(ColourMap::getColour(ColourMap::Blue).withAlpha(alpha));
+    graphics.setColour(ColourMap::getColour(ColourMap::Accent).withAlpha(alpha));
     graphics.setFont(font());
     graphics.drawText(asText(flashing_ ? flashText_ : text_), getLocalBounds(),
                       juce::Justification::centredLeft);
@@ -401,7 +401,7 @@ void AboutPage::paint(juce::Graphics &graphics)
     }
 
     drawLine(graphics, asText(Content::originalAuthorsHeading), Layout::authorsHeadingY,
-             headingFont(), ColourMap::getColour(ColourMap::Blue), width);
+             headingFont(), ColourMap::getColour(ColourMap::Accent), width);
 
     {
         auto y(Layout::authorsY);

@@ -47,7 +47,7 @@ namespace LE::SW::GUI
 
 /// \brief Everything a button is drawn from that is not a colour.
 ///
-/// \see ColourMap for the colours -- Button*, Tab*, Blue and FocusHalo.
+/// \see ColourMap for the colours -- Button*, Tab*, Accent and FocusHalo.
 namespace ButtonStyle
 {
 ////////////////////////////////////////////////////////////////////////////////

@@ -77,7 +77,7 @@ struct Ramp
     float toX, toY;
     float flatStop; ///< how far down it the dark is held
     float ease;
-    float lift;                ///< 0 stays dark, 1 arrives at ColourMap::Blue
+    float lift;                ///< 0 stays dark, 1 arrives at ColourMap::Accent
     ColourMap::Name darkening; ///< which dark it starts from
 };
 

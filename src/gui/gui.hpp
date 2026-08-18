@@ -890,14 +890,17 @@ class ArrowButton : public WidgetBase<juce::Button>
 {
   public:
     ArrowButton(juce::Component &parent, int width, int height, bool fadeFromBase,
-                juce::Colour tintWhenOver);
+                ColourMap::Name tintWhenOver);
 
   private: // juce::Component overrides
     void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
 
   private:
     bool const fadeFromBase_;
-    juce::Colour const tintWhenOver_;
+    /// \note The name rather than the colour, so that the tint follows the
+    /// palette. A widget that holds a juce::Colour holds the palette that was
+    /// current when it was built. \see ColourMap::setPalette().
+    ColourMap::Name const tintWhenOver_;
 }; // class ArrowButton
 
 ////////////////////////////////////////////////////////////////////////////////

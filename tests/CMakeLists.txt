@@ -88,6 +88,7 @@ add_executable(sw-plugin-tests
         gui/moduleControlFocusTests.cpp
         gui/moduleDragTests.cpp
         gui/overlayPanelTests.cpp
+        gui/paletteTests.cpp
         gui/pathsTests.cpp
         gui/preferencesTests.cpp
         gui/sideChainSelectorTests.cpp

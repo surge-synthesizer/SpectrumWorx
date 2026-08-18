@@ -636,7 +636,7 @@ void ModuleUI::moveToSlot(std::uint8_t const slotIndex)
 void ModuleUI::paint(juce::Graphics &graphics)
 {
     paintModuleStrip(graphics, getLocalBounds().toFloat(), selected());
-    graphics.setColour(ColourMap::getColour(ColourMap::Blue));
+    graphics.setColour(ColourMap::getColour(ColourMap::Accent));
     graphics.drawHorizontalLine(nameRule, static_cast<float>(ModuleUI::border),
                                 Math::convert<float>(getWidth() - ModuleUI::border));
 

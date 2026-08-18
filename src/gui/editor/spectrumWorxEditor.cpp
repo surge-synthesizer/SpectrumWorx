@@ -1134,7 +1134,7 @@ struct EditorMainAreaText
 {
     juce::String const *pText;
     juce::Font const *pFont;
-    juce::Colour const colour;
+    ColourMap::Name const colour;
     unsigned int const verticalOffset;
     juce::Justification const justification;
     unsigned int const textLinesToUse;
@@ -1148,16 +1148,20 @@ struct EditorMainAreaText
 // but construct our own white juce::Colour here.
 //                                        (25.01.2011.) (Domagoj Saric)
 //
-/// \note ColourMap::getColour() keeps that property -- it is a call returning
-/// by value, so there is no other object to be initialised before this one.
+/// \note Which the name below settles for good: there is no colour here to be
+/// initialised in any order at all. It was a juce::Colour until the palettes
+/// arrived, and a colour taken at static-initialisation time is taken before a
+/// palette has been chosen -- so these four strings stayed the skin's original
+/// blue and white whatever the user had picked.
+///                                       (18.08.2026.)
 EditorMainAreaText mainAreaTexts[] = {
-    {0, 0, ColourMap::getColour(ColourMap::Blue), Constants::Layout::moduleNameVerticalOffset,
+    {0, 0, ColourMap::Accent, Constants::Layout::moduleNameVerticalOffset,
      juce::Justification::centred, 1}, // active module name
-    {0, 0, ColourMap::getColour(ColourMap::Text), Constants::Layout::controlNameVerticalOffset,
+    {0, 0, ColourMap::Text, Constants::Layout::controlNameVerticalOffset,
      juce::Justification::top | juce::Justification::horizontallyCentred, 2}, // control name
-    {0, 0, ColourMap::getColour(ColourMap::Text), Constants::Layout::controlValueVerticalOffset,
+    {0, 0, ColourMap::Text, Constants::Layout::controlValueVerticalOffset,
      juce::Justification::centred, 1}, // control value
-    {0, 0, ColourMap::getColour(ColourMap::Blue), Constants::Layout::sampleNameVerticalOffset,
+    {0, 0, ColourMap::Accent, Constants::Layout::sampleNameVerticalOffset,
      juce::Justification::centred, 1}, // sample name
 };
 
@@ -1165,7 +1169,7 @@ void drawMainAreaText(juce::Graphics &graphics, EditorMainAreaText const &text)
 {
     using namespace Constants::Layout;
 
-    graphics.setColour(text.colour);
+    graphics.setColour(ColourMap::getColour(text.colour));
     graphics.setFont(*text.pFont);
     graphics.drawFittedText(*text.pText, textBoxHorizontalOffset + textBoxMargin,
                             text.verticalOffset, textBoxWidth - 2 * textBoxMargin,
@@ -1345,7 +1349,7 @@ void SpectrumWorxEditor::paintBuildStamp(juce::Graphics &graphics) const
     /// \note The skin's own accent, at the smallest size its font stays legible
     /// at. This is a developer's readout on a user's window, so it should be
     /// readable when looked for and quiet when not.
-    graphics.setColour(ColourMap::getColour(ColourMap::Blue));
+    graphics.setColour(ColourMap::getColour(ColourMap::Accent));
     graphics.setFont(juce::Font(juce::FontOptions(regularTypeface()).withHeight(11.0f)));
 
     auto const text(bar.reduced(8, 0));
@@ -2376,6 +2380,8 @@ void SpectrumWorxEditor::parameterChangedElsewhere(ParameterID const parameterID
 
 void SpectrumWorxEditor::timerCallback()
 {
+    applyPaletteIfChanged();
+
     pumpModulatedValues();
 
     /// \note Compared as numbers rather than as the formatted line, so the common
@@ -2386,6 +2392,62 @@ void SpectrumWorxEditor::timerCallback()
         engineState_ = state;
         repaint(buildStampBar());
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::applyPaletteIfChanged()
+// -------------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Polled rather than pushed because the change may not be this editor's.
+/// The palette is process-wide, so a second instance in the same host has just
+/// had its colours swapped by a settings page it has never heard of and nothing
+/// has marked a pixel of it dirty. Every editor watching one counter is what
+/// makes "change it once, change it everywhere" true without a registry of live
+/// editors to keep correct.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::applyPaletteIfChanged()
+{
+    LE_ASSERT(isThisTheGUIThread());
+
+    auto const generation(ColourMap::generation());
+    if (generation == palette_)
+        return;
+    palette_ = generation;
+
+    /// \note Before the repaint, and idempotent: whichever editor gets here
+    /// first takes the colours and the rest find them taken.
+    Theme::singleton().reloadColours();
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note The wrapper rather than this, where there is one: ZoomedEditor
+    /// paints ColourMap::Ground behind the transform -- the half pixel rounding
+    /// leaves down the right edge -- and it is this editor's *parent*, so a
+    /// repaint from here would not reach it. \see setZoom(), which reaches for
+    /// it the same way.
+    ///
+    /// \note And sendLookAndFeelChange() rather than repaint(): it repaints
+    /// every descendant *and* tells each one its colours moved, which is what a
+    /// widget holding a LookAndFeel colour of its own needs to hear.
+    ////////////////////////////////////////////////////////////////////////////
+    auto *const pWrapper(findParentComponentOfClass<ZoomedEditor>());
+    juce::Component &root(pWrapper ? static_cast<juce::Component &>(*pWrapper) : *this);
+    root.sendLookAndFeelChange();
+}
+
+void SpectrumWorxEditor::setPalette(ColourMap::Palette const palette)
+{
+    preferences().setPalette(palette);
+    ColourMap::setPalette(palette);
+
+    /// \note Not applied here. This editor picks the change up on its next tick
+    /// through exactly the path a *second* instance does, so there is one way
+    /// a palette reaches the screen rather than two that have to agree.
+    /// \see applyPaletteIfChanged().
 }
 
 void SpectrumWorxEditor::pumpModulatedValues()
@@ -2461,7 +2523,7 @@ void SpectrumWorxEditor::updateModuleParameterAndNotifyHost(ModuleUI &moduleUI,
 
 SpectrumWorxEditor::ModuleMenuButton::ModuleMenuButton(SpectrumWorxEditor &parent)
     : ArrowButton(parent.mainArea(), ArrowStyle::addModuleWidth, ArrowStyle::addModuleHeight,
-                  true /*fades in from its base*/, ColourMap::getColour(ColourMap::Blue))
+                  true /*fades in from its base*/, ColourMap::Accent)
 {
 }
 
@@ -2549,7 +2611,7 @@ void SpectrumWorxEditor::DropIndicator::showInsert(std::uint8_t const gapIndex)
 /// through -- which is what says *which* strip is being pointed at.
 void SpectrumWorxEditor::DropIndicator::paint(juce::Graphics &graphics)
 {
-    auto const blue(ColourMap::getColour(ColourMap::Blue));
+    auto const blue(ColourMap::getColour(ColourMap::Accent));
 
     if (insert_)
     {
@@ -2617,7 +2679,7 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
       quarter_(*this, 62, 5, " N "), triplet_(*this, 62 + 18 * 1, 5, " T "),
       dotted_(*this, 62 + 18 * 2 - 2, 5, " D "),
       typeArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
-                 ColourMap::getColour(ColourMap::MouseOverGlow)),
+                 ColourMap::MouseOverGlow),
       pModuleControl_(nullptr)
 {
     for (auto const pComponent : componentsToDisableKeyboardGrabingFor)
@@ -3494,6 +3556,10 @@ void SpectrumWorxEditor::Settings::comboBoxValueChanged(ComboBox const &comboBox
     {
         editor.setZoom(value);
     }
+    else if (&comboBox == &settings.interfacePage_.paletteComboBox())
+    {
+        editor.setPalette(static_cast<ColourMap::Palette>(value));
+    }
     else if (&comboBox == &settings.interfacePage_.mouseOverComboBox())
     {
         preferences().setModuleUIMouseOverReaction(
@@ -3624,9 +3690,10 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     : PanelBackground(SettingsPage), zoom_(*this, xMargin, yMargin + 0 * yStep, "Zoom"),
-      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 1 * yStep, "Mouse Over Reaction"),
-      lfoUpdateBehaviour_(*this, xMargin, yMargin + 2 * yStep, "LFO Update Behaviour"),
-      hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 3 * yStep, "Hide cursor on knob drag")
+      palette_(*this, xMargin, yMargin + 1 * yStep, "Colour Scheme"),
+      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 2 * yStep, "Mouse Over Reaction"),
+      lfoUpdateBehaviour_(*this, xMargin, yMargin + 3 * yStep, "LFO Update Behaviour"),
+      hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 4 * yStep, "Hide cursor on knob drag")
 {
     Settings &parent(
         Utility::ParentFromMember<Settings, InterfacePage, &Settings::interfacePage_>()(*this));
@@ -3641,6 +3708,19 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
         zoom_.addItem(percent, text.data());
     }
     zoom_.setSelectedID(preferences().zoomPercent());
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note Spelled here rather than taken from ColourMap::nameOf(), which
+    /// answers with the enumerator: what goes in the preferences file has to be
+    /// greppable in the source and what goes in this list has to be readable,
+    /// and "SSTDark" cannot be both. Same split as every other box on this page.
+    ////////////////////////////////////////////////////////////////////////////
+    palette_.addItem(ColourMap::Classic, "Classic");
+    palette_.addItem(ColourMap::SSTDark, "SST Dark");
+    palette_.addItem(ColourMap::Grays, "Grays");
+    palette_.addItem(ColourMap::Reds, "Reds");
+    palette_.addItem(ColourMap::Greens, "Greens");
+    palette_.setSelectedIndex(preferences().palette());
 
     moduleUIMouseOverReaction_.addItem(Preferences::Never, "Never");
     moduleUIMouseOverReaction_.addItem(Preferences::WhenParentModuleSelected, "Module selected");

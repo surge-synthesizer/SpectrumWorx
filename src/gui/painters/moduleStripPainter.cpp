@@ -25,7 +25,7 @@ namespace LE::SW::GUI
 void paintModuleStrip(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
                       bool const selected)
 {
-    FramePainter::paint(graphics, bounds, moduleStripFrame, ColourMap::getColour(ColourMap::Blue),
+    FramePainter::paint(graphics, bounds, moduleStripFrame, ColourMap::getColour(ColourMap::Accent),
                         ColourMap::getColour(ColourMap::ModuleBackground), selected);
 }
 

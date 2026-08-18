@@ -134,11 +134,16 @@ template <typename Widget> std::vector<Widget *> descendantsOfType(juce::Compone
 /// engine page's three combo boxes -- which are TitledComboBoxes too -- are not
 /// in the tree while the Interface tab is up. The count is required rather than
 /// assumed, so that a layout change fails here instead of silently sending the
-/// rest of the case at the wrong widget.
+/// rest of the case at the wrong widget. Which is what it did: the colour scheme
+/// box arrived as a fourth and this said so.
+///                                       (18.08.2026.)
 GUI::TitledComboBox &comboBoxOffering(Editor &editor, std::size_t const choices)
 {
+    /// Zoom, colour scheme, mouse-over reaction and LFO update behaviour.
+    std::size_t constexpr onTheInterfacePage{4};
+
     auto const comboBoxes(descendantsOfType<GUI::TitledComboBox>(editor));
-    REQUIRE(comboBoxes.size() == 3);
+    REQUIRE(comboBoxes.size() == onTheInterfacePage);
 
     for (auto *const pComboBox : comboBoxes)
         if (pComboBox->numberOfItems() == choices)

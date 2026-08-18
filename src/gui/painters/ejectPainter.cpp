@@ -37,7 +37,7 @@ juce::Path tongue(juce::Rectangle<float> const bounds, float const inset)
 
 void EjectPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
 {
-    graphics.setColour(ColourMap::getColour(ColourMap::Blue));
+    graphics.setColour(ColourMap::getColour(ColourMap::Accent));
     graphics.fillPath(tongue(bounds, 0.0f));
 
     graphics.setColour(ColourMap::getColour(ColourMap::EjectFace));
@@ -52,7 +52,7 @@ void EjectPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const 
     cross.startNewSubPath(centre.translated(crossHalfWidth, -crossHalfHeight));
     cross.lineTo(centre.translated(-crossHalfWidth, crossHalfHeight));
 
-    graphics.setColour(ColourMap::getColour(ColourMap::Blue));
+    graphics.setColour(ColourMap::getColour(ColourMap::Accent));
     graphics.strokePath(cross, juce::PathStrokeType(crossThickness, juce::PathStrokeType::mitered,
                                                     juce::PathStrokeType::rounded));
 }

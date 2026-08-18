@@ -92,6 +92,24 @@ class Theme final : public juce::LookAndFeel_V2
     ~Theme() override;
 
   public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Takes the colours again, if the palette has moved since they were
+    /// last taken. `[main-thread]`
+    ///
+    ///   Every other colour in the editor is asked for while painting, so a
+    /// repaint is the whole of what a palette change needs. These are not:
+    /// the constructor copies four dozen of them into JUCE colour IDs and the
+    /// folder icon has two baked into a Drawable, so they go stale in place.
+    ///
+    /// \note Guarded by the generation rather than by a flag the caller sets,
+    /// because every open editor calls this on the tick it notices -- the first
+    /// does the work and the rest cost a comparison.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void reloadColours();
+
+  public:
     /// \brief The two sizes the skin writes in.
     ///
     /// \note These were blueFont() and whiteFont() until the palette moved to
@@ -102,6 +120,11 @@ class Theme final : public juce::LookAndFeel_V2
     ///                                       (18.08.2026.)
     juce::Font const &headingFont() const { return headingFont_; }
     juce::Font const &labelFont() const { return labelFont_; }
+
+  private:
+    /// \brief Everything the constructor and reloadColours() have in common,
+    /// which is all of it.
+    void takeColours();
 
   public: // juce::LookAndFeel_V2 overrides
     void drawLinearSliderBackground(juce::Graphics &, int x, int y, int width, int height,
@@ -168,6 +191,9 @@ class Theme final : public juce::LookAndFeel_V2
     juce::Font const labelFont_;
 
     std::unique_ptr<juce::Drawable> folderIcon_;
+
+    /// Which ColourMap::generation() the two above were taken from.
+    std::uint32_t palette_;
 }; // class Theme
 
 } // namespace LE::SW::GUI

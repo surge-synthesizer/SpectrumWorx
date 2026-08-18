@@ -52,7 +52,7 @@ PresetBrowser::PresetBrowser()
       save_(*this, "Save", 54, 22, false), saveAs_(*this, "Save as", 54, 22, false),
       delete_(*this, "Delete", 54, 22, false),
       browseArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
-                   ColourMap::getColour(ColourMap::MouseOverGlow)),
+                   ColourMap::MouseOverGlow),
       ignoreExternalSamples_(*this, 15, 58, "Ignore external audio"), ignoreSelectionChange_(false),
       addOneRow_(false), newPresetPending_(false), dirtyCommentPresetIndex_(-1)
 {
@@ -95,10 +95,6 @@ PresetBrowser::PresetBrowser()
     addChildComponent(&presetNameEditBox_);
     presetNameEditBox_.setAlwaysOnTop(true);
     presetNameEditBox_.setFont(Theme::singleton().labelFont());
-    presetNameEditBox_.setColour(juce::TextEditor::backgroundColourId,
-                                 ColourMap::getColour(ColourMap::Ground));
-    presetNameEditBox_.setColour(juce::TextEditor::focusedOutlineColourId,
-                                 ColourMap::getColour(ColourMap::Blue));
     presetNameEditBox_.addListener(this);
 
     listBox_.setOpaque(false);
@@ -112,12 +108,9 @@ PresetBrowser::PresetBrowser()
     comment().setMultiLine(true);
     comment().setReturnKeyStartsNewLine(true);
     comment().setPopupMenuEnabled(true);
-    comment().setColour(juce::TextEditor::backgroundColourId,
-                        ColourMap::getColour(ColourMap::Transparent));
-    comment().setColour(juce::TextEditor::textColourId, ColourMap::getColour(ColourMap::Blue));
-    comment().setColour(juce::TextEditor::highlightColourId,
-                        ColourMap::getColour(ColourMap::TextDimmed));
     comment().addListener(this);
+
+    takeColours();
     {
         juce::Font font(Theme::singleton().Theme::getPopupMenuFont());
         font.setHeight(11);
@@ -1117,6 +1110,20 @@ juce::String PresetBrowser::locationLabel() const
         return LE::IO::pathToJuceString(currentDirectory_);
     }
     LE_UNREACHABLE_CODE();
+}
+
+void PresetBrowser::takeColours()
+{
+    presetNameEditBox_.setColour(juce::TextEditor::backgroundColourId,
+                                 ColourMap::getColour(ColourMap::Ground));
+    presetNameEditBox_.setColour(juce::TextEditor::focusedOutlineColourId,
+                                 ColourMap::getColour(ColourMap::Accent));
+
+    comment().setColour(juce::TextEditor::backgroundColourId,
+                        ColourMap::getColour(ColourMap::Transparent));
+    comment().setColour(juce::TextEditor::textColourId, ColourMap::getColour(ColourMap::Accent));
+    comment().setColour(juce::TextEditor::highlightColourId,
+                        ColourMap::getColour(ColourMap::TextDimmed));
 }
 
 void PresetBrowser::paint(juce::Graphics &graphics)

@@ -56,7 +56,7 @@ void paintModuleKnob(juce::Graphics &graphics, juce::Rectangle<float> const boun
             bounds.withSizeKeepingCentre(2 * radius * wedgeRadius, 2 * radius * wedgeRadius),
             juce::degreesToRadians(std::min(from, to)), juce::degreesToRadians(std::max(from, to)),
             0.0f);
-        graphics.setColour(ColourMap::getColour(ColourMap::Blue));
+        graphics.setColour(ColourMap::getColour(ColourMap::Accent));
         graphics.fillPath(pie);
     }
 
@@ -87,7 +87,7 @@ void paintTriggerButton(juce::Graphics &graphics, juce::Rectangle<float> const b
                           ColourMap::getColour(ColourMap::ModuleKnobCap));
     if (on)
         KnobPainter::paintCap(graphics, bounds, litRadius, litEdgeRadius,
-                              ColourMap::getColour(ColourMap::Blue));
+                              ColourMap::getColour(ColourMap::Accent));
     KnobPainter::paintDomeRim(graphics, bounds, ModuleKnobStyle::rimThickness);
 }
 

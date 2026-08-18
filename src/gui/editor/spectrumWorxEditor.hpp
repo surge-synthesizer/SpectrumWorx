@@ -443,6 +443,22 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// it.
     void pumpModulatedValues();
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Takes the palette again if it has moved, and repaints everything.
+    ///
+    /// \note Public for the same reason pumpModulatedValues() is: this is what
+    /// `timerCallback()` does, and a headless test has no message loop to turn,
+    /// so a test that changes the palette has to be the clock. \see the
+    /// definition.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void applyPaletteIfChanged();
+
+    /// \brief What the Interface page's colour scheme box does: remembers it
+    /// and hands it to the map. `[main-thread]`
+    void setPalette(ColourMap::Palette);
+
     /// \brief Lets go of a strip's controls before it is destroyed, so that
     /// JUCE's focus handling cannot re-enter through a control that is going.
     void detachFrom(ModuleUI &);
@@ -627,6 +643,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// paintBuildStamp() reads the engine, so a repaint from any other cause
     /// still shows the truth rather than this.
     EngineState engineState_;
+
+    /// \brief Which ColourMap::generation() this editor was last painted for.
+    ///
+    /// \note Seeded with the current one rather than with zero, so that an
+    /// editor opened into a session that has already changed palette does not
+    /// spend its first tick reloading colours it was just built with.
+    std::uint32_t palette_{ColourMap::generation()};
 
   private: // JUCE Component overrides.
     /// \note Only what is outside the skin: the panel column's chrome and the
@@ -1316,6 +1339,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
           public:
             InterfacePage();
 
+            TitledComboBox const &paletteComboBox() const { return palette_; }
             TitledComboBox const &mouseOverComboBox() const { return moduleUIMouseOverReaction_; }
             TitledComboBox const &lfoUpdateComboBox() const { return lfoUpdateBehaviour_; }
 
@@ -1327,11 +1351,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
           private:
             friend class Settings;
-            /// \note Zoom first: it is the one a user reaches for, and the two
-            /// below it are set once and forgotten. Nothing is baked into the
-            /// page bitmap -- each control draws its own title -- so the order
-            /// is a layout decision rather than an artwork one.
+            /// \note Zoom first and the colour scheme under it: those are the
+            /// two a user reaches for, and the two below them are set once and
+            /// forgotten. Nothing is baked into the page bitmap -- each control
+            /// draws its own title -- so the order is a layout decision rather
+            /// than an artwork one.
             TitledComboBox zoom_;
+            TitledComboBox palette_;
             TitledComboBox moduleUIMouseOverReaction_;
             TitledComboBox lfoUpdateBehaviour_;
             LEDTextButton hideCursorOnKnobDrag_;
