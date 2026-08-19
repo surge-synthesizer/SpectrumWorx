@@ -49,6 +49,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <set>
 #include <vector>
 //------------------------------------------------------------------------------
 namespace
@@ -75,6 +76,17 @@ ModuleControlBase *firstControl(juce::Component &component)
             return pFound;
     }
     return nullptr;
+}
+
+/// \brief Every module control in \p component's subtree.
+void allControls(juce::Component &component, std::vector<ModuleControlBase *> &into)
+{
+    for (auto *const pChild : component.getChildren())
+    {
+        if (auto *const pControl = dynamic_cast<ModuleControlBase *>(pChild))
+            into.push_back(pControl);
+        allControls(*pChild, into);
+    }
 }
 
 /// \brief The button named \p name anywhere under \p component.
@@ -175,6 +187,136 @@ class PanelUnderTest
 //------------------------------------------------------------------------------
 } // anonymous namespace
 //------------------------------------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note What a knob under an LFO is allowed to quantise, and what it is not.
+///
+///   A slow LFO on some knobs paints a staircase rather than a sweep, and the
+/// question this settles is whether that is the interface losing resolution or
+/// the parameter not having it. It is the latter, and the proof is one switch:
+/// `ModuleDSP::setEffectParameter` stores into a slot typed by the parameter --
+/// `bool`, `std::uint8_t`, `std::int16_t`, `float` -- and **returns the stored
+/// value**, so `publishModulatedValues()` puts the already-rounded number in the
+/// mailbox. A knob showing three positions for a three-way Direction is showing
+/// what the DSP is doing.
+///
+///   So the invariant worth holding is the narrow one: a **FloatingPoint**
+/// parameter must keep most of its sweep. If one of those ever starts snapping
+/// to whole units -- a `setRange` given an integer interval, a `Math::convert`
+/// to an integral type slipped into the path -- the knob would be inventing a
+/// staircase, and that is the regression this catches.
+///
+/// \note A *small* discrete parameter is checked against its own arithmetic
+/// rather than against a fixed list: N legal values must show exactly N. That
+/// fails if a rounding rule changes from round-to-nearest to truncation, which
+/// drops one end. Wider ones only have to stay a sweep -- an Integer parameter
+/// measured in milliseconds is re-ranged to the engine's step time on top of its
+/// own unit, so its exact count is the FFT setup's answer and not arithmetic
+/// this test should be repeating.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("An LFO sweep keeps every value the parameter actually has", "[gui][lfo][modulation]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    instance.openEditor();
+    auto &editor(instance.editor());
+
+    struct Wrong
+    {
+        juce::String effect, parameter;
+        std::size_t distinct, expected;
+    };
+    std::vector<Wrong> wrong;
+    unsigned int continuous{0}, discrete{0};
+
+    constexpr int samples{100};
+
+    /// How many legal values still counts as a switch rather than a range. The
+    /// widest genuine enumeration in the effect set is the twelve-key Chromatic.
+    constexpr std::size_t smallEnumeration{16};
+
+    for (std::uint8_t effect{0}; effect < LE::SW::Effects::Constants::numberOfEffects; ++effect)
+    {
+        editor.addUserAddedModule(effect);
+        editor.resyncModuleRack();
+
+        auto *const pModuleUI(editor.regionInSlot(0));
+        REQUIRE(pModuleUI != nullptr);
+
+        std::vector<ModuleControlBase *> controls;
+        allControls(*pModuleUI, controls);
+
+        for (auto *const pControl : controls)
+        {
+            auto const &info(pControl->info());
+            if (!(info.maximum > info.minimum))
+                continue;
+
+            std::set<float> distinct;
+            for (int step(0); step < samples; ++step)
+            {
+                auto const t(static_cast<double>(step) / (samples - 1));
+                pControl->setValue(
+                    static_cast<float>(info.minimum + t * (info.maximum - info.minimum)));
+                distinct.insert(pControl->getValue());
+            }
+
+            ////////////////////////////////////////////////////////////////////
+            ///
+            /// \note A discrete parameter is held to its own arithmetic: N legal
+            /// values must show as exactly N.
+            ///
+            /// \note A continuous one is held to a floor rather than to the full
+            /// hundred, because some of them *are* quantised and correctly so --
+            /// a knob measured in Hz or ms is re-ranged to the engine's bin width
+            /// and step time by `quantizeRangeForEngineSetup()`, since the DSP
+            /// cannot resolve between two values inside one bin. Those come back
+            /// in the eighties. What the floor separates them from is a
+            /// continuous parameter snapped to whole units, which is what an
+            /// integer interval would do and which lands an order of magnitude
+            /// lower -- the coarsest genuinely discrete control here shows 12.
+            ///
+            ////////////////////////////////////////////////////////////////////
+            auto const isContinuous(info.type == LE::Parameters::RuntimeInformation::FloatingPoint);
+            (isContinuous ? continuous : discrete)++;
+
+            auto const legalValues(static_cast<std::size_t>(info.maximum - info.minimum) + 1);
+
+            //   A switch or a small enumeration: the count is exact and there is
+            // no engine resolution coarse enough to reach it.
+            if (!isContinuous && (legalValues <= smallEnumeration))
+            {
+                if (distinct.size() != legalValues)
+                    wrong.push_back(
+                        {pModuleUI->description(), info.name, distinct.size(), legalValues});
+                continue;
+            }
+
+            //   Everything else only has to stay a sweep -- and never has to beat
+            // its own resolution: Threshold and SC Gain are whole decibels over
+            // plus or minus 24, so forty-nine is all there is of them.
+            auto const leastOfASweep(std::min<std::size_t>(samples / 2, legalValues));
+            if (distinct.size() < leastOfASweep)
+                wrong.push_back(
+                    {pModuleUI->description(), info.name, distinct.size(), leastOfASweep});
+        }
+
+        editor.removeModule(*pModuleUI);
+        editor.resyncModuleRack();
+    }
+
+    //   Both kinds are actually present, so neither branch is vacuous.
+    CHECK(continuous > 0);
+    CHECK(discrete > 0);
+
+    for (auto const &entry : wrong)
+        UNSCOPED_INFO(entry.effect << " / " << entry.parameter << ": " << entry.distinct
+                                   << " distinct, expected " << entry.expected);
+    CHECK(wrong.empty());
+}
 
 TEST_CASE("A sync mode set in the interface is queued for the engine", "[gui][lfo]")
 {
