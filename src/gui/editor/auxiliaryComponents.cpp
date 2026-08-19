@@ -64,10 +64,10 @@ SharedModuleControls::SharedModuleControls()
       /// the control widgets must be added to the parent SharedModuleControls
       /// component in the correct order.
       ///                                       (11.02.2014.) (Domagoj Saric)
-      gain_(*this, *editor().selectedModule(), 05, 4,
+      gain_(*this, *editor().selectedModule(), 8, 6,
             IndexOf<Parameters, Gain>::value -
                 1), //...mrmlj...ModuleControlBase::moduleParameterIndex() excludes bypass...
-      wet_(*this, *editor().selectedModule(), 75, 4, IndexOf<Parameters, Wet>::value - 1)
+      wet_(*this, *editor().selectedModule(), 113, 6, IndexOf<Parameters, Wet>::value - 1)
 {
     gain_.setupForParameter(ModuleKnob::Bipolar, ModuleKnob::smallDiameter, ModuleKnob::Fixed,
                             Gain::discreteValueDistance);
@@ -76,7 +76,7 @@ SharedModuleControls::SharedModuleControls()
 
     addToParentAndShow(*this, frequencyRange_);
 
-    setBounds(77, 80, 116, 79);
+    setBounds(116, 120, 174, 119);
     addToParentAndShow(editor().mainArea(), *this);
 
     updateForEngineSetupChanges(editor().engineSetup());
@@ -192,8 +192,8 @@ SharedModuleControls::FrequencyRange::FrequencyRange()
 
     setWantsKeyboardFocus(true);
     setSliderStyle(juce::Slider::TwoValueHorizontal);
-    setTextBoxStyle(juce::Slider::NoTextBox, true, 10, 12);
-    setBounds(2, 36, 108, 34);
+    setTextBoxStyle(juce::Slider::NoTextBox, true, 15, 18);
+    setBounds(3, 54, 162, 51);
 
     // Implementation note:
     //   See the note for the LFODisplay range control in
@@ -315,7 +315,7 @@ void SharedModuleControls::FrequencyRange::paint(juce::Graphics &g)
     juce::Slider::paint(g);
     g.setFont(DrawableText::defaultFont());
     g.setColour(ColourMap::getColour(ColourMap::Text));
-    g.drawSingleLineText("Frequency Range", 15, 32);
+    g.drawSingleLineText("Frequency Range", 23, 48);
 }
 
 void SharedModuleControls::FrequencyRange::valueChanged() noexcept

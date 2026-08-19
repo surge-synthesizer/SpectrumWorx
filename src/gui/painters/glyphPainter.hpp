@@ -7,10 +7,14 @@
 /// navigation row, and the folder in front of a directory in its list.
 ///
 ///   None of these came out of the skin -- there was no navigation row to draw
-/// them in. They are issue #44's mock-up, measured off it and divided by the
-/// 1.5 the editor is drawn at, so the numbers below are skin pixels and what
-/// lands on screen at the resting zoom is the mock-up's own: a nine pixel head
-/// on the user, a five pixel body under it.
+/// them in. They are issue #44's mock-up, measured off it.
+///
+/// \note The numbers below *are* the mock-up's, and were the mock-up's divided
+/// by 1.5 until 19.08.2026: the editor was drawn through that transform, so a
+/// mark had to be written down at two thirds of its intended size to land at
+/// the right one. The skin is its own coordinate system now and the division is
+/// gone -- a nine pixel head on the user is nine here and nine on screen.
+///                                       (19.08.2026.)
 ///
 /// \note Colour is the caller's, unlike every other painter here. A glyph in
 /// this row *is* its state -- white for off and the accent for on, which is
@@ -54,18 +58,18 @@ namespace GlyphStyle
 /// external audio" toggle. \see PresetBrowser's constructor for the four x
 /// positions, which sit with every other placement in that panel.
 ///@{
-int constexpr rowTop{58};
-int constexpr rowHeight{16};
-int constexpr upWidgetWidth{16};
-int constexpr userWidgetWidth{17};
-int constexpr jogWidgetWidth{11};
+int constexpr rowTop{87};
+int constexpr rowHeight{24};
+int constexpr upWidgetWidth{24};
+int constexpr userWidgetWidth{26};
+int constexpr jogWidgetWidth{17};
 ///@}
 
 /// \brief The padlock, which is not in that row: it is the editor's, beside the
 /// sidechain source. \see BackgroundPainter::sideChainLockBounds().
 ///@{
-int constexpr lockWidgetWidth{14};
-int constexpr lockWidgetHeight{16};
+int constexpr lockWidgetWidth{21};
+int constexpr lockWidgetHeight{24};
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -80,12 +84,12 @@ int constexpr lockWidgetHeight{16};
 ///
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-float constexpr upWidth{10.0f};
-float constexpr upHeight{10.7f};
+float constexpr upWidth{15.0f};
+float constexpr upHeight{16.05f};
 /// The stem and the foot, which are one pen.
-float constexpr upStroke{2.4f};
-float constexpr upHeadWidth{5.4f};
-float constexpr upHeadHeight{4.7f};
+float constexpr upStroke{3.6f};
+float constexpr upHeadWidth{8.1f};
+float constexpr upHeadHeight{7.05f};
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -95,15 +99,15 @@ float constexpr upHeadHeight{4.7f};
 /// the simplified mark rather than the stylised one.
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-float constexpr userHeadDiameter{6.0f};
-float constexpr userBodyWidth{9.4f};
-float constexpr userBodyHeight{3.4f};
+float constexpr userHeadDiameter{9.0f};
+float constexpr userBodyWidth{14.1f};
+float constexpr userBodyHeight{5.1f};
 /// \note Not half the height: at half, the shoulders come out a capsule. The
 /// mock-up rounds the top two corners hard and leaves the foot nearly square,
 /// which is the difference between shoulders and a pill.
-float constexpr userBodyRadius{1.4f};
+float constexpr userBodyRadius{2.1f};
 /// The neck, which is the whole of what makes the two shapes read as one.
-float constexpr userGap{1.3f};
+float constexpr userGap{1.95f};
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +119,7 @@ float constexpr userGap{1.3f};
 /// one control rather than as two buttons that happen to be near each other.
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-float constexpr jogTriangle{9.4f}; ///< as wide as it is tall
+float constexpr jogTriangle{14.1f}; ///< as wide as it is tall
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -126,15 +130,15 @@ float constexpr jogTriangle{9.4f}; ///< as wide as it is tall
 /// whatever its own look and feel says rather than in this skin's accent.
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-float constexpr folderWidth{11.0f};
-float constexpr folderHeight{9.0f};
+float constexpr folderWidth{16.5f};
+float constexpr folderHeight{13.5f};
 /// The tab along the back of it: how much of the width it takes and how far it
 /// stands above the body.
 ///@{
-float constexpr folderTabWidth{4.6f};
-float constexpr folderTabRise{2.0f};
+float constexpr folderTabWidth{6.9f};
+float constexpr folderTabRise{3.0f};
 ///@}
-float constexpr folderCornerRadius{1.2f};
+float constexpr folderCornerRadius{1.8f};
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -144,16 +148,16 @@ float constexpr folderCornerRadius{1.2f};
 /// -- what says which is the colour, as everywhere else in this row.
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-float constexpr lockWidth{9.4f};
-float constexpr lockHeight{10.7f};
-float constexpr lockBodyHeight{6.0f};
+float constexpr lockWidth{14.1f};
+float constexpr lockHeight{16.05f};
+float constexpr lockBodyHeight{9.0f};
 /// The shackle, measured down the middle of its wire rather than around the
 /// outside of it, because that is what a stroked path is placed by.
 ///@{
-float constexpr lockShackleWidth{5.3f};
-float constexpr lockShackleStroke{1.4f};
+float constexpr lockShackleWidth{7.95f};
+float constexpr lockShackleStroke{2.1f};
 ///@}
-float constexpr lockCornerRadius{1.1f};
+float constexpr lockCornerRadius{1.65f};
 ///@}
 } // namespace GlyphStyle
 

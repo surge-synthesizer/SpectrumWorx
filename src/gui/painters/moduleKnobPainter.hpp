@@ -99,7 +99,7 @@ float constexpr litEdgeRadius{0.172f}; ///< which fades out inside the cap
 /// makes it so -- the artwork holds black a little past where the cap ends.
 
 /// The face, in pixels. \see TriggerButton, which is a caption wider than this.
-unsigned int constexpr diameter{51};
+unsigned int constexpr diameter{77};
 } // namespace TriggerButtonStyle
 
 /// \brief Draws a trigger button's face into the square \p bounds.

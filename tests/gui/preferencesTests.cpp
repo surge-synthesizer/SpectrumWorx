@@ -284,19 +284,20 @@ TEST_CASE("Every offered zoom scales the skin by its own percentage", "[gui][pre
 {
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note What "100%" means, pinned. The skin is drawn at 1.5x and always has
-    /// been, so a user picking 100 is asking for the size the plugin has always
-    /// opened at rather than for a scale factor of one -- and every size the
-    /// host is told goes through this. \see ZoomedEditor.
+    /// \note What "100%" means, pinned: no transform at all. The skin was drawn
+    /// at 1.5x until 19.08.2026 and its constants were rescaled rather than that
+    /// factor being kept, so the window is the size it always was and 100 % is
+    /// now literally one. Every size the host is told goes through this.
+    /// \see ZoomedEditor.
     ///
     ////////////////////////////////////////////////////////////////////////////
     using Zoomed = GUI::ZoomedEditor;
 
     useCaseFolder("scaling");
 
-    CHECK(Zoomed::scaleForZoom(100) == Zoomed::scaleAtOneHundredPercent);
-    CHECK(Zoomed::scaleForZoom(200) == 2 * Zoomed::scaleAtOneHundredPercent);
-    CHECK(Zoomed::scaleForZoom(50) == Zoomed::scaleAtOneHundredPercent / 2);
+    CHECK(Zoomed::scaleForZoom(100) == 1.0f);
+    CHECK(Zoomed::scaleForZoom(200) == 2.0f);
+    CHECK(Zoomed::scaleForZoom(50) == 0.5f);
 
     for (auto const percent : Preferences::zoomPercentages)
     {
@@ -391,7 +392,7 @@ TEST_CASE("An editor opens at the zoom the last session chose", "[gui][preferenc
 
     CHECK(wrapper.zoomPercent() == 75);
 
-    /// \note And the skin did not move: the editor is laid out in the 563 x 376
+    /// \note And the skin did not move: the editor is laid out in the 845 x 564
     /// it always was and the wrapper is its scaled shadow. That split is what
     /// keeps every offset in the editor a constant.
     CHECK(wrapper.editor().getWidth() == Editor::estimatedWidth);

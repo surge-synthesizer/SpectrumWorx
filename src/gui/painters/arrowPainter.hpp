@@ -40,14 +40,14 @@ namespace ArrowStyle
 {
 /// The one that adds a module, down the right of the rack.
 ///@{
-int constexpr addModuleWidth{19};
-int constexpr addModuleHeight{37};
+int constexpr addModuleWidth{29};
+int constexpr addModuleHeight{56};
 ///@}
 
 /// And the one that steps to the next waveform, or the next folder.
 ///@{
-int constexpr stepWidth{7};
-int constexpr stepHeight{11};
+int constexpr stepWidth{11};
+int constexpr stepHeight{17};
 ///@}
 
 /// \brief What the base keeps clear of the left edge, as a fraction of the

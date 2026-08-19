@@ -12,7 +12,6 @@
 
 #include "external_audio/sample.hpp"
 
-#include "configuration/buildStamp.hpp"
 #include "core/automatedModuleChain.hpp"
 #include "core/host_interop/plugin2Host.hpp"
 #include "core/modules/moduleDSPAndGUI.hpp"
@@ -89,9 +88,9 @@ template <> void fillComboBoxForParameter<Engine::OverlapFactor>(ComboBox &combo
 
 namespace Constants::Layout
 {
-unsigned int const textBoxHorizontalOffset = 76;
-unsigned int const textBoxHeight = 22;
-unsigned int const textBoxWidth = 113;
+unsigned int const textBoxHorizontalOffset = 114;
+unsigned int const textBoxHeight = 33;
+unsigned int const textBoxWidth = 170;
 
 /// \brief What the main area's strings keep clear of their boxes' edges.
 ///
@@ -100,12 +99,12 @@ unsigned int const textBoxWidth = 113;
 /// the rounded ends. Only the fitting rectangle shrinks; the text is centred, so
 /// nothing moves that was not already touching. \see issue #76.
 ///                                           (16.08.2026.)
-unsigned int const textBoxMargin = 4;
+unsigned int const textBoxMargin = 6;
 
-unsigned int const moduleNameVerticalOffset = 13;
-unsigned int const controlNameVerticalOffset = 42;
-unsigned int const controlValueVerticalOffset = 53;
-unsigned int const sampleNameVerticalOffset = 306;
+unsigned int const moduleNameVerticalOffset = 20;
+unsigned int const controlNameVerticalOffset = 63;
+unsigned int const controlValueVerticalOffset = 80;
+unsigned int const sampleNameVerticalOffset = 459;
 } // namespace Constants::Layout
 
 #pragma warning(push)
@@ -136,7 +135,7 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
       /// pill and the rest the room its halo needed. It is written down here
       /// now, and the two are placed three pixels apart as they were.
       ///                                       (18.08.2026.)
-      preset_(mainArea_, "PRESETS", 57, 24), settingsButton_(mainArea_, "SETTINGS", 57, 24),
+      preset_(mainArea_, "PRESETS", 86, 36), settingsButton_(mainArea_, "SETTINGS", 86, 36),
       ignoreExternalSample_(mainArea_, GlyphButton::Glyph::Lock, true /*toggles*/)
 {
     using LE::Parameters::IndexOf;
@@ -173,15 +172,14 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
     // http://www.u-he.com/vstsource
     LE_ASSERT_MSG(mainArea_.getWidth() == estimatedWidth && mainArea_.getHeight() == artworkHeight,
                   "the skin and the editor's constants disagree");
-    // The skin, and the strip under it that says when this binary was built.
-    setSize(mainArea_.getWidth(), mainArea_.getHeight() + buildStampHeight);
+    setSize(mainArea_.getWidth(), mainArea_.getHeight());
 
     moduleMenuButton_.moveToSlot(0);
 
-    sampleArea_.setBounds(75, 307, 115, 20);
+    sampleArea_.setBounds(113, 461, 173, 30);
 
-    preset_.setTopLeftPosition(74, 338);
-    settingsButton_.setTopLeftPosition(134, 338);
+    preset_.setTopLeftPosition(111, 507);
+    settingsButton_.setTopLeftPosition(201, 507);
 
     /// \note Placed from the label it belongs to rather than from a constant of
     /// its own -- the pair is centred over the sidechain source box, so where
@@ -202,7 +200,7 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
     /// editor inside `guiCreate()` and then answers `guiGetSize()` out of the
     /// holder, which it sizes from *this* component. So an alwaysVisible editor
     /// has to already be the width it wants, and the host is told once, the way
-    /// it is told 563 x 376 otherwise.
+    /// it is told 845 x 564 otherwise.
     ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
@@ -219,10 +217,6 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
     /// \note Whatever the mailbox has been accumulating with no editor open is
     /// not this editor's news: it starts from what the widgets were built with.
     editorHost_.modulatedValues().discardChanges();
-
-    /// \note Likewise: the bar is about to be painted from the engine, so record
-    /// what it will say rather than letting the first tick call it a change.
-    engineState_ = currentEngineState();
 
     startTimerHz(modulationRefreshHz);
 
@@ -1271,81 +1265,13 @@ void SpectrumWorxEditor::MainArea::mouseDown(juce::MouseEvent const &event)
 
 void SpectrumWorxEditor::paint(juce::Graphics &graphics)
 {
-    /// \note BackgroundStyle::height rather than getHeight(): the editor is
-    /// taller than its chassis by the build-stamp bar, and that bar runs the
-    /// full width in one piece.
+    /// \note Only what is outside the skin: the gutter beside the panel column.
+    /// The skin itself is MainArea's.
     if (auto const column(mainArea_.getX()); column > 0)
     {
         graphics.setColour(BackgroundPainter::gutterColour());
         graphics.fillRect(0, 0, column, int{BackgroundStyle::height});
     }
-
-    paintBuildStamp(graphics);
-}
-
-juce::String SpectrumWorxEditor::buildStampText()
-{
-    return juce::String(BuildStamp::date) + "  " + BuildStamp::time + "  " + BuildStamp::commit;
-}
-
-SpectrumWorxEditor::EngineState SpectrumWorxEditor::currentEngineState() const
-{
-    return {editorHost().core().getSampleRate()};
-}
-
-/// \see the note on the declaration.
-juce::String SpectrumWorxEditor::engineStateText() const
-{
-    auto const state(currentEngineState());
-
-    /// \note "No sample rate" rather than "0 Hz": before a host has activated the
-    /// plugin there is no answer, and a zero would read as one.
-    juce::String rate("No sample rate");
-    if (state.sampleRate > 0)
-        rate = juce::String(state.sampleRate,
-                            (state.sampleRate == std::floor(state.sampleRate)) ? 0 : 1) +
-               " Hz";
-
-    return rate;
-}
-
-juce::Rectangle<int> SpectrumWorxEditor::buildStampBar() const
-{
-    return {0, artworkHeight, getWidth(), buildStampHeight};
-}
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note Painted rather than a juce::Label, and painted from the editor rather
-/// than by a child component, because it has no behaviour at all: it takes no
-/// mouse and must not be able to take focus away from a knob. Everything a child
-/// would add here is a thing that can go wrong.
-///                                           (06.08.2026.) (SW port)
-///
-/// \note Two readouts, and they answer different questions. The build stamp on
-/// the left is fixed for the life of the process; the engine state on the right
-/// is whatever the plugin currently believes it is running at, and a host can
-/// move it under an open editor. `timerCallback()` is what notices.
-///                                           (17.08.2026.)
-///
-////////////////////////////////////////////////////////////////////////////////
-
-void SpectrumWorxEditor::paintBuildStamp(juce::Graphics &graphics) const
-{
-    auto const bar(buildStampBar());
-
-    graphics.setColour(ColourMap::getColour(ColourMap::Ground));
-    graphics.fillRect(bar);
-
-    /// \note The skin's own accent, at the smallest size its font stays legible
-    /// at. This is a developer's readout on a user's window, so it should be
-    /// readable when looked for and quiet when not.
-    graphics.setColour(ColourMap::getColour(ColourMap::Accent));
-    graphics.setFont(juce::Font(juce::FontOptions(regularTypeface()).withHeight(11.0f)));
-
-    auto const text(bar.reduced(8, 0));
-    graphics.drawText(buildStampText(), text, juce::Justification::centredLeft);
-    graphics.drawText(engineStateText(), text, juce::Justification::centredRight);
 }
 
 void SpectrumWorxEditor::buttonClicked(juce::Button *const pButton)
@@ -2379,15 +2305,6 @@ void SpectrumWorxEditor::timerCallback()
     applyPaletteIfChanged();
 
     pumpModulatedValues();
-
-    /// \note Compared as numbers rather than as the formatted line, so the common
-    /// case -- nothing moved -- costs three loads and no allocation. Only the bar
-    /// is repainted; the skin above it has not changed.
-    if (auto const state(currentEngineState()); state != engineState_)
-    {
-        engineState_ = state;
-        repaint(buildStampBar());
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2526,9 +2443,9 @@ SpectrumWorxEditor::ModuleMenuButton::ModuleMenuButton(SpectrumWorxEditor &paren
 void SpectrumWorxEditor::ModuleMenuButton::moveToSlot(std::uint8_t const slotIndex)
 {
     //...mrmlj..."magic number" adjustments...
-    setTopLeftPosition(4 + ModuleUI::horizontalOffset +
+    setTopLeftPosition(6 + ModuleUI::horizontalOffset +
                            ((ModuleUI::width + ModuleUI::distance) * slotIndex),
-                       (ModuleUI::verticalOffset - 4) + (ModuleUI::height / 2) - (getHeight() / 2));
+                       (ModuleUI::verticalOffset - 6) + (ModuleUI::height / 2) - (getHeight() / 2));
     setIsVisible(slotIndex < SW::Constants::maxNumberOfModules);
 }
 
@@ -2672,8 +2589,8 @@ SpectrumWorxEditor::LFODisplay::ComponentPtr const
 
 SpectrumWorxEditor::LFODisplay::LFODisplay()
     : switch_(*this, ledCapsule, LEDTextButton::ledWidth, LEDTextButton::ledHeight),
-      quarter_(*this, 62, 5, " N "), triplet_(*this, 62 + 18 * 1, 5, " T "),
-      dotted_(*this, 62 + 18 * 2 - 2, 5, " D "),
+      quarter_(*this, 93, 8, " N "), triplet_(*this, 93 + 27 * 1, 8, " T "),
+      dotted_(*this, 93 + 27 * 2 - 3, 8, " D "),
       typeArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
                  ColourMap::MouseOverGlow),
       pModuleControl_(nullptr)
@@ -2689,30 +2606,30 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
 
     fillLFOWaveformsMenu(type_);
 
-    switch_.setTopLeftPosition(29, 3);
+    switch_.setTopLeftPosition(44, 5);
 
-    period_.setBounds(7, 32, 108, 18);
+    period_.setBounds(11, 48, 162, 27);
     period_.setSliderStyle(juce::Slider::LinearHorizontal);
-    period_.setTextBoxStyle(juce::Slider::NoTextBox, true, 10, 12);
+    period_.setTextBoxStyle(juce::Slider::NoTextBox, true, 15, 18);
     //period_.setVelocityBasedMode( true );
     addToParentAndShow(*this, period_);
 
-    phase_.setBounds(39, 118, 42, 12);
+    phase_.setBounds(59, 177, 63, 18);
     phase_.setSliderStyle(juce::Slider::LinearHorizontal);
-    phase_.setTextBoxStyle(juce::Slider::NoTextBox, true, 10, 12);
+    phase_.setTextBoxStyle(juce::Slider::NoTextBox, true, 15, 18);
     phase_.setRange(-0.5, +0.5);
     phase_.setDoubleClickReturnValue(true, 0);
     addToParentAndShow(*this, phase_);
 
-    typeArrow_.setTopLeftPosition(109, 99);
+    typeArrow_.setTopLeftPosition(164, 149);
     typeArrow_.addListener(this);
 
-    range_.setBounds(7, 73, width - 7, 10);
+    range_.setBounds(11, 110, width - 11, 15);
     range_.setSliderStyle(juce::Slider::TwoValueHorizontal);
-    range_.setTextBoxStyle(juce::Slider::NoTextBox, true, 90, 20);
+    range_.setTextBoxStyle(juce::Slider::NoTextBox, true, 135, 30);
     addToParentAndShow(*this, range_);
 
-    this->setBounds(71, 156, width, 128);
+    this->setBounds(107, 234, width, 192);
 
     switch_.addListener(this);
     quarter_.addListener(this);
@@ -2902,14 +2819,14 @@ struct LFOTextData
 
 #pragma warning(pop)
 
-std::size_t const lfoWidth = 116;
+std::size_t const lfoWidth = 174;
 
 LFOTextData sliderTexts[] = {
-    {0, &periodRatioString, 9, 24, 105, 12, juce::Justification::right},        // period ratio
-    {0, &periodMillisecondsString, 9, 47, 105, 12, juce::Justification::right}, // period ms
-    {0, &rangeValueString, 9, 62, lfoWidth - 10 - 2, 12, juce::Justification::right}, // range max
-    {0, &rangeValueString, 10, 84, lfoWidth - 10, 12, juce::Justification::left},     // range min
-    {0, &phaseString, 9, 118, 105, 12, juce::Justification::right},                   // period ms
+    {0, &periodRatioString, 14, 36, 158, 18, juce::Justification::right},        // period ratio
+    {0, &periodMillisecondsString, 14, 71, 158, 18, juce::Justification::right}, // period ms
+    {0, &rangeValueString, 14, 93, lfoWidth - 15 - 3, 18, juce::Justification::right}, // range max
+    {0, &rangeValueString, 15, 126, lfoWidth - 15, 18, juce::Justification::left},     // range min
+    {0, &phaseString, 14, 177, 158, 18, juce::Justification::right},                   // period ms
 };
 
 #pragma warning(push)
@@ -2926,10 +2843,10 @@ struct FixedText
 #pragma warning(pop)
 
 static FixedText const fixedText[] = {
-    {"Period", 24 + 9},
-    {"Range", 62 + 9},
-    {"Waveform", 99 + 9},
-    {"Phase", 118 + 9},
+    {"Period", 36 + 14},
+    {"Range", 93 + 14},
+    {"Waveform", 149 + 14},
+    {"Phase", 177 + 14},
 };
 } // anonymous namespace
 
@@ -2950,7 +2867,7 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
         graphics.setColour(ColourMap::getColour(ColourMap::Text));
 
         for (auto const &text : fixedText)
-            graphics.drawSingleLineText(text.string, 9, text.verticalPosition);
+            graphics.drawSingleLineText(text.string, 14, text.verticalPosition);
     }
 
     sliderTexts[0].value = period_.getValue();
@@ -2967,7 +2884,7 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
 
     // Null for an item with no icon; every LFO waveform has one.
     if (auto const *const icon(type_.getSelectedItemIcon()); icon != nullptr)
-        paintImage(graphics, *icon, 79, 96);
+        paintImage(graphics, *icon, 119, 144);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3500,7 +3417,7 @@ SpectrumWorxEditor::Settings::Settings() /// \throws std::bad_alloc Out of memor
 /// compiled this constructor since.
 ///                                       (28.07.2026.) (SW port)
 {
-    /// \note The height was editor().getHeight() -- 376 -- while what this
+    /// \note The height was editor().getHeight() -- 564 -- while what this
     /// paints is a 16 px tab bar over a 347 px page bitmap: 363. The 13 px
     /// difference was empty and invisible while this was a transparent desktop
     /// window, and would not be as an overlay over the editor. So it is the sum
@@ -3672,8 +3589,8 @@ void printEngineDiagnostics(juce::String &buffer, char const *const title, float
     buffer += valueStr;
     buffer += ' ';
     buffer += suffix;
-    graphics.drawFittedText(buffer, SpectrumWorxEditor::Settings::xMargin + 4, verticalOffset, 142,
-                            12, juce::Justification::centred, 1);
+    graphics.drawFittedText(buffer, SpectrumWorxEditor::Settings::xMargin + 6, verticalOffset, 213,
+                            18, juce::Justification::centred, 1);
 }
 } // anonymous namespace
 
@@ -3682,7 +3599,7 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
     PanelBackground::paint(g);
     g.setColour(ColourMap::getColour(ColourMap::Text));
     g.setFont(DrawableText::defaultFont());
-    g.drawFittedText(engineQuality_, xMargin + 4, yMargin + yStep * 5, 142, 12,
+    g.drawFittedText(engineQuality_, xMargin + 6, yMargin + yStep * 5, 213, 18,
                      juce::Justification::centred, 1);
 
     Settings &settings(
@@ -3691,11 +3608,11 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
     juce::String tmp;
     tmp.preallocateBytes(sizeof(juce::String::CharPointerType::CharType) * 64);
     printEngineDiagnostics(tmp, "Frequency Resolution", engineSetup.frequencyRangePerBin<float>(),
-                           "Hz", yMargin + yStep * 5 + 20, g);
+                           "Hz", yMargin + yStep * 5 + 30, g);
     printEngineDiagnostics(tmp, "Time Resolution", engineSetup.stepTime() * 1000, "ms",
-                           yMargin + yStep * 5 + 40, g);
-    printEngineDiagnostics(tmp, "Latency", engineSetup.latencyInMilliseconds(), "ms",
                            yMargin + yStep * 5 + 60, g);
+    printEngineDiagnostics(tmp, "Latency", engineSetup.latencyInMilliseconds(), "ms",
+                           yMargin + yStep * 5 + 90, g);
 
     //...mrmlj...for testing...
     //g.drawSingleLineText( engineQuality_, xMargin - 5, yMargin + yStep * 6 + 12 );
@@ -3773,7 +3690,7 @@ class SettingsTab : public juce::TabBarButton
     SettingsTab(juce::String const &tabName, juce::TabbedButtonBar &ownerBar)
         : TabBarButton(tabName, ownerBar)
     {
-        ownerBar.setTopLeftPosition({6, 6});
+        ownerBar.setTopLeftPosition({9, 9});
     }
 
   private:

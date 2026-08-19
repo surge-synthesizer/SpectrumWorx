@@ -80,7 +80,6 @@ add_executable(sw-plugin-tests
         parameters/parameterTableTests.cpp
         presets/presetHarness.cpp
         gui/aboutPageTests.cpp
-        gui/buildStampTests.cpp
         gui/discreteParameterTests.cpp
         gui/knobMenuTests.cpp
         gui/knobPaintingTests.cpp

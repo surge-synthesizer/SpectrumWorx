@@ -25,7 +25,7 @@
 ///
 /// \note What has *not* changed is a single coordinate. Every rectangle here is
 /// the artwork's, to the hundredth of a pixel, because the editor's widgets are
-/// placed by constants of their own in the same 563 x 376 system and the two
+/// placed by constants of their own in the same 845 x 564 system and the two
 /// have to agree. The three exceptions are noted where they are: the knob
 /// wells, the labels over them, and the wells' rims, all of which were a
 /// regular grid the trace had wandered off.
@@ -40,6 +40,7 @@
 #define backgroundPainter_hpp__F62A18D9_7C34_4E05_B8A1_5D93E074C2B6
 //------------------------------------------------------------------------------
 #include "gui/colourMap.hpp"
+#include "gui/painters/ruleStyle.hpp"
 
 #include <juce_graphics/juce_graphics.h>
 
@@ -56,8 +57,8 @@ namespace BackgroundStyle
 {
 /// The chassis, and the coordinate system every offset in the editor is in.
 ///@{
-int constexpr width{563};
-int constexpr height{376};
+int constexpr width{845};
+int constexpr height{564};
 ///@}
 
 /// \brief What every panel in the editor is filled with.
@@ -96,19 +97,19 @@ struct Panel
 /// what puts the blue in diagonally opposite corners of the editor.
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-Panel constexpr leftColumn{9.0f, 7.0f, 200.0f, 369.0f, 7.80f};
-Ramp constexpr leftColumnRamp{30.0f,   -30.0f, -177.0f, 177.0f,
+Panel constexpr leftColumn{14.0f, 11.0f, 300.0f, 554.0f, 11.70f};
+Ramp constexpr leftColumnRamp{45.0f,   -45.0f, -265.5f, 265.5f,
                               0.5145f, 1.06f,  0.98f,   ColourMap::EditorPanel};
 
-Panel constexpr moduleRack{210.0f, 7.0f, 555.0f, 369.0f, 8.28f};
-Ramp constexpr moduleRackRamp{-70.0f,  70.0f, 264.5f, -264.5f,
-                              0.4484f, 1.96f, 0.932f, ColourMap::EditorPanel};
+Panel constexpr moduleRack{315.0f, 11.0f, 833.0f, 554.0f, 12.42f};
+Ramp constexpr moduleRackRamp{-105.0f, 105.0f, 396.75f, -396.75f,
+                              0.4484f, 1.96f,  0.932f,  ColourMap::EditorPanel};
 
 /// \brief The two blocks that join them, which is why the gap between the
 /// columns is not a gap all the way down.
 ///@{
-Panel constexpr upperJoin{197.0f, 65.0f, 211.0f, 86.0f, 0.00f};
-Panel constexpr lowerJoin{197.0f, 306.0f, 211.0f, 327.0f, 0.00f};
+Panel constexpr upperJoin{296.0f, 98.0f, 317.0f, 129.0f, 0.00f};
+Panel constexpr lowerJoin{296.0f, 459.0f, 317.0f, 491.0f, 0.00f};
 ///@}
 ///@}
 
@@ -116,42 +117,42 @@ Panel constexpr lowerJoin{197.0f, 306.0f, 211.0f, 327.0f, 0.00f};
 /// \name The column of boxes between them
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-Panel constexpr centreColumn{71.0f, 11.0f, 195.0f, 330.0f, 8.56f};
-Ramp constexpr centreColumnRamp{30.0f,   -30.0f, -177.0f, 177.0f,
+Panel constexpr centreColumn{107.0f, 17.0f, 293.0f, 495.0f, 12.84f};
+Ramp constexpr centreColumnRamp{45.0f,   -45.0f, -265.5f, 265.5f,
                                 0.5145f, 1.26f,  0.332f,  ColourMap::EditorWell};
 
 /// The name of the module whose controls are showing.
-Panel constexpr moduleNameBox{75.0f, 14.0f, 191.0f, 34.0f, 7.99f};
+Panel constexpr moduleNameBox{113.0f, 21.0f, 287.0f, 51.0f, 11.99f};
 
 /// The control being edited -- the one box with a blue rule, because it is the
 /// one that says *this is what the knobs below are*.
-Panel constexpr activeControlBox{75.0f, 38.0f, 191.0f, 75.0f, 9.32f};
+Panel constexpr activeControlBox{113.0f, 57.0f, 287.0f, 113.0f, 13.98f};
 
 /// And its value, under it.
-Panel constexpr controlValueBox{75.0f, 79.0f, 191.0f, 157.0f, 8.12f};
+Panel constexpr controlValueBox{113.0f, 119.0f, 287.0f, 236.0f, 12.18f};
 
 /// \brief The LFO's box, which is the one shape here that is not a rectangle:
 /// its top edge steps up on the right so that the word LFO sits in the notch.
 ///@{
-Panel constexpr lfoBox{75.0f, 162.0f, 191.0f, 289.0f, 8.31f};
-float constexpr lfoNotchBottom{173.76f}; ///< where the low half of the top edge runs
-float constexpr lfoNotchRight{126.29f};  ///< and where it turns up
-float constexpr lfoNotchRadius{6.12f};
+Panel constexpr lfoBox{113.0f, 243.0f, 287.0f, 434.0f, 12.47f};
+float constexpr lfoNotchBottom{260.64f}; ///< where the low half of the top edge runs
+float constexpr lfoNotchRight{189.44f};  ///< and where it turns up
+float constexpr lfoNotchRadius{9.18f};
 ///@}
-Ramp constexpr lfoBoxRamp{30.0f,   -30.0f, -177.0f, 177.0f,
+Ramp constexpr lfoBoxRamp{45.0f,   -45.0f, -265.5f, 265.5f,
                           0.5145f, 2.0f,   0.213f,  ColourMap::EditorWell};
 
 /// The pill inside it that the waveform button sits in.
-Panel constexpr lfoWaveformWell{146.0f, 251.0f, 178.0f, 271.0f, 8.41f};
+Panel constexpr lfoWaveformWell{219.0f, 377.0f, 267.0f, 407.0f, 12.62f};
 
 /// What is feeding the side channel.
-Panel constexpr sideChainSourceBox{75.0f, 306.0f, 191.0f, 327.0f, 7.93f};
-Ramp constexpr sideChainSourceRamp{30.0f,   -30.0f, -177.0f, 177.0f,
+Panel constexpr sideChainSourceBox{113.0f, 459.0f, 287.0f, 491.0f, 11.90f};
+Ramp constexpr sideChainSourceRamp{45.0f,   -45.0f, -265.5f, 265.5f,
                                    0.5145f, 1.0f,   0.05f,   ColourMap::EditorWell};
 
 /// And the strip the Presets and Settings buttons sit in, at the foot.
-Panel constexpr buttonRowBox{71.0f, 334.0f, 195.0f, 366.0f, 8.37f};
-Ramp constexpr buttonRowRamp{30.0f,   -30.0f, -177.0f, 177.0f,
+Panel constexpr buttonRowBox{107.0f, 501.0f, 293.0f, 549.0f, 12.56f};
+Ramp constexpr buttonRowRamp{45.0f,   -45.0f, -265.5f, 265.5f,
                              0.5145f, 2.0f,   0.213f,  ColourMap::EditorWell};
 ///@}
 
@@ -180,31 +181,35 @@ struct KnobWell
     char const *label;
 };
 
-float constexpr knobDiameter{55.0f};
+float constexpr knobDiameter{83.0f};
 ///@}
 
 /// What the well shows around the knob it holds.
-float constexpr wellMargin{2.25f};
+float constexpr wellMargin{3.375f};
 
 /// \note Was three concentric arcs at 1.2, 2.6 and 4.6 wide and 40, 18 and 3
 /// per cent -- a soft lift down the lower left of each well, and the same
 /// stacked-stroke trick the bevel used. One rule now, all the way round.
-float constexpr wellRuleThickness{1.0f};
+float constexpr wellRuleThickness{RuleStyle::thickness};
 float constexpr wellRuleAlpha{0.30f};
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// \name The rules
 ///
-/// \note A whole pixel, drawn just inside a whole-pixel edge -- which is why
-/// every rectangle above is on integers. The artwork's frames were 0.69 wide
-/// and its panels sat on halves, so at one to one every edge landed across two
-/// pixels and read as a soft grey seam rather than as a line. That was the one
-/// thing about it that could not be fixed by redrawing it.
+/// \note A whole number of pixels, drawn just inside a whole-pixel edge --
+/// which is why every rectangle above is on integers. The artwork's frames were
+/// 0.69 wide and its panels sat on halves, so at one to one every edge landed
+/// across two pixels and read as a soft grey seam rather than as a line. That
+/// was the one thing about it that could not be fixed by redrawing it.
 ///                                       (18.08.2026.)
+///
+/// \note \see RuleStyle::thickness for why it is two rather than one, and for
+/// why the number is named once rather than in each painter that draws a line.
+///                                       (19.08.2026.)
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-float constexpr ruleThickness{1.0f};
+float constexpr ruleThickness{RuleStyle::thickness};
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,27 +238,27 @@ char constexpr sideChainSourceLabel[]{"Sidechain Source"};
 char constexpr productLabel[]{"Spectrum"};
 char constexpr productLabelSecondLine[]{"Worx"};
 
-KnobWell constexpr knobWells[]{{18u, 37u, inLabel}, {18u, 110u, outLabel}, {18u, 185u, mixLabel}};
+KnobWell constexpr knobWells[]{{27u, 56u, inLabel}, {27u, 165u, outLabel}, {27u, 278u, mixLabel}};
 
 /// \note Twelve, which is Theme::labelFont() -- the size the live text beside
 /// them is set at. The artwork's were 8 to 10, sized for a 2010 screen, and
 /// against a module name at 14 and a combo box at 12 they read as small print.
 ///                                       (18.08.2026.)
-float constexpr knobLabelHeight{12.0f};
+float constexpr knobLabelHeight{18.0f};
 /// \note Centred over the knob and a constant above it, which the artwork's
 /// three were to within a pixel and a half. \see the note on the wells.
 ///
 /// \note Three pixels further up than the artwork had it: a caption whose
 /// descender line sits on the circle below it reads as attached to it, and at
 /// twelve rather than ten it did.
-float constexpr knobLabelRise{14.0f};
+float constexpr knobLabelRise{21.0f};
 
-float constexpr lfoLabelHeight{11.0f};
-float constexpr lfoLabelX{79.f};
-float constexpr lfoLabelY{161.0f};
+float constexpr lfoLabelHeight{16.5f};
+float constexpr lfoLabelX{118.5f};
+float constexpr lfoLabelY{241.5f};
 
-float constexpr sideChainSourceLabelHeight{11.0f};
-float constexpr sideChainSourceLabelY{293.f};
+float constexpr sideChainSourceLabelHeight{16.5f};
+float constexpr sideChainSourceLabelY{439.5f};
 
 /// \brief What the padlock beside that label leaves between itself and it.
 ///
@@ -264,19 +269,19 @@ float constexpr sideChainSourceLabelY{293.f};
 /// statement about the sidechain source and belongs beside it rather than in a
 /// row of preset navigation.
 ///                                       (19.08.2026.)
-float constexpr sideChainLockGap{4.0f};
+float constexpr sideChainLockGap{6.0f};
 
-float constexpr productLabelHeight{12.f};
-float constexpr productLabelCentreX{40.f};
-float constexpr productLabelY{338.f};
-float constexpr productLabelSecondLineY{350.f};
+float constexpr productLabelHeight{18.f};
+float constexpr productLabelCentreX{60.f};
+float constexpr productLabelY{507.f};
+float constexpr productLabelSecondLineY{525.f};
 ///@}
 ///@}
 
-float constexpr logoX{27.f};
-float constexpr logoY{298.f};
-float constexpr logoWidth{30.f};
-float constexpr logoHeight{30.f};
+float constexpr logoX{41.f};
+float constexpr logoY{447.f};
+float constexpr logoWidth{45.f};
+float constexpr logoHeight{45.f};
 ///@}
 } // namespace BackgroundStyle
 

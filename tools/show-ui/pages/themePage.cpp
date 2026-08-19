@@ -64,7 +64,7 @@ class ThemePage final : public juce::Component
         label_.setText("A juce::Label", juce::dontSendNotification);
         addAndMakeVisible(label_);
 
-        setSize(820, 470);
+        setSize(1230, 705);
     }
 
     ~ThemePage() override { setLookAndFeel(nullptr); }
@@ -77,41 +77,41 @@ class ThemePage final : public juce::Component
 
         graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Text));
         graphics.setFont(theme.headingFont());
-        graphics.drawText("Theme -- LookAndFeel_V2", 20, 16, 400, 22,
+        graphics.drawText("Theme -- LookAndFeel_V2", 30, 24, 600, 33,
                           juce::Justification::centredLeft);
 
         graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Accent));
         graphics.setFont(theme.headingFont());
-        graphics.drawText("headingFont, ColourMap::Accent", 20, 46, 400, 20,
+        graphics.drawText("headingFont, ColourMap::Accent", 30, 69, 600, 30,
                           juce::Justification::centredLeft);
 
         graphics.setColour(GUI::ColourMap::getColour(GUI::ColourMap::Text));
         graphics.setFont(theme.labelFont());
-        graphics.drawText("labelFont -- SpectrumWorx 0123456789", 20, 68, 400, 18,
+        graphics.drawText("labelFont -- SpectrumWorx 0123456789", 30, 102, 600, 27,
                           juce::Justification::centredLeft);
 
         graphics.setFont(GUI::Theme::singleton().getPopupMenuFont());
-        graphics.drawText("getPopupMenuFont -- the regular face", 20, 88, 400, 18,
+        graphics.drawText("getPopupMenuFont -- the regular face", 30, 132, 600, 27,
                           juce::Justification::centredLeft);
 
         // The popup menu background, drawn where it can be seen rather than
         // under a menu.
         {
             juce::Graphics::ScopedSaveState const state(graphics);
-            graphics.setOrigin(430, 40);
+            graphics.setOrigin(645, 60);
             graphics.setColour(juce::Colours::black);
-            GUI::Theme::singleton().drawPopupMenuBackground(graphics, 340, 70);
+            GUI::Theme::singleton().drawPopupMenuBackground(graphics, 510, 105);
             graphics.setColour(juce::Colours::lightgrey);
             graphics.setFont(GUI::Theme::singleton().getPopupMenuFont());
-            graphics.drawText("drawPopupMenuBackground", 12, 24, 300, 20,
+            graphics.drawText("drawPopupMenuBackground", 18, 36, 450, 30,
                               juce::Justification::centredLeft);
         }
 
         graphics.setColour(juce::Colours::grey);
-        graphics.setFont(juce::FontOptions(11.0f));
-        graphics.drawText("LinearHorizontal -- thumb is SliderThumbPainter", 20, 148, 460, 16,
+        graphics.setFont(juce::FontOptions(16.5f));
+        graphics.drawText("LinearHorizontal -- thumb is SliderThumbPainter", 30, 222, 690, 24,
                           juce::Justification::centredLeft);
-        graphics.drawText("TwoValueHorizontal -- two thumbs", 20, 208, 460, 16,
+        graphics.drawText("TwoValueHorizontal -- two thumbs", 30, 312, 690, 24,
                           juce::Justification::centredLeft);
 
         drawThumbReference(graphics);
@@ -119,12 +119,12 @@ class ThemePage final : public juce::Component
 
     void resized() override
     {
-        single_.setBounds(20, 166, 460, 28);
-        range_.setBounds(20, 226, 460, 28);
-        button_.setBounds(20, 290, 140, 26);
-        toggled_.setBounds(176, 290, 140, 26);
-        label_.setBounds(20, 330, 200, 22);
-        editor_.setBounds(20, 360, 300, 26);
+        single_.setBounds(30, 249, 690, 42);
+        range_.setBounds(30, 339, 690, 42);
+        button_.setBounds(30, 435, 210, 39);
+        toggled_.setBounds(264, 435, 210, 39);
+        label_.setBounds(30, 495, 300, 33);
+        editor_.setBounds(30, 540, 450, 39);
     }
 
   private:
@@ -134,17 +134,17 @@ class ThemePage final : public juce::Component
     static void drawThumbReference(juce::Graphics &graphics)
     {
         graphics.setColour(juce::Colours::grey);
-        graphics.setFont(juce::FontOptions(11.0f));
-        graphics.drawText("thumb, and dragged:", 480, 172, 120, 16,
+        graphics.setFont(juce::FontOptions(16.5f));
+        graphics.drawText("thumb, and dragged:", 720, 258, 180, 24,
                           juce::Justification::centredLeft);
 
         auto const at([&](float const x, float const scale) {
             auto const w(GUI::SliderThumbStyle::width * scale);
             auto const h(GUI::SliderThumbStyle::height * scale);
-            GUI::SliderThumbPainter::paint(graphics, {x, 180 - h / 2, w, h});
+            GUI::SliderThumbPainter::paint(graphics, {x, 270 - h / 2, w, h});
         });
-        at(606, 1.0f);
-        at(620, 5.0f / 3);
+        at(909, 1.0f);
+        at(930, 5.0f / 3);
     }
 
     juce::Slider single_, range_;

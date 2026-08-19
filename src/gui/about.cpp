@@ -96,38 +96,38 @@ char const *const copiedLinkText{"Copied!"};
 
 namespace Layout
 {
-int constexpr margin{14};
-int constexpr indent{10}; // the credits, under their heading
+int constexpr margin{21};
+int constexpr indent{15}; // the credits, under their heading
 
 /// One line of body text, ascent to next ascent.
-int constexpr lineHeight{14};
+int constexpr lineHeight{21};
 
-int constexpr titleY{18};
-int constexpr titleHeight{20};
+int constexpr titleY{27};
+int constexpr titleHeight{30};
 
-int constexpr versionY{titleY + titleHeight + 2};
+int constexpr versionY{titleY + titleHeight + 3};
 /// \see versionLines() below, which returns exactly this many.
 int constexpr versionLineCount{3};
 
-int constexpr linksY{versionY + versionLineCount * lineHeight + 8};
-int constexpr linksHeight{14};
-int constexpr linkGap{12};
+int constexpr linksY{versionY + versionLineCount * lineHeight + 12};
+int constexpr linksHeight{21};
+int constexpr linkGap{18};
 
-int constexpr portedByY{linksY + linksHeight + 28};
+int constexpr portedByY{linksY + linksHeight + 42};
 int constexpr portedByLineCount{static_cast<int>(std::size(Content::portedBy))};
 
-int constexpr copyrightY{portedByY + portedByLineCount * lineHeight + 8};
+int constexpr copyrightY{portedByY + portedByLineCount * lineHeight + 12};
 int constexpr copyrightLineCount{static_cast<int>(std::size(Content::copyright))};
 
-int constexpr authorsHeadingY{copyrightY + copyrightLineCount * lineHeight + 28};
-int constexpr authorsY{authorsHeadingY + lineHeight + 10};
+int constexpr authorsHeadingY{copyrightY + copyrightLineCount * lineHeight + 42};
+int constexpr authorsY{authorsHeadingY + lineHeight + 15};
 } // namespace Layout
 
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace
 {
-juce::Font titleFont() { return juce::Font(juce::FontOptions(boldTypeface()).withHeight(17.0f)); }
+juce::Font titleFont() { return juce::Font(juce::FontOptions(boldTypeface()).withHeight(25.5f)); }
 juce::Font headingFont() { return Theme::singleton().headingFont(); }
 juce::Font bodyFont() { return DrawableText::defaultFont(); }
 
@@ -269,7 +269,7 @@ void AboutPage::Link::paintButton(juce::Graphics &graphics, bool const isMouseOv
                       juce::Justification::centredLeft);
 
     if (isMouseOverButton && !flashing_)
-        graphics.fillRect(0, getHeight() - 1, getWidth(), 1);
+        graphics.fillRect(0, getHeight() - 2, getWidth(), 2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -33,7 +33,7 @@ void CapsulePainter::paint(juce::Graphics &graphics, juce::Rectangle<float> cons
     ///
     ////////////////////////////////////////////////////////////////////////////
     /// The rings against the rim, which carry the whole of the brightness.
-    unsigned int constexpr hotRings{2};
+    unsigned int constexpr hotRings{3};
 
     auto const reach(lit ? style.litGlowReach : style.darkGlowReach);
     for (unsigned int ring(reach); ring >= 1; --ring)

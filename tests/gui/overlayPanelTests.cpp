@@ -18,7 +18,7 @@
 /// transparent desktop window that was invisible; as an overlay it is a hole in
 /// the editor. Nothing headless could see it, because `sw-show-ui --render`
 /// asserted an exit code and a panel that paints nothing exits 0. `--render`
-/// measures the whole canvas now; a 191 x 363 hole in a 563 x 376 editor is 33 %
+/// measures the whole canvas now; a 287 x 545 hole in an 845 x 564 editor is 33 %
 /// of it and would pass that floor comfortably, so the region is what has to be
 /// looked at, and that is this file.
 ///
@@ -70,7 +70,7 @@ juce::Rectangle<int> panelColumnRectangle()
     return {Editor::panelColumnX, Editor::overlayY, Editor::overlayWidth, Editor::overlayHeight};
 }
 
-/// The editor as it was before any of this: 563 x 376, panels over the strips.
+/// The editor as it was before any of this: 845 x 564, panels over the strips.
 juce::Rectangle<int> unexpandedEditor()
 {
     return {0, 0, Editor::estimatedWidth, Editor::estimatedHeight};
@@ -92,7 +92,7 @@ juce::Rectangle<int> moduleRack()
 ///
 /// \note Said rather than assumed. The default placement grows the editor, so a
 /// case that means to measure the overlay rectangle has to ask for the overlay --
-/// left alone these would be comparing a 563 px render with a 764 px one.
+/// left alone these would be comparing an 845 px render with a 1147 px one.
 Editor &overlayEditor(SWTest::Instance &instance)
 {
     instance.openEditor(Editor::PanelPlacement::overlay);
@@ -379,7 +379,7 @@ TEST_CASE("Clicking the logo opens the About page, not an empty panel", "[gui][o
 TEST_CASE("The two panels are mutually exclusive and land in the same place", "[gui][overlay]")
 {
     // `showPanel()` asserts the invariant; this is what it looks like on screen.
-    // There is one 191 x 363 rectangle whatever the placement -- so "open the
+    // There is one 287 x 545 rectangle whatever the placement -- so "open the
     // other one" has to mean "and shut this one", or they draw on top of each
     // other.
     SWTest::HostSideJuce const juce;
@@ -578,7 +578,7 @@ TEST_CASE("The always-visible column never empties", "[gui][overlay]")
     /// \note The width is taken in the constructor and not through
     /// requestEditorSize(), so this case is also what says that: the shim builds
     /// the editor inside `guiCreate()` and answers `guiGetSize()` out of it, so
-    /// an editor that asked afterwards would open at 563 and jump.
+    /// an editor that asked afterwards would open at 845 and jump.
     ///
     ////////////////////////////////////////////////////////////////////////////
     SWTest::HostSideJuce const juce;
@@ -674,7 +674,7 @@ TEST_CASE("Every factory bank draws, and draws something of its own", "[gui][ove
     auto const closed(rendered(editor));
     auto const banks(LE::SW::FactoryPresets::banks());
 
-    /// \note Hashed rather than kept: eighteen 563 x 376 ARGB images is 15 MB,
+    /// \note Hashed rather than kept: eighteen 845 x 564 ARGB images is 34 MB,
     /// and what is being asked is only whether any two agree.
     std::map<std::size_t, std::string> byPicture;
     unsigned int drawn{0};

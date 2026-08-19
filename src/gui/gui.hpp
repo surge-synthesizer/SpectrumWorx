@@ -664,7 +664,7 @@ class PopupMenu
     /// \note \p owner is not there only for the geometry. A menu is its own
     /// desktop window and inherits nothing from what opened it: JUCE works its
     /// scale out from the component the menu names as its target, so a menu that
-    /// names none is drawn at 1:1 beside an editor drawn at 1.5.
+    /// names none is drawn at 1:1 beside an editor drawn at the user's zoom.
     ///
     /// \note And the area is in the owner's coordinates rather than the screen's
     /// for the same reason: every offset here is a skin pixel, and the screen
@@ -751,23 +751,31 @@ class PopupMenuWithSelection : public PopupMenu
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
 /// The widget each is drawn in, which was its artwork's size.
-int constexpr moduleComboWidth{60};
-int constexpr moduleComboHeight{18};
-int constexpr settingsComboWidth{150};
-int constexpr settingsComboHeight{21};
+int constexpr moduleComboWidth{90};
+int constexpr moduleComboHeight{27};
+int constexpr settingsComboWidth{225};
+int constexpr settingsComboHeight{32};
 
 FrameStyle constexpr moduleComboFrame{
-    /* insets */ 1.73f, 2.23f,  1.45f,
-    /* corner */ 5.64f,
-    /* rim    */ 1.02f,
-    /* halo   */ 3u,    0.042f, 0.018f,
+    /* insets */ 2.595f,
+    3.345f,
+    2.175f,
+    /* corner */ 8.46f,
+    /* rim    */ RuleStyle::thickness,
+    /* halo   */ 5u,
+    0.0242f,
+    0.0120f,
 };
 
 FrameStyle constexpr settingsComboFrame{
-    /* insets */ 2.0f,  2.94f,  3.44f,
-    /* corner */ 6.93f,
-    /* rim    */ 1.04f,
-    /* halo   */ 3u,    0.035f, 0.022f,
+    /* insets */ 3.0f,
+    4.41f,
+    5.16f,
+    /* corner */ 10.395f,
+    /* rim    */ RuleStyle::thickness,
+    /* halo   */ 5u,
+    0.0197f,
+    0.0147f,
 };
 ///@}
 
@@ -793,7 +801,7 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
   public:
     /// What the selected item's text keeps clear of the rounded background's
     /// ends. \see paint(), and issue #76.
-    static int constexpr textMargin{6};
+    static int constexpr textMargin{9};
 
     void setSelectedID(unsigned int newSelectionID);
     void setSelectedIndex(unsigned int newSelectionIndex);
@@ -993,8 +1001,8 @@ class LEDTextButton : public CapsuleButton
     LEDTextButton(juce::Component &parent, unsigned int x, unsigned int y, char const *text);
 
     /// What the capsule takes out of the widget, the caption having the rest.
-    static int constexpr ledWidth{25};
-    static int constexpr ledHeight{14};
+    static int constexpr ledWidth{38};
+    static int constexpr ledHeight{21};
 
   protected: // juce::Component overrides
     void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
@@ -1014,7 +1022,7 @@ class TextButton : public WidgetBase<juce::Button>
   private:
     void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
 
-    static unsigned int const height = 11;
+    static unsigned int const height = 17;
 }; // class TextButton
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1230,7 +1238,7 @@ class EditorKnob final : public Knob
 {
   public:
     /// What the film strip's frame width was.
-    static constexpr unsigned int diameter{55};
+    static constexpr unsigned int diameter{83};
 
     EditorKnob(SpectrumWorxEditor &parent, unsigned int x, unsigned int y);
 

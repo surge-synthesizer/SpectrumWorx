@@ -111,7 +111,7 @@ TriggerButton::TriggerButton(juce::Component &parent, unsigned int const x, unsi
 
     /// \note The thirteen is the caption's room under the face, which the
     /// artwork's height used to be added to. \see paintButton().
-    setBounds(x, y, ModuleUI::width, TriggerButtonStyle::diameter + 13);
+    setBounds(x, y, ModuleUI::width, TriggerButtonStyle::diameter + 20);
 
     setTriggeredOnMouseDown(true);
 
@@ -205,7 +205,7 @@ void TriggerButton::paintButton(juce::Graphics &graphics, bool const isMouseOver
 
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
     graphics.setFont(DrawableText::defaultFont());
-    graphics.drawFittedText(getName(), 0, face.getHeight() + 2, getWidth(), 11,
+    graphics.drawFittedText(getName(), 0, face.getHeight() + 3, getWidth(), 17,
                             juce::Justification::horizontallyCentred, 1);
 
     bool const fade(isMouseOverButton && !isButtonDown);
@@ -299,7 +299,7 @@ void ModuleKnob::paint(juce::Graphics &graphics)
     }
     graphics.drawFittedText(
         getName(), ModuleUI::textMargin / 2, diameter_ + marginForGlow + (marginForGlow / 2),
-        getWidth() - ModuleUI::textMargin, 12, juce::Justification::horizontallyCentred, 2, 0.6f);
+        getWidth() - ModuleUI::textMargin, 18, juce::Justification::horizontallyCentred, 2, 0.6f);
 }
 
 void ModuleKnob::valueChanged() noexcept
@@ -459,7 +459,7 @@ void ModuleKnob::moduleControlDeactivated() { setScrollWheelEnabled(false); }
 void ModuleKnob::syncMouseWheelAndLFOState() { setScrollWheelEnabled(!isLFOEnabled()); }
 
 #ifdef __GNUC__ //...mrmlj... GCC 4.6, Clang 2.8-3.2
-unsigned int const ModuleKnob::spaceForText /* = 18*/;
+unsigned int const ModuleKnob::spaceForText /* = 27*/;
 #endif // __GNUC__
 
 DiscreteParameter::DiscreteParameter(juce::Component &parent, unsigned int const x,
@@ -519,7 +519,7 @@ ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Mod
     setSize(width, height);
 
     bypass_.setTopLeftPosition((ModuleUI::width / 2) - (bypass_.getWidth() / 2),
-                               ModuleUI::height - 26 - bypassWidgetHeight);
+                               ModuleUI::height - 39 - bypassWidgetHeight);
 
     eject_.setTopLeftPosition((ModuleUI::width - eject_.getWidth()) / 2, -3);
 
@@ -657,7 +657,7 @@ void ModuleUI::paint(juce::Graphics &graphics)
     ///
     ////////////////////////////////////////////////////////////////////////////
     graphics.setFont(Theme::singleton().labelFont());
-    graphics.drawFittedText(getName(), textMargin, nameRule, width - 2 * textMargin, 28,
+    graphics.drawFittedText(getName(), textMargin, nameRule, width - 2 * textMargin, 42,
                             juce::Justification::centred, 2, 0.8f);
 }
 
@@ -941,7 +941,7 @@ ModuleUI::Module const &ModuleUI::module() const { return const_cast<ModuleUI &>
 namespace Detail
 {
 ModuleWidgetConstructionState::ModuleWidgetConstructionState(ModuleUI &parent)
-    : parent(parent), yOffset(14),
+    : parent(parent), yOffset(21),
       parameterIndex(Engine::ModuleParameters::numberOfLFOBaseParameters)
 {
 }
@@ -957,22 +957,22 @@ template <>
 ModuleWidgetHolder<ModuleLEDTextButton>::ModuleWidgetHolder(ModuleWidgetConstructionState &state)
     : widget(state.parent, state.parent, ModuleUI::border, state.yOffset, state.parameterIndex++)
 {
-    state.yOffset += widget.getHeight() + 6;
+    state.yOffset += widget.getHeight() + 9;
 }
 
 template <>
 ModuleWidgetHolder<TriggerButton>::ModuleWidgetHolder(ModuleWidgetConstructionState &state)
-    : widget(state.parent, state.parent, 0, state.yOffset + 4, state.parameterIndex++)
+    : widget(state.parent, state.parent, 0, state.yOffset + 6, state.parameterIndex++)
 {
-    state.yOffset += widget.getHeight() + 6;
+    state.yOffset += widget.getHeight() + 9;
 }
 
 template <>
 ModuleWidgetHolder<DiscreteParameter>::ModuleWidgetHolder(ModuleWidgetConstructionState &state)
-    : widget(state.parent, state.parent, ModuleUI::border, state.yOffset += 4,
+    : widget(state.parent, state.parent, ModuleUI::border, state.yOffset += 6,
              state.parameterIndex++)
 {
-    state.yOffset += widget.getHeight() + 4;
+    state.yOffset += widget.getHeight() + 6;
 }
 
 template <>

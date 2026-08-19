@@ -85,17 +85,17 @@ class Preferences
     ///
     /// \brief The zooms the Interface page offers, ascending, as percentages.
     ///
-    /// \note **100 is the size the skin was drawn for, not a scale factor of
-    /// one.** Every offset in the editor is a pixel position in a 563 x 376
-    /// bitmap from 2010, and that is small on a screen sold since; the plugin
-    /// has always drawn it at 1.5x and called that its normal size. So the
-    /// percentage a user picks is a statement about how big the editor should
-    /// look, and ZoomedEditor is what turns it into a transform. \see issue #55.
+    /// \note **100 is the size the plugin has always opened at, and is now
+    /// also a scale factor of one.** It was not: the editor was laid out in a
+    /// 563 x 376 bitmap from 2010 and drawn at 1.5x, so "normal size" and
+    /// "no transform" were different things and 100 meant the former. The skin
+    /// was rescaled to 845 x 564 on 19.08.2026 and the two became the same
+    /// thing -- the window did not change size, the constants did. \see
+    /// ZoomedEditor::scaleForZoom() and issue #55.
     ///
     /// \note This list is the whole of what a zoom may be: it is what the combo
     /// box offers and what a value read out of the preferences file is checked
-    /// against. A typed-in or dragged custom zoom is a separate question and
-    /// waits on the skin being vector.
+    /// against. A typed-in or dragged custom zoom is a separate question.
     ///
     ////////////////////////////////////////////////////////////////////////////
     static constexpr std::array<unsigned int, 7> zoomPercentages{50, 75, 90, 100, 125, 150, 200};

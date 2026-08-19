@@ -49,8 +49,8 @@ PresetBrowser::PresetBrowser()
       /// a lit button's halo needs, and the pills land where they always did
       /// because the three positions below moved in by the same three pixels.
       ///                                       (18.08.2026.)
-      save_(*this, "Save", 54, 22, false), saveAs_(*this, "Save as", 54, 22, false),
-      delete_(*this, "Delete", 54, 22, false),
+      save_(*this, "Save", 81, 33, false), saveAs_(*this, "Save as", 81, 33, false),
+      delete_(*this, "Delete", 81, 33, false),
       browseArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
                    ColourMap::MouseOverGlow),
       upFolder_(*this, GlyphButton::Glyph::FolderUp),
@@ -92,22 +92,22 @@ PresetBrowser::PresetBrowser()
     /// binary is the state this was reported in.
     restoreLastPlace();
 
-    browseArrow_.setTopLeftPosition(174, 10);
-    save_.setTopLeftPosition(14, 30);
-    saveAs_.setTopLeftPosition(14 + 55, 30);
-    delete_.setTopLeftPosition(14 + 55 + 55, 30);
+    browseArrow_.setTopLeftPosition(261, 15);
+    save_.setTopLeftPosition(21, 45);
+    saveAs_.setTopLeftPosition(21 + 83, 45);
+    delete_.setTopLeftPosition(21 + 83 + 83, 45);
 
     /// \note The navigation row, in the gap the panel already had between the
     /// Save buttons and the list. The four x positions are issue #44's mock-up
     /// measured off it: up against the list's left frame, the user centred on
     /// the panel, and the jog's two halves abutting against its right frame.
     upFolder_.setTopLeftPosition(10, GlyphStyle::rowTop);
-    userPresets_.setTopLeftPosition(87, GlyphStyle::rowTop);
-    jogPrevious_.setTopLeftPosition(155, GlyphStyle::rowTop);
+    userPresets_.setTopLeftPosition(131, GlyphStyle::rowTop);
+    jogPrevious_.setTopLeftPosition(233, GlyphStyle::rowTop);
     jogNext_.setTopLeftPosition(jogPrevious_.getRight() + 1, GlyphStyle::rowTop);
 
-    listBox_.setBounds(11, 79, getWidth() - 22, 234);
-    comment().setBounds(8, 322, getWidth() - 13, 29);
+    listBox_.setBounds(17, 119, getWidth() - 33, 351);
+    comment().setBounds(12, 483, getWidth() - 20, 44);
 
     addChildComponent(&presetNameEditBox_);
     presetNameEditBox_.setAlwaysOnTop(true);
@@ -115,7 +115,7 @@ PresetBrowser::PresetBrowser()
     presetNameEditBox_.addListener(this);
 
     listBox_.setOpaque(false);
-    listBox_.setRowHeight(16);
+    listBox_.setRowHeight(24);
     /// \note `getViewport()->setScrollBarThickness( 12 )` stood here. The width
     /// is Theme's now, so the list and the comment box below it get the same one
     /// -- this was the only bar that had been told, and the comment box's was
@@ -130,7 +130,7 @@ PresetBrowser::PresetBrowser()
     takeColours();
     {
         juce::Font font(Theme::singleton().Theme::getPopupMenuFont());
-        font.setHeight(11);
+        font.setHeight(17);
         comment().setFont(font);
     }
 
@@ -368,7 +368,7 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
 
     bool const isDirectory(item.isDirectory());
 
-    unsigned int const x(isDirectory ? 16 : 4);
+    unsigned int const x(isDirectory ? 24 : 6);
 
     /// \note Drawn rather than asked for. This was
     /// `Theme::getDefaultFolderImage()`, which JUCE 8 answers with a Drawable,
@@ -377,7 +377,7 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
     /// did not follow the palette was the folder. \see GlyphPainter.
     if (isDirectory)
         GlyphPainter::paintFolder(graphics,
-                                  juce::Rectangle<float>(2.0f, 0.0f, static_cast<float>(x) - 4.0f,
+                                  juce::Rectangle<float>(3.0f, 0.0f, static_cast<float>(x) - 6.0f,
                                                          static_cast<float>(height)),
                                   ColourMap::getColour(ColourMap::Accent));
 
@@ -387,7 +387,7 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
 
     // The 4 on the right is issue #76's margin: a name as wide as the list had
     // its last glyph against the scrollbar.
-    graphics.drawFittedText(item.name, x, 0, width - x - 4, height,
+    graphics.drawFittedText(item.name, x, 0, width - x - 6, height,
                             juce::Justification::centredLeft, 1);
 }
 
@@ -1225,8 +1225,8 @@ void PresetBrowser::paint(juce::Graphics &graphics)
 {
     PanelBackground::paint(graphics);
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
-    graphics.setFont(13);
-    graphics.drawFittedText(locationLabel(), 13, 10, 155, 12, juce::Justification::centredLeft, 1);
+    graphics.setFont(20);
+    graphics.drawFittedText(locationLabel(), 20, 15, 233, 18, juce::Justification::centredLeft, 1);
 }
 
 bool PresetBrowser::Item::operator==(Item const &other) const { return name == other.name; }

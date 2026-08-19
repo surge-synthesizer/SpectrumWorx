@@ -13,6 +13,8 @@
 
 #include "resources.hpp"
 
+#include "gui/painters/ruleStyle.hpp"
+
 #include "le/utility/assert.hpp"
 
 #include <algorithm>
@@ -57,8 +59,8 @@ void paintSliderThumb(juce::Graphics &graphics, float const position,
 /// page's title asks for.
 ///                                       (16.08.2026.)
 Theme::Theme()
-    : headingFont_(juce::FontOptions(regularTypeface()).withHeight(14.0f)),
-      labelFont_(juce::FontOptions(regularTypeface()).withHeight(12.0f)),
+    : headingFont_(juce::FontOptions(regularTypeface()).withHeight(21.0f)),
+      labelFont_(juce::FontOptions(regularTypeface()).withHeight(18.0f)),
       palette_(ColourMap::generation())
 {
     setDefaultSansSerifTypeface(regularTypeface());
@@ -164,7 +166,7 @@ void Theme::drawScrollbar(juce::Graphics &graphics, juce::ScrollBar &scrollBar, 
         return;
 
     /// What the thumb keeps clear of the edges of the strip it runs in.
-    constexpr int inset{1};
+    constexpr int inset{2};
 
     auto const bar(isScrollbarVertical
                        ? juce::Rectangle<int>(x, thumbStartPosition, width, thumbSize)
@@ -198,17 +200,18 @@ void Theme::drawPopupMenuBackground(juce::Graphics &graphics, int const width, i
     {
         graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground).withAlpha(0.9f));
         graphics.fillRoundedRectangle(0.f, 0.f, static_cast<float>(width),
-                                      static_cast<float>(height), 10.f);
+                                      static_cast<float>(height), 15.f);
         graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
         graphics.drawRoundedRectangle(0.f, 0.f, static_cast<float>(width),
-                                      static_cast<float>(height), 10.f, 1.f);
+                                      static_cast<float>(height), 15.f, RuleStyle::thickness);
     }
     else
     {
         graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground));
         graphics.fillRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height));
         graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
-        graphics.drawRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height), 1.f);
+        graphics.drawRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height),
+                          RuleStyle::thickness);
     }
 }
 
@@ -250,7 +253,7 @@ juce::Font Theme::getPopupMenuFont()
 {
     // labelFont_ with the weight taken off: the regular face rather than
     // Font::setBold(false), which does nothing once a typeface is explicit.
-    return juce::Font(juce::FontOptions(regularTypeface()).withHeight(12.0f));
+    return juce::Font(juce::FontOptions(regularTypeface()).withHeight(18.0f));
 }
 
 int selectedOrDraggedThumb(juce::Slider const &slider)

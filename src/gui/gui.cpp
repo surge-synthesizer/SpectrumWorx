@@ -445,7 +445,7 @@ DrawableText::DrawableText(char const *const text, unsigned int const x, unsigne
 juce::Font DrawableText::defaultFont()
 {
     juce::Font font(Theme::singleton().Theme::getPopupMenuFont());
-    font.setHeight(11);
+    font.setHeight(17);
     return font;
 }
 
@@ -567,7 +567,7 @@ void PopupMenu::updateDimensionsForNewItem(juce::String const &itemText)
     int idealWidth, idealHeight;
     Theme::singleton().Theme::getIdealPopupMenuItemSize(itemText, false, -1, idealWidth,
                                                         idealHeight);
-    menuWidth_ = std::max<unsigned int>(menuWidth_, idealWidth + 4);
+    menuWidth_ = std::max<unsigned int>(menuWidth_, idealWidth + 6);
     menuHeight_ += idealHeight;
 }
 
@@ -613,7 +613,7 @@ juce::PopupMenu PopupMenu::build(int const tickedIndex) const
 /// under the owner: juce::PopupMenu puts it below whatever it is given.
 void PopupMenu::showCenteredAtRight(juce::Component const &owner, OnChosen onChosen) const
 {
-    showAt(owner, {owner.getWidth() + 6, (owner.getHeight() / 2) - (menuHeight_ / 2), 1, 1},
+    showAt(owner, {owner.getWidth() + 9, (owner.getHeight() / 2) - (menuHeight_ / 2), 1, 1},
            std::move(onChosen));
 }
 
@@ -807,7 +807,7 @@ void ComboBox::paint(juce::Graphics &graphics)
     /// \note The short reading, which for all but a handful of values is the
     /// only one there is. \see PopupMenu::addItem() and issue #120.
     graphics.drawFittedText(getSelectedItemShortText(), textMargin, 2, getWidth() - 2 * textMargin,
-                            boxHeight_ - 3, juce::Justification::centred, 1, 0.1f);
+                            boxHeight_ - 5, juce::Justification::centred, 1, 0.1f);
 }
 
 /// \note \p onValueChanged runs later, on the message thread, and only if the
@@ -1062,7 +1062,7 @@ void LEDTextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton,
 {
     g.setColour(ColourMap::getColour(ColourMap::Text));
     g.setFont(DrawableText::defaultFont());
-    g.drawFittedText(getName(), ledWidth, 3, getWidth() - ledWidth, 11,
+    g.drawFittedText(getName(), ledWidth, 5, getWidth() - ledWidth, 17,
                      juce::Justification::horizontallyCentred, 1);
 
     paintCapsule(g, {0, 0, ledWidth, ledHeight}, isMouseOverButton, isButtonDown);
@@ -1118,7 +1118,7 @@ Knob::Knob(juce::Component &parent, unsigned int const x, unsigned int const y,
     //setPopupDisplayEnabled ( true, 0               ); //...mrmlj...for testing...
     /// \note `setPopupMenuEnabled( true )` stood here. See the note over the
     /// menu interface in the header: the right button raises ours now.
-    setMouseDragSensitivity(800);
+    setMouseDragSensitivity(1200);
     addToParentAndShow(parent, *this);
 }
 
@@ -1218,7 +1218,7 @@ class Knob::ValueTypein final : public juce::PopupMenu::CustomComponent,
         : juce::PopupMenu::CustomComponent(/*isTriggeredAutomatically*/ false), knob_(&knob)
     {
         editor_.setWantsKeyboardFocus(true);
-        editor_.setIndents(4, 0);
+        editor_.setIndents(6, 0);
         editor_.setJustification(juce::Justification::centredLeft);
         editor_.setFont(Theme::singleton().Theme::getPopupMenuFont());
         editor_.addListener(this);
@@ -1232,7 +1232,7 @@ class Knob::ValueTypein final : public juce::PopupMenu::CustomComponent,
         idealHeight = fieldHeight;
     }
 
-    void resized() override { editor_.setBounds(getLocalBounds().reduced(4, 2)); }
+    void resized() override { editor_.setBounds(getLocalBounds().reduced(6, 3)); }
 
     ////////////////////////////////////////////////////////////////////////////
     /// \note Deferred by a message rather than done here. The item is made
@@ -1270,8 +1270,8 @@ class Knob::ValueTypein final : public juce::PopupMenu::CustomComponent,
     void textEditorEscapeKeyPressed(juce::TextEditor &) override { triggerMenuItem(); }
 
   private:
-    static int constexpr fieldWidth{140};
-    static int constexpr fieldHeight{22};
+    static int constexpr fieldWidth{210};
+    static int constexpr fieldHeight{33};
 
   private:
     juce::Component::SafePointer<Knob> knob_;
@@ -1325,7 +1325,7 @@ void Knob::showParameterMenu(juce::MouseEvent const &event)
     /// transform, where a menu with a window of its own has to be told to
     /// follow the component that opened it. \see PopupMenu::showAt() for that
     /// half, and the note there on why a menu that names nothing is drawn at
-    /// 1:1 beside an editor drawn at 1.5.
+    /// 1:1 beside an editor drawn at the user's zoom.
     ///
     /// \note withTargetComponent() all the same, and before
     /// withTargetScreenArea() because it overwrites the area: it is what the
@@ -1523,12 +1523,12 @@ void EditorKnob::paint(juce::Graphics &graphics)
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
     {
         juce::Font font(Theme::singleton().labelFont());
-        font.setHeight(11);
+        font.setHeight(17);
         font.setBold(true);
         graphics.setFont(font);
     }
 
-    graphics.drawFittedText(parameterValueText(), 12, 16, 32, 24, juce::Justification::centred, 1,
+    graphics.drawFittedText(parameterValueText(), 18, 24, 48, 36, juce::Justification::centred, 1,
                             0.1f);
 }
 
@@ -1642,18 +1642,18 @@ SpectrumWorxEditor &EditorKnob::editor() const { return SpectrumWorxEditor::from
 TitledComboBox::TitledComboBox(juce::Component &parent, unsigned int const x, unsigned int const y,
                                char const *const title)
     : ComboBox(parent, settingsComboFrame, settingsComboWidth, settingsComboHeight),
-      title_(title, 4, 0, getWidth() - 8, 13, juce::Justification::left)
+      title_(title, 6, 0, getWidth() - 12, 20, juce::Justification::left)
 {
-    TitledComboBox::setBounds(x, y, getWidth(), getHeight() + 15);
+    TitledComboBox::setBounds(x, y, getWidth(), getHeight() + 23);
 }
 
 void TitledComboBox::paint(juce::Graphics &graphics)
 {
     if (!hasValidSelection())
         return;
-    graphics.setOrigin(0, +12);
+    graphics.setOrigin(0, +18);
     ComboBox::paint(graphics);
-    graphics.setOrigin(0, -12);
+    graphics.setOrigin(0, -18);
     title_.draw(graphics);
 }
 

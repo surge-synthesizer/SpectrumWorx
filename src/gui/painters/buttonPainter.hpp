@@ -34,6 +34,8 @@
 #ifndef buttonPainter_hpp__6C1B0F24_7A85_4E30_9D6B_1F0A4C52E7B8
 #define buttonPainter_hpp__6C1B0F24_7A85_4E30_9D6B_1F0A4C52E7B8
 //------------------------------------------------------------------------------
+#include "gui/painters/ruleStyle.hpp"
+
 #include <juce_graphics/juce_graphics.h>
 
 namespace LE::SW::GUI
@@ -59,10 +61,10 @@ namespace ButtonStyle
 /// \note Which is what made 08.svg a 57x24 canvas holding a 50x17 pill. A
 /// button that fills its own bounds has nowhere to put a glow, so this is the
 /// difference between the size a caller asks for and the size that gets drawn.
-float constexpr glowReach{3.5f};
+float constexpr glowReach{5.25f};
 
-float constexpr rectangularRadius{5.0f};
-float constexpr rimThickness{1.0f}; ///< the blue line on a lit button's edge
+float constexpr rectangularRadius{7.5f};
+float constexpr rimThickness{RuleStyle::thickness}; ///< the blue line on a lit button's edge
 
 /// \brief The halo: \p glowRings rounded rectangles, each a pixel further out
 /// and fainter than the last, laid down before the pill covers their middles.
@@ -71,9 +73,9 @@ float constexpr rimThickness{1.0f}; ///< the blue line on a lit button's edge
 /// artwork did and what makes the falloff read as light rather than as banding.
 /// The outermost ring falls outside the widget and is clipped, in the artwork
 /// as here.
-unsigned int constexpr glowRings{4};
-float constexpr glowInnerAlpha{0.11f}; ///< at the ring against the pill
-float constexpr glowOuterAlpha{0.02f}; ///< and at the last one
+unsigned int constexpr glowRings{6};
+float constexpr glowInnerAlpha{0.0747f}; ///< at the ring against the pill
+float constexpr glowOuterAlpha{0.0134f}; ///< and at the last one
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -84,16 +86,16 @@ float constexpr glowOuterAlpha{0.02f}; ///< and at the last one
 /// one tab's pill from the next, and also what keeps the first one from
 /// overhanging the strip it stands in -- which the page below that strip is
 /// inset by too, so all three now start on the same line.
-float constexpr tabSideInset{0.75f};
-float constexpr tabTopInset{0.75f};
-float constexpr tabRadius{4.5f};
+float constexpr tabSideInset{1.125f};
+float constexpr tabTopInset{1.125f};
+float constexpr tabRadius{6.75f};
 
 /// \brief The depth of the settings panel's tab bar.
 ///
 /// \note Was `resourceArtwork<SettingsEngineOn>().getHeight()`, asked in two
 /// places -- the bar's depth and the panel's overall height. \see
 /// SpectrumWorxEditor::Settings.
-int constexpr tabHeight{16};
+int constexpr tabHeight{24};
 
 /// \brief How the selected tab's blue falls into shadow.
 ///
@@ -115,16 +117,16 @@ unsigned int constexpr selectedTabStops{4};
 /// which are light text on a dark ground; this is the other way round and small
 /// with it, and the regular face at ten pixels of dark ink on a lit pill does
 /// not hold together. Measured off the artwork, which had it baked in.
-float constexpr captionHeight{10.0f};
+float constexpr captionHeight{15.0f};
 
-float constexpr captionPadding{6.0f}; ///< either side of the text, inside the pill
+float constexpr captionPadding{9.0f}; ///< either side of the text, inside the pill
 
 /// \brief What the caption is lifted by, off the pill's middle.
 ///
 /// \note The ramp is bright at the top and black at the bottom, so text centred
 /// by arithmetic sits low: there is more dark under it than light over it. The
 /// artwork put it here.
-float constexpr captionRise{0.5f};
+float constexpr captionRise{0.75f};
 ///@}
 } // namespace ButtonStyle
 

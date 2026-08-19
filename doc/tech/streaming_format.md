@@ -302,11 +302,14 @@ enumerations are streamed **by name**, so inserting a value cannot silently
 change what an existing file means. `tests/gui/preferencesTests.cpp` pins the
 names.
 
-The zoom is a percentage, and **100 is the size the plugin has always opened
-at** rather than a scale factor of one: the skin is a 563 x 376 bitmap laid out
-for a 2010 screen and `ZoomedEditor` has drawn it at 1.5x since the port. A
-percentage the build does not offer — 300, say — reads as 100 rather than being
-clamped, because the combo box could show nothing for it.
+The zoom is a percentage and **100 means no transform at all**. It used to mean
+1.5: the skin was a 563 x 376 bitmap laid out for a 2010 screen and
+`ZoomedEditor` drew it at 1.5x, so 100 was "the size the plugin has always
+opened at" rather than a scale factor of one. The skin's own constants were
+rescaled to 845 x 564 instead, so the window is the size it always was and
+nothing resamples it to get there. A percentage the build does not offer — 300,
+say — reads as 100 rather than being clamped, because the combo box could show
+nothing for it.
 
 Note what does *not* need it — the loaded sample. `<Global Sample="…">` has
 carried that since 2011, so putting state on the preset serialisation restores it

@@ -108,7 +108,7 @@ TEST_CASE("The side chain box shows which source is selected", "[gui][side-chain
     /// thing the interface believes on its own.
     ///
     /// \note Some difference rather than a fraction: what moves is one line of
-    /// text in a 563 x 396 editor, so a floor worth having would be tuned to the
+    /// text in an 845 x 564 editor, so a floor worth having would be tuned to the
     /// string lengths. Zero is the failure and it is the only one worth naming --
     /// a box that never re-read the source, which is exactly what an empty
     /// "External audio" field did for every state that was not a file.

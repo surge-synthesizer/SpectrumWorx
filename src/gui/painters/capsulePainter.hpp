@@ -100,26 +100,26 @@ struct CapsuleStyle
 /// \brief The LFO switch's, in a 25 x 14 widget. \see LEDTextButton, which puts
 /// its caption beside one.
 CapsuleStyle constexpr ledCapsule{
-    /* size   */ 12.f,     5.f,
-    /* offset */ 0.5f,
-    /* rim    */ 0.85f,
-    /* lit    */ 7u,       0.017f, 0.100f,
-    /* dark   */ 6u,       0.018f, 0.038f,
+    /* size   */ 18.f,     7.5f,
+    /* offset */ 0.75f,
+    /* rim    */ 1.275f,
+    /* lit    */ 11u,      0.0107f, 0.0678f,
+    /* dark   */ 9u,       0.0120f, 0.0255f,
     /* white core */ true,
 };
 
 /// \brief A module strip's bypass -- a bigger canvas for a smaller capsule,
 /// because its halo carries much further.
 ///@{
-int constexpr bypassWidgetWidth{38};
-int constexpr bypassWidgetHeight{33};
+int constexpr bypassWidgetWidth{57};
+int constexpr bypassWidgetHeight{50};
 
 CapsuleStyle constexpr bypassCapsule{
-    /* size   */ 10.51f,    5.05f,
-    /* offset */ 0.80f,
-    /* rim    */ 0.89f,
-    /* lit    */ 10u,       0.043f, 0.110f,
-    /* dark   */ 4u,        0.045f, 0.160f,
+    /* size   */ 15.77f,    7.58f,
+    /* offset */ 1.20f,
+    /* rim    */ 1.335f,
+    /* lit    */ 15u,       0.0289f, 0.0747f,
+    /* dark   */ 6u,        0.0302f, 0.1097f,
     /* white core */ false,
 };
 ///@}

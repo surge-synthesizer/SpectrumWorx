@@ -34,34 +34,34 @@ namespace LE::SW::GUI
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \brief The tongue and the cross on it, in skin pixels inside a 30 x 18
+/// \brief The tongue and the cross on it, in skin pixels inside a 45 x 27
 /// widget.
 namespace EjectStyle
 {
-int constexpr widgetWidth{30};
-int constexpr widgetHeight{18};
+int constexpr widgetWidth{45};
+int constexpr widgetHeight{27};
 
 /// What the tongue leaves clear of its widget. The top is where the strip is,
 /// so nothing is left there -- the shape starts a little below the widget's own
 /// top because the strip's rim is above it.
 ///@{
-float constexpr sideInset{4.04f};
-float constexpr topInset{4.15f};
-float constexpr bottomInset{1.94f};
+float constexpr sideInset{6.06f};
+float constexpr topInset{6.225f};
+float constexpr bottomInset{2.91f};
 ///@}
 
 /// How deep the elliptical bottom is; its width is half the tongue's.
-float constexpr footDepth{5.0f};
+float constexpr footDepth{7.5f};
 
-float constexpr rimThickness{1.25f};
+float constexpr rimThickness{1.875f};
 
 /// The cross, as a half-width and half-height about the tongue's middle, and
 /// the pen it is drawn with.
 ///@{
-float constexpr crossHalfWidth{2.85f};
-float constexpr crossHalfHeight{3.2f};
-float constexpr crossCentreY{9.7f};
-float constexpr crossThickness{2.0f};
+float constexpr crossHalfWidth{4.275f};
+float constexpr crossHalfHeight{4.8f};
+float constexpr crossCentreY{14.55f};
+float constexpr crossThickness{3.0f};
 ///@}
 } // namespace EjectStyle
 

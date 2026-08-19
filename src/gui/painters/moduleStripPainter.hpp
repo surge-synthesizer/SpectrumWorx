@@ -14,6 +14,7 @@
 #define moduleStripPainter_hpp__B6D5210F_9C34_4E8A_A017_58D2E6B4739C
 //------------------------------------------------------------------------------
 #include "gui/painters/framePainter.hpp"
+#include "gui/painters/ruleStyle.hpp"
 
 #include <juce_graphics/juce_graphics.h>
 
@@ -36,10 +37,14 @@ namespace LE::SW::GUI
 ////////////////////////////////////////////////////////////////////////////////
 
 FrameStyle constexpr moduleStripFrame{
-    /* insets */ 1.73f, 3.21f,  2.19f,
-    /* corner */ 8.4f,
-    /* rim    */ 1.06f,
-    /* halo   */ 3u,    0.272f, 0.035f,
+    /* insets */ 2.595f,
+    4.815f,
+    3.285f,
+    /* corner */ 12.6f,
+    /* rim    */ RuleStyle::thickness,
+    /* halo   */ 5u,
+    0.1709f,
+    0.0235f,
 };
 
 /// \brief Draws the frame a module's controls sit in, into \p bounds.

@@ -215,7 +215,7 @@ Ink measure(juce::Image const &image)
 /// \brief Whether \p ink is enough to call the page drawn, complaining usefully
 /// when it is not.
 ///
-/// \note One thousandth of the canvas, which is 212 pixels of the 563 x 376
+/// \note One thousandth of the canvas, which is 476 pixels of the 845 x 564
 /// editor. Deliberately far below what the pages actually measure -- theme is the
 /// thinnest at 12.0 %, skin 13.9 %, and the five editor pages 73-81 % -- because
 /// the failure this is for is *nothing was drawn*, not "less was drawn than last

@@ -33,9 +33,13 @@ namespace LE::SW::GUI
 
 /// \brief Owns a SpectrumWorxEditor and shows it scaled.
 ///
-///   Every offset in SpectrumWorxEditor is a pixel position in a 563 x 376
-/// bitmap and none of them move: the editor lays itself out in skin pixels, as
-/// it always has, and this draws it through one juce::AffineTransform.
+///   Every offset in SpectrumWorxEditor is a pixel position in an 845 x 564
+/// coordinate system, and this draws it through one juce::AffineTransform.
+///
+/// \note At the resting 100 % that transform is the identity, which is the
+/// whole point of it: the skin's coordinate system *is* the screen's, so a rule
+/// written down as one pixel covers one pixel of a 1x monitor rather than
+/// landing across two at half strength. \see RuleStyle::thickness.
 ///
 /// \note Why a component in between, rather than a transform on the editor
 /// itself. The scale has to be applied exactly once, and the size handed to the
@@ -57,21 +61,30 @@ class ZoomedEditor final : public juce::Component
   public:
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \brief The transform a user-facing 100% means.
+    /// \brief The transform a user-facing 100 % means, which is none.
     ///
-    ///   The skin is a 563 x 376 bitmap laid out for a 2010 screen and the
-    /// plugin has always drawn it at 1.5x. That 1.5 is what "normal size" has
-    /// meant since, so it is what 100% is defined as here rather than something
-    /// the user is shown -- a zoom combo offering 150% as its resting value
-    /// would be describing the bitmap rather than the window.
-    ///                                       (16.08.2026.) (SW port)
+    /// \note A `scaleAtOneHundredPercent` of 1.5 stood here until 19.08.2026.
+    /// The skin was a 563 x 376 bitmap laid out for a 2010 screen, the plugin
+    /// had always drawn it at 1.5x, and that 1.5 was therefore what "normal
+    /// size" meant -- so 100 % was defined as it rather than as one.
+    ///
+    ///   What that cost was every edge in the skin. A whole-pixel coordinate
+    /// through a 1.5 transform lands on a half, so on a monitor without a
+    /// HiDPI scale of its own each rule was laid down as one solid column of
+    /// pixels and one at half strength: a soft grey seam rather than a line. It
+    /// looked correct only on a display that was quietly scaling by two
+    /// underneath.
+    ///
+    ///   So the constants moved instead of the transform. The skin is 845 x 564
+    /// now -- the old numbers at the size they were always drawn at -- and 100 %
+    /// is one. The window is the same size it has always been; what changed is
+    /// that nothing resamples it to get there.
+    ///                                       (19.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
-    static constexpr float scaleAtOneHundredPercent{1.5f};
-
     static constexpr float scaleForZoom(unsigned int const zoomPercent)
     {
-        return scaleAtOneHundredPercent * static_cast<float>(zoomPercent) / 100.0f;
+        return static_cast<float>(zoomPercent) / 100.0f;
     }
 
     static constexpr int scaled(int const skinPixels, float const scale)

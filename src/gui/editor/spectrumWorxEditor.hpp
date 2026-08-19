@@ -77,49 +77,44 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \note constexpr rather than `static ... const`: these are compared against
     /// and passed by reference outside this class, and an in-class initialiser
     /// with no out-of-line definition is not something that can be odr-used.
-    static constexpr unsigned short estimatedWidth{563};
+    static constexpr unsigned short estimatedWidth{845};
 
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \brief The skin bitmap's height, and the strip under it.
+    /// \brief The editor's height, which is the artwork's.
     ///
-    ///   The artwork is 563 x 376 and every offset in this editor is a pixel
-    /// position in it, so it stays exactly what it was. What the editor gained is
-    /// a bar below the artwork carrying the build date, time and commit -- see
-    /// paintBuildStamp() -- which is why the two are separate constants and why
-    /// anything measuring the *skin* (overlayY below) has to name artworkHeight
-    /// and not the editor's height.
-    ///                                       (06.08.2026.) (SW port)
+    ///   The artwork is 845 x 564 and every offset in this editor is a pixel
+    /// position in it.
+    ///
+    /// \note Two constants until 19.08.2026, because a bar below the artwork
+    /// carried the build date, time and commit and the skin had to be measured
+    /// without it. The bar is gone -- the About page is where a build identifies
+    /// itself -- so the editor ends where the panels do and the two are one
+    /// number again. \see aboutPageTests.cpp, which is what still holds the
+    /// stamp to being reachable.
+    ///                                       (19.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
-    static constexpr unsigned short artworkHeight{376};
-    static constexpr unsigned short buildStampHeight{20};
+    static constexpr unsigned short artworkHeight{564};
 
-    static constexpr unsigned short estimatedHeight{artworkHeight + buildStampHeight};
+    static constexpr unsigned short estimatedHeight{artworkHeight};
 
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note A zoom belongs here and is not here yet.
+    /// \note The zoom is not here, and that is deliberate.
     ///
-    ///   A `zoomFactor` and a `setTransform()` at the end of the constructor
-    /// went in and came straight back out: the scale came out applied twice
-    /// (a factor of 1.5 needed `sqrt(1.5)` written down to look right). Setting
-    /// the transform on the editor *and* handing out pre-scaled bounds does it
-    /// once each -- the shim's holder divides the size back down by the child's
+    ///   A `zoomFactor` and a `setTransform()` at the end of this constructor
+    /// went in and came straight back out: the scale came out applied twice (a
+    /// factor of 1.5 needed `sqrt(1.5)` written down to look right). Setting the
+    /// transform on the editor *and* handing out pre-scaled bounds does it once
+    /// each -- the shim's holder divides the size back down by the child's
     /// transform in its resized() (clap_juce_shim_impl.cpp) and then the
     /// transform is applied again at paint time.
     ///
-    ///   What that says is the editor is the wrong component to carry it. The
-    /// shape that works is an intermediate: the editor keeps its skin-pixel
-    /// bounds and holds one content child that everything else is parented to,
-    /// the transform goes on the child, and the editor's own size is the
-    /// scaled one -- so exactly one component scales and exactly one reports
-    /// size to the host.
-    ///
-    ///   Worth doing, because the artwork is becoming vectors and a Drawable
-    /// painted through that transform resolves at the zoomed size rather than
-    /// being interpolated: measured at 1.5x, 458 pixels of the preset button
-    /// carried detail no upscale of the bitmap could.
+    ///   What that says is the editor is the wrong component to carry it. So it
+    /// does not: the editor keeps its skin-pixel bounds and ZoomedEditor holds
+    /// the transform and reports the scaled size to the host. Exactly one
+    /// component scales and exactly one reports size.
     ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
@@ -138,8 +133,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \brief What opening the preset browser or the settings panel does to the
     /// editor.
     ///
-    ///   Both panels are 191 x 363 and the editor's artwork is 563 x 376. Its
-    /// left column is 213 px wide and every pixel of it is spoken for -- the
+    ///   Both panels are 287 x 545 and the editor's artwork is 845 x 564. Its
+    /// left column is 320 px wide and every pixel of it is spoken for -- the
     /// in/out/mix knobs, the module-info and LFO column, and the two buttons that
     /// open these panels, which a panel must not cover or there is no way to shut
     /// it again. So a panel either covers the module strips or the editor grows a
@@ -515,11 +510,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \note overlayX is the module strips' right edge less overlayWidth, and
     /// the .cpp static_asserts it against ModuleUI's own constants rather than
     /// this header taking a dependency on moduleUI.hpp for three numbers.
-    static constexpr unsigned short overlayWidth{191};
-    static constexpr unsigned short overlayHeight{363};
-    static constexpr unsigned short overlayX{362};
-    /// artworkHeight, not estimatedHeight: a panel is centred in the skin, and
-    /// the build-stamp bar is below the skin.
+    static constexpr unsigned short overlayWidth{287};
+    static constexpr unsigned short overlayHeight{545};
+    static constexpr unsigned short overlayX{543};
     static constexpr unsigned short overlayY{(artworkHeight - overlayHeight) / 2};
 
     /// The skin's right margin, the module strips ending at overlayX + overlayWidth.
@@ -580,74 +573,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     void updateMainKnobs();
 
-  public:
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \brief The one line drawn in the build-stamp bar: when this binary was
-    /// built and from what commit.
-    ///
-    /// \note Public because it is the only thing a test can hold the bar to. That
-    /// the bar was *painted* is a question about pixels and is asked that way;
-    /// that what it says is the stamp and not, say, last configure's date, is a
-    /// question about this string.
-    ///                                       (06.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-    static juce::String buildStampText();
-
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \brief The other end of the same bar: the rate the engine is running at,
-    /// or "no rate" before a host has activated it.
-    ///
-    /// \note The channel layout was drawn here too until 18.08.2026 --
-    /// `2main,0side in, 2main out` -- and it is gone rather than shortened. It is
-    /// a *bus topology*, which is a handshake between the plugin, the host and
-    /// the track and not something a user acts on; the plugin declares the same
-    /// one unconditionally, so the readout was three constants beside a number
-    /// that moves. What a user does decide about the side chain is which source
-    /// feeds it, and that is answerable where they choose it. \see
-    /// doc/tech/sidechain-approach.md and issue #113.
-    ///
-    /// \note Live, where buildStampText() is fixed for the life of the process:
-    /// a host can change the sample rate under an open editor, so
-    /// `timerCallback()` watches for it. \see currentEngineState().
-    ///                                       (18.08.2026.)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-    juce::String engineStateText() const;
-
   private:
-    /// \brief Fills the buildStampHeight strip under the artwork with
-    /// buildStampText() to the left and engineStateText() to the right.
-    /// \see artworkHeight.
-    void paintBuildStamp(juce::Graphics &) const;
-
-    /// \brief The strip itself, so that a repaint can name it rather than the
-    /// whole editor. \see artworkHeight.
-    juce::Rectangle<int> buildStampBar() const;
-
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \brief What engineStateText() is drawn from, as numbers -- so the timer
-    /// can ask "has this moved" without formatting a string thirty times a
-    /// second.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-    struct EngineState
-    {
-        float sampleRate{0};
-
-        bool operator==(EngineState const &) const = default;
-    }; // struct EngineState
-
-    EngineState currentEngineState() const;
-
-    /// What the bar was last repainted for. Only ever compared, never drawn --
-    /// paintBuildStamp() reads the engine, so a repaint from any other cause
-    /// still shows the truth rather than this.
-    EngineState engineState_;
-
     /// \brief Which ColourMap::generation() this editor was last painted for.
     ///
     /// \note Seeded with the current one rather than with zero, so that an
@@ -656,8 +582,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
     std::uint32_t palette_{ColourMap::generation()};
 
   private: // JUCE Component overrides.
-    /// \note Only what is outside the skin: the panel column's chrome and the
-    /// build-stamp bar. The skin itself is MainArea's. \see the definition.
+    /// \note Only what is outside the skin: the panel column's chrome. The skin
+    /// itself is MainArea's. \see the definition.
     void paint(juce::Graphics &) override;
     void parentHierarchyChanged() override;
 
@@ -814,7 +740,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ///
     ///   Everything but a panel is parented here rather than to the editor, and
     /// that is the whole of what moving the panel column to the left cost: the
-    /// skin's 563 x 376 coordinate system is this component's, so no offset in it
+    /// skin's 845 x 564 coordinate system is this component's, so no offset in it
     /// moved and none of them has to know whether there is a column. The editor
     /// slides this right by mainAreaX when there is one and paints what is left of
     /// itself -- the column's chrome and the build-stamp bar.
@@ -918,8 +844,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
         /// The insert line's width -- even, so that it straddles the gap -- and
         /// how far past the strips it runs at each end. \see showInsert().
-        static constexpr int lineWidth{6};
-        static constexpr int lineOverrun{5};
+        static constexpr int lineWidth{9};
+        static constexpr int lineOverrun{8};
 
       private: // JUCE component overrides.
         void paint(juce::Graphics &) override;
@@ -1272,7 +1198,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
         ModuleControlBase *pModuleControl_;
 
-        static unsigned int const width = 116;
+        static unsigned int const width = 174;
 
         typedef juce::Component LFODisplay::*ComponentPtr;
         static ComponentPtr const componentsToDisableKeyboardGrabingFor[];
@@ -1383,9 +1309,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
         DiscreteParameterComboBox windowFunction_;
 
       public:
-        static std::uint8_t const xMargin = 20;
-        static std::uint8_t const yMargin = 20;
-        static std::uint8_t const yStep = 45;
+        static std::uint16_t const xMargin = 30;
+        static std::uint16_t const yMargin = 30;
+        static std::uint16_t const yStep = 68;
     }; // class Settings
 
     /// Tab indices into Settings, in addTab() order.

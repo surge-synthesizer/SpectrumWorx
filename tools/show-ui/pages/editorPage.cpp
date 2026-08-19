@@ -273,7 +273,7 @@ class EditorPage final : public juce::Component
     /// \note The page is whatever size the editor is, and the editor changes
     /// size: opening a panel asks its host for a column and takes one here,
     /// because this harness grants every request. Without this the render is
-    /// cropped to 563 px and the column -- the thing the page exists to show --
+    /// cropped to 845 px and the column -- the thing the page exists to show --
     /// is the part that falls off.
     void childBoundsChanged(juce::Component *const pChild) override
     {

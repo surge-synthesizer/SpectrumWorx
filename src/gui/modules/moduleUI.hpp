@@ -110,8 +110,8 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
     /// \note constexpr rather than the `static unsigned int const` the two
     /// margins below are: that form is odr-usable and so wants an out-of-line
     /// definition, which is what the `#ifdef __GNUC__` after spaceForText is.
-    static constexpr unsigned int diameter{51};
-    static constexpr unsigned int smallDiameter{23};
+    static constexpr unsigned int diameter{77};
+    static constexpr unsigned int smallDiameter{35};
 
   private:
     using Hertz = LE::Parameters::UnitString<" Hz">;
@@ -187,8 +187,8 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
     unsigned int diameter_;
 
   private:
-    static unsigned int const marginForGlow = 4;
-    static unsigned int const spaceForText = 18;
+    static unsigned int const marginForGlow = 6;
+    static unsigned int const spaceForText = 27;
 }; // class ModuleKnob
 
 template <typename Unit> struct ModuleKnob::QuantizationImpl
@@ -340,8 +340,8 @@ class DiscreteParameter : public ComboBox, public ModuleControl<DiscreteParamete
     typedef ComboBox BaseWidget;
 
   private:
-    static unsigned int const horizontalMargin = 8;
-    static unsigned int const textHeight = 11;
+    static unsigned int const horizontalMargin = 12;
+    static unsigned int const textHeight = 17;
 }; // class DiscreteParameter
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -515,16 +515,22 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     std::uint8_t slot_{0};
 
   public:
-    static std::uint8_t const horizontalOffset = 213;
-    static std::uint8_t const verticalOffset = 9;
-    static std::uint16_t const height = 358;
-    static std::uint8_t const width = 68;
-    static std::uint8_t const distance = 0;
-    static std::uint8_t const border = 4;
+    /// \note All std::uint16_t, including the four that fit in a byte. These are
+    /// one coordinate system and horizontalOffset left the range of a
+    /// std::uint8_t when the skin was rescaled to 845 x 564; a set of geometry
+    /// constants where the type varies by how big the number happens to be is a
+    /// trap the next rescale falls into.
+    ///                                       (19.08.2026.)
+    static std::uint16_t const horizontalOffset = 320;
+    static std::uint16_t const verticalOffset = 14;
+    static std::uint16_t const height = 537;
+    static std::uint16_t const width = 102;
+    static std::uint16_t const distance = 0;
+    static std::uint16_t const border = 6;
 
     /// \brief What text keeps clear of a strip's left and right edges.
     /// \see issue #76, and paint(), which is the one thing wide enough to need it.
-    static std::uint8_t const textMargin = 4;
+    static std::uint16_t const textMargin = 6;
 
     /// \brief The blue rule across the bottom of a strip: the effect's controls
     /// are above it and its name is below.
@@ -532,7 +538,7 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     /// \note Was `height - 30` written out in paint(), twice. It is a boundary two
     /// things now depend on -- what is drawn, and where the strip can be picked up
     /// -- so it is a name.
-    static std::uint16_t const nameRule = height - 30;
+    static std::uint16_t const nameRule = height - 45;
 
     static std::uint8_t const baseWidgets = 2;
 

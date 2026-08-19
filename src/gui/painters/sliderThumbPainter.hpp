@@ -42,8 +42,8 @@ namespace SliderThumbStyle
 {
 /// The widget the bead is drawn in, at rest. \see Theme::getSliderThumbRadius().
 ///@{
-int constexpr width{4};
-int constexpr height{8};
+int constexpr width{6};
+int constexpr height{12};
 ///@}
 
 /// What the bead leaves clear of that, as a fraction of each side.

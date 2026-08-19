@@ -54,12 +54,12 @@ class KnobsPage final : public juce::Component
         // read against what they will actually sit on.
         graphics.fillAll(juce::Colour(0xFF232323));
 
-        label(graphics, "The editor's knobs, painted", margin, margin, 15.0f, juce::Colours::white);
+        label(graphics, "The editor's knobs, painted", margin, margin, 22.5f, juce::Colours::white);
 
         int y(margin + headerHeight);
         for (auto const &row : rows_)
         {
-            label(graphics, row.caption, margin, y - 14, 11.0f, juce::Colours::grey);
+            label(graphics, row.caption, margin, y - 21, 16.5f, juce::Colours::grey);
             for (unsigned int step(0); step < steps; ++step)
             {
                 auto const value(static_cast<float>(step) / (steps - 1));
@@ -79,9 +79,9 @@ class KnobsPage final : public juce::Component
 
   private:
     static constexpr unsigned int steps{9}; ///< values across, 0 to 1 inclusive
-    static constexpr int cell{68};
-    static constexpr int margin{20};
-    static constexpr int headerHeight{40};
+    static constexpr int cell{102};
+    static constexpr int margin{30};
+    static constexpr int headerHeight{60};
 
     struct Row
     {
@@ -94,17 +94,17 @@ class KnobsPage final : public juce::Component
     }; // struct Row
 
     static constexpr Row rows_[]{
-        {"EditorKnob, 55 px (in, out and mix)", GUI::EditorKnob::diameter, true, false, false,
+        {"EditorKnob, 83 px (in, out and mix)", GUI::EditorKnob::diameter, true, false, false,
          false},
-        {"ModuleKnob unipolar, 51 px", GUI::ModuleKnob::diameter, false, false, true, false},
-        {"ModuleKnob bipolar, 51 px", GUI::ModuleKnob::diameter, false, true, true, false},
-        {"ModuleKnob unipolar, 51 px, focused", GUI::ModuleKnob::diameter, false, false, true,
+        {"ModuleKnob unipolar, 77 px", GUI::ModuleKnob::diameter, false, false, true, false},
+        {"ModuleKnob bipolar, 77 px", GUI::ModuleKnob::diameter, false, true, true, false},
+        {"ModuleKnob unipolar, 77 px, focused", GUI::ModuleKnob::diameter, false, false, true,
          true},
         {"LFO driven -- no wedge, whatever the value", GUI::ModuleKnob::diameter, false, false,
          false, false},
-        {"ModuleKnob unipolar, 23 px (gain and wet)", GUI::ModuleKnob::smallDiameter, false, false,
+        {"ModuleKnob unipolar, 35 px (gain and wet)", GUI::ModuleKnob::smallDiameter, false, false,
          true, false},
-        {"ModuleKnob bipolar, 23 px, focused", GUI::ModuleKnob::smallDiameter, false, true, true,
+        {"ModuleKnob bipolar, 35 px, focused", GUI::ModuleKnob::smallDiameter, false, true, true,
          true},
     };
     static constexpr int rows{int(std::size(rows_))};
@@ -114,7 +114,7 @@ class KnobsPage final : public juce::Component
     {
         graphics.setColour(colour);
         graphics.setFont(juce::FontOptions(GUI::regularTypeface()).withHeight(height));
-        graphics.drawText(text, x, y, 600, 16, juce::Justification::centredLeft);
+        graphics.drawText(text, x, y, 900, 24, juce::Justification::centredLeft);
     }
 }; // class KnobsPage
 

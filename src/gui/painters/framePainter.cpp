@@ -24,7 +24,7 @@ namespace
 /// one, and on a rim only a pixel wide that seam eats half of it -- which
 /// measures, against the artwork it replaced, as a rim at half strength. Same
 /// phenomenon as the note on paintEditorKnob()'s rim.
-float constexpr seamOverlap{0.5f};
+float constexpr seamOverlap{0.75f};
 } // anonymous namespace
 
 juce::Rectangle<float> FramePainter::rimWithin(juce::Rectangle<float> const bounds,

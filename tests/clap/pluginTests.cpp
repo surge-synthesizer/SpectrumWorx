@@ -1703,7 +1703,7 @@ TEST_CASE("A full rack with LFOs running and an editor open processes cleanly", 
 ////////////////////////////////////////////////////////////////////////////////
 ///
 ///   The preset browser and the settings panel used to be drawn over the module
-/// strips, because a 563 x 376 editor has nowhere else to put them. They get a
+/// strips, because an 845 x 564 editor has nowhere else to put them. They get a
 /// column of their own now, and the only way a plugin can have one is to ask the
 /// host for it -- `clap_host_gui::request_resize`.
 ///
@@ -1829,7 +1829,12 @@ TEST_CASE("A zoom change reaches the window even when the host refuses", "[clap]
     CHECK(gui->get_size(&*plugin, &width, &height));
     CHECK(width == std::uint32_t(Zoomed::scaledForCurrentZoom(Editor::expandedWidth)));
     CHECK(height == std::uint32_t(Zoomed::scaledForCurrentZoom(Editor::estimatedHeight)));
-    CHECK(width == 2292);
+    /// \note The absolute number as well as the derived one, so that a change
+    /// in what `expandedWidth` means is noticed here rather than cancelling
+    /// itself out against the checks above. It was 2292 -- 764 skin px at the
+    /// old 1.5 and then doubled -- until the skin was rescaled on 19.08.2026;
+    /// the window is the same size, the units it is counted in are not.
+    CHECK(width == 2294);
 
     gui->destroy(&*plugin);
     CHECK(host.misbehaviours().empty());
