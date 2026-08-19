@@ -75,6 +75,11 @@ EFFECT_PARAMETER_STREAMING_NAME(Slicer::TimeOff, "Slice time")
 EFFECT_PARAMETER_STREAMING_NAME(Slicer::Mode, "Slice content")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Slicer, Mode,
+    {Hold, "Sample&Hold"},
+    {Silence, "Silence"},
+    {Side, "Sidechain"})
+
+EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS(Slicer, Mode,
     {Hold, "S&H"},
     {Silence, "Silence"},
     {Side, "Sidechain"})

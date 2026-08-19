@@ -430,17 +430,17 @@ UI_NAME(LFOImpl::Waveform, "wfrm")
 //ENUMERATED_PARAMETER_STRINGS
 //(
 //    LFOImpl, Waveform,
-//    (( Sine           , "Sine"       ))
-//    (( Triangle       , "Triangle"   ))
-//    (( Sawtooth       , "Sawtooth"   ))
-//    (( ReverseSawtooth, "htootwaS"   ))
-//    (( Square         , "Square"     ))
-//    (( Exponent       , "Exponent"   ))
-//    (( RandomHold     , "Hrandom"    ))
-//    (( RandomSlide    , "Grandom"    ))
-//    (( Whacko         , "Whacko"     ))
-//    (( Dirac          , "Dirac up"   ))
-//    (( dIRAC          , "Dirac down" ))
+//    (( Sine           , "Sine"        ))
+//    (( Triangle       , "Triangle"    ))
+//    (( Sawtooth       , "Ramp"        ))
+//    (( ReverseSawtooth, "Sawtooth"    ))
+//    (( Square         , "Square"      ))
+//    (( Exponent       , "Exponent"    ))
+//    (( RandomHold     , "Sample&Hold" ))
+//    (( RandomSlide    , "Sample&Glide"))
+//    (( Whacko         , "Wacko"       ))
+//    (( Dirac          , "Dirac Up"    ))
+//    (( dIRAC          , "Dirac Down"  ))
 //)
 
 /// \note Written out rather than through ENUMERATED_PARAMETER_STRINGS for the
@@ -448,8 +448,8 @@ UI_NAME(LFOImpl::Waveform, "wfrm")
 /// and this parameter has no enumerators to name.
 template <>
 constexpr DiscreteValues<LFOImpl::Waveform>::Strings DiscreteValues<LFOImpl::Waveform>::strings{
-    "Sine",    "Triangle", "Sawtooth", "htootwaS", "Square",    "Exponent",
-    "Hrandom", "Grandom",  "Whacko",   "Dirac up", "Dirac down"};
+    "Sine",        "Triangle",     "Ramp",  "Sawtooth", "Square",    "Exponent",
+    "Sample&Hold", "Sample&Glide", "Wacko", "Dirac Up", "Dirac Down"};
 
 } // namespace Parameters
 
