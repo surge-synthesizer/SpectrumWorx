@@ -191,8 +191,8 @@ TEST_CASE("A swap condition is listed in full and read abbreviated", "[gui][modu
     REQUIRE(comboBox.numberOfItems() == Mode::numberOfDiscreteValues);
 
     comboBox.setSelectedID(Mode::M6);
-    CHECK(comboBox.getSelectedItemText() == "Side: >Thr <Main");
-    CHECK(comboBox.getSelectedItemShortText() == "S:>T <M");
+    CHECK(comboBox.getSelectedItemText() == "Sidechain: >Threshold <Main");
+    CHECK(comboBox.getSelectedItemShortText() == "SC: >T <M");
 
     // Every row, so that a list that grows an entry cannot go half-abbreviated.
     auto const &full(Parameters::DiscreteValues<Mode>::strings);
@@ -230,5 +230,5 @@ TEST_CASE("A parameter with no abbreviations reads the same either way", "[gui][
         CHECK(comboBox.getItemShortText(row) == comboBox.getItemText(row));
     }
 
-    CHECK(comboBox.getItemText(RMSTarget::SideRMS) == "Side");
+    CHECK(comboBox.getItemText(RMSTarget::SideRMS) == "Sidechain");
 }
