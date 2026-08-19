@@ -189,6 +189,22 @@ class ColourMap
         /// \brief Inside the tongue that ejects an effect, behind its cross.
         EjectFace,
 
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \brief The eleven LFO waveform marks, in the menu and beside the LFO.
+        ///
+        /// \note Neutral, and it has to stay neutral. These are drawn once into
+        /// a cached Artwork (\see loadWaveform()) and that cache is only emptied
+        /// when the Theme is destroyed, not when the palette turns -- so a
+        /// waveform given a colour with a hue would keep whichever palette was
+        /// live the first time it was drawn. A neutral is returned untouched by
+        /// every palette, which is what makes caching it correct rather than
+        /// merely unnoticed.
+        ///                                       (19.08.2026.)
+        ///
+        ////////////////////////////////////////////////////////////////////////
+        LFOWaveform,
+
         /// \brief Inside a combo box, behind the name of what is selected.
         ComboBackground,
 

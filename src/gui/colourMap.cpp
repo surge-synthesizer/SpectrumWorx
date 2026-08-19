@@ -204,6 +204,11 @@ juce::Colour ColourMap::classic(Name const name)
     case EjectFace:
         return juce::Colour(0xFF6F777Bu);
 
+    ///   White, which is what all eleven files stroked in. \see the note on the
+    /// declaration for why this one may not be given a hue.
+    case LFOWaveform:
+        return juce::Colour(0xFFFFFFFFu);
+
     case ComboBackground:
         return juce::Colour(0xFF1A1A1Au);
     case ModuleBackground:

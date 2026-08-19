@@ -11,6 +11,7 @@
 //------------------------------------------------------------------------------
 #include "resources.hpp"
 
+#include "gui/colourMap.hpp"
 #include "gui/painters/waveformPainter.hpp"
 
 #include "le/utility/assert.hpp"
@@ -144,8 +145,10 @@ Artwork loadVector(char const *const data, std::size_t const size)
 /// in that file", and this is the only place that knows the difference.
 ///                                       (19.08.2026.)
 ///
-/// \note White, which is what every one of those files stroked in. A palette
-/// never reached them; tinting is Artwork::draw()'s and stays there.
+/// \note ColourMap::LFOWaveform, which is the white every one of those files
+/// stroked in. It is neutral by design and has to stay so -- \see the note on
+/// the enumerator: this drawable is cached and the cache outlives a palette
+/// change. Tinting is Artwork::draw()'s and stays there.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -154,8 +157,8 @@ Artwork loadWaveform(unsigned int const number)
     auto const waveform(static_cast<WaveformPainter::Waveform>(number - unsigned{GUI::LFOSine}));
     LE_ASSERT(waveform < WaveformPainter::Waveform::count);
 
-    return {WaveformPainter::drawable(waveform, juce::Colours::white), WaveformStyle::iconWidth,
-            WaveformStyle::iconHeight};
+    return {WaveformPainter::drawable(waveform, ColourMap::getColour(ColourMap::LFOWaveform)),
+            WaveformStyle::iconWidth, WaveformStyle::iconHeight};
 }
 
 Artwork loadArtwork(unsigned int const number)
