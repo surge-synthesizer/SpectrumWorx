@@ -158,13 +158,17 @@ struct Exploder : PVExploder
 
 EFFECT_PARAMETER_NAME(PVImploder::Decay, "Decay")
 EFFECT_PARAMETER_NAME(PVImploder::Gliss, "Glissando")
-EFFECT_PARAMETER_NAME(PVImploder::Threshold, "Limit")
+EFFECT_PARAMETER_NAME(PVImploder::Threshold, "Threshold")
 //EFFECT_PARAMETER_NAME( PVImploder::Gate     , "Gate"      )
+
+EFFECT_PARAMETER_STREAMING_NAME(PVImploder::Threshold, "Limit")
 
 EFFECT_PARAMETER_NAME(PVExploder::Growth, "Growth")
 EFFECT_PARAMETER_NAME(PVExploder::Gliss, "Glissando")
-EFFECT_PARAMETER_NAME(PVExploder::Threshold, "Limit")
+EFFECT_PARAMETER_NAME(PVExploder::Threshold, "Threshold")
 EFFECT_PARAMETER_NAME(PVExploder::Gate, "Gate")
+
+EFFECT_PARAMETER_STREAMING_NAME(PVExploder::Threshold, "Limit")
 
 } // namespace LE::SW::Effects
 
