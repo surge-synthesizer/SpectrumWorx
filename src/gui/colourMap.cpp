@@ -111,8 +111,6 @@ juce::Colour ColourMap::classic(Name const name)
 {
     switch (name)
     {
-    ///   19, 181, 234, which is what Theme said and what the skin's vectors
-    /// were traced to within three parts in 255. \see the note in the header.
     case Accent:
         return juce::Colour(0xFF13B5EAu);
     case Text:
@@ -122,6 +120,8 @@ juce::Colour ColourMap::classic(Name const name)
     case TextFaint:
         return juce::Colour(0xFF808080u);
 
+    case EditorGradientStart:
+        return juce::Colour(0xFF13B5EAu);
     case EditorKnobBevelShadow:
         return juce::Colour(0xFF7E8A8Eu);
     case EditorKnobBevelMid:
@@ -199,7 +199,7 @@ juce::Colour ColourMap::classic(Name const name)
     case EditorRule:
         return juce::Colour(0xFFFFFFFFu);
     case Wordmark:
-        return juce::Colour(0xFFE1EFF3u);
+        return juce::Colour(0xFFFFFFFFu);
 
     case EjectFace:
         return juce::Colour(0xFF6F777Bu);
@@ -284,6 +284,8 @@ juce::Colour ColourMap::sstDark(Name const name)
 
     ///   The chassis, inverted. Classic's surround is a light grey with dark
     /// panels on it; every ground here is one of the three darks.
+    case EditorGradientStart:
+        return juce::Colour(0x90D09030u); // accent_1b
     case EditorSurround:
         return juce::Colour(0xFF1B1D20u); // bg_main
     case EditorPanel:
@@ -293,7 +295,7 @@ juce::Colour ColourMap::sstDark(Name const name)
     case EditorWellFace:
         return juce::Colour(0xFF141619u); // under bg_main, as Classic's is under its own
     case PanelBackground:
-        return juce::Colour(0xFF1B1D20u);
+        return juce::Colour(0xFF262A2fu);
     case ModuleBackground:
         return juce::Colour(0xFF262A2Fu);
     case ComboBackground:
@@ -321,7 +323,7 @@ juce::Colour ColourMap::sstDark(Name const name)
     case TextFaint:
         return juce::Colour(0xFF777777u); // generic_content_low
     case Wordmark:
-        return juce::Colour(0xFFAFAFAFu); // generic_content_medium
+        return juce::Colour(0xFFFFFFFFu); // generic_content_medium
 
     ///   A button. Classic's runs from white to black with dark ink on it,
     /// which on this chassis would be a slab of daylight; SCXT's buttons are

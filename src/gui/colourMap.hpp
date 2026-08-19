@@ -177,12 +177,13 @@ class ColourMap
         /// what its six gradients were. \see backgroundPainter.hpp.
         ////////////////////////////////////////////////////////////////////////
         ///@{
-        EditorSurround, ///< the flat grey the rounded body sits on
-        EditorPanel,    ///< the two big panels, before they are lifted
-        EditorWell,     ///< and the boxes between them, which start a shade darker
-        EditorWellFace, ///< inside the disc a knob sits in
-        EditorRule,     ///< the hairline round every one of them
-        Wordmark,       ///< "Spectrum Worx" down the left edge
+        EditorGradientStart, ///< accent color of the background diagonal gradients
+        EditorSurround,      ///< the flat grey the rounded body sits on
+        EditorPanel,         ///< the two big panels, before they are lifted
+        EditorWell,          ///< and the boxes between them, which start a shade darker
+        EditorWellFace,      ///< inside the disc a knob sits in
+        EditorRule,          ///< the hairline round every one of them
+        Wordmark,            ///< "Spectrum Worx" down the left edge
         ///@}
 
         /// \brief Inside the tongue that ejects an effect, behind its cross.
@@ -267,10 +268,10 @@ class ColourMap
     enum Palette
     {
         Classic, ///< the skin as it was drawn, and the only one written out
-        SSTDark, ///< Shortcircuit XT's wireframe-dark, as near as this skin goes
-        Grays,
         Reds,
         Greens,
+        Grays,
+        SSTDark, ///< Shortcircuit XT's wireframe-dark, as near as this skin goes
         numberOfPalettes
     }; // enum Palette
 

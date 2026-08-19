@@ -100,8 +100,8 @@ struct CapsuleStyle
 /// \brief The LFO switch's, in a 25 x 14 widget. \see LEDTextButton, which puts
 /// its caption beside one.
 CapsuleStyle constexpr ledCapsule{
-    /* size   */ 11.13f,   4.61f,
-    /* offset */ 0.97f,
+    /* size   */ 12.f,     5.f,
+    /* offset */ 0.5f,
     /* rim    */ 0.85f,
     /* lit    */ 7u,       0.017f, 0.100f,
     /* dark   */ 6u,       0.018f, 0.038f,

@@ -62,13 +62,13 @@ class PanelPainter
     static void paintTabStrip(juce::Graphics &, juce::Rectangle<float> bounds);
 
     /// The corner the panels are rounded by.
-    static float constexpr cornerRadius{7.85f};
+    static float constexpr cornerRadius{8.f};
 
     /// \brief What both keep clear of their widget's left edge.
     ///
     /// \note The artwork's, and shared so that the strip and the page below it
     /// line up: they were a pixel apart when only the page had it.
-    static float constexpr sideInset{0.75f};
+    static float constexpr sideInset{1.f};
 
     /// \brief The sizes the two are drawn at, which were their artwork's.
     ///
@@ -77,7 +77,7 @@ class PanelPainter
     /// editor and always have.
     ///@{
     static int constexpr width{191};
-    static int constexpr presetBrowserHeight{363};
+    static int constexpr presetBrowserHeight{364};
     static int constexpr settingsPageHeight{347};
     ///@}
 

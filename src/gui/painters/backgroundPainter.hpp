@@ -248,43 +248,24 @@ float constexpr knobLabelHeight{12.0f};
 /// twelve rather than ten it did.
 float constexpr knobLabelRise{14.0f};
 
-float constexpr lfoLabelHeight{12.0f};
-float constexpr lfoLabelX{79.7f};
-float constexpr lfoLabelY{163.0f};
+float constexpr lfoLabelHeight{11.0f};
+float constexpr lfoLabelX{79.f};
+float constexpr lfoLabelY{161.0f};
 
-float constexpr sideChainSourceLabelHeight{12.0f};
+float constexpr sideChainSourceLabelHeight{11.0f};
+float constexpr sideChainSourceLabelY{293.f};
 
-/// \note Centred over the box it names, which the artwork's was not: it sat ten
-/// pixels to the left of it, and at a length nobody may change again that was a
-/// placement rather than a decision.
-///                                       (18.08.2026.)
-float constexpr sideChainSourceLabelY{294.8f};
-
-/// \note The regular face, not a lighter one -- there is no lighter one. The
-/// wordmark measures 0.126 of stem to cap height against Vera Roman's 0.115 and
-/// Vera Bold's 0.230, and it reads light because everything around it is bold.
-/// Bitstream Vera ships Roman, Bold and their obliques and nothing between.
-///                                       (18.08.2026.)
-///@{
-/// \note Both lines centred on one axis, which is what the artwork's stagger
-/// was: it set them at 16.4 and 26.9 and their ink centres came out 38.1 and
-/// 38.65. Eleven and a half rather than twelve is what fits between the panel's
-/// edge and the column of boxes.
-float constexpr productLabelHeight{11.5f};
-float constexpr productLabelCentreX{38.4f};
-float constexpr productLabelY{330.5f};
-float constexpr productLabelSecondLineY{346.5f};
+float constexpr productLabelHeight{12.f};
+float constexpr productLabelCentreX{40.f};
+float constexpr productLabelY{338.f};
+float constexpr productLabelSecondLineY{350.f};
 ///@}
 ///@}
 
-/// \brief Where the mark goes. \see logoArtwork(), which is assets/LOGO.svg.
-///
-/// \note The trademark sign that sat to its right is not reproduced.
-///@{
-float constexpr logoX{21.06f};
-float constexpr logoY{297.5f};
-float constexpr logoWidth{29.31f};
-float constexpr logoHeight{26.31f};
+float constexpr logoX{27.f};
+float constexpr logoY{298.f};
+float constexpr logoWidth{30.f};
+float constexpr logoHeight{30.f};
 ///@}
 } // namespace BackgroundStyle
 

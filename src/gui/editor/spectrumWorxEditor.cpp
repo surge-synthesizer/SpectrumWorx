@@ -2693,7 +2693,7 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
 
     fillLFOWaveformsMenu(type_);
 
-    switch_.setTopLeftPosition(25, 3);
+    switch_.setTopLeftPosition(29, 3);
 
     period_.setBounds(7, 32, 108, 18);
     period_.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -3777,6 +3777,7 @@ class SettingsTab : public juce::TabBarButton
     SettingsTab(juce::String const &tabName, juce::TabbedButtonBar &ownerBar)
         : TabBarButton(tabName, ownerBar)
     {
+        ownerBar.setTopLeftPosition({6, 6});
     }
 
   private:

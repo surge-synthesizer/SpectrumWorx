@@ -111,7 +111,7 @@ void Theme::takeColours()
     setColour(juce::TextEditor::backgroundColourId, colour(ColourMap::FieldBackground));
     setColour(juce::TextEditor::focusedOutlineColourId, colour(ColourMap::Transparent));
     setColour(juce::TextEditor::outlineColourId, colour(ColourMap::Transparent));
-    setColour(juce::TextEditor::highlightColourId, colour(ColourMap::Accent));
+    setColour(juce::TextEditor::highlightColourId, colour(ColourMap::Accent).withAlpha(0.333f));
     setColour(juce::TextEditor::highlightedTextColourId, colour(ColourMap::Text));
     setColour(juce::TextEditor::textColourId, colour(ColourMap::Text));
     setColour(juce::CaretComponent::caretColourId, colour(ColourMap::Accent));

@@ -58,7 +58,8 @@ void paintRule(juce::Graphics &graphics, juce::Rectangle<float> const shape, flo
 juce::ColourGradient fillOf(Ramp const &ramp)
 {
     auto const dark(ColourMap::getColour(ramp.darkening));
-    auto const lit(dark.interpolatedWith(ColourMap::getColour(ColourMap::Accent), ramp.lift));
+    auto const lit(
+        dark.interpolatedWith(ColourMap::getColour(ColourMap::EditorGradientStart), ramp.lift));
 
     juce::ColourGradient gradient(dark, ramp.fromX, ramp.fromY, lit, ramp.toX, ramp.toY, false);
     gradient.addColour(ramp.flatStop, dark);
@@ -232,7 +233,7 @@ void BackgroundPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> c
     paintPanel(graphics, centreColumn, centreColumnRamp);
 
     paintBox(graphics, moduleNameBox, ColourMap::EditorWell, ColourMap::EditorRule);
-    paintBox(graphics, activeControlBox, ColourMap::EditorPanel, ColourMap::Accent);
+    paintBox(graphics, activeControlBox, ColourMap::EditorWell, ColourMap::EditorRule);
     paintBox(graphics, controlValueBox, ColourMap::EditorWell, ColourMap::EditorRule);
 
     {
@@ -264,6 +265,7 @@ void BackgroundPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> c
     }
 
     paintLabel(graphics, lfoLabel, boldFont(lfoLabelHeight), lfoLabelX, lfoLabelY, ColourMap::Text);
+
     paintCentredLabel(graphics, sideChainSourceLabel, boldFont(sideChainSourceLabelHeight),
                       rectangleOf(sideChainSourceBox).getCentreX(), sideChainSourceLabelY,
                       ColourMap::Text);

@@ -18,16 +18,7 @@ namespace LE::SW::GUI
 namespace
 {
 /// Every frame in both panels was fitted at this, and drawn in flat white.
-float constexpr frameThickness{1.02f};
-
-/// \brief The strip the tabs stand in: how far below the top of the tab row its
-/// ground starts, how far below that the ramp into the page's black is done,
-/// and how far past the row it runs so that the two share no seam.
-///@{
-float constexpr stripRise{5.0f};
-float constexpr stripFade{7.0f};
-float constexpr stripOverlap{1.0f};
-///@}
+float constexpr frameThickness{1.f};
 
 /// \brief One hairline rounded outline, with nothing inside it.
 ///
@@ -65,7 +56,7 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
     graphics.addTransform(juce::AffineTransform::translation(bounds.getX(), bounds.getY()));
 
     graphics.setColour(ColourMap::getColour(ColourMap::PanelBackground));
-    graphics.fillRoundedRectangle({0.75f, 0.5f, 190.0f, 361.25f}, 8.05f);
+    graphics.fillRoundedRectangle({0.f, 1.f, 191.0f, 361.f}, cornerRadius);
 
     graphics.setColour(ColourMap::getColour(ColourMap::PanelFrame));
 
@@ -79,9 +70,9 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
         outline(graphics, location.withRight(173.62f), 7.51f);
     }
 
-    outline(graphics, {6.75f, 26.75f, 177.25f, 29.0f}, 8.78f);  // the button row
-    outline(graphics, {6.75f, 76.0f, 177.25f, 241.25f}, 8.89f); // the list
-    outline(graphics, {6.75f, 322.0f, 177.25f, 31.75f}, 8.69f); // the comment box
+    outline(graphics, {6.f, 28.f, 178.f, 27.f}, cornerRadius);   // the button row
+    outline(graphics, {6.f, 76.f, 178.f, 240.f}, cornerRadius);  // the list
+    outline(graphics, {6.f, 321.0f, 178.f, 32.f}, cornerRadius); // the comment box
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -118,14 +109,8 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
 
 void PanelPainter::paintTabStrip(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
 {
-    auto const top(bounds.getY() + stripRise);
-
-    graphics.setGradientFill(juce::ColourGradient::vertical(
-        ColourMap::getColour(ColourMap::EditorSurround), top,
-        ColourMap::getColour(ColourMap::PanelBackground), top + stripFade));
-    graphics.fillRect(juce::Rectangle<float>(bounds.getX() + sideInset, top,
-                                             bounds.getWidth() - 2 * sideInset,
-                                             bounds.getHeight() - stripRise + stripOverlap));
+    graphics.setColour(ColourMap::getColour(ColourMap::PanelBackground));
+    graphics.fillRoundedRectangle({0.f, 1.f, width, 32.f}, cornerRadius);
 }
 
 void PanelPainter::paintSettingsPage(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
@@ -136,14 +121,13 @@ void PanelPainter::paintSettingsPage(juce::Graphics &graphics, juce::Rectangle<f
     /// \note Square along its top left, where the tab strip stands on it and
     /// covers it. \see paintTabStrip().
     juce::Path page;
-    page.addRoundedRectangle(sideInset, 0.0f, 190.0f, 346.5f, cornerRadius, cornerRadius,
-                             false /*top left*/, true /*top right*/, true /*bottom left*/,
-                             true /*bottom right*/);
+    page.addRoundedRectangle(0.f, 0.f, width, 346.f, cornerRadius, cornerRadius, false /*top left*/,
+                             true /*top right*/, true /*bottom left*/, true /*bottom right*/);
     graphics.setColour(ColourMap::getColour(ColourMap::PanelBackground));
     graphics.fillPath(page);
 
     graphics.setColour(ColourMap::getColour(ColourMap::PanelFrame));
-    outline(graphics, {7.25f, 11.5f, 177.25f, 326.0f}, 8.31f);
+    outline(graphics, {6.f, 11.f, 178.f, 326.f}, cornerRadius);
 }
 
 } // namespace LE::SW::GUI

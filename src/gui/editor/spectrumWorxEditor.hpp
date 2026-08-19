@@ -1301,7 +1301,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
         /// than as a bar across it. \see PanelPainter::paintTabStrip().
         void paint(juce::Graphics &graphics) override
         {
-            PanelPainter::paintTabStrip(graphics, {0.0f, 0.0f, static_cast<float>(tabStripWidth()),
+            PanelPainter::paintTabStrip(graphics, {0.f, 0.f, static_cast<float>(tabStripWidth()),
                                                    static_cast<float>(ButtonStyle::tabHeight)});
         }
 
