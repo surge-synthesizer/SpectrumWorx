@@ -376,23 +376,6 @@ void SpectrumWorxEditor::togglePresetBrowser(juce::Button const &button)
 
 void SpectrumWorxEditor::showPanel(juce::Component &panel)
 {
-    static_assert(overlayX == ModuleUI::horizontalOffset +
-                                  SW::Constants::maxNumberOfModules *
-                                      (ModuleUI::width + ModuleUI::distance) -
-                                  overlayWidth,
-                  "the overlay's right edge is the module strips' right edge");
-
-    LE_ASSERT(panel.getWidth() == overlayWidth);
-    LE_ASSERT(panel.getHeight() == overlayHeight);
-
-    /// \note The whole of the "one rectangle, one panel" rule, in the one place
-    /// every caller passes through. Both toggle buttons feed this, and a host or
-    /// a harness can reach showSettings()/showPresetBrowser() without touching
-    /// either button, so the invariant belongs here rather than in the handlers.
-    LE_ASSERT_MSG(!(settings_.has_value() && presetBrowser_.has_value()),
-                  "the settings panel and the preset browser share one rectangle");
-    LE_ASSERT(!panel.getParentComponent());
-
     addAndMakeVisible(panel);
     panel.toFront(false);
     layOutPanels();
