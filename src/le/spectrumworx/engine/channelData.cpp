@@ -55,7 +55,7 @@ void ChannelData::setNewTimeDomainData(float const *const mainChannel,
         LE_ASSERT_MSG
         (
             Math::max( amphData_.side().jointView() ) == 0,
-            "Side channel data not cleared."
+            "Sidechain data not cleared."
         );
     }
 #endif // disabled

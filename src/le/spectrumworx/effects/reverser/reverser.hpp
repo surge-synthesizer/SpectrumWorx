@@ -51,7 +51,9 @@ struct Reverser
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Reverser::Length, "Chunk length")
+EFFECT_PARAMETER_NAME(Reverser::Length, "Chunk Size")
+
+EFFECT_PARAMETER_STREAMING_NAME(Reverser::Length, "Chunk length")
 
 } // namespace LE::SW::Effects
 

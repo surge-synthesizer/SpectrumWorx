@@ -38,7 +38,7 @@ namespace LE::SW::Effects
 
 struct Armonizer
 {
-    LE_DEFINE_PARAMETER(Interval, SymmetricFloat, MaximumOffset<24>, Unit<"'">);
+    LE_DEFINE_PARAMETER(Interval, SymmetricFloat, MaximumOffset<24>, Unit<" st">);
     LE_DEFINE_PARAMETERS(Interval);
 
     /// \typedef Interval

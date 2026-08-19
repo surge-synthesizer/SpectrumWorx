@@ -24,8 +24,8 @@ namespace Detail
 {
 struct PitchShifterBase
 {
-    LE_DEFINE_PARAMETER(SemiTones, SymmetricFloat, MaximumOffset<24>, Unit<"'">);
-    LE_DEFINE_PARAMETER(Cents, SymmetricInteger, MaximumOffset<100>, Unit<"''">);
+    LE_DEFINE_PARAMETER(SemiTones, SymmetricFloat, MaximumOffset<24>, Unit<" st">);
+    LE_DEFINE_PARAMETER(Cents, SymmetricInteger, MaximumOffset<100>, Unit<" ct">);
     LE_DEFINE_PARAMETERS(SemiTones, Cents);
 
     /// \typedef SemiTones
@@ -78,8 +78,11 @@ struct PVPitchShifter : Detail::PitchShifterBase
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Detail::PitchShifterBase::SemiTones, "Semitones")
-EFFECT_PARAMETER_NAME(Detail::PitchShifterBase::Cents, "Cents")
+EFFECT_PARAMETER_NAME(Detail::PitchShifterBase::SemiTones, "Coarse")
+EFFECT_PARAMETER_NAME(Detail::PitchShifterBase::Cents, "Fine")
+
+EFFECT_PARAMETER_STREAMING_NAME(Detail::PitchShifterBase::SemiTones, "Semitones")
+EFFECT_PARAMETER_STREAMING_NAME(Detail::PitchShifterBase::Cents, "Cents")
 
 } // namespace LE::SW::Effects
 

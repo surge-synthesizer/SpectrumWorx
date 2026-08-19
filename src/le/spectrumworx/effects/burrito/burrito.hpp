@@ -39,7 +39,7 @@ struct Burrito
     LE_ENUMERATED_PARAMETER(Mode, Replace, Sum);
 
     LE_DEFINE_PARAMETER(Range, LinearUnsignedInteger, Minimum<0>, Maximum<100>, Default<50>,
-                        Unit<" bw%">);
+                        Unit<"%">);
     LE_DEFINE_PARAMETER(Period, LinearUnsignedInteger, Minimum<10>, Maximum<2000>, Default<250>,
                         Unit<" ms">);
     LE_DEFINE_PARAMETER(SideGain, SymmetricInteger, MaximumOffset<24>, Unit<" dB">);
@@ -52,7 +52,7 @@ struct Burrito
     ///   - Sum: input is summed with side-channel at random locations.
     /// \typedef Range
     /// \brief Maximum amount of spectrum to randomize.
-    /// \details (in \%bw, percentage of bandwidth i.e. total
+    /// \details (in percentage of bandwidth i.e. total
     /// frequency range)
     /// \typedef Period
     /// \brief Period in which the random locations are kept constant.
@@ -69,10 +69,15 @@ struct Burrito
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Burrito::Mode, "Target creation")
-EFFECT_PARAMETER_NAME(Burrito::Range, "Target range")
-EFFECT_PARAMETER_NAME(Burrito::Period, "Range period")
-EFFECT_PARAMETER_NAME(Burrito::SideGain, "Side gain")
+EFFECT_PARAMETER_NAME(Burrito::Mode, "Target Creation")
+EFFECT_PARAMETER_NAME(Burrito::Range, "Target Range")
+EFFECT_PARAMETER_NAME(Burrito::Period, "Period")
+EFFECT_PARAMETER_NAME(Burrito::SideGain, "SC Gain")
+
+EFFECT_PARAMETER_STREAMING_NAME(Burrito::Mode, "Target creation")
+EFFECT_PARAMETER_STREAMING_NAME(Burrito::Range, "Target range")
+EFFECT_PARAMETER_STREAMING_NAME(Burrito::Period, "Range period")
+EFFECT_PARAMETER_STREAMING_NAME(Burrito::SideGain, "Side gain")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Burrito, Mode,
     {Replace, "Replace"},

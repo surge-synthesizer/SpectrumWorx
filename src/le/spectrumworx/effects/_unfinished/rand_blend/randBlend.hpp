@@ -41,9 +41,9 @@ class RandBlend
         ((Mode))
         //( ( Amount )( float        )( MinimumValue<0> )( MaximumValue< 10> )( DefaultValue<  3> )( RangeValuesDenominator<10> ) )
         ((Amount)(float)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<30>)(DisplayValueSuffix<
-                                                                               ' %'>))((
+                                                                               '%'>))((
             Range)(unsigned int)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<
-                                                                     50>)(DisplayValueSuffix<' bw%'>)));
+                                                                     50>)(DisplayValueSuffix<'%'>)));
 
     ////////////////////////////////////////////////////////////////////////////
     // setup() and process()

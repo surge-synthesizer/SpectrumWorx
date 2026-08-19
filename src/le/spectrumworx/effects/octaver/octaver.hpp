@@ -86,21 +86,23 @@ EFFECT_PARAMETER_NAME(Octaver::Octave1, "Octave 1");
 EFFECT_PARAMETER_NAME(Octaver::GainOctave1, "Gain 1");
 EFFECT_PARAMETER_NAME(Octaver::Octave2, "Octave 2");
 EFFECT_PARAMETER_NAME(Octaver::GainOctave2, "Gain 2");
-EFFECT_PARAMETER_NAME(Octaver::CutoffFrequency, "Low pass");
+EFFECT_PARAMETER_NAME(Octaver::CutoffFrequency, "Lowpass");
+
+EFFECT_PARAMETER_STREAMING_NAME(Octaver::CutoffFrequency, "Low pass");
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Octaver, Octave1,
-    {Down2, "2 down"},
-    {Down1, "1 down"},
-    {Off, "off"},
-    {Up1, "1 up"},
-    {Up2, "2 up"})
+    {Down2, "-2"},
+    {Down1, "-1"},
+    {Off, "0"},
+    {Up1, "+1"},
+    {Up2, "+2"})
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Octaver, Octave2,
-    {Down2, "2 down"},
-    {Down1, "1 down"},
-    {Off, "off"},
-    {Up1, "1 up"},
-    {Up2, "2 up"})
+    {Down2, "-2"},
+    {Down1, "-1"},
+    {Off, "0"},
+    {Up1, "+1"},
+    {Up2, "+2"})
 
 } // namespace LE::SW::Effects
 

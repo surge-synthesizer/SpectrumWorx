@@ -41,7 +41,7 @@ class OldPhaseVocoder
                                                             10>)(RangeValuesDenominator<10>))(
             (SpectrumStartingPoint)(float)(MinimumValue<0>)(MaximumValue<1>)(DefaultValue<0>))(
             (SpectrumEndingPoint)(float)(MinimumValue<0>)(MaximumValue<1>)(DefaultValue<1>))(
-            (SpectrumOffset)(int)(MinimumValue<-20>)(MaximumValue<+20>)(DisplayValueSuffix<' %'>)));
+            (SpectrumOffset)(int)(MinimumValue<-20>)(MaximumValue<+20>)(DisplayValueSuffix<'%'>)));
 
     ////////////////////////////////////////////////////////////////////////////
     // ChannelState

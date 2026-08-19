@@ -1439,10 +1439,11 @@ void EditorKnob::paint(juce::Graphics &graphics)
     {
         juce::Font font(Theme::singleton().labelFont());
         font.setHeight(11);
+        font.setBold(true);
         graphics.setFont(font);
     }
 
-    graphics.drawFittedText(parameterValueText(), 14, 16, 28, 24, juce::Justification::centred, 1,
+    graphics.drawFittedText(parameterValueText(), 12, 16, 32, 24, juce::Justification::centred, 1,
                             0.1f);
 }
 

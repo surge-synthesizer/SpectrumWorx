@@ -38,8 +38,8 @@ class MorphologicalMutations
     DISCRETE_VALUES_PARAMETER(Mode, (USIM)(UUIM)(ISIM)(IUIM)(LCM)(VM))
 
     DEFINE_PARAMETERS(((Mode))((
-        IrregularRange)(unsigned int)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<50>)(DisplayValueSuffix<
-                                                                                            ' bw%'>))(
+        IrregularRange)(unsigned int)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<
+                                                                          50>)(DisplayValueSuffix<'%'>))(
         (Attenuate)(float)(MinimumValue<-24>)(MaximumValue<+24>)(DefaultValue<
                                                                  0>)(DisplayValueSuffix<' dB'>))(
         (UniformGain)(float)(MinimumValue<-48>)(MaximumValue<+48>)(DefaultValue<

@@ -59,7 +59,9 @@ struct Phlip
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Phlip::Mode, "Target harmonics")
+EFFECT_PARAMETER_NAME(Phlip::Mode, "Target Harmonics")
+
+EFFECT_PARAMETER_STREAMING_NAME(Phlip::Mode, "Target harmonics")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Phlip, Mode,
     {All, "All"},

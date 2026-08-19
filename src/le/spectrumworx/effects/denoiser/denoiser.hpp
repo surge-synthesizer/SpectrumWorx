@@ -63,11 +63,13 @@ struct Denoiser
 ////////////////////////////////////////////////////////////////////////////////
 
 EFFECT_PARAMETER_NAME(Denoiser::Intensity, "Amount")
-EFFECT_PARAMETER_NAME(Denoiser::Mode, "Noise footprint")
+EFFECT_PARAMETER_NAME(Denoiser::Mode, "Noise Fingerprint")
+
+EFFECT_PARAMETER_STREAMING_NAME(Denoiser::Mode, "Noise footprint")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Denoiser, Mode,
     {Main, "Main"},
-    {Side, "Side"},
+    {Side, "Sidechain"},
     {Sum, "Average"})
 
 } // namespace LE::SW::Effects

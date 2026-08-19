@@ -66,14 +66,18 @@ struct Slicer
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Slicer::TimeOn, "On time")
-EFFECT_PARAMETER_NAME(Slicer::TimeOff, "Slice time")
-EFFECT_PARAMETER_NAME(Slicer::Mode, "Slice content")
+EFFECT_PARAMETER_NAME(Slicer::TimeOn, "On Time")
+EFFECT_PARAMETER_NAME(Slicer::TimeOff, "Slice Time")
+EFFECT_PARAMETER_NAME(Slicer::Mode, "Slice Content")
+
+EFFECT_PARAMETER_STREAMING_NAME(Slicer::TimeOn, "On time")
+EFFECT_PARAMETER_STREAMING_NAME(Slicer::TimeOff, "Slice time")
+EFFECT_PARAMETER_STREAMING_NAME(Slicer::Mode, "Slice content")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Slicer, Mode,
-    {Hold, "Sample&Hold"},
+    {Hold, "S&H"},
     {Silence, "Silence"},
-    {Side, "Side"})
+    {Side, "Sidechain"})
 
 } // namespace LE::SW::Effects
 

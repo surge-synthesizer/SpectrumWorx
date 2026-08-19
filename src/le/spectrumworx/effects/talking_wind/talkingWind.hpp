@@ -60,8 +60,11 @@ struct TalkingWind
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(TalkingWind ::EnvelopeBorder, "Envelope border")
-EFFECT_PARAMETER_NAME(TalkingWind ::EnvelopeGain, "Envelope gain")
+EFFECT_PARAMETER_NAME(TalkingWind ::EnvelopeBorder, "Env Border")
+EFFECT_PARAMETER_NAME(TalkingWind ::EnvelopeGain, "Env Gain")
+
+EFFECT_PARAMETER_STREAMING_NAME(TalkingWind ::EnvelopeBorder, "Envelope border")
+EFFECT_PARAMETER_STREAMING_NAME(TalkingWind ::EnvelopeGain, "Envelope gain")
 
 } // namespace LE::SW::Effects
 

@@ -44,7 +44,7 @@ struct Frecho
     LE_DEFINE_PARAMETER(Distance, LinearUnsignedInteger, Minimum<17>, Maximum<500>, Default<100>,
                         Unit<" m">);
     LE_DEFINE_PARAMETER(Absorption, LinearFloat, Minimum<0>, Maximum<18>, Default<6>, Unit<" dB">);
-    LE_DEFINE_PARAMETER(EchoPitch, SymmetricFloat, MaximumOffset<12>, Unit<" '/echo">);
+    LE_DEFINE_PARAMETER(EchoPitch, SymmetricFloat, MaximumOffset<12>, Unit<" st">);
     LE_DEFINE_PARAMETERS(Distance, Absorption, EchoPitch);
 
     /// \typedef Distance

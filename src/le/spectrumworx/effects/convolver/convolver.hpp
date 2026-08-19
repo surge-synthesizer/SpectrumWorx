@@ -80,7 +80,7 @@ EFFECT_ENUMERATED_PARAMETER_STRINGS(Convolver, ConvolutionType,
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Convolver, Phase,
     {Sum, "Sum"},
-    {Side, "Side"},
+    {Side, "Sidechain"},
     {Main, "Main"})
 
 } // namespace LE::SW::Effects

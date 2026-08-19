@@ -70,12 +70,20 @@ EFFECT_PARAMETER_NAME(Merger::Threshold, "Threshold")
 EFFECT_PARAMETER_NAME(Merger::Operation, "Condition")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Merger, Operation,
-    {MainLargerThanSide, "Main>Side"},
-    {SideLargerThanMain, "Side>Main"},
-    {MainAboveThreshold, "Main>Thr"},
-    {SideAboveThreshold, "Side>Thr"},
-    {MainBelowThreshold, "Main<Thr"},
-    {SideBelowThreshold, "Side<Thr"})
+    {MainLargerThanSide, "Main > Sidechain"},
+    {SideLargerThanMain, "Sidechain > Main"},
+    {MainAboveThreshold, "Main > Threshold"},
+    {SideAboveThreshold, "Sidechain > Threshold"},
+    {MainBelowThreshold, "Main < Threshold"},
+    {SideBelowThreshold, "Sidechain < Threshold"})
+
+EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS(Merger, Operation,
+    {MainLargerThanSide, "Main > SC"},
+    {SideLargerThanMain, "SC > Main"},
+    {MainAboveThreshold, "Main > Thr"},
+    {SideAboveThreshold, "SC > Thr"},
+    {MainBelowThreshold, "Main < Thr"},
+    {SideBelowThreshold, "SC < Thr"})
 
 } // namespace LE::SW::Effects
 

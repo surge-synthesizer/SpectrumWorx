@@ -1450,9 +1450,9 @@ void SpectrumWorxEditor::updateSampleName()
     case SideChainSource::File:
         return updateSampleName(LE::IO::pathToJuceString(editorHost_.currentSampleFile().stem()));
     case SideChainSource::Main:
-        return updateSampleName("Main as sidechain");
+        return updateSampleName("Main Input (1+2)");
     case SideChainSource::Host:
-        return updateSampleName("Host sidechain");
+        return updateSampleName("Sidechain Input (3+4)");
     }
 }
 
@@ -3409,10 +3409,10 @@ void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
     ////////////////////////////////////////////////////////////////////////////
 
     menu_.clear();
-    menu_.addItem(mainAsSideChain, "Main as sidechain");
-    menu_.addItem(hostSideChain, "Host sidechain");
-    menu_.addSectionHeader("Audio file");
-    menu_.addItem(browse, "Load audio file...");
+    menu_.addItem(mainAsSideChain, "Main Input (1+2)");
+    menu_.addItem(hostSideChain, "Sidechain Input (3+4)");
+    menu_.addSectionHeader("Audio File");
+    menu_.addItem(browse, "Load file...");
     for (std::size_t sample(0); sample < factorySamples.size(); ++sample)
         menu_.addItem(static_cast<PopupMenu::ItemID>(firstFactorySample + sample),
                       LE::IO::pathToUTF8(factorySamples[sample].stem()).c_str());
@@ -3463,7 +3463,7 @@ void SpectrumWorxEditor::SampleArea::browseForFile()
 
     /// \note Held rather than stack-allocated: launchAsync() returns
     /// immediately and the chooser must outlive the dialog.
-    fileChooser_ = std::make_unique<juce::FileChooser>("Choose external audio file", startingFile,
+    fileChooser_ = std::make_unique<juce::FileChooser>("Choose audio file", startingFile,
                                                        Sample::supportedFormats(), true);
     juce::Component::SafePointer<SpectrumWorxEditor> pEditor(&editor);
     fileChooser_->launchAsync(juce::FileBrowserComponent::openMode |
@@ -3707,7 +3707,7 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     : PanelBackground(SettingsPage), zoom_(*this, xMargin, yMargin + 0 * yStep, "Zoom"),
-      palette_(*this, xMargin, yMargin + 1 * yStep, "Colour Scheme"),
+      palette_(*this, xMargin, yMargin + 1 * yStep, "Color Scheme"),
       moduleUIMouseOverReaction_(*this, xMargin, yMargin + 2 * yStep, "Mouse Over Reaction"),
       lfoUpdateBehaviour_(*this, xMargin, yMargin + 3 * yStep, "LFO Update Behaviour"),
       hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 4 * yStep, "Hide cursor on knob drag")
@@ -3733,10 +3733,10 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     /// and "SSTDark" cannot be both. Same split as every other box on this page.
     ////////////////////////////////////////////////////////////////////////////
     palette_.addItem(ColourMap::Classic, "Classic");
-    palette_.addItem(ColourMap::SSTDark, "SST Dark");
-    palette_.addItem(ColourMap::Grays, "Grays");
     palette_.addItem(ColourMap::Reds, "Reds");
     palette_.addItem(ColourMap::Greens, "Greens");
+    palette_.addItem(ColourMap::Grays, "Grayscale");
+    palette_.addItem(ColourMap::SSTDark, "Dark");
     palette_.setSelectedIndex(preferences().palette());
 
     moduleUIMouseOverReaction_.addItem(Preferences::Never, "Never");

@@ -27,7 +27,7 @@ struct ExImPloder ///<
     LE_DEFINE_PARAMETER(MagnitudeScale, LinearUnsignedInteger, Minimum<1>, Maximum<200>,
                         Default<50>, Unit<" s">);
     LE_DEFINE_PARAMETER(Gliss, LinearSignedInteger, Minimum<-300>, Maximum<300>, Default<-100>,
-                        Unit<" \"/s">);
+                        Unit<" ct/s">);
     LE_DEFINE_PARAMETER(Threshold, LinearSignedInteger, Minimum<-120>, Maximum<0>, Default<-120>,
                         Unit<" dB">);
     LE_DEFINE_PARAMETER(Gate, Threshold);

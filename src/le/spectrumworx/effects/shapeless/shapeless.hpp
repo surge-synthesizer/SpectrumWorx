@@ -52,7 +52,9 @@ struct Shapeless
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Shapeless::Width, "Shape width")
+EFFECT_PARAMETER_NAME(Shapeless::Width, "Width")
+
+EFFECT_PARAMETER_STREAMING_NAME(Shapeless::Width, "Shape width")
 
 } // namespace LE::SW::Effects
 

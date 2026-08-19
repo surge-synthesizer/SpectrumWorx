@@ -45,9 +45,9 @@ struct Swappah
     LE_ENUMERATED_PARAMETER(BandOrder, LowHighMid, MidLowHigh, MidHighLow, HighLowMid, HighMidLow);
 
     LE_DEFINE_PARAMETER(BandLowMid, LinearUnsignedInteger, Minimum<0>, Maximum<100>, Default<33>,
-                        Unit<" bw%">);
+                        Unit<"%">);
     LE_DEFINE_PARAMETER(BandMidHigh, LinearUnsignedInteger, Minimum<0>, Maximum<100>, Default<66>,
-                        Unit<" bw%">);
+                        Unit<"%">);
     LE_DEFINE_PARAMETERS(Mode, BandOrder, BandLowMid, BandMidHigh);
 
     /// \typedef Mode
@@ -79,16 +79,27 @@ struct Swappah
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Swappah::BandLowMid, "Low-Mid border")
-EFFECT_PARAMETER_NAME(Swappah::BandMidHigh, "Mid-High border")
-EFFECT_PARAMETER_NAME(Swappah::BandOrder, "Swap order")
+EFFECT_PARAMETER_NAME(Swappah::BandLowMid, "Low <> Mid")
+EFFECT_PARAMETER_NAME(Swappah::BandMidHigh, "Mid <> High")
+EFFECT_PARAMETER_NAME(Swappah::BandOrder, "Swap Order")
+
+EFFECT_PARAMETER_STREAMING_NAME(Swappah::BandLowMid, "Low-Mid border")
+EFFECT_PARAMETER_STREAMING_NAME(Swappah::BandMidHigh, "Mid-High border")
+EFFECT_PARAMETER_STREAMING_NAME(Swappah::BandOrder, "Swap order")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Swappah, BandOrder,
-    {LowHighMid, "Low-High-Mid"},
-    {MidLowHigh, "Mid-Low-High"},
-    {MidHighLow, "Mid-High-Low"},
-    {HighLowMid, "High-Low-Mid"},
-    {HighMidLow, "High-Mid-Low"})
+    {LowHighMid, "Low - High - Mid"},
+    {MidLowHigh, "Mid - Low - High"},
+    {MidHighLow, "Mid - High - Low"},
+    {HighLowMid, "High - Low - Mid"},
+    {HighMidLow, "High - Mid - Low"})
+
+EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS(Swappah, BandOrder,
+    {LowHighMid, "L - H - M"},
+    {MidLowHigh, "M - L - H"},
+    {MidHighLow, "M - H - L"},
+    {HighLowMid, "H - L - M"},
+    {HighMidLow, "H - M - L"})
 
 } // namespace LE::SW::Effects
 

@@ -40,9 +40,9 @@ class Morpheus
 
     DEFINE_PARAMETERS(((Mode1))((Mode2))(
         (Amount)(float)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<30>)(DisplayValueSuffix<
-                                                                              ' %'>))((
-        Range)(unsigned int)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<
-                                                                 50>)(DisplayValueSuffix<' bw%'>)));
+                                                                              '%'>))(
+        (Range)(unsigned int)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<
+                                                                  50>)(DisplayValueSuffix<'%'>)));
 
     ////////////////////////////////////////////////////////////////////////////
     // setup() and process()

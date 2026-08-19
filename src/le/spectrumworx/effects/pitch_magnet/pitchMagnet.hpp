@@ -26,7 +26,7 @@ struct PitchMagnetBase
 {
     LE_DEFINE_PARAMETER(Target, LinearUnsignedInteger, Minimum<20>, Maximum<2000>, Default<200>,
                         Unit<" Hz">);
-    LE_DEFINE_PARAMETER(Speed, LinearFloat, Minimum<0>, Maximum<60>, Default<1>, Unit<" '/s">);
+    LE_DEFINE_PARAMETER(Speed, LinearFloat, Minimum<0>, Maximum<60>, Default<1>, Unit<" st/s">);
     LE_DEFINE_PARAMETERS(Target, Speed);
 
     /// \typedef Target

@@ -60,7 +60,7 @@ EFFECT_PARAMETER_NAME(CommonParameters::Mode, "Target")
 EFFECT_PARAMETER_NAME(CommonParameters::SpringType, "Direction")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(CommonParameters, Mode,
-    {Both, "Mags&Phases"},
+    {Both, "Both"},
     {Magnitudes, "Magnitudes"},
     {Phases, "Phases"})
 

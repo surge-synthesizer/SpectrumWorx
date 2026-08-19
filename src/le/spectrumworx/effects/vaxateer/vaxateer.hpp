@@ -71,37 +71,41 @@ struct Vaxateer
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Vaxateer::RMSTarget, "RMS target")
-EFFECT_PARAMETER_NAME(Vaxateer::RMSGain, "RMS threshold gain")
-EFFECT_PARAMETER_NAME(Vaxateer::Mode, "Swap condition")
+EFFECT_PARAMETER_NAME(Vaxateer::RMSTarget, "RMS Target")
+EFFECT_PARAMETER_NAME(Vaxateer::RMSGain, "Threshold")
+EFFECT_PARAMETER_NAME(Vaxateer::Mode, "Swap Condition")
+
+EFFECT_PARAMETER_STREAMING_NAME(Vaxateer::RMSTarget, "RMS target")
+EFFECT_PARAMETER_STREAMING_NAME(Vaxateer::RMSGain, "RMS threshold gain")
+EFFECT_PARAMETER_STREAMING_NAME(Vaxateer::Mode, "Swap condition")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Vaxateer, RMSTarget,
     {MainRMS, "Main"},
-    {SideRMS, "Side"})
+    {SideRMS, "Sidechain"})
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Vaxateer, Mode,
-    {M1, "Main: >Thr >Side"},
-    {M2, "Main: >Thr <Side"},
-    {M3, "Main: <Thr >Side"},
-    {M4, "Main: <Thr <Side"},
-    {M5, "Side: >Thr >Main"},
-    {M6, "Side: >Thr <Main"},
-    {M7, "Side: <Thr >Main"},
-    {M8, "Side: <Thr <Main"})
+    {M1, "Main: >Threshold >Sidechain"},
+    {M2, "Main: >Threshold <Sidechain"},
+    {M3, "Main: <Threshold >Sidechain"},
+    {M4, "Main: <Threshold <Sidechain"},
+    {M5, "Sidechain: >Threshold >Main"},
+    {M6, "Sidechain: >Threshold <Main"},
+    {M7, "Sidechain: <Threshold >Main"},
+    {M8, "Sidechain: <Threshold <Main"})
 
 /// \note Eight conditions, sixteen characters each, in a sixty-pixel box: the
 /// widget squeezed them to a tenth of their width and the reading was a smear.
 /// The menu still lists them in full -- this is only what the box reads once one
 /// is chosen. \see ShortValues and issue #120.
 EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS(Vaxateer, Mode,
-    {M1, "M:>T >S"},
-    {M2, "M:>T <S"},
-    {M3, "M:<T >S"},
-    {M4, "M:<T <S"},
-    {M5, "S:>T >M"},
-    {M6, "S:>T <M"},
-    {M7, "S:<T >M"},
-    {M8, "S:<T <M"})
+    {M1, "Main: >T >SC"},
+    {M2, "Main: >T <SC"},
+    {M3, "Main: <T >SC"},
+    {M4, "Main: <T <SC"},
+    {M5, "SC: >T >M"},
+    {M6, "SC: >T <M"},
+    {M7, "SC: <T >M"},
+    {M8, "SC: <T <M"})
 
 } // namespace LE::SW::Effects
 

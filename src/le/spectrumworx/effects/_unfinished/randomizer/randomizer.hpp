@@ -39,11 +39,11 @@ class Randomizer
     ////////////////////////////////////////////////////////////////////////////
 
     DEFINE_PARAMETERS(
-        //( ( Intensity )( float )( MinimumValue<  1> )( MaximumValue<200> )( DefaultValue< 50> ) ( DisplayValueSuffix<' %'> ) )
+        //( ( Intensity )( float )( MinimumValue<  1> )( MaximumValue<200> )( DefaultValue< 50> ) ( DisplayValueSuffix<'%'> ) )
         ((Intensity)(float)(MinimumValue<0>)(MaximumValue<+24>)(DefaultValue<0>)(DisplayValueSuffix<
                                                                                  ' dB'>))(
             (BlockSize)(float)(MinimumValue<0>)(MaximumValue<10>)(DefaultValue<
-                                                                  5>)(DisplayValueSuffix<' bw%'>)));
+                                                                  5>)(DisplayValueSuffix<'%'>)));
 
     ////////////////////////////////////////////////////////////////////////////
     // setup() and process()

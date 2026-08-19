@@ -48,29 +48,36 @@ namespace
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-constexpr char const *pitch[]{"Pitch Shifter", "Pitch Follower", "TuneWorx", "Pitch Magnet",
-                              "Sumo Pitch",    "Pitch Spring",   "Octaver"};
+constexpr char const *pitch[]{"Octaver",      "Pitch Follower", "Pitch Magnet", "Pitch Shifter",
+                              "Pitch Spring", "Sumo Pitch",     "TuneWorx"};
 
-constexpr char const *timbre[]{"Bandpass", "Bandstop", "Ah-ah", "Smoother",
-                               "Sharper",  "Centroid", "Tonal", "Atonal"};
+constexpr char const *timbre[]{"Ah-ah",    "Atonal",  "Bandpass", "Bandstop",
+                               "Centroid", "Sharper", "Smoother", "Tonal"};
 
-constexpr char const *time[]{"Freeze", "Slicer", "Wobbler", "Reverser", "Imploder", "Exploder"};
+constexpr char const *time[]{
+    "Exploder", "Freeze", "Imploder", "Reverser", "Slicer", "Wobbler",
+};
 
 constexpr char const *space[]{"Frecho", "Frevcho", "Freqverb"};
 
-constexpr char const *phase[]{"Robotizer", "Whisperer", "Phasevolution", "Phlip"};
+constexpr char const *phase[]{"Phasevolution", "Phlip", "Robotizer", "Whisperer"};
 
-constexpr char const *loudness[]{"Gain", "Exaggerator", "Denoiser", "Quiet Boost", "Freqnamics"};
+constexpr char const *loudness[]{"Denoiser", "Exaggerator", "Freqnamics", "Gain", "Quiet Boost"};
 
-constexpr char const *combine[]{"Talking Wind", "Convolver", "Ethereal", "Vaxateer", "Shapeless",
-                                "Colorifer",    "Merger",    "Blender",  "Inserter", "Burrito"};
+constexpr char const *combine[]{"Blender",  "Burrito", "Colorifer", "Convolver",    "Ethereal",
+                                "Inserter", "Merger",  "Shapeless", "Talking Wind", "Vaxateer"};
 
-constexpr char const *phaseVocoder[]{
-    "PVD start",      "Pitch Shifter (pvd)", "Pitch Follower (pvd)",
-    "TuneWorx (pvd)", "Pitch Magnet (pvd)",  "Pitch Spring (pvd)",
-    "Imploder (pvd)", "Exploder (pvd)",      "PVD stop"};
+constexpr char const *phaseVocoder[]{"PVD start",
+                                     "Exploder (pvd)",
+                                     "Imploder (pvd)",
+                                     "Pitch Follower (pvd)",
+                                     "Pitch Magnet (pvd)",
+                                     "Pitch Shifter (pvd)",
+                                     "Pitch Spring (pvd)",
+                                     "TuneWorx (pvd)",
+                                     "PVD stop"};
 
-constexpr char const *miscellaneous[]{"Armonizer", "Slew Limiter", "Shifter", "Swappah",
+constexpr char const *miscellaneous[]{"Armonizer", "Shifter", "Slew Limiter", "Swappah",
                                       "Quantizer"};
 
 struct GroupSource
@@ -82,17 +89,14 @@ struct GroupSource
 /// \note **This is the order the menu is drawn in.** Moving a group is moving a
 /// line here; moving an effect between groups is moving a name above.
 constexpr GroupSource layout[]{
+    {"Combine", combine},
+    {"Loudness", loudness},
+    {"Phase", phase},
+    {"Phase Vocoder", phaseVocoder},
     {"Pitch", pitch},
     {"Timbre", timbre},
     {"Time", time},
     {"Space", space},
-    {"Phase", phase},
-    /// Straight after Phase, which is the move issue #121 was opened for and
-    /// which the effect list could not express: these nine are the last nine
-    /// effects by index and used to be the last group by consequence.
-    {"Phase Vocoder", phaseVocoder},
-    {"Loudness", loudness},
-    {"Combine", combine},
     {"Miscellaneous", miscellaneous},
 };
 

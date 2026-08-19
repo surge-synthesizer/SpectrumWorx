@@ -73,11 +73,17 @@ struct Ethereal
 ////////////////////////////////////////////////////////////////////////////////
 
 EFFECT_PARAMETER_NAME(Ethereal::Threshold, "Threshold")
-EFFECT_PARAMETER_NAME(Ethereal::Condition, "Swap condition")
+EFFECT_PARAMETER_NAME(Ethereal::Condition, "Swap Condition")
+
+EFFECT_PARAMETER_STREAMING_NAME(Ethereal::Condition, "Swap condition")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Ethereal, Condition,
-    {DiffHigher, "Main - Side > Thr."},
-    {DiffLower, "Main - Side < Thr."})
+    {DiffHigher, "Main - Side > Threshold"},
+    {DiffLower, "Main - Side < Threshold"})
+
+EFFECT_ENUMERATED_PARAMETER_SHORT_STRINGS(Ethereal, Condition,
+    {DiffHigher, "M - S > Thr"},
+    {DiffLower, "M - S < Thr"})
 
 } // namespace LE::SW::Effects
 

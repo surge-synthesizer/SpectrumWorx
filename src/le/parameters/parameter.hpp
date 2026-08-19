@@ -289,7 +289,7 @@ template <class OriginalParameter> struct Modify<OriginalParameter>
 /// forwarding constructor (to minimize the difference between a typedef
 /// parameter specification and a struct that publicly derives from Parameter<>.
 ///
-///   LE_DEFINE_PARAMETER( Interval, SymmetricFloat, MaximumOffset<24>, Unit<"'"> )
+///   LE_DEFINE_PARAMETER( Interval, SymmetricFloat, MaximumOffset<24>, Unit<" st"> )
 /// -- the name to give the parameter, the parameter to build it out of, and the
 /// traits to change. Naming no trait renames: the new parameter has the same
 /// traits as the one it was built from.

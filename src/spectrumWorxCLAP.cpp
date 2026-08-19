@@ -573,7 +573,7 @@ bool SpectrumWorxCLAP::audioPortsInfo(std::uint32_t const index, bool const isIn
     {
         info->id = sideChainInputPort;
         info->flags = 0;
-        std::strncpy(info->name, "Side Chain", CLAP_NAME_SIZE - 1);
+        std::strncpy(info->name, "Sidechain", CLAP_NAME_SIZE - 1);
         return true;
     }
     if (!isInput && index == 0)

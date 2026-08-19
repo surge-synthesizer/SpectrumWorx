@@ -58,7 +58,9 @@ struct Freqnamics
 ////////////////////////////////////////////////////////////////////////////////
 
 EFFECT_PARAMETER_NAME(Freqnamics::LimiterThreshold, "Limiter")
-EFFECT_PARAMETER_NAME(Freqnamics::NoisegateThreshold, "Noise gate")
+EFFECT_PARAMETER_NAME(Freqnamics::NoisegateThreshold, "Noise Gate")
+
+EFFECT_PARAMETER_STREAMING_NAME(Freqnamics::NoisegateThreshold, "Noise gate")
 
 } // namespace LE::SW::Effects
 

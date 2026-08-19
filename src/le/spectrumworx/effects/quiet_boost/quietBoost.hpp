@@ -62,7 +62,9 @@ struct QuietBoost
 
 EFFECT_PARAMETER_NAME(QuietBoost::Threshold, "Threshold")
 EFFECT_PARAMETER_NAME(QuietBoost::Ratio, "Ratio")
-EFFECT_PARAMETER_NAME(QuietBoost::NoiseGateThreshold, "Noise threshold")
+EFFECT_PARAMETER_NAME(QuietBoost::NoiseGateThreshold, "Noise Gate")
+
+EFFECT_PARAMETER_STREAMING_NAME(QuietBoost::NoiseGateThreshold, "Noise threshold")
 
 } // namespace LE::SW::Effects
 

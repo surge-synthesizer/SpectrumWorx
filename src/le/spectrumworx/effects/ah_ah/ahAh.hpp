@@ -86,7 +86,7 @@ EFFECT_PARAMETER_STREAMING_NAME(AhAh::Center, "Center (LFO me!)")
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(AhAh::Center, "Center frequency")
+EFFECT_PARAMETER_NAME(AhAh::Center, "Center")
 EFFECT_PARAMETER_NAME(AhAh::Width, "Width")
 EFFECT_PARAMETER_NAME(AhAh::Strength, "Strength")
 

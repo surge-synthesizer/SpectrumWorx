@@ -67,9 +67,13 @@ struct Colorifer
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Colorifer::BandWidth, "Shape width")
-EFFECT_PARAMETER_NAME(Colorifer::SpectrumPreprocess, "Spectrum preprocess")
-EFFECT_PARAMETER_NAME(Colorifer::ReplacePhase, "Replace phase")
+EFFECT_PARAMETER_NAME(Colorifer::BandWidth, "Width")
+EFFECT_PARAMETER_NAME(Colorifer::SpectrumPreprocess, "Preprocess")
+EFFECT_PARAMETER_NAME(Colorifer::ReplacePhase, "Replace Phase")
+
+EFFECT_PARAMETER_STREAMING_NAME(Colorifer::BandWidth, "Shape width")
+EFFECT_PARAMETER_STREAMING_NAME(Colorifer::SpectrumPreprocess, "Spectrum preprocess")
+EFFECT_PARAMETER_STREAMING_NAME(Colorifer::ReplacePhase, "Replace phase")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Colorifer, SpectrumPreprocess,
     {NotUsed, "None"},

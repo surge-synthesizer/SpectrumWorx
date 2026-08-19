@@ -34,7 +34,7 @@ namespace LE::SW::Effects
 /// The Destination is the target position in the input channel's spectrum. The
 /// Size parameter controls how much of the spectrum is copied.
 ///
-/// \note "bw%" refers to bandwidth percentage.
+/// \note % refers to bandwidth percentage.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -45,11 +45,9 @@ struct Inserter
     typedef CommonParameters::Mode Mode;
     /// @}
 
-    LE_DEFINE_PARAMETER(Source, LinearFloat, Minimum<0>, Maximum<100>, Default<0>, Unit<" bw%">);
-    LE_DEFINE_PARAMETER(Destination, LinearFloat, Minimum<0>, Maximum<100>, Default<0>,
-                        Unit<" bw%">);
-    LE_DEFINE_PARAMETER(InsertSize, LinearFloat, Minimum<0>, Maximum<100>, Default<5>,
-                        Unit<" bw%">);
+    LE_DEFINE_PARAMETER(Source, LinearFloat, Minimum<0>, Maximum<100>, Default<0>, Unit<"%">);
+    LE_DEFINE_PARAMETER(Destination, LinearFloat, Minimum<0>, Maximum<100>, Default<0>, Unit<"%">);
+    LE_DEFINE_PARAMETER(InsertSize, LinearFloat, Minimum<0>, Maximum<100>, Default<5>, Unit<"%">);
     LE_DEFINE_PARAMETERS(Mode, Source, Destination, InsertSize);
 
     /// \typedef Mode

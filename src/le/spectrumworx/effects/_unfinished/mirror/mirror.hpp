@@ -41,7 +41,7 @@ class Mirror
 
     DEFINE_PARAMETERS(
         ((Width)(unsigned int)(MinimumValue<0>)(MaximumValue<10>)(DefaultValue<
-                                                                  2>)(DisplayValueSuffix<' %bw'>))(
+                                                                  2>)(DisplayValueSuffix<'%'>))(
             (Mode))((StartFrequency))((StopFrequency)));
 
     ////////////////////////////////////////////////////////////////////////////

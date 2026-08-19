@@ -39,11 +39,11 @@ class PVImploderSide
         DecayMain)(unsigned int)(MinimumValue<1>)(MaximumValue<200>)(DefaultValue<
                                                                      50>)(DisplayValueSuffix<' s'>))(
         (GlissMain)(int)(MinimumValue<-300>)(MaximumValue<300>)(DefaultValue<0>)(DisplayValueSuffix<
-                                                                                 ' \"/s'>))((
+                                                                                 ' ct/s'>))((
         DecaySide)(unsigned int)(MinimumValue<1>)(MaximumValue<200>)(DefaultValue<
                                                                      50>)(DisplayValueSuffix<' s'>))(
         (GlissSide)(int)(MinimumValue<-300>)(MaximumValue<300>)(DefaultValue<0>)(DisplayValueSuffix<
-                                                                                 ' \"/s'>)));
+                                                                                 ' ct/s'>)));
 
     struct ChannelState
     {

@@ -117,10 +117,14 @@ struct Atonal : Detail::TonalBase
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Detail::TonalBase::Strength, "Peak strength")
-EFFECT_PARAMETER_NAME(Detail::TonalBase::GlobalThreshold, "Global threshold")
-EFFECT_PARAMETER_NAME(Detail::TonalBase::LocalThreshold, "Local threshold")
+EFFECT_PARAMETER_NAME(Detail::TonalBase::Strength, "Peak Strength")
+EFFECT_PARAMETER_NAME(Detail::TonalBase::GlobalThreshold, "Global Threshold")
+EFFECT_PARAMETER_NAME(Detail::TonalBase::LocalThreshold, "Local Threshold")
 EFFECT_PARAMETER_NAME(Detail::TonalBase::Attenuation, "Attenuation")
+
+EFFECT_PARAMETER_STREAMING_NAME(Detail::TonalBase::Strength, "Peak strength")
+EFFECT_PARAMETER_STREAMING_NAME(Detail::TonalBase::GlobalThreshold, "Global threshold")
+EFFECT_PARAMETER_STREAMING_NAME(Detail::TonalBase::LocalThreshold, "Local threshold")
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -128,9 +132,12 @@ EFFECT_PARAMETER_NAME(Detail::TonalBase::Attenuation, "Attenuation")
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Atonal::Strength, "Peak strength")
-EFFECT_PARAMETER_NAME(Atonal::GlobalThreshold, "Global threshold")
+EFFECT_PARAMETER_NAME(Atonal::Strength, "Peak Strength")
+EFFECT_PARAMETER_NAME(Atonal::GlobalThreshold, "Global Threshold")
 EFFECT_PARAMETER_NAME(Atonal::Attenuation, "Attenuation")
+
+EFFECT_PARAMETER_STREAMING_NAME(Atonal::Strength, "Peak strength")
+EFFECT_PARAMETER_STREAMING_NAME(Atonal::GlobalThreshold, "Global threshold")
 
 } // namespace LE::SW::Effects
 

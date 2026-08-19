@@ -220,16 +220,16 @@ float constexpr ruleThickness{1.0f};
 ///
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-char constexpr inLabel[]{"in"};
-char constexpr outLabel[]{"out"};
-char constexpr mixLabel[]{"mix"};
+char constexpr inLabel[]{"In"};
+char constexpr outLabel[]{"Out"};
+char constexpr mixLabel[]{"Mix"};
 char constexpr lfoLabel[]{"LFO"};
 /// \note "External audio" until 18.08.2026, which the box under it stopped
 /// being two changes ago: it answers "what goes into the side channel" and has
 /// three answers, of which a file is one. \see issue #113 and
 /// tests/gui/sideChainSelectorTests.cpp. The old name was outlines in the
 /// artwork, so this is the first release in which it could be said.
-char constexpr sideChainSourceLabel[]{"Sidechain source"};
+char constexpr sideChainSourceLabel[]{"Sidechain Source"};
 char constexpr productLabel[]{"Spectrum"};
 char constexpr productLabelSecondLine[]{"Worx"};
 

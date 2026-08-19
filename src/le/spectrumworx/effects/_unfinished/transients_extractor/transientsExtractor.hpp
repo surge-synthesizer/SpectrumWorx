@@ -38,7 +38,7 @@ class TransientsExtractor
     DEFINE_PARAMETERS(
         //( ( THD         )( float )( MinimumValue<  0> )( MaximumValue< 10> )( DefaultValue<  5> )( RangeValuesDenominator<10> ) )
         ((THD)(float)(MinimumValue<0>)(MaximumValue<100>)(DefaultValue<50>)(DisplayValueSuffix<
-                                                                            ' %'>))(
+                                                                            '%'>))(
             (Sign)(float)(MinimumValue<-10>)(MaximumValue<10>)(DefaultValue<
                                                                10>)(RangeValuesDenominator<10>))(
             (StartFrequency))((StopFrequency)));

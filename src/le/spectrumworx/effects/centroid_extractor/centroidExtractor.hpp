@@ -69,9 +69,12 @@ struct CentroidExtractor
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(CentroidExtractor::Mode, "Filter center")
+EFFECT_PARAMETER_NAME(CentroidExtractor::Mode, "Filter Center")
 EFFECT_PARAMETER_NAME(CentroidExtractor::Bandwidth, "Bandwidth")
-EFFECT_PARAMETER_NAME(CentroidExtractor::Attenuation, "Border slope")
+EFFECT_PARAMETER_NAME(CentroidExtractor::Attenuation, "Border Slope")
+
+EFFECT_PARAMETER_STREAMING_NAME(CentroidExtractor::Mode, "Filter center")
+EFFECT_PARAMETER_STREAMING_NAME(CentroidExtractor::Attenuation, "Border slope")
 
 EFFECT_ENUMERATED_PARAMETER_STRINGS(CentroidExtractor, Mode,
     {Centroid, "Centroid"},

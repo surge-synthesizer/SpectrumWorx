@@ -41,7 +41,7 @@ class Reverbator
         ((Mode))(
             (Depth)(float)(MinimumValue<10>)(MaximumValue<1000>)(DefaultValue<
                                                                  150>)(DisplayValueSuffix<' ms'>))
-        //( ( Amount )( unsigned int )( MinimumValue<  0> )( MaximumValue< 100> )( DefaultValue< 50> ) ( DisplayValueSuffix<' %'> ) )
+        //( ( Amount )( unsigned int )( MinimumValue<  0> )( MaximumValue< 100> )( DefaultValue< 50> ) ( DisplayValueSuffix<'%'> ) )
         ((Amount)(int)(MinimumValue<-60>)(MaximumValue<0>)(DefaultValue<-12>)(DisplayValueSuffix<
                                                                               ' dB'>))(
             (StopFrequency)));

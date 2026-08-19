@@ -44,7 +44,7 @@ struct Freqverb
     LE_DEFINE_PARAMETER(Time60dB, LinearFloat, Minimum<100>, Maximum<20000>, Default<2500>,
                         ValuesDenominator<1000>, Unit<" s">);
     LE_DEFINE_PARAMETER(RoomSize, LinearFloat, Minimum<-24>, Maximum<0>, Default<-3>, Unit<" dB">);
-    LE_DEFINE_PARAMETER(ReverbPitch, SymmetricFloat, MaximumOffset<48>, Unit<" '/s">);
+    LE_DEFINE_PARAMETER(ReverbPitch, SymmetricFloat, MaximumOffset<48>, Unit<" st/s">);
     LE_DEFINE_PARAMETER(HFAbsorption, LinearUnsignedInteger, Minimum<0>, Maximum<100>, Default<5>,
                         Unit<" %">);
     LE_DEFINE_PARAMETERS(Time60dB, RoomSize, ReverbPitch, HFAbsorption);
@@ -70,10 +70,14 @@ struct Freqverb
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(Freqverb::Time60dB, "Life time")
-EFFECT_PARAMETER_NAME(Freqverb::RoomSize, "Room size")
+EFFECT_PARAMETER_NAME(Freqverb::Time60dB, "Lifetime")
+EFFECT_PARAMETER_NAME(Freqverb::RoomSize, "Size")
 EFFECT_PARAMETER_NAME(Freqverb::ReverbPitch, "Pitch")
-EFFECT_PARAMETER_NAME(Freqverb::HFAbsorption, "HF absorb")
+EFFECT_PARAMETER_NAME(Freqverb::HFAbsorption, "Damping")
+
+EFFECT_PARAMETER_STREAMING_NAME(Freqverb::Time60dB, "Life time")
+EFFECT_PARAMETER_STREAMING_NAME(Freqverb::RoomSize, "Room size")
+EFFECT_PARAMETER_STREAMING_NAME(Freqverb::HFAbsorption, "HF absorb")
 
 } // namespace LE::SW::Effects
 

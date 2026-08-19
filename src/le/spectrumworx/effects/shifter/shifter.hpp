@@ -44,7 +44,7 @@ struct Shifter
     LE_ENUMERATED_PARAMETER(ShiftTarget, Magnitudes, Phases, Both);
     LE_ENUMERATED_PARAMETER(Tail, Leave, Clear, Circular);
 
-    LE_DEFINE_PARAMETER(Offset, SymmetricFloat, MaximumOffset<10>, Unit<" bw%">);
+    LE_DEFINE_PARAMETER(Offset, SymmetricFloat, MaximumOffset<10>, Unit<"%">);
     LE_DEFINE_PARAMETERS(ShiftTarget, Offset, Tail);
 
     /// \typedef ShiftTarget
@@ -55,7 +55,7 @@ struct Shifter
     ///   - Both: shift both magnitudes and phases.
     /// \typedef Offset
     /// \brief Amount of shift.
-    /// \details (in \%bw, percentage of bandwidth i.e. total
+    /// \details (in percentage of bandwidth i.e. total
     /// frequency range)
     /// \typedef Tail
     /// \brief Determines what shall be done with the tail data.
@@ -86,7 +86,7 @@ EFFECT_ENUMERATED_PARAMETER_STRINGS(Shifter, Tail,
 EFFECT_ENUMERATED_PARAMETER_STRINGS(Shifter, ShiftTarget,
     {Magnitudes, "Magnitudes"},
     {Phases, "Phases"},
-    {Both, "Mags&Phases"})
+    {Both, "Both"})
 
 } // namespace LE::SW::Effects
 

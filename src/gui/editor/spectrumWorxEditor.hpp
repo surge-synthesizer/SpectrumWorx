@@ -1084,7 +1084,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \internal
     /// \class SampleArea
     ///
-    /// \brief The "Sidechain source" strip: what the side channel is being fed
+    /// \brief The "Sidechain Source" strip: what the side channel is being fed
     /// from, and the click that changes it.
     ////////////////////////////////////////////////////////////////////////////
 

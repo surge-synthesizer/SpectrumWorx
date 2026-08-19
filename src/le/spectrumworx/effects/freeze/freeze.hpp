@@ -62,7 +62,9 @@ struct Freeze
 
 EFFECT_PARAMETER_NAME(Freeze::FreezeTrigger, "Freeze")
 EFFECT_PARAMETER_NAME(Freeze::MeltTrigger, "Melt")
-EFFECT_PARAMETER_NAME(Freeze::TransitionTime, "Transition time")
+EFFECT_PARAMETER_NAME(Freeze::TransitionTime, "Transition")
+
+EFFECT_PARAMETER_STREAMING_NAME(Freeze::TransitionTime, "Transition time")
 
 } // namespace LE::SW::Effects
 

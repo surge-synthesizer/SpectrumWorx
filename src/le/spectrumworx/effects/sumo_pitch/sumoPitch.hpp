@@ -40,7 +40,7 @@ struct SumoPitch
 {
     LE_DEFINE_PARAMETER(Blend, LinearUnsignedInteger, Minimum<0>, Maximum<100>, Default<50>,
                         Unit<" %">);
-    LE_DEFINE_PARAMETER(Speed, LinearFloat, Minimum<0>, Maximum<60>, Default<1>, Unit<" '/s">);
+    LE_DEFINE_PARAMETER(Speed, LinearFloat, Minimum<0>, Maximum<60>, Default<1>, Unit<" st/s">);
     LE_DEFINE_PARAMETERS(Blend, Speed);
 
     /// \typedef Blend
@@ -61,8 +61,10 @@ struct SumoPitch
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-EFFECT_PARAMETER_NAME(SumoPitch::Blend, "Blend amount")
+EFFECT_PARAMETER_NAME(SumoPitch::Blend, "Blend")
 EFFECT_PARAMETER_NAME(SumoPitch::Speed, "Speed")
+
+EFFECT_PARAMETER_STREAMING_NAME(SumoPitch::Blend, "Blend amount")
 
 } // namespace LE::SW::Effects
 
