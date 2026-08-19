@@ -29,6 +29,7 @@ add_library(sw-gui-resources STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/moduleStripPainter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/panelPainter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/sliderThumbPainter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gui/painters/waveformPainter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/le/utility/assertionHandler.cpp
 )
 

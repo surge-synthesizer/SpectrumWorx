@@ -11,6 +11,8 @@
 //------------------------------------------------------------------------------
 #include "resources.hpp"
 
+#include "gui/painters/waveformPainter.hpp"
+
 #include "le/utility/assert.hpp"
 
 #include <cmrc/cmrc.hpp>
@@ -132,8 +134,35 @@ Artwork loadVector(char const *const data, std::size_t const size)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The eleven LFO waveforms, which are drawn rather than read.
+///
+/// \note They keep their file numbers -- 43 to 53 -- so that
+/// `resourceArtwork<LFOSine>()` and the waveform menu did not have to change
+/// when the files went. What a number means here is "the mark that used to be
+/// in that file", and this is the only place that knows the difference.
+///                                       (19.08.2026.)
+///
+/// \note White, which is what every one of those files stroked in. A palette
+/// never reached them; tinting is Artwork::draw()'s and stays there.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+Artwork loadWaveform(unsigned int const number)
+{
+    auto const waveform(static_cast<WaveformPainter::Waveform>(number - unsigned{GUI::LFOSine}));
+    LE_ASSERT(waveform < WaveformPainter::Waveform::count);
+
+    return {WaveformPainter::drawable(waveform, juce::Colours::white), WaveformStyle::iconWidth,
+            WaveformStyle::iconHeight};
+}
+
 Artwork loadArtwork(unsigned int const number)
 {
+    if ((number >= GUI::LFOSine) && (number <= GUI::LFOdIRAC))
+        return loadWaveform(number);
+
     // "01" ... "62": zero padded to two digits, as the files are named.
     auto const stem(juce::String(number).paddedLeft('0', 2));
 

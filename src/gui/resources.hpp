@@ -172,11 +172,13 @@ unsigned int constexpr numberOfResourceBitmaps = 62;
 /// they outlived the JUCE they were allocated under. This is one array, and it
 /// can be emptied.
 ///
-/// \note The numbering has holes, and most of it is one now: what is left is
-/// 1 and 43 to 53. A hole yields an invalid
-/// image rather than an assertion, so that iterating the range is legal; the
-/// check that every *named* file resolves is a test (skinTests.cpp), which is a
-/// better place for it than every call.
+/// \note The numbering has holes and is now *entirely* holes: no number
+/// resolves to a file any more. 43 to 53 still resolve, but to WaveformPainter
+/// rather than to anything in assets/skin -- \see loadArtwork(), which is the
+/// one place that knows. A hole yields an invalid image rather than an
+/// assertion, so that iterating the range is legal; the check that every
+/// *named* number resolves is a test (skinTests.cpp), which is a better place
+/// for it than every call.
 ///
 /// \note Fourteen went on 18.08.2026 and they were all the same drawing: the
 /// Presets and Settings buttons (8 to 11), the settings tabs (21 to 24, 27, 28)
@@ -207,8 +209,13 @@ unsigned int constexpr numberOfResourceBitmaps = 62;
 /// was left: 52 paths, six gradients and six pieces of copy nothing could
 /// change. \see painters/backgroundPainter.hpp.
 ///
-///   What is left is the eleven LFO waveform icons, which are drawings rather
-/// than shapes, and the two typefaces.
+/// \note And the eleven LFO waveform icons (43 to 53) on 19.08.2026, which
+/// were the last SVGs in the tree. They are WaveformPainter now and keep their
+/// numbers, so the waveform menu did not change. \see
+/// painters/waveformPainter.hpp.
+///
+///   What is left in assets/skin is the two typefaces. Nothing there is a
+/// picture any more.
 ///
 /// \note Six of those holes are the knob film strips and what went with them:
 /// the module knob's four (3, 12, 63, 64) plus its focus ring (65) and LFO disc
@@ -239,8 +246,8 @@ bool hasResourceBitmap(unsigned int number);
 ///
 /// \note Which is now the same question as "is it there at all", and the case
 /// in skinTests.cpp that walks the numbering with it is what would notice a
-/// glob that quietly stopped picking up assets/skin/*.svg -- at which point
-/// every widget in the editor is a blank rectangle and nothing else says so.
+/// waveform that stopped being built -- at which point the LFO menu is eleven
+/// blank rows and nothing else says so.
 bool resourceIsVector(unsigned int number);
 
 template <unsigned int bitmapID> juce::Image const &resourceBitmap()
