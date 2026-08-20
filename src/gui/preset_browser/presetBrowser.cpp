@@ -1202,7 +1202,30 @@ juce::String PresetBrowser::locationLabel() const
                                       : _T( "Factory/" ) + factoryBank_;
 
     case Location::User:
-        return LE::IO::pathToJuceString(currentDirectory_);
+    {
+        ///   "User", and then whatever is under it: the same shape the Factory
+        /// arm has, and for the reason issue #134 gives. The strip is 250 px of
+        /// room and an absolute path spends all of it on a home directory, a
+        /// vendor folder and a Presets folder -- so the one part that says where
+        /// the user actually is fell off the right-hand end.
+        ///
+        /// \note `lexically_relative()`, which touches no disk: this is asked
+        /// from paint(). It answers "." for the root itself, and an empty path
+        /// or one starting in ".." for somewhere with no route down from it --
+        /// which the browse button can reach, and which is the one case with
+        /// nothing shorter to say than the path.
+        auto const under(currentDirectory_.lexically_relative(GUI::presetsFolder()));
+        if (under.empty() || (*under.begin() == _T( ".." )))
+            return LE::IO::pathToJuceString(currentDirectory_);
+        if (under == _T( "." ))
+            return _T( "User" );
+
+        /// \note Joined as a path rather than with a literal "User/", so that
+        /// the separator between the folders is the one the platform names them
+        /// with. Factory's is a slash because a bank is a name in the binary
+        /// rather than a directory on disk.
+        return LE::IO::pathToJuceString(fs::path(_T( "User" )) / under);
+    }
     }
     LE_UNREACHABLE_CODE();
 }

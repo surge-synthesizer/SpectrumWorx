@@ -233,6 +233,15 @@ juce::Rectangle<float> BackgroundPainter::sideChainLockBounds()
             GlyphStyle::lockHeight};
 }
 
+/// \note A rule and nothing else: what shows inside it is the LFO box it is cut
+/// into, which the chassis has already drawn.
+void BackgroundPainter::paintLFOWaveformWell(juce::Graphics &graphics,
+                                             juce::Point<int> const origin)
+{
+    paintRule(graphics, rectangleOf(lfoWaveformWell).translated(-origin.x, -origin.y),
+              lfoWaveformWell.cornerRadius, ColourMap::EditorRule);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // BackgroundPainter::paint()
@@ -268,12 +277,8 @@ void BackgroundPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> c
         graphics.setColour(ColourMap::getColour(ColourMap::EditorRule));
         graphics.strokePath(path, juce::PathStrokeType(ruleThickness));
     }
-    {
-        //   The waveform button's well is a rule and nothing else: what shows
-        // inside it is the LFO box it is cut into.
-        paintRule(graphics, rectangleOf(lfoWaveformWell), lfoWaveformWell.cornerRadius,
-                  ColourMap::EditorRule);
-    }
+    /// \note The waveform button's well is not here. \see
+    /// paintLFOWaveformWell(), which the LFO strip calls.
 
     paintPanel(graphics, sideChainSourceBox, sideChainSourceRamp);
     paintPanel(graphics, buttonRowBox, buttonRowRamp);

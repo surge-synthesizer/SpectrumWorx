@@ -142,7 +142,10 @@ float constexpr lfoNotchRadius{9.18f};
 Ramp constexpr lfoBoxRamp{45.0f,   -45.0f, -265.5f, 265.5f,
                           0.5145f, 2.0f,   0.213f,  ColourMap::EditorWell};
 
-/// The pill inside it that the waveform button sits in.
+/// \brief The pill inside it that the waveform button sits in.
+///
+/// \note Drawn by the LFO strip rather than with the box it is cut into. \see
+/// BackgroundPainter::paintLFOWaveformWell().
 Panel constexpr lfoWaveformWell{219.0f, 377.0f, 267.0f, 407.0f, 12.62f};
 
 /// What is feeding the side channel.
@@ -296,6 +299,25 @@ class BackgroundPainter
   public:
     /// \brief Draws the whole chassis into \p bounds.
     static void paint(juce::Graphics &, juce::Rectangle<float> bounds);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The pill the LFO's waveform button sits in, for a widget whose
+    /// top left is at \p origin in the chassis' own coordinates.
+    ///
+    ///   Not part of paint(), and that is the point: the LFO strip is only on
+    /// screen while a control is selected, and everything in that box comes and
+    /// goes with it. This one did not -- an empty LFO box with a lone pill in
+    /// the corner of it is what issue #134 reports -- because it was drawn with
+    /// the chassis rather than with what it holds.
+    ///
+    /// \note \p origin rather than the widget's bounds, so the rectangle stays
+    /// written where the artwork measured it. \see
+    /// BackgroundStyle::lfoWaveformWell.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    static void paintLFOWaveformWell(juce::Graphics &, juce::Point<int> origin);
 
     ////////////////////////////////////////////////////////////////////////////
     ///

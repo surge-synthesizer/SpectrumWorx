@@ -182,9 +182,14 @@ class Theme final : public juce::LookAndFeel_V2
 
     /// \brief What a scroll bar takes out of the view it scrolls, in pixels.
     ///
-    /// \note Six, of which the thumb is four: the inset either side is what keeps
+    /// \note Nine, of which the thumb is six: the inset either side is what keeps
     /// it off the edge of the view. JUCE's own answer is eighteen.
-    static int constexpr scrollBarThickness{6};
+    ///
+    /// \note Six until 19.08.2026, which was this number drawn through the
+    /// skin's 1.5 transform. Drawing the editor at 1:1 left it at six *screen*
+    /// pixels -- a two pixel thumb, which is a bar too thin to aim at. \see
+    /// issue #134.
+    static int constexpr scrollBarThickness{9};
 
   private:
     juce::Font const headingFont_;

@@ -94,7 +94,7 @@ class ColourMap
         EditorKnobTick,        ///< the eight fixed marks
         EditorKnobRim,         ///< the bright edge past the bevel
         EditorKnobRimOutline,  ///< and the dark line around it
-        EditorKnobPointer,     ///< the bar that turns
+        EditorKnobPointer,     ///< the bar that turns, in the accent
         ///@}
 
         ////////////////////////////////////////////////////////////////////////

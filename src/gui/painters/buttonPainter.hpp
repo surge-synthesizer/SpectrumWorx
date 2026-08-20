@@ -82,10 +82,11 @@ float constexpr glowOuterAlpha{0.0134f}; ///< and at the last one
 /// \name The tab
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
-/// \note PanelPainter::sideInset, not the artwork's 0.5. It is what separates
-/// one tab's pill from the next, and also what keeps the first one from
-/// overhanging the strip it stands in -- which the page below that strip is
-/// inset by too, so all three now start on the same line.
+/// \note What separates one tab's pill from the next, and the artwork's 0.5 at
+/// the size the skin is drawn at now. It is also what the settings panel takes
+/// off PanelPainter::fieldInset when it places the bar, so that the leftmost
+/// pill's edge and the frame below it stand on one line. \see
+/// SpectrumWorxEditor::Settings::resized().
 float constexpr tabSideInset{1.125f};
 float constexpr tabTopInset{1.125f};
 float constexpr tabRadius{6.75f};

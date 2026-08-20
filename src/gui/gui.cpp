@@ -1057,12 +1057,16 @@ LEDTextButton::LEDTextButton(juce::Component &parent, unsigned int const x, unsi
               ledHeight);
 }
 
+/// \note The caption sat at five and reads two low: seventeen pixels of line box
+/// in a twenty-one pixel widget centres at three, and where this button carries a
+/// frame -- ModuleLEDTextButton, which is what a TuneWorx semitone is -- it was
+/// two below the middle of that too. \see issue #134.
 void LEDTextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton,
                                 bool const isButtonDown)
 {
     g.setColour(ColourMap::getColour(ColourMap::Text));
     g.setFont(DrawableText::defaultFont());
-    g.drawFittedText(getName(), ledWidth, 5, getWidth() - ledWidth, 17,
+    g.drawFittedText(getName(), ledWidth, 3, getWidth() - ledWidth, 17,
                      juce::Justification::horizontallyCentred, 1);
 
     paintCapsule(g, {0, 0, ledWidth, ledHeight}, isMouseOverButton, isButtonDown);

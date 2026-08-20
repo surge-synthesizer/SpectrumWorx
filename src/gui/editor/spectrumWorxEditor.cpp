@@ -2882,6 +2882,12 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
                           text.height, text.justification, false);
     }
 
+    /// \note The well before the mark that goes in it, and both here rather
+    /// than in the chassis: this strip is on screen only while a control is
+    /// selected, and a pill sitting alone in an empty LFO box was what the
+    /// chassis drawing it looked like. \see issue #134.
+    BackgroundPainter::paintLFOWaveformWell(graphics, getPosition());
+
     // Null for an item with no icon; every LFO waveform has one.
     if (auto const *const icon(type_.getSelectedItemIcon()); icon != nullptr)
         paintImage(graphics, *icon, 119, 144);
@@ -3687,10 +3693,13 @@ void SpectrumWorxEditor::Settings::InterfacePage::paint(juce::Graphics &graphics
 class SettingsTab : public juce::TabBarButton
 {
   public:
+    /// \note `ownerBar.setTopLeftPosition( { 9, 9 } )` stood here and did
+    /// nothing: `TabbedComponent::resized()` runs after every `addTab()` and
+    /// puts the bar back in the corner. Where the bar goes is the panel's
+    /// question rather than a tab's -- \see Settings::resized().
     SettingsTab(juce::String const &tabName, juce::TabbedButtonBar &ownerBar)
         : TabBarButton(tabName, ownerBar)
     {
-        ownerBar.setTopLeftPosition({9, 9});
     }
 
   private:

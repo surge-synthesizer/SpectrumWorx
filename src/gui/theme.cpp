@@ -166,12 +166,16 @@ void Theme::drawScrollbar(juce::Graphics &graphics, juce::ScrollBar &scrollBar, 
         return;
 
     /// What the thumb keeps clear of the edges of the strip it runs in.
-    constexpr int inset{2};
+    ///
+    /// \note A pixel and a half, and taken off the *float* rectangle: the whole
+    /// point of the inset is the difference between the bar and the thumb, and
+    /// rounding it to a whole pixel would move that by a third.
+    constexpr float inset{1.5f};
 
     auto const bar(isScrollbarVertical
                        ? juce::Rectangle<int>(x, thumbStartPosition, width, thumbSize)
                        : juce::Rectangle<int>(thumbStartPosition, y, thumbSize, height));
-    auto const thumb(bar.reduced(inset).toFloat());
+    auto const thumb(bar.toFloat().reduced(inset));
 
     /// \note Translucent at rest and solid under the hand: a floating bar has no
     /// frame to separate it from the list it is over, so what keeps it from

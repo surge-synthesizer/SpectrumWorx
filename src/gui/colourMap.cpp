@@ -140,8 +140,12 @@ juce::Colour ColourMap::classic(Name const name)
         return juce::Colour(0xFFF2F2F2u);
     case EditorKnobRimOutline:
         return juce::Colour(0x9D000000u);
+    ///   The accent, where the artwork had #161616. A near-black bar over a
+    /// black cap and a ring that is nearly black at the bottom is a pointer
+    /// that disappears over most of its travel and reappears over the rest,
+    /// which is the one thing this mark exists not to do. \see issue #134.
     case EditorKnobPointer:
-        return juce::Colour(0xFF161616u);
+        return juce::Colour(0xFF13B5EAu);
 
     case ModuleKnobDomeCentre:
         return juce::Colour(0xFFB8B6B6u);

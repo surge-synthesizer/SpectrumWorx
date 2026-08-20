@@ -1226,24 +1226,41 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
       private: // JUCE component overrides.
         /// \note The strip the tabs stand in, and nothing else -- the pages are
-        /// children and paint themselves. It runs to the right edge of the last
-        /// tab, which is what makes the tabs read as sitting on the page rather
-        /// than as a bar across it. \see PanelPainter::paintTabStrip().
+        /// children and paint themselves. \see PanelPainter::paintTabStrip().
         void paint(juce::Graphics &graphics) override
         {
-            PanelPainter::paintTabStrip(graphics, {0.f, 0.f, static_cast<float>(tabStripWidth()),
-                                                   static_cast<float>(ButtonStyle::tabHeight)});
+            PanelPainter::paintTabStrip(graphics, getLocalBounds().toFloat());
         }
 
-        /// \brief Where the last tab ends, which is where the strip does.
-        int tabStripWidth()
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \brief TabbedComponent's, and then the tab bar put where the panel
+        /// wants it rather than in its corner.
+        ///
+        ///   A tab lines up with the frame below it -- PanelPainter::fieldInset
+        /// is the line both stand on -- and the row of them is centred in the
+        /// dark between the top of the panel and the top of that frame. JUCE
+        /// puts the bar flush against the top left, which is a pixel in from an
+        /// edge nothing else on either panel measures from. \see issue #134.
+        ///
+        /// \note And in front of the page, which it now overlaps: `changeCallback`
+        /// brings the page forward every time a tab is pressed, so this is the
+        /// only place the order can be settled.
+        ///
+        ////////////////////////////////////////////////////////////////////////
+        void resized() override
         {
+            juce::TabbedComponent::resized();
+
+            auto const strip(ButtonStyle::tabHeight + PanelPainter::settingsFrameTop);
+            auto const left(juce::roundToInt(PanelPainter::fieldInset - ButtonStyle::tabSideInset));
+            auto const top(juce::roundToInt((strip - ButtonStyle::tabHeight) / 2));
+
             auto &bar(getTabbedButtonBar());
-            auto const last(bar.getNumTabs() - 1);
-            if (auto const *const button = (last >= 0) ? bar.getTabButton(last) : nullptr)
-                return button->getRight();
-            return 0;
+            bar.setBounds(left, top, getWidth() - left, ButtonStyle::tabHeight);
+            bar.toFront(false);
         }
+
         juce::TabBarButton *createTabButton(juce::String const &tabName, int tabIndex) override;
 
       private: // JUCE ButtonListener overrides.

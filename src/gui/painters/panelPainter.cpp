@@ -66,16 +66,21 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
     juce::Rectangle<float> const location{10.125f, 12.735f, 265.815f, 22.53f};
     outline(graphics, location, 11.265f);
     {
-        //   The divider: the same capsule stopping short, with everything but
-        // its right-hand end clipped away.
+        ///   The divider: the same capsule stopping short, with everything but
+        /// its right-hand end clipped away.
+        ///
+        /// \note Two pixels further left than the artwork had it. The arc and
+        /// the capsule's own end had 15.5 px between them and the arrow that
+        /// goes there is 13 wide, which reads as the arrow being wedged in
+        /// rather than sitting in a slot. \see issue #134.
         juce::Graphics::ScopedSaveState const clipped(graphics);
-        graphics.reduceClipRegion({249, 12, 12, 26});
-        outline(graphics, location.withRight(260.43f), 11.265f);
+        graphics.reduceClipRegion({247, 12, 12, 26});
+        outline(graphics, location.withRight(258.43f), 11.265f);
     }
 
-    outline(graphics, {9.f, 42.f, 267.f, 41.f}, cornerRadius);   // the button row
-    outline(graphics, {9.f, 114.f, 267.f, 360.f}, cornerRadius); // the list
-    outline(graphics, {9.f, 481.5f, 267.f, 48.f}, cornerRadius); // the comment box
+    outline(graphics, {fieldInset, 42.f, 267.f, 41.f}, cornerRadius);   // the button row
+    outline(graphics, {fieldInset, 114.f, 267.f, 360.f}, cornerRadius); // the list
+    outline(graphics, {fieldInset, 481.5f, 267.f, 48.f}, cornerRadius); // the comment box
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,10 +115,13 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+/// \note Deeper than the tab bar, so that it runs behind the top of the page
+/// rather than up against it: two rounded rectangles meeting on a line would
+/// show that line.
 void PanelPainter::paintTabStrip(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
 {
     graphics.setColour(ColourMap::getColour(ColourMap::PanelBackground));
-    graphics.fillRoundedRectangle({0.f, 1.f, width, 32.f}, cornerRadius);
+    graphics.fillRoundedRectangle(bounds.withY(1.f).withHeight(32.f), cornerRadius);
 }
 
 void PanelPainter::paintSettingsPage(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
@@ -130,7 +138,7 @@ void PanelPainter::paintSettingsPage(juce::Graphics &graphics, juce::Rectangle<f
     graphics.fillPath(page);
 
     graphics.setColour(ColourMap::getColour(ColourMap::PanelFrame));
-    outline(graphics, {9.f, 16.5f, 267.f, 489.f}, cornerRadius);
+    outline(graphics, {fieldInset, settingsFrameTop, 267.f, 489.f}, cornerRadius);
 }
 
 } // namespace LE::SW::GUI

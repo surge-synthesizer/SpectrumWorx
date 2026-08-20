@@ -57,8 +57,7 @@ class PanelPainter
     /// \brief A settings page -- Engine, GUI or About, which were one file.
     static void paintSettingsPage(juce::Graphics &, juce::Rectangle<float> bounds);
 
-    /// \brief The strip the settings tabs stand in, which runs from the panel's
-    /// left edge to the right edge of the last tab and no further.
+    /// \brief The strip the settings tabs stand in, across the top of \p bounds.
     static void paintTabStrip(juce::Graphics &, juce::Rectangle<float> bounds);
 
     /// The corner the panels are rounded by.
@@ -69,6 +68,23 @@ class PanelPainter
     /// \note The artwork's, and shared so that the strip and the page below it
     /// line up: they were a pixel apart when only the page had it.
     static float constexpr sideInset{1.5f};
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Where a field goes on either panel: every frame below starts on
+    /// this line, and so does the leftmost settings tab.
+    ///
+    /// \note Which is what it is named for. The tabs used to stand in the
+    /// corner of the panel, a pixel in from an edge nothing else measures
+    /// from, so the row above the fields did not line up with them. \see
+    /// issue #134 and SpectrumWorxEditor::Settings::resized().
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static float constexpr fieldInset{9.f};
+
+    /// \brief The settings page's one frame, from the top of the *page* --
+    /// which is the tab bar's own depth below the top of the panel.
+    static float constexpr settingsFrameTop{16.5f};
 
     /// \brief The sizes the two are drawn at, which were their artwork's.
     ///
