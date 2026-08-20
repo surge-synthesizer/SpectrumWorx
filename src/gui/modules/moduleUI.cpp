@@ -657,8 +657,8 @@ void ModuleUI::paint(juce::Graphics &graphics)
     ///
     ////////////////////////////////////////////////////////////////////////////
     graphics.setFont(Theme::singleton().labelFont());
-    graphics.drawFittedText(getName(), textMargin, nameRule, width - 2 * textMargin, 42,
-                            juce::Justification::centred, 2, 0.8f);
+    graphics.drawFittedText(getName(), textMargin, nameRule - 1, width - 2 * textMargin, 42,
+                            juce::Justification::centred, 2, 0.75f);
 }
 
 /// \note It was every pixel no control happened to cover, which made a drag of

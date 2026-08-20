@@ -1,0 +1,23 @@
+<SpectrumWorxPreset Version="2.7" LastModified="12.06.2012 09:58" Comment="">
+	<Global In="1.0" Out="1.0" Mix="1.0" FFT_size="2048" Overlap_factor="4" Window_type="0" Window_size_factor="1" Input_mode="0"/>
+	<Modules>
+		<Freeze Bypass="0">
+			<Gain sync="1">0.0</Gain>
+			<Wet sync="1">100.0</Wet>
+			<Start_frequency sync="1">0.0</Start_frequency>
+			<Stop_frequency sync="1">1.0</Stop_frequency>
+			<Freeze on="1" T="457.0" sync="0">0.0</Freeze>
+			<Melt sync="1">0.0</Melt>
+			<Transition_time sync="1">499.0</Transition_time>
+		</Freeze>
+		<Frecho Bypass="0">
+			<Gain sync="1">0.0</Gain>
+			<Wet sync="1">100.0</Wet>
+			<Start_frequency sync="1">0.0</Start_frequency>
+			<Stop_frequency sync="1">1.0</Stop_frequency>
+			<Distance sync="1">100.0</Distance>
+			<Absorption sync="1">6.0</Absorption>
+			<Pitch sync="1">0.0</Pitch>
+		</Frecho>
+	</Modules>
+</SpectrumWorxPreset>
