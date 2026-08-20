@@ -19,28 +19,28 @@ including:
 - Vectorizing the skin
 - Inferring technical documentation
 
-That was a heavy two weeks of plan/iterate/generate/test/repeat cycle using machine tools almost entirely
+That was a heavy three weeks of plan/iterate/generate/test/repeat cycle using machine tools almost entirely
 to generate the ported code, while preserving the DSP code and operating model.
 
 Right now, this is a bit of a work-in-prgoress as we figure out if we can move it from
 a two week sprint to an official 3.0 release from the team.
 
-## A Note About Coding Assistants in this project.
+## A Note About Coding Assistants in This Project.
 
-In the Surge team for our headline properties (Surge, Ob-Xf, shortcircuit, and the various
-set-libraries) we have adopted a coding assistant policy which mirrors the Linux kernel.
-Basically use them if you want, review the code, person accountable, don't commit code you 
-can't vouch for line by line.
+In Surge Synth Team for our headline properties (Surge XT, Shortcircuit XT, OB-Xf and the various
+SST libraries) we have adopted a coding assistant policy which mostly mirrors the Linux kernel policy.
+Basically: use them if you want, review the code, hold the person committing the pull request accountable,
+don't commit the code you can't vouch for line by line.
 
-Partly as an experiment and partly out of necessity with the pre-modern state of this plugin
-we took a different approach with SpectrumWorx, relying heavily on the engines to make 
-extensive changes to the software, generating plans and tests as we went, using 
-heavy agent flows with autonomous decisions at line-of-code time, and reviewing and
-comparing with multiple models (alternating between various opus levels and fable levels).
-This led to us being able to modernize this code remarkably quickly, and taught us a lot about
-the reach and limits of these models in audio software. But since it is different from the 
-policy and approach we use in the rest of the plant, wanted to share the rather different
-approach here.
+Partly as an experiment and partly out of necessity with the pre-modern state of SpectrumWorx,
+we took a different approach, relying heavily on the frontier models to make
+extensive changes to the software, generating plans and tests as we went along,
+using heavy agent flows with autonomous decisions at line-of-code time, reviewing and
+comparing multiple models (alternating between various Opus and Fable levels).
+This led to us being able to modernize this code remarkably quickly (this would have taken at least one year otherwise!),
+and taught us a lot about the reach and limits of frontier models in audio software.
+But, since it is different from the policy and approach we use in our other properties,
+we wanted to remain transparent and open about it.
 
 ## Licence ⚖️
 The source in this repository is **GPL-3.0-or-later**. A released binary links

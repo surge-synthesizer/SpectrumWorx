@@ -807,7 +807,7 @@ void ComboBox::paint(juce::Graphics &graphics)
     /// \note The short reading, which for all but a handful of values is the
     /// only one there is. \see PopupMenu::addItem() and issue #120.
     graphics.drawFittedText(getSelectedItemShortText(), textMargin, 2, getWidth() - 2 * textMargin,
-                            boxHeight_ - 5, juce::Justification::centred, 1, 0.1f);
+                            boxHeight_ - 2, juce::Justification::centred, 1, 0.1f);
 }
 
 /// \note \p onValueChanged runs later, on the message thread, and only if the
@@ -1066,10 +1066,10 @@ void LEDTextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton,
 {
     g.setColour(ColourMap::getColour(ColourMap::Text));
     g.setFont(DrawableText::defaultFont());
-    g.drawFittedText(getName(), ledWidth, 3, getWidth() - ledWidth, 17,
+    g.drawFittedText(getName(), ledWidth, 3, getWidth() - ledWidth, 19,
                      juce::Justification::horizontallyCentred, 1);
 
-    paintCapsule(g, {0, 0, ledWidth, ledHeight}, isMouseOverButton, isButtonDown);
+    paintCapsule(g, {0, 1, ledWidth, ledHeight}, isMouseOverButton, isButtonDown);
 }
 
 TextButton::TextButton(juce::Component &parent, unsigned int const x, unsigned int const y,
@@ -1092,7 +1092,7 @@ void TextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton, bo
 #define INTEGER_ALPHA(alpha) static_cast<unsigned char>(alpha * 255)
     static unsigned char const alphas[2]
                                      [2] = /* [not toggled, toggled] [not mouse over, mouse over] */
-        {{INTEGER_ALPHA(0.3), INTEGER_ALPHA(0.6)}, {INTEGER_ALPHA(1.0), INTEGER_ALPHA(0.8)}};
+        {{INTEGER_ALPHA(0.5), INTEGER_ALPHA(0.8)}, {INTEGER_ALPHA(1.0), INTEGER_ALPHA(0.85)}};
 #undef INTEGER_ALPHA
 
     unsigned char const alpha(alphas[getToggleState()][isMouseOverButton]);

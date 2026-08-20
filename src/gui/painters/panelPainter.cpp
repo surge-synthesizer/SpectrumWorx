@@ -80,7 +80,7 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
 
     outline(graphics, {fieldInset, 42.f, 267.f, 41.f}, cornerRadius);   // the button row
     outline(graphics, {fieldInset, 114.f, 267.f, 360.f}, cornerRadius); // the list
-    outline(graphics, {fieldInset, 481.5f, 267.f, 48.f}, cornerRadius); // the comment box
+    outline(graphics, {fieldInset, 482.f, 267.f, 47.f}, cornerRadius);  // the comment box
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +121,7 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
 void PanelPainter::paintTabStrip(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
 {
     graphics.setColour(ColourMap::getColour(ColourMap::PanelBackground));
-    graphics.fillRoundedRectangle(bounds.withY(1.f).withHeight(32.f), cornerRadius);
+    graphics.fillRoundedRectangle(bounds.withY(2.f).withHeight(40.f), cornerRadius);
 }
 
 void PanelPainter::paintSettingsPage(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
@@ -138,7 +138,7 @@ void PanelPainter::paintSettingsPage(juce::Graphics &graphics, juce::Rectangle<f
     graphics.fillPath(page);
 
     graphics.setColour(ColourMap::getColour(ColourMap::PanelFrame));
-    outline(graphics, {fieldInset, settingsFrameTop, 267.f, 489.f}, cornerRadius);
+    outline(graphics, {fieldInset, settingsFrameTop, 267.f, 487.f}, cornerRadius);
 }
 
 } // namespace LE::SW::GUI

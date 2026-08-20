@@ -256,12 +256,12 @@ float constexpr knobLabelHeight{18.0f};
 /// twelve rather than ten it did.
 float constexpr knobLabelRise{21.0f};
 
-float constexpr lfoLabelHeight{16.5f};
-float constexpr lfoLabelX{118.5f};
-float constexpr lfoLabelY{241.5f};
+float constexpr lfoLabelHeight{16.f};
+float constexpr lfoLabelX{118.f};
+float constexpr lfoLabelY{241.f};
 
-float constexpr sideChainSourceLabelHeight{16.5f};
-float constexpr sideChainSourceLabelY{439.5f};
+float constexpr sideChainSourceLabelHeight{16.f};
+float constexpr sideChainSourceLabelY{439.f};
 
 /// \brief What the padlock beside that label leaves between itself and it.
 ///

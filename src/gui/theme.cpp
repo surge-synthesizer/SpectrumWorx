@@ -199,24 +199,12 @@ Theme::~Theme() = default;
 
 void Theme::drawPopupMenuBackground(juce::Graphics &graphics, int const width, int const height)
 {
-    bool cut = juce::Desktop::canUseSemiTransparentWindows();
-    if (cut)
-    {
-        graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground).withAlpha(0.9f));
-        graphics.fillRoundedRectangle(0.f, 0.f, static_cast<float>(width),
-                                      static_cast<float>(height), 15.f);
-        graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
-        graphics.drawRoundedRectangle(0.f, 0.f, static_cast<float>(width),
-                                      static_cast<float>(height), 15.f, RuleStyle::thickness);
-    }
-    else
-    {
-        graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground));
-        graphics.fillRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height));
-        graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
-        graphics.drawRect(0.f, 0.f, static_cast<float>(width), static_cast<float>(height),
-                          RuleStyle::thickness);
-    }
+    graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground));
+    graphics.fillRoundedRectangle(0.f, 0.f, static_cast<float>(width), static_cast<float>(height),
+                                  8.f);
+    graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
+    graphics.drawRoundedRectangle(0.f, 0.f, static_cast<float>(width), static_cast<float>(height),
+                                  8.f, RuleStyle::thickness);
 }
 
 void Theme::drawTabAreaBehindFrontButton(juce::TabbedButtonBar &, juce::Graphics &, int /*w*/,

@@ -80,8 +80,8 @@ float constexpr rimHighlightOuter{0.952f};
 float constexpr rimOutlineRadius{0.972f};
 float constexpr rimOutlineThickness{0.033f};
 
-float constexpr pointerInnerRadius{0.113f};
-float constexpr pointerOuterRadius{0.672f};
+float constexpr pointerInnerRadius{0.25f};
+float constexpr pointerOuterRadius{0.83f};
 float constexpr pointerInnerHalfWidth{0.058f}; ///< very slightly tapered
 float constexpr pointerOuterHalfWidth{0.061f};
 } // namespace EditorKnobStyle

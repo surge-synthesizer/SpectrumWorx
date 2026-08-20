@@ -107,7 +107,7 @@ PresetBrowser::PresetBrowser()
     jogNext_.setTopLeftPosition(jogPrevious_.getRight() + 1, GlyphStyle::rowTop);
 
     listBox_.setBounds(17, 119, getWidth() - 33, 351);
-    comment().setBounds(12, 483, getWidth() - 20, 44);
+    comment().setBounds(12, 484, getWidth() - 25, 43);
 
     addChildComponent(&presetNameEditBox_);
     presetNameEditBox_.setAlwaysOnTop(true);
@@ -125,6 +125,7 @@ PresetBrowser::PresetBrowser()
     comment().setMultiLine(true);
     comment().setReturnKeyStartsNewLine(true);
     comment().setPopupMenuEnabled(true);
+    comment().setIndents(4, 0);
     comment().addListener(this);
 
     takeColours();

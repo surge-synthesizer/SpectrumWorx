@@ -84,7 +84,7 @@ class PanelPainter
 
     /// \brief The settings page's one frame, from the top of the *page* --
     /// which is the tab bar's own depth below the top of the panel.
-    static float constexpr settingsFrameTop{16.5f};
+    static float constexpr settingsFrameTop{18.f};
 
     /// \brief The sizes the two are drawn at, which were their artwork's.
     ///

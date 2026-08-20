@@ -2606,7 +2606,7 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
 
     fillLFOWaveformsMenu(type_);
 
-    switch_.setTopLeftPosition(44, 5);
+    switch_.setTopLeftPosition(44, 4);
 
     period_.setBounds(11, 48, 162, 27);
     period_.setSliderStyle(juce::Slider::LinearHorizontal);

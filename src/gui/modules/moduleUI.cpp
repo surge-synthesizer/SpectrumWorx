@@ -294,7 +294,7 @@ void ModuleKnob::paint(juce::Graphics &graphics)
     graphics.setColour(ColourMap::getColour(ColourMap::TextDimmed));
     {
         juce::Font font(Theme::singleton().labelFont());
-        font.setHeight(10);
+        font.setHeight(15);
         graphics.setFont(font);
     }
     graphics.drawFittedText(

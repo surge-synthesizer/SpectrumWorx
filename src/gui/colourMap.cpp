@@ -145,7 +145,7 @@ juce::Colour ColourMap::classic(Name const name)
     /// that disappears over most of its travel and reappears over the rest,
     /// which is the one thing this mark exists not to do. \see issue #134.
     case EditorKnobPointer:
-        return juce::Colour(0xFF13B5EAu);
+        return juce::Colour(0xFF000000u);
 
     case ModuleKnobDomeCentre:
         return juce::Colour(0xFFB8B6B6u);
