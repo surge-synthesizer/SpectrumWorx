@@ -44,20 +44,17 @@ namespace Content
 {
 char const *const title{"SpectrumWorx"};
 
-/// The line under the version block. The year is the port's, not the original's.
-char const *const portedBy[]{"Ported by Surge Synth Team, 2026"};
-
-char const *const originalAuthorsHeading{"Original Authors:"};
+char const *const originalAuthorsHeading{"Original Authors"};
 
 /// Verbatim from the "Credits" panel of the bitmap this page replaced, which is
 /// the only place they were ever written down.
 char const *const originalAuthors[]{
-    "Alexey Menshikov (original idea)",    //
-    "Domagoj Šarić (programming)",         //
-    "Ivan Dokmanić (DSP expertise)",       //
-    "Matija Bošnjaković (graphic design)", //
-    "Scot Solida (documentation)",         //
-    "Danijel Domazet (ćevapi i luk)",      //
+    "Concept: Alexey Menshikov",    //
+    "Programming: Domagoj Šarić",   //
+    "DSP: Ivan Dokmanić",           //
+    "Graphics: Matija Bošnjaković", //
+    "Documentation: Scot Solida",   //
+    "Direction: Danijel Domazet",   //
 };
 
 /// \note The first line is kept from the bitmap deliberately: the port is
@@ -66,8 +63,8 @@ char const *const originalAuthors[]{
 /// the panel. The second is the port's own, and says the same thing the source
 /// headers do -- who holds it is a question the log answers, not this page.
 char const *const copyright[]{
-    "© 2006 - 2014 Little Endian",    //
-    "© 2024 - 20xx Surge Synth Team", //
+    "©2006-2024 Little Endian",    //
+    "©2026-20xx Surge Synth Team", //
 };
 
 /// The manual is in the repository rather than on a documentation site; this is
@@ -79,7 +76,6 @@ char const *const sourceURL{"https://github.com/surge-synthesizer/SpectrumWorx"}
 char const *const manualLinkText{"Manual"};
 char const *const sourceLinkText{"Source"};
 char const *const copyInfoLinkText{"Copy Info"};
-/// What the copy link says for a moment after it has been clicked.
 char const *const copiedLinkText{"Copied!"};
 } // namespace Content
 
@@ -96,8 +92,7 @@ char const *const copiedLinkText{"Copied!"};
 
 namespace Layout
 {
-int constexpr margin{21};
-int constexpr indent{15}; // the credits, under their heading
+int constexpr margin{32};
 
 /// One line of body text, ascent to next ascent.
 int constexpr lineHeight{21};
@@ -113,14 +108,11 @@ int constexpr linksY{versionY + versionLineCount * lineHeight + 12};
 int constexpr linksHeight{21};
 int constexpr linkGap{18};
 
-int constexpr portedByY{linksY + linksHeight + 42};
-int constexpr portedByLineCount{static_cast<int>(std::size(Content::portedBy))};
-
-int constexpr copyrightY{portedByY + portedByLineCount * lineHeight + 12};
+int constexpr copyrightY{linksY + linksHeight + lineHeight - 9};
 int constexpr copyrightLineCount{static_cast<int>(std::size(Content::copyright))};
 
-int constexpr authorsHeadingY{copyrightY + copyrightLineCount * lineHeight + 42};
-int constexpr authorsY{authorsHeadingY + lineHeight + 15};
+int constexpr authorsHeadingY{copyrightY + copyrightLineCount * lineHeight + 116};
+int constexpr authorsY{authorsHeadingY + lineHeight + 6};
 } // namespace Layout
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -381,21 +373,11 @@ void AboutPage::paint(juce::Graphics &graphics)
     }
 
     {
-        auto y(Layout::portedByY);
-        for (auto const *const line : Content::portedBy)
-        {
-            drawLine(graphics, asText(line), y, bodyFont(), ColourMap::getColour(ColourMap::Text),
-                     width);
-            y += Layout::lineHeight;
-        }
-    }
-
-    {
         auto y(Layout::copyrightY);
         for (auto const *const line : Content::copyright)
         {
             drawLine(graphics, asText(line), y, bodyFont(),
-                     ColourMap::getColour(ColourMap::TextFaint), width);
+                     ColourMap::getColour(ColourMap::TextFaint), width + 8);
             y += Layout::lineHeight;
         }
     }
@@ -407,8 +389,7 @@ void AboutPage::paint(juce::Graphics &graphics)
         auto y(Layout::authorsY);
         for (auto const &author : originalAuthors())
         {
-            drawLine(graphics, author, y, bodyFont(), ColourMap::getColour(ColourMap::Text), width,
-                     Layout::indent);
+            drawLine(graphics, author, y, bodyFont(), ColourMap::getColour(ColourMap::Text), width);
             y += Layout::lineHeight;
         }
     }

@@ -434,7 +434,7 @@ void ModuleKnob::addParameterMenuEntries(juce::PopupMenu &menu)
     /// \note The tick is read here, when the menu is built; the toggle re-reads
     /// when it is chosen. The two can only disagree if the host moved the LFO
     /// while the menu was open, and then the fresh answer is the right one.
-    menu.addItem("LFO On", /*isEnabled*/ true, /*isTicked*/ isLFOEnabled(),
+    menu.addItem("Enable LFO", /*isEnabled*/ true, /*isTicked*/ isLFOEnabled(),
                  [pThis = juce::Component::SafePointer<ModuleKnob>(this)] {
                      if (!pThis)
                          return;

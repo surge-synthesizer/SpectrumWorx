@@ -1294,8 +1294,11 @@ void Knob::showParameterMenu(juce::MouseEvent const &event)
     bool const editable(parameterEditable());
 
     juce::PopupMenu menu;
+
     menu.addSectionHeader(parameterName());
+
     menu.addSeparator();
+
     if (editable)
     {
         /// \note The result ID is unused -- the field dismisses the menu itself
@@ -1303,7 +1306,7 @@ void Knob::showParameterMenu(juce::MouseEvent const &event)
         /// user dismissed it".
         menu.addCustomItem(1, std::make_unique<ValueTypein>(*this));
     }
-    menu.addItem("Set to Default", editable, /*isTicked*/ false,
+    menu.addItem("Reset to default value", editable, /*isTicked*/ false,
                  [pThis = juce::Component::SafePointer<Knob>(this)] {
                      if (pThis)
                          pThis->setParameterToDefault();
