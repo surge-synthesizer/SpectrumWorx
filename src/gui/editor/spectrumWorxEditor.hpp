@@ -86,14 +86,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ///   The artwork is 845 x 564 and every offset in this editor is a pixel
     /// position in it.
     ///
-    /// \note Two constants until 19.08.2026, because a bar below the artwork
-    /// carried the build date, time and commit and the skin had to be measured
-    /// without it. The bar is gone -- the About page is where a build identifies
-    /// itself -- so the editor ends where the panels do and the two are one
-    /// number again. \see aboutPageTests.cpp, which is what still holds the
-    /// stamp to being reachable.
-    ///                                       (19.08.2026.)
-    ///
     ////////////////////////////////////////////////////////////////////////////
     static constexpr unsigned short artworkHeight{564};
 

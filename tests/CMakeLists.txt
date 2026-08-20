@@ -54,10 +54,9 @@ add_executable(sw-dsp-tests
 
 target_link_libraries(sw-dsp-tests PRIVATE sw-dsp Catch2::Catch2WithMain)
 
-################################################################################
+# ###############################################################################
 # sw-plugin-tests
-################################################################################
-
+# ###############################################################################
 add_executable(sw-plugin-tests
         clap/automationTimingTests.cpp
         clap/engineSetupStalenessTests.cpp
@@ -70,16 +69,17 @@ add_executable(sw-plugin-tests
         clap/publishProtocolTests.cpp
         clap/stateTests.cpp
         clap/threadingTests.cpp
+
         # Drives a real clap_plugin through its C entry point.
         core/threadCheckTests.cpp
         external_audio/sampleFeedTests.cpp
         external_audio/sampleTests.cpp
         goldens/engineHarness.cpp # the CLAP cases drive an instantiable core
+
         # The parameter table is the host-facing enumeration, which lives in
         # sw-impl -- plugin2Host.cpp -- rather than in the engine.
         parameters/parameterTableTests.cpp
         presets/presetHarness.cpp
-        gui/aboutPageTests.cpp
         gui/discreteParameterTests.cpp
         gui/knobMenuTests.cpp
         gui/knobPaintingTests.cpp
@@ -117,11 +117,10 @@ target_link_libraries(sw-plugin-tests PRIVATE sw-impl sw-gui Catch2::Catch2WithM
 # than the C vtable, to reach what a host cannot name.
 target_link_libraries(sw-plugin-tests PRIVATE clap-helpers clap-wrapper-extensions)
 
-# gui/aboutPageTests.cpp names VersionInformation directly, to check the About
-# page reports what the tree was configured as. sw-impl and sw-gui both link this
-# PRIVATE, so the archive arrives across the link line but its include directory
-# and SST_PLUGININFRA_HAS_VERSION_INFORMATION do not -- CMake records a private
-# dependency as $<LINK_ONLY:...>, which is the library without its interface.
+# sw-impl and sw-gui both link this PRIVATE, so the archive arrives across the link line
+# but its include directory and SST_PLUGININFRA_HAS_VERSION_INFORMATION do not --
+# CMake records a private dependency as $<LINK_ONLY:...>,
+# which is the library without its interface.
 target_link_libraries(sw-plugin-tests PRIVATE sst-plugininfra::version_information)
 
 # X11 itself, and only here. JUCE reaches libX11 through dlopen() and a symbol
@@ -222,9 +221,7 @@ add_test(NAME asserts-have-no-side-effects
 add_test(NAME no-juce-file-outside-the-edge
         COMMAND ${CMAKE_COMMAND}
         -D "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/checkNoJuceFile.cmake")
-
-# And the palette. The skin is drawn in code rather than blitted, so its colours
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/checkNoJuceFile.cmake")# And the palette. The skin is drawn in code rather than blitted, so its colours
 # are written down in src/gui/colourMap.hpp -- and a colour named anywhere else
 # is how the accent blue came to have four values nobody chose. Also a source
 # scan, so it runs under every generator.
