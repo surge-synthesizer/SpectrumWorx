@@ -199,12 +199,27 @@ Theme::~Theme() = default;
 
 void Theme::drawPopupMenuBackground(juce::Graphics &graphics, int const width, int const height)
 {
+    constexpr float cornerRadius{8};
+
+    auto const w(static_cast<float>(width));
+    auto const h(static_cast<float>(height));
+
     graphics.setColour(ColourMap::getColour(ColourMap::MenuBackground));
-    graphics.fillRoundedRectangle(0.f, 0.f, static_cast<float>(width), static_cast<float>(height),
-                                  8.f);
-    graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
-    graphics.drawRoundedRectangle(0.f, 0.f, static_cast<float>(width), static_cast<float>(height),
-                                  8.f, RuleStyle::thickness);
+
+    /// \note Linux cannot make transparent menus with JUCE, and a corner rounded
+    /// away from an opaque window is a chipped square rather than a round one.
+    if (juce::Desktop::canUseSemiTransparentWindows())
+    {
+        graphics.fillRoundedRectangle(0.f, 0.f, w, h, cornerRadius);
+        graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
+        graphics.drawRoundedRectangle(0.f, 0.f, w, h, cornerRadius, RuleStyle::thickness);
+    }
+    else
+    {
+        graphics.fillRect(0.f, 0.f, w, h);
+        graphics.setColour(ColourMap::getColour(ColourMap::MenuOutline));
+        graphics.drawRect(0.f, 0.f, w, h, RuleStyle::thickness);
+    }
 }
 
 void Theme::drawTabAreaBehindFrontButton(juce::TabbedButtonBar &, juce::Graphics &, int /*w*/,
