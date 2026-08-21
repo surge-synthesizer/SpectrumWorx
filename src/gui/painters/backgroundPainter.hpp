@@ -108,8 +108,8 @@ Ramp constexpr moduleRackRamp{-105.0f, 105.0f, 396.75f, -396.75f,
 /// \brief The two blocks that join them, which is why the gap between the
 /// columns is not a gap all the way down.
 ///@{
-Panel constexpr upperJoin{296.0f, 98.0f, 317.0f, 129.0f, 0.00f};
-Panel constexpr lowerJoin{296.0f, 459.0f, 317.0f, 491.0f, 0.00f};
+Panel constexpr upperJoin{298.0f, 98.0f, 317.0f, 129.0f, 0.00f};
+Panel constexpr lowerJoin{298.0f, 459.0f, 317.0f, 491.0f, 0.00f};
 ///@}
 ///@}
 

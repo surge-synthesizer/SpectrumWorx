@@ -102,8 +102,8 @@ unsigned int const textBoxWidth = 170;
 unsigned int const textBoxMargin = 6;
 
 unsigned int const moduleNameVerticalOffset = 20;
-unsigned int const controlNameVerticalOffset = 63;
-unsigned int const controlValueVerticalOffset = 78;
+unsigned int const controlNameVerticalOffset = 66;
+unsigned int const controlValueVerticalOffset = 79;
 unsigned int const sampleNameVerticalOffset = 458;
 } // namespace Constants::Layout
 

@@ -256,15 +256,21 @@ void BackgroundPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> c
 
     graphics.fillAll(ColourMap::getColour(ColourMap::EditorSurround));
 
-    //   The two joins go down before the panels, so that the panels' rules
-    // close over them rather than being crossed by them.
-    graphics.setColour(ColourMap::getColour(ColourMap::PanelBackground));
-    graphics.fillRect(rectangleOf(upperJoin));
-    graphics.fillRect(rectangleOf(lowerJoin));
-
     paintPanel(graphics, leftColumn, leftColumnRamp);
     paintPanel(graphics, moduleRack, moduleRackRamp);
     paintPanel(graphics, centreColumn, centreColumnRamp);
+
+    // module joiners
+    graphics.setColour(ColourMap::getColour(ColourMap::EditorPanel));
+    graphics.fillRect(rectangleOf(upperJoin));
+    graphics.fillRect(rectangleOf(lowerJoin));
+
+    // top and bottom strokes of the joiners
+    graphics.setColour(ColourMap::getColour(ColourMap::EditorRule));
+    graphics.fillRect(rectangleOf(upperJoin).withHeight(2.f));
+    graphics.fillRect(rectangleOf(upperJoin).withTrimmedTop(29.f));
+    graphics.fillRect(rectangleOf(lowerJoin).withHeight(2.f));
+    graphics.fillRect(rectangleOf(lowerJoin).withTrimmedTop(29.f));
 
     paintBox(graphics, moduleNameBox, ColourMap::EditorWell, ColourMap::EditorRule);
     paintBox(graphics, activeControlBox, ColourMap::EditorWell, ColourMap::EditorRule);
