@@ -1242,7 +1242,7 @@ void PresetBrowser::takeColours()
                         ColourMap::getColour(ColourMap::Transparent));
     comment().setColour(juce::TextEditor::textColourId, ColourMap::getColour(ColourMap::Accent));
     comment().setColour(juce::TextEditor::highlightColourId,
-                        ColourMap::getColour(ColourMap::TextDimmed));
+                        ColourMap::getColour(ColourMap::TextFaint));
 }
 
 void PresetBrowser::paint(juce::Graphics &graphics)

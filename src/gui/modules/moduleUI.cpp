@@ -291,7 +291,7 @@ void ModuleKnob::paint(juce::Graphics &graphics)
         value, polarity_ == Bipolar, !control().isLFOEnabled() || shouldUpdateLFOControl(control()),
         this->hasDirectFocus());
 
-    graphics.setColour(ColourMap::getColour(ColourMap::TextDimmed));
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
     {
         juce::Font font(Theme::singleton().labelFont());
         font.setHeight(15);

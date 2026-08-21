@@ -136,7 +136,7 @@ std::vector<clap_param_info> slotParameters(clap_plugin const &plugin,
                                             clap_plugin_params const &params, unsigned const slot)
 {
     std::vector<clap_param_info> mine;
-    std::string const path("Slot " + std::to_string(slot + 1));
+    std::string const path("Module " + std::to_string(slot + 1));
     for (auto const &info : allParameterInfo(plugin, params))
         if ((path == info.module) || (path + "/LFO" == info.module))
             mine.push_back(info);
@@ -455,7 +455,7 @@ TEST_CASE("An LFO's bounds read as the two ends of what they modulate", "[clap][
     for (auto const &info : slotParameters(*plugin, params, 0))
     {
         std::string const name(info.name);
-        std::string const suffix(".LFO.lbnd");
+        std::string const suffix(" - LFO Range Min");
         if (!name.ends_with(suffix))
             continue;
 
@@ -464,8 +464,10 @@ TEST_CASE("An LFO's bounds read as the two ends of what they modulate", "[clap][
         std::string const modulated(name.substr(0, name.size() - suffix.size()));
         clap_param_info target{};
         for (auto const &candidate : slotParameters(*plugin, params, 0))
+        {
             if (modulated == candidate.name)
                 target = candidate;
+        }
         if (target.name[0] == '\0')
             continue;
 

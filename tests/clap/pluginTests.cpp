@@ -701,14 +701,14 @@ TEST_CASE("Filling a module slot renames its parameters without adding any", "[c
 
     // Slot 1's parameters exist already; they just have nothing to name them.
     auto const slotOne(
-        [](clap_param_info const &info) { return std::strncmp(info.module, "Slot 1", 6) == 0; });
+        [](clap_param_info const &info) { return std::strncmp(info.module, "Module 1", 6) == 0; });
     auto const slotOneBefore(std::count_if(before.begin(), before.end(), slotOne));
     CHECK(slotOneBefore > 0);
 
     // None of slot 1's module or LFO parameters is usable yet, and every one of
     // them says so -- in its *display*, which is where an unusable parameter says
     // it now. The slot's *selector* is not one of them: it is what fills the slot,
-    // so it is always live, and "Slot 1" is its module path too.
+    // so it is always live, and "Module 1" is its module path too.
     for (auto const &info : before)
         if (slotOne(info) && isNormalisedType(info.id))
         {
@@ -789,7 +789,7 @@ TEST_CASE("Every parameter accepts the bounds it advertises", "[clap]")
 
         for (auto const &info : allParameterInfo(*plugin, params))
         {
-            if ((std::strncmp(info.module, "Slot 1", 6) != 0) || (info.id == selector.id))
+            if ((std::strncmp(info.module, "Module 1", 8) != 0) || (info.id == selector.id))
                 continue;
 
             for (double const value :
@@ -899,7 +899,7 @@ TEST_CASE("Filling a slot makes the host re-read the descriptions", "[clap]")
     // The names really did move, so the rescan had something to find.
     std::uint32_t named{0};
     for (auto const &info : allParameterInfo(*plugin, params))
-        if (isNormalisedType(info.id) && (std::strncmp(info.module, "Slot 1", 6) == 0) &&
+        if (isNormalisedType(info.id) && (std::strncmp(info.module, "Module 1", 6) == 0) &&
             (std::strcmp(info.name, "N/A") != 0))
             ++named;
     CHECK(named > 0);

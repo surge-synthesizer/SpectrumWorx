@@ -103,8 +103,8 @@ unsigned int const textBoxMargin = 6;
 
 unsigned int const moduleNameVerticalOffset = 20;
 unsigned int const controlNameVerticalOffset = 63;
-unsigned int const controlValueVerticalOffset = 80;
-unsigned int const sampleNameVerticalOffset = 459;
+unsigned int const controlValueVerticalOffset = 78;
+unsigned int const sampleNameVerticalOffset = 458;
 } // namespace Constants::Layout
 
 #pragma warning(push)
@@ -1144,7 +1144,7 @@ EditorMainAreaText mainAreaTexts[] = {
      juce::Justification::centred, 1}, // active module name
     {0, 0, ColourMap::Text, Constants::Layout::controlNameVerticalOffset,
      juce::Justification::top | juce::Justification::horizontallyCentred, 2}, // control name
-    {0, 0, ColourMap::Text, Constants::Layout::controlValueVerticalOffset,
+    {0, 0, ColourMap::TextDimmed, Constants::Layout::controlValueVerticalOffset,
      juce::Justification::centred, 1}, // control value
     {0, 0, ColourMap::Accent, Constants::Layout::sampleNameVerticalOffset,
      juce::Justification::centred, 1}, // sample name
@@ -1215,8 +1215,10 @@ void SpectrumWorxEditor::MainArea::paint(juce::Graphics &graphics)
     mainAreaTexts[3].pText = &editor.string(currentSampleName);
     mainAreaTexts[3].pFont = &sampleNameFont;
 
-    for (auto const &text : mainAreaTexts)
+    for (auto text : mainAreaTexts)
+    {
         drawMainAreaText(graphics, text);
+    }
 }
 
 /// \note The logo, and it is this component's rather than the editor's because
@@ -1340,7 +1342,7 @@ void SpectrumWorxEditor::updateActiveControlValue()
 
     LFODisplay const &lfoDisplay(*lfoDisplay_);
     if (lfoDisplay.lfo().enabled())
-        setActiveControlValue("[LFO]");
+        setActiveControlValue("Controlled by LFO");
     else
         setActiveControlValue(lfoDisplay.control().getValueText());
 }
@@ -2826,7 +2828,7 @@ LFOTextData sliderTexts[] = {
     {0, &periodMillisecondsString, 14, 71, 158, 18, juce::Justification::right}, // period ms
     {0, &rangeValueString, 14, 93, lfoWidth - 15 - 3, 18, juce::Justification::right}, // range max
     {0, &rangeValueString, 15, 126, lfoWidth - 15, 18, juce::Justification::left},     // range min
-    {0, &phaseString, 14, 177, 158, 18, juce::Justification::right},                   // period ms
+    {0, &phaseString, 14, 177, 158, 18, juce::Justification::right},                   // phase %
 };
 
 #pragma warning(push)
@@ -2878,6 +2880,7 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
 
     for (auto const &text : LE::Utility::makeSpan(sliderTexts).subspan(skipPeriodRatio(period_)))
     {
+        graphics.setColour(ColourMap::getColour(ColourMap::TextDimmed));
         graphics.drawText(text.getString(*this, text.value), text.x, text.y, text.width,
                           text.height, text.justification, false);
     }

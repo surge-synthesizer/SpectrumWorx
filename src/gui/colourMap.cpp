@@ -116,7 +116,7 @@ juce::Colour ColourMap::classic(Name const name)
     case Text:
         return juce::Colour(0xFFFFFFFFu);
     case TextDimmed:
-        return juce::Colour(0xFFD3D3D3u);
+        return juce::Colour(0xFFC0C0C0u);
     case TextFaint:
         return juce::Colour(0xFF808080u);
 
@@ -328,7 +328,7 @@ juce::Colour ColourMap::sstDark(Name const name)
     case Text:
         return juce::Colour(0xFFFFFFFFu); // generic_content_highest
     case TextDimmed:
-        return juce::Colour(0xFFDFDFDFu); // generic_content_high
+        return juce::Colour(0xFFC0C0C0u); // generic_content_high
     case TextFaint:
         return juce::Colour(0xFF777777u); // generic_content_low
     case Wordmark:

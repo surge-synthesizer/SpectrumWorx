@@ -87,7 +87,7 @@ void Theme::takeColours()
     /// colourMap.hpp.
     auto const colour([](ColourMap::Name const name) { return ColourMap::getColour(name); });
 
-    setColour(juce::PopupMenu::textColourId, colour(ColourMap::TextDimmed));
+    setColour(juce::PopupMenu::textColourId, colour(ColourMap::Text));
     setColour(juce::PopupMenu::headerTextColourId, colour(ColourMap::Text));
     setColour(juce::PopupMenu::highlightedBackgroundColourId, colour(ColourMap::Transparent));
     setColour(juce::PopupMenu::highlightedTextColourId, colour(ColourMap::Text));
