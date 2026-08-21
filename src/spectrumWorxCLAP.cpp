@@ -818,14 +818,15 @@ void SpectrumWorxCLAP::modulePathFor(ParameterID const parameterID,
         std::strncpy(path, "Global", CLAP_PATH_SIZE - 1);
         break;
     case ParameterID::ModuleChainParameter:
-        std::snprintf(path, CLAP_PATH_SIZE, "Slot %u",
+        std::snprintf(path, CLAP_PATH_SIZE, "Module %u",
                       parameterID.value._.moduleChain.moduleIndex + 1u);
         break;
     case ParameterID::ModuleParameter:
-        std::snprintf(path, CLAP_PATH_SIZE, "Slot %u", parameterID.value._.module.moduleIndex + 1u);
+        std::snprintf(path, CLAP_PATH_SIZE, "Module %u",
+                      parameterID.value._.module.moduleIndex + 1u);
         break;
     case ParameterID::LFOParameter:
-        std::snprintf(path, CLAP_PATH_SIZE, "Slot %u/LFO",
+        std::snprintf(path, CLAP_PATH_SIZE, "Module %u/LFO",
                       parameterID.value._.lfo.moduleIndex + 1u);
         break;
     }

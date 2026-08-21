@@ -83,8 +83,11 @@ LE_DEFINE_PARAMETERS(Bypass, Gain, Wet, StartFrequency, StopFrequency);
 EFFECT_PARAMETER_NAME(BaseParameters::Bypass, "Bypass")
 EFFECT_PARAMETER_NAME(BaseParameters::Gain, "Gain")
 EFFECT_PARAMETER_NAME(BaseParameters::Wet, "Wet")
-EFFECT_PARAMETER_NAME(BaseParameters::StartFrequency, "Start frequency")
-EFFECT_PARAMETER_NAME(BaseParameters::StopFrequency, "Stop frequency")
+EFFECT_PARAMETER_NAME(BaseParameters::StartFrequency, "Start Frequency")
+EFFECT_PARAMETER_NAME(BaseParameters::StopFrequency, "Stop Frequency")
+
+EFFECT_PARAMETER_STREAMING_NAME(BaseParameters::StartFrequency, "Start frequency")
+EFFECT_PARAMETER_STREAMING_NAME(BaseParameters::StopFrequency, "Stop frequency")
 
 } // namespace LE::SW::Effects
 /// @}

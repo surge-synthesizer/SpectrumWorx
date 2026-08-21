@@ -426,13 +426,21 @@ LFOImpl::PeriodScale::value_type
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-UI_NAME(LFOImpl::Enabled, "on")
-UI_NAME(LFOImpl::PeriodScale, "T")
-UI_NAME(LFOImpl::Phase, "ph")
-UI_NAME(LFOImpl::LowerBound, "lbnd")
-UI_NAME(LFOImpl::UpperBound, "ubnd")
-UI_NAME(LFOImpl::SyncTypes, "sync")
-UI_NAME(LFOImpl::Waveform, "wfrm")
+UI_NAME(LFOImpl::Enabled, "Enable")
+UI_NAME(LFOImpl::PeriodScale, "Period")
+UI_NAME(LFOImpl::Phase, "Phase")
+UI_NAME(LFOImpl::LowerBound, "Range Min")
+UI_NAME(LFOImpl::UpperBound, "Range Max")
+UI_NAME(LFOImpl::SyncTypes, "Sync")
+UI_NAME(LFOImpl::Waveform, "Wave")
+
+STREAMING_NAME(LFOImpl::Enabled, "on")
+STREAMING_NAME(LFOImpl::PeriodScale, "T")
+STREAMING_NAME(LFOImpl::Phase, "ph")
+STREAMING_NAME(LFOImpl::LowerBound, "lbnd")
+STREAMING_NAME(LFOImpl::UpperBound, "ubnd")
+STREAMING_NAME(LFOImpl::SyncTypes, "sync")
+STREAMING_NAME(LFOImpl::Waveform, "wfrm")
 
 //...mrmlj...this does not work yet because the Window enum is not a member
 //...of the WindowFunction parameter class...fix this...

@@ -589,7 +589,7 @@ void Plugin2HostPassiveInteropController::ParameterNameGetter::operator()(
     // It was however, simplified to a single std::sprintf() after revision
     // 3602 as it was deemed enough.
     //                                    (22.02.2011.) (Domagoj Saric)
-    LE_VERIFY(unsigned(std::snprintf(buffer_.begin(), buffer_.size(), "Module %u",
+    LE_VERIFY(unsigned(std::snprintf(buffer_.begin(), buffer_.size(), "Module %u FX Select",
                                      parameterID.moduleIndex + 1)) < buffer_.size());
 }
 
@@ -615,7 +615,7 @@ void Plugin2HostPassiveInteropController::ParameterNameGetter::operator()(
 
     *pPosition++ = 'M';
     pPosition += Utility::lexical_cast(uiModuleIndex, remaining());
-    *pPosition++ = '.';
+    *pPosition++ = ' ';
 
     using Module = Plugin2HostInteropControler::Module;
     using BaseParams = Effects::BaseParameters::Parameters;
@@ -661,10 +661,11 @@ void Plugin2HostPassiveInteropController::ParameterNameGetter::operator()(
     if (!pModule &&
         (parameterID.moduleParameterIndex + 1 >= Effects::BaseParameters::Parameters::static_size))
     {
-        LE_VERIFY(unsigned(std::snprintf(buffer_.begin(), buffer_.size(), "M%u.P%u.LFO.%s",
-                                         parameterID.moduleIndex + 1,
-                                         parameterID.moduleParameterIndex - (5 - 1) + 1,
-                                         lfoParameterName)) < buffer_.size());
+        LE_VERIFY(
+            unsigned(std::snprintf(
+                buffer_.begin(), buffer_.size(), "M%u P%u - LFO %s", parameterID.moduleIndex + 1,
+                parameterID.moduleParameterIndex - (lfoExportedParameters - 1) + 1,
+                lfoParameterName)) < buffer_.size());
         return;
     }
 
@@ -674,7 +675,7 @@ void Plugin2HostPassiveInteropController::ParameterNameGetter::operator()(
     (*this)(moduleParameterID, pProgram);
 
     Buffer remainingBuffer(&buffer_[std::strlen(buffer_.begin())], buffer_.end());
-    remainingBuffer = Buffer(copyToBuffer(".LFO.", remainingBuffer), remainingBuffer.end());
+    remainingBuffer = Buffer(copyToBuffer(" - LFO ", remainingBuffer), remainingBuffer.end());
     LE_VERIFY(copyToBuffer(lfoParameterName, remainingBuffer) <= buffer_.end());
 }
 
