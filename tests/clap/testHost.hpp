@@ -52,6 +52,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -984,8 +985,8 @@ inline clap_param_info lfoPeriodParameter(clap_plugin const &plugin,
 {
     for (auto const &info : allParameterInfo(plugin, params))
     {
-        std::string const name(info.name);
-        if ((name.size() > 2) && (name.compare(name.size() - 7, 7, " Period") == 0))
+        // the whole suffix: four effects have a plain "Period" parameter of their own
+        if (std::string_view(info.name).ends_with(" - LFO Period"))
             return info;
     }
     FAIL("no LFO period parameter -- is there an effect in module 1?");
