@@ -2653,7 +2653,7 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
     //period_.setVelocityBasedMode( true );
     addToParentAndShow(*this, period_);
 
-    phase_.setBounds(59, 177, 63, 18);
+    phase_.setBounds(59, 177, 60, 18);
     phase_.setSliderStyle(juce::Slider::LinearHorizontal);
     phase_.setTextBoxStyle(juce::Slider::NoTextBox, true, 15, 18);
     phase_.setRange(-0.5, +0.5);
@@ -2820,12 +2820,7 @@ juce::String periodMillisecondsString(SpectrumWorxEditor::LFODisplay const &pare
 juce::String phaseString(SpectrumWorxEditor::LFODisplay const & /*parent*/,
                          double const &periodScale)
 {
-    constexpr char suffix[]{"%"};
-    std::array<char, 32> buffer;
-    auto const numberOfCharactersWritten(Utility::lexical_cast(
-        periodScale * 100, 1, std::span(buffer).first(buffer.size() - sizeof(suffix))));
-    std::strcpy(&buffer[numberOfCharactersWritten], suffix);
-    return juce::String(&buffer[0]);
+    return juce::String(periodScale * 360, 1) + "°";
 }
 
 juce::String rangeValueString(SpectrumWorxEditor::LFODisplay const &parent,

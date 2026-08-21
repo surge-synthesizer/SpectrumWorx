@@ -315,7 +315,7 @@ void SharedModuleControls::FrequencyRange::paint(juce::Graphics &g)
     juce::Slider::paint(g);
     g.setFont(DrawableText::defaultFont());
     g.setColour(ColourMap::getColour(ColourMap::Text));
-    g.drawSingleLineText("Frequency Range", 23, 48);
+    g.drawSingleLineText("Frequency Range", 17, 48);
 }
 
 void SharedModuleControls::FrequencyRange::valueChanged() noexcept
