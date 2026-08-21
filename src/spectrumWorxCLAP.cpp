@@ -421,7 +421,35 @@ bool SpectrumWorxCLAP::activate(double const sampleRate, std::uint32_t,
 
     resume();
     engineRunning_ = true;
-    latencyInSamples_ = engineSetup().latencyInSamples();
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Here rather than in `deactivate()`, where the notification stood.
+    /// `clap_host_latency::changed` is `[main-thread & being-activated]` and
+    /// "the latency is only allowed to change during plugin->activate"
+    /// (ext/latency.h) -- announcing it while *de*activating is outside the
+    /// contract, and clap-wrapper turns it into an
+    /// `IComponentHandler::restartComponent` re-entered from inside
+    /// `IComponent::setActive( false )`. Ardour answers that by taking a
+    /// non-recursive lock it may already hold, across a `TryLock` the audio
+    /// thread reads as "produce nothing". \see issue #172.
+    ///
+    ///   VST3 asks for the same order in its own words: "getLatencySamples
+    /// should return the new latency after setActive (true) was called".
+    ///
+    /// \note Not on the first activation. `latencyInSamples_` is what the host
+    /// was last told, and before the first `activate()` it has been told
+    /// nothing -- it reads `latencyGet()` as part of activating, so there is
+    /// nothing to correct. Zero is not available as the "told nothing" value:
+    /// an overlap factor of one genuinely has no latency.
+    ///                                       (21.08.2026.) (SW port)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    auto const previousLatency(std::exchange(latencyInSamples_, engineSetup().latencyInSamples()));
+    if (hostKnowsLatency_ && (latencyInSamples_ != previousLatency) && _host.canUseLatency())
+        _host.latencyChanged();
+    hostKnowsLatency_ = true;
 
     /// \note So that a plugin brought up while the transport is already rolling
     /// counts its first block as a start rather than as a continuation. \see
@@ -509,13 +537,10 @@ void SpectrumWorxCLAP::deactivate() noexcept
         if (!applyPendingSpectralSetup())
             resyncSpectralParametersToEngine();
 
-        auto const newLatency(engineSetup().latencyInSamples());
-        if (newLatency != latencyInSamples_)
-        {
-            latencyInSamples_ = newLatency;
-            if (_host.canUseLatency())
-                _host.latencyChanged();
-        }
+        /// \note The new latency is not announced here, only applied. `activate()`
+        /// is where the host is told, because that is the only place CLAP allows
+        /// it to be told. See the note there.
+        ///                                   (21.08.2026.) (SW port)
         if (pEditor_)
             pEditor_->updateForEngineSetupChanges();
     }

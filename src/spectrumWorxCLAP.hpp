@@ -696,7 +696,11 @@ class SpectrumWorxCLAP final
     GUI::SpectrumWorxEditor *pEditor_{nullptr};
 
     double sampleRate_{0};
+    /// \note What the host was last told, not merely what the engine runs at:
+    /// `activate()` compares against it to decide whether to announce a change.
     std::uint32_t latencyInSamples_{0};
+    /// \note Whether it has been told anything at all. \see activate().
+    bool hostKnowsLatency_{false};
     bool engineRunning_{false};
 
     ////////////////////////////////////////////////////////////////////////////
