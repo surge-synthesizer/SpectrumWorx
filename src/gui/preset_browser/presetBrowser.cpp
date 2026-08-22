@@ -200,6 +200,48 @@ PresetBrowser::~PresetBrowser()
 /// into, rename or delete there.
 bool PresetBrowser::enablePresetSaving() const { return location_ == Location::User; }
 
+// Save As offers to keep an edit somewhere new, Save offers to keep it where the
+// sound came from. Both are dead until there *is* an edit, and Save is dead for a
+// factory preset, there being nothing in the binary to overwrite.
+//
+// Neither depends on the selected row: Save used to overwrite whichever preset
+// the list pointed at, which is not necessarily the one being played
+void PresetBrowser::updateSaveButtons()
+{
+    auto const &loaded(editor().editorHost().loadedPreset());
+    bool const modified(loaded.modified.load(std::memory_order_relaxed));
+
+    saveAs_.setEnabled(modified);
+    save_.setEnabled(modified && loaded.canBeOverwritten());
+}
+
+/// \note After the load and not before it: GUI::loadPreset ends in
+/// presetChangeEnd, which marks the *session* modified.
+void PresetBrowser::rememberLoadedPreset(juce::String const &presetName, fs::path const &file)
+{
+    auto &loaded(editor().editorHost().loadedPreset());
+    loaded.loaded(presetName, inFactory() ? PanelState::PresetLocation::factory
+                                          : PanelState::PresetLocation::user);
+    loaded.bank = inFactory() ? factoryBank_ : juce::String();
+    loaded.file = file;
+
+    updateSaveButtons();
+}
+
+void PresetBrowser::goToUserPresets()
+{
+    if (!inFactory())
+        return;
+
+    // where they were last, when that is still a folder, so Save As from a
+    // factory bank lands where their own presets already are
+    auto const &remembered(place().presetFolder);
+    std::error_code error;
+    setNewFolder(std::filesystem::is_directory(remembered, error) ? remembered
+                                                                  : GUI::presetsFolder());
+    userPresets_.setToggleState(true, juce::dontSendNotification);
+}
+
 /// \note The one place the two sources meet. Both hand back the same thing -- a
 /// writable, NUL-terminated buffer -- so everything downstream is the same code
 /// for a factory preset and for the user's own.
@@ -217,14 +259,12 @@ void PresetBrowser::presetSelectionChanged()
     Item const &item(selectedItem());
     if (item.isDirectory())
     {
-        save_.setEnabled(false);
         delete_.setEnabled(false);
         return;
     }
 
     bool const enablePresetSaving(this->enablePresetSaving());
 
-    save_.setEnabled(enablePresetSaving);
     delete_.setEnabled(enablePresetSaving);
 
     auto const presetData(selectedPresetData());
@@ -237,6 +277,8 @@ void PresetBrowser::presetSelectionChanged()
         Preset::reportPresetLoadingError();
         return;
     }
+
+    rememberLoadedPreset(item.name, inFactory() ? fs::path() : selectedFile());
 
     comment().setText(originalComment_, false);
     comment().setEnabled(enablePresetSaving);
@@ -551,17 +593,21 @@ void PresetBrowser::saveCurrentPreset(juce::String const &presetName, fs::path c
 
     if (shouldRefresh)
         refreshAndSelectPreset(presetName);
+
+    /// \note And what was saved is what is loaded: the edit has been kept, so
+    /// both buttons go out until the next one. After the refresh, which comes
+    /// through updateSaveButtons() itself. \see issue #177.
+    rememberLoadedPreset(presetName, targetFile);
 }
 
 void PresetBrowser::buttonClicked(juce::Button *const pButton)
 {
     if (pButton == &save_)
     {
-        // asked rather than assumed; \see file() for why an enabled button is
-        // not the same statement
-        fs::path const target(selectedFile());
-        if (!target.empty())
-            saveCurrentPreset(selectedItem().name, target);
+        // the preset that is *playing*, not the row the list is pointing at
+        auto const &loaded(editor().editorHost().loadedPreset());
+        if (loaded.canBeOverwritten())
+            saveCurrentPreset(loaded.name, loaded.file);
     }
     else if (pButton == &delete_)
     {
@@ -577,6 +623,10 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
     }
     else if (pButton == &saveAs_)
     {
+        // a factory bank has nowhere to write, and Save As is offered there now,
+        // so it takes the list with it
+        goToUserPresets();
+
         // a name the user is *offered*, so it may be imperfect but may not take
         // forever. Running out of numbers offers one that is already taken,
         // which is what the first round offers anyway: the edit box is up and
@@ -875,10 +925,10 @@ void PresetBrowser::refresh()
 
     std::sort(files_.begin(), files_.end());
 
-    // Save-As is the one button that depends on *where* the browser is rather
-    // than on what is selected in it, and everything that moves it comes through
-    // here. save_ and delete_ stay with the selection
-    saveAs_.setEnabled(enablePresetSaving());
+    // neither Save button follows the listing any more -- both key on whether the
+    // *loaded* preset has been edited -- but every move through here is a chance
+    // for them to have gone stale
+    updateSaveButtons();
 
     updateNavigation();
 
@@ -980,7 +1030,9 @@ void PresetBrowser::deselectAllRows()
     comment().clear();
     comment().setEnabled(false);
 
-    save_.setEnabled(false);
+    /// \note Not `save_.setEnabled( false )`: what is loaded is still loaded and
+    /// still edited, whatever the list is pointing at. \see issue #177.
+    updateSaveButtons();
 }
 
 /// \note Not `currentDirectory_` unconditionally: that member only means

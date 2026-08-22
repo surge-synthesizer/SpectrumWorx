@@ -1688,10 +1688,15 @@ bool SpectrumWorxCLAP::HostProxy::reportNewLatencyInSamples(unsigned int const l
 /// host that cannot say gets the deferral, which is correct from either thread.
 void SpectrumWorxCLAP::markCurrentProgramAsModified() const
 {
+    auto &plugin(const_cast<SpectrumWorxCLAP &>(*this));
+
+    /// \note Before the host question and not behind it: the browser's two Save
+    /// buttons read this, and whether a host offers `clap.state` has nothing to
+    /// do with whether the user has edited the preset. \see issue #177.
+    plugin.loadedPreset_.modified.store(true, std::memory_order_relaxed);
+
     if (!_host.canUseState())
         return;
-
-    auto &plugin(const_cast<SpectrumWorxCLAP &>(*this));
 
     if (_host.canUseThreadCheck() && _host.isMainThread())
     {
@@ -1776,6 +1781,11 @@ try
                          nullptr, &dawExtraState))
         return false;
 
+    // the edited flag the block carried, applied now the load is over:
+    // GUI::loadPreset ends in presetChangeEnd, which marks the *session*
+    // modified, and that is not what this one means. \see issue #177
+    loadedPreset_.modified.store(restoredPresetModified_, std::memory_order_relaxed);
+
     // deferred rather than announced straight through: GUI::loadPreset() above
     // ends in chainChanged(), which asks for the same rescan, and a host acts on
     // each one -- the AU wrapper by rebuilding its whole parameter tree, so a
@@ -1818,6 +1828,14 @@ constexpr char presetLocationAttribute[]{"presetLocation"};
 constexpr char presetBankAttribute[]{"presetBank"};
 constexpr char presetFolderAttribute[]{"presetFolder"};
 
+/// \note Which preset is *playing* and whether it has been edited, which is a
+/// different question from where the browser was last looking. \see issue #177.
+constexpr char loadedPresetAttribute[]{"loadedPreset"};
+constexpr char loadedLocationAttribute[]{"loadedPresetLocation"};
+constexpr char loadedBankAttribute[]{"loadedPresetBank"};
+constexpr char loadedFileAttribute[]{"loadedPresetFile"};
+constexpr char loadedModifiedAttribute[]{"loadedPresetModified"};
+
 constexpr char presetsPanel[]{"presets"};
 constexpr char settingsPanel[]{"settings"};
 constexpr char factoryLocation[]{"factory"};
@@ -1855,6 +1873,17 @@ DawExtraState SpectrumWorxCLAP::sessionState()
                 // UTF-8 bytes on every platform, as the sample path is: a
                 // session written on one has to open on another
                 element.SetAttribute(presetFolderAttribute, IO::pathToUTF8(state.presetFolder));
+
+                auto const &loaded(loadedPreset_);
+                element.SetAttribute(loadedPresetAttribute, loaded.name.toStdString());
+                element.SetAttribute(loadedLocationAttribute,
+                                     (loaded.location == GUI::PanelState::PresetLocation::user)
+                                         ? userLocation
+                                         : factoryLocation);
+                element.SetAttribute(loadedBankAttribute, loaded.bank.toStdString());
+                element.SetAttribute(loadedFileAttribute, IO::pathToUTF8(loaded.file));
+                element.SetAttribute(loadedModifiedAttribute,
+                                     loaded.modified.load(std::memory_order_relaxed) ? 1 : 0);
             },
             [this](TiXmlElement const &element) {
                 auto &state(panelState_);
@@ -1878,6 +1907,27 @@ DawExtraState SpectrumWorxCLAP::sessionState()
                     state.presetBank = juce::String::fromUTF8(pBank);
                 if (auto const *const pFolder = element.Attribute(presetFolderAttribute))
                     state.presetFolder = IO::utf8ToPath(pFolder);
+
+                auto &loaded(loadedPreset_);
+                if (auto const *const pName = element.Attribute(loadedPresetAttribute))
+                    loaded.name = juce::String::fromUTF8(pName);
+                readNamed(element, loadedLocationAttribute, loaded.location, userLocation,
+                          GUI::PanelState::PresetLocation::user);
+                readNamed(element, loadedLocationAttribute, loaded.location, factoryLocation,
+                          GUI::PanelState::PresetLocation::factory);
+                if (auto const *const pBank = element.Attribute(loadedBankAttribute))
+                    loaded.bank = juce::String::fromUTF8(pBank);
+                if (auto const *const pFile = element.Attribute(loadedFileAttribute))
+                    loaded.file = IO::utf8ToPath(pFile);
+
+                /// \note Into a plain member rather than straight into the atomic:
+                /// this runs while the block is being parsed, and the load it is
+                /// part of ends in `presetChangeEnd` -> `markCurrentProgramAsModified`,
+                /// which would set the flag back to true a moment later. `stateLoad`
+                /// applies it once the load is over. \see issue #177.
+                int modified{restoredPresetModified_ ? 1 : 0};
+                element.QueryIntAttribute(loadedModifiedAttribute, &modified);
+                restoredPresetModified_ = (modified != 0);
             }};
 }
 

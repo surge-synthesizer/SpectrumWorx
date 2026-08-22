@@ -276,6 +276,7 @@ class SpectrumWorxCLAP final
     /// the panels and the window. \see sessionState(), which puts it in the
     /// project file.
     GUI::PanelState &panelState() override { return panelState_; }
+    GUI::LoadedPreset &loadedPreset() override { return loadedPreset_; }
 
   protected:
     bool init() noexcept override;
@@ -634,6 +635,11 @@ class SpectrumWorxCLAP final
     ////////////////////////////////////////////////////////////////////////////
 
     GUI::PanelState panelState_;
+    GUI::LoadedPreset loadedPreset_;
+
+    /// \brief What the session said about `loadedPreset_.modified`, held between
+    /// the block being read and the load finishing. \see stateLoad().
+    bool restoredPresetModified_{false};
 
     /// \note Owned by the shim, which destroys it before this. Cleared on the
     /// editor's own destructor path, so a queued notification cannot reach a

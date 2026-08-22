@@ -91,6 +91,7 @@ add_executable(sw-plugin-tests
         gui/paletteTests.cpp
         gui/pathsTests.cpp
         gui/presetNavigationTests.cpp
+        gui/presetSaveButtonTests.cpp
         gui/preferencesTests.cpp
         gui/sideChainSelectorTests.cpp
         gui/sliderDragTests.cpp

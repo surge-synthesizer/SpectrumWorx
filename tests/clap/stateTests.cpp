@@ -1384,3 +1384,125 @@ TEST_CASE("A state load moves the In, Out and Mix knobs", "[clap][state][gui]")
 
     gui->destroy(&*plugin);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The session remembers which preset is playing and whether it has been
+/// edited. Issue #177.
+///
+///   The browser's two Save buttons key on both, so a project reopened has to
+/// find them the way it left them: a preset the user had edited and not yet
+/// saved still offers to be saved.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The session carries the loaded preset and whether it was edited", "[clap][state]")
+{
+    using namespace LE::SW::GlobalParameters;
+    using PresetLocation = LE::SW::GUI::PanelState::PresetLocation;
+
+    Entry const entry;
+    juce::ScopedJuceInitialiser_GUI const juceIsUp;
+
+    OutStream saved;
+    {
+        SWTest::TestHost host{{.gui = true}};
+        SWTest::ActivePlugin plugin(sampleRate, blockSize, host);
+
+        auto const *const gui(
+            static_cast<clap_plugin_gui const *>(plugin->get_extension(&*plugin, CLAP_EXT_GUI)));
+        REQUIRE(gui != nullptr);
+        REQUIRE(gui->create(&*plugin, CLAP_WINDOW_API_COCOA, false));
+
+        auto &editorHost(SWTest::editorHostOf(*plugin));
+        auto *const pEditor(static_cast<LE::SW::SpectrumWorxCLAP &>(editorHost).gui());
+        REQUIRE(pEditor != nullptr);
+
+        auto &loaded(editorHost.loadedPreset());
+
+        // Nothing loaded, nothing edited.
+        CHECK(loaded.name.isEmpty());
+        CHECK_FALSE(loaded.modified.load());
+
+        /// \note An ordinary edit through the interface, which is the path that
+        /// tells the host its state is dirty -- and which the browser's buttons
+        /// now read as well. \see markCurrentProgramAsModified().
+        REQUIRE(pEditor->globalParameterChanged<MixPercentage>(0.25f, false));
+        CHECK(loaded.modified.load());
+
+        loaded.loaded("Robokid", PresetLocation::user);
+        loaded.file = "/tmp/presets/Robokid.swp";
+        CHECK_FALSE(loaded.modified.load());
+
+        // ...and edited again, after the load, which is what has to survive.
+        REQUIRE(pEditor->globalParameterChanged<MixPercentage>(0.5f, false));
+        REQUIRE(loaded.modified.load());
+
+        REQUIRE(stateOf(*plugin).save(&*plugin, &saved));
+        gui->destroy(&*plugin);
+    }
+
+    {
+        SWTest::TestHost host{{.gui = true}};
+        SWTest::ActivePlugin plugin(sampleRate, blockSize, host);
+
+        auto &editorHost(SWTest::editorHostOf(*plugin));
+        auto const &loaded(editorHost.loadedPreset());
+        REQUIRE(loaded.name.isEmpty());
+
+        InStream stream(saved.data());
+        REQUIRE(stateOf(*plugin).load(&*plugin, &stream));
+
+        CHECK(loaded.name == "Robokid");
+        CHECK(loaded.location == PresetLocation::user);
+        CHECK(loaded.file == std::filesystem::path("/tmp/presets/Robokid.swp"));
+
+        ////////////////////////////////////////////////////////////////////////
+        /// \note The one that needs saying twice. `GUI::loadPreset` ends in
+        /// presetChangeEnd, which marks the program modified -- so the flag is
+        /// true at the end of every load whatever the file said, and `stateLoad`
+        /// puts the file's answer back afterwards.
+        ////////////////////////////////////////////////////////////////////////
+        CHECK(loaded.modified.load());
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \note The other half: a preset that was saved before the session was written
+/// comes back unedited, and its Save buttons stay out.
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A session written with nothing edited comes back unedited", "[clap][state]")
+{
+    using PresetLocation = LE::SW::GUI::PanelState::PresetLocation;
+
+    Entry const entry;
+    juce::ScopedJuceInitialiser_GUI const juceIsUp;
+
+    OutStream saved;
+    {
+        SWTest::TestHost host{{.gui = true}};
+        SWTest::ActivePlugin plugin(sampleRate, blockSize, host);
+
+        auto &loaded(SWTest::editorHostOf(*plugin).loadedPreset());
+        loaded.loaded("Robokid", PresetLocation::factory);
+        loaded.bank = "Voices";
+
+        REQUIRE(stateOf(*plugin).save(&*plugin, &saved));
+    }
+
+    {
+        SWTest::TestHost host{{.gui = true}};
+        SWTest::ActivePlugin plugin(sampleRate, blockSize, host);
+
+        auto const &loaded(SWTest::editorHostOf(*plugin).loadedPreset());
+
+        InStream stream(saved.data());
+        REQUIRE(stateOf(*plugin).load(&*plugin, &stream));
+
+        CHECK(loaded.name == "Robokid");
+        CHECK(loaded.location == PresetLocation::factory);
+        CHECK(loaded.bank == "Voices");
+        CHECK_FALSE(loaded.modified.load());
+    }
+}

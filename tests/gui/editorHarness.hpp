@@ -313,6 +313,10 @@ class Instance final : public GUI::EditorHost
     ///
     GUI::PanelState &panelState() override { return panelState_; }
 
+    /// \note The same reasoning: the plugin holds this and a case that wants to
+    /// drive the Save buttons has to be able to set it. \see issue #177.
+    GUI::LoadedPreset &loadedPreset() override { return loadedPreset_; }
+
   private:
     Engine engine_;
     SilentNotifications notifications_;
@@ -321,6 +325,7 @@ class Instance final : public GUI::EditorHost
     std::unique_ptr<GUI::SpectrumWorxEditor> pEditor_;
     SideChainSource sideChainSource_{defaultSideChainSource};
     GUI::PanelState panelState_;
+    GUI::LoadedPreset loadedPreset_;
 }; // class Instance
 
 /// \brief JUCE, owned the way the shim owns it: one reference held across

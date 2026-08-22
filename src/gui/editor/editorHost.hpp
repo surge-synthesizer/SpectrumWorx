@@ -34,6 +34,7 @@
 
 #include "le/utility/platformSpecifics.hpp"
 
+#include <atomic>
 #include <cstdint>
 
 #include <juce_core/juce_core.h>
@@ -115,6 +116,64 @@ struct PanelState
     juce::String presetBank; ///< when presetLocation is factory
     fs::path presetFolder;   ///< when presetLocation is user
 }; // struct PanelState
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \struct LoadedPreset
+///
+/// \brief Which preset the plugin is playing, and whether it has been edited
+/// since it arrived.
+///
+///   What the two Save buttons key on. Save As offers to write the edit
+/// somewhere new; Save offers to write it back where the sound came from, which
+/// is why the file is here rather than taken from whichever row the browser
+/// happens to have selected -- a user may well have gone looking elsewhere
+/// between loading a preset and deciding to keep their changes.
+///
+/// \note The plugin's rather than the browser's, for two reasons: the browser is
+/// built and destroyed every time the panels are swapped, and this goes into the
+/// session so that reopening a project finds the same preset name over the list
+/// and the same buttons lit. \see issue #177.
+///
+/// \note `modified` is atomic because a host writing a parameter from its audio
+/// thread sets it -- the same path that reaches `clap_host_state::mark_dirty`,
+/// and the same reason that one defers. Nothing reads it but the message thread.
+///                                           (22.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+struct LoadedPreset
+{
+    LoadedPreset() = default;
+    LoadedPreset(LoadedPreset const &) = delete; // holds an atomic
+    LoadedPreset &operator=(LoadedPreset const &) = delete;
+
+    /// \brief Empty when nothing has been loaded: a fresh instance, or a session
+    /// whose preset was renamed out from under it.
+    juce::String name;
+
+    PanelState::PresetLocation location{PanelState::PresetLocation::factory};
+    juce::String bank; ///< when location is factory
+    fs::path file;     ///< when location is user: what Save overwrites
+
+    std::atomic<bool> modified{false};
+
+    /// \brief Whether Save has somewhere to write, which a factory preset and a
+    /// fresh instance both do not.
+    bool canBeOverwritten() const
+    {
+        return (location == PanelState::PresetLocation::user) && !file.empty();
+    }
+
+    /// \brief Points this at \p presetName, wherever it came from, and calls it
+    /// unedited. \see PresetBrowser::presetSelectionChanged().
+    void loaded(juce::String const &presetName, PanelState::PresetLocation const from)
+    {
+        name = presetName;
+        location = from;
+        modified.store(false, std::memory_order_relaxed);
+    }
+}; // struct LoadedPreset
 
 class EditorHost
 {
@@ -380,6 +439,13 @@ class EditorHost
 
     virtual PanelState &panelState() = 0;
     PanelState const &panelState() const { return const_cast<EditorHost &>(*this).panelState(); }
+
+    /// \brief The preset the plugin is playing. \see LoadedPreset and issue #177.
+    virtual LoadedPreset &loadedPreset() = 0;
+    LoadedPreset const &loadedPreset() const
+    {
+        return const_cast<EditorHost &>(*this).loadedPreset();
+    }
 
     /// \note `shouldLoadLastSessionOnStartup()` was a pair here, reaching a flag
     /// nothing ever read: the checkbox on the interface page stored it and no

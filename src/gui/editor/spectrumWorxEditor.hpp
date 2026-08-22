@@ -584,6 +584,16 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// neither of which a headless render has.
     void showPresetBrowser(bool show);
 
+    /// \brief The browser, or nothing when the panel is not showing one. Public
+    /// for the same reason showPresetBrowser() is. \see issue #177.
+    PresetBrowser *presetBrowser() { return presetBrowser_ ? &*presetBrowser_ : nullptr; }
+
+    /// \brief One of the timer's steps: the Save buttons follow a flag any
+    /// parameter write can set. Public for the same reason
+    /// updateEngineInformationIfChanged() is -- juce::Timer is a private base, so
+    /// this is how a headless run drives a tick. \see issue #177.
+    void updateSaveButtonsIfShowing();
+
     /// \brief Opens the browser on a factory bank, as double-clicking into one
     /// does. `tools/show-ui` only; see showPresetBrowser().
     void showFactoryBank(juce::String const &bank);

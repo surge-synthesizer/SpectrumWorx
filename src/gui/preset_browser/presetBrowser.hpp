@@ -235,6 +235,33 @@ class PresetBrowser final : public PanelBackground,
 
     bool enablePresetSaving() const;
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Lights the two Save buttons for what has been edited.
+    ///
+    /// \note Public because the editor's timer calls it: what they read is set
+    /// by any parameter write, host automation included, and nothing about that
+    /// marks a pixel of this panel dirty. \see issue #142, which is the same
+    /// argument about the engine information lines, and issue #177.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+  public:
+    void updateSaveButtons();
+
+    /// \brief Whether each Save button is offering to do anything. Public so
+    /// that a headless run can read what the user would see. \see issue #177.
+    bool saveIsOffered() const { return save_.isEnabled(); }
+    bool saveAsIsOffered() const { return saveAs_.isEnabled(); }
+
+  private:
+    /// \brief Records what has just been loaded, and calls it unedited.
+    /// \see LoadedPreset.
+    void rememberLoadedPreset(juce::String const &presetName, fs::path const &file);
+
+    /// \brief Moves the list into the user's own presets, for a Save As pressed
+    /// while a factory bank is showing. \see issue #177.
+    void goToUserPresets();
+
     unsigned int selectedIndex() const;
 
     Item const &item(unsigned int index) const;

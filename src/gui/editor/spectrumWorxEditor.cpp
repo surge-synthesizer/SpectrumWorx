@@ -1966,7 +1966,20 @@ void SpectrumWorxEditor::timerCallback()
 
     updateEngineInformationIfChanged();
 
+    updateSaveButtonsIfShowing();
+
     pumpModulatedValues();
+}
+
+/// \note Polled for the reason the engine information is: the flag the two Save
+/// buttons read is set by any parameter write, host automation included, and
+/// that arrives on a thread with no business touching a widget.
+void SpectrumWorxEditor::updateSaveButtonsIfShowing()
+{
+    LE_ASSERT(isThisTheGUIThread());
+
+    if (presetBrowser_)
+        presetBrowser_->updateSaveButtons();
 }
 
 /// \note Four `lexical_cast`s and four string compares per tick, and only while
