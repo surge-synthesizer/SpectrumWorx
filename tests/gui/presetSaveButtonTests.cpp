@@ -25,6 +25,8 @@
 
 #include "gui/preset_browser/presetBrowser.hpp"
 
+#include "le/spectrumworx/factoryPresets.hpp"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -230,4 +232,83 @@ TEST_CASE("Retyping the same comment is not an edit", "[gui][presets]")
 
     browser.commentChanged();
     CHECK(instance.stateModifications == after);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Issue #177's other half. A session restored opens the browser where it
+/// was left (issue #129) and said nothing about which preset was *playing*, so a
+/// project reopened showed the right folder with nothing selected in it.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A restored session highlights the preset it is playing", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    auto const banks(LE::SW::FactoryPresets::banks());
+    REQUIRE_FALSE(banks.empty());
+    auto const bank(juce::String(banks.front()));
+
+    auto const presets(LE::SW::FactoryPresets::presets(banks.front()));
+    REQUIRE(presets.size() > 1);
+    /// \note Not the first row, so that "selected" and "whatever the list opened
+    /// on" cannot be the same answer.
+    auto const preset(juce::String(presets.back()));
+
+    SWTest::Instance instance;
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note What `stateLoad` leaves behind: the panel's place, and the preset
+    /// the session was playing. Set before the editor is built, which is the
+    /// order a host uses -- state first, window later.
+    ////////////////////////////////////////////////////////////////////////////
+    auto &panel(instance.panelState());
+    panel.presetLocation = PanelState::PresetLocation::factory;
+    panel.presetBank = bank;
+
+    auto &loaded(instance.loadedPreset());
+    loaded.loaded(preset, PanelState::PresetLocation::factory);
+    loaded.bank = bank;
+
+    auto &browser(browserOf(instance));
+
+    CHECK(browser.selectedPresetName() == preset);
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note And it was highlighted rather than *loaded*: a session may carry
+    /// edits nobody has saved, and reloading the file would throw them away.
+    /// \see PresetBrowser::highlightLoadedPreset().
+    ////////////////////////////////////////////////////////////////////////////
+    CHECK_FALSE(loaded.modified.load());
+}
+
+TEST_CASE("A preset from another bank is not highlighted", "[gui][presets]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note A user who loaded a preset and then went browsing elsewhere is
+    /// looking at somewhere they chose. The listing is theirs; nothing in it is
+    /// the preset that is playing.
+    ////////////////////////////////////////////////////////////////////////////
+    SWTest::HostSideJuce const juceIsUp;
+
+    auto const banks(LE::SW::FactoryPresets::banks());
+    REQUIRE(banks.size() > 1);
+
+    SWTest::Instance instance;
+
+    auto &panel(instance.panelState());
+    panel.presetLocation = PanelState::PresetLocation::factory;
+    panel.presetBank = juce::String(banks.front());
+
+    auto const elsewhere(LE::SW::FactoryPresets::presets(banks.back()));
+    REQUIRE_FALSE(elsewhere.empty());
+
+    auto &loaded(instance.loadedPreset());
+    loaded.loaded(juce::String(elsewhere.front()), PanelState::PresetLocation::factory);
+    loaded.bank = juce::String(banks.back());
+
+    auto &browser(browserOf(instance));
+
+    CHECK(browser.selectedPresetName().isEmpty());
 }

@@ -238,6 +238,67 @@ void PresetBrowser::rememberLoadedPreset(juce::String const &presetName, fs::pat
     updateSaveButtons();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Puts the highlight on the preset the plugin is playing, when the
+/// listing on screen is the one it came from.
+///
+///   A session restored opens the browser where it was left -- issue #129 --
+/// and said nothing about *which* preset was playing, so a project reopened
+/// showed the right folder with nothing in it selected. The session carries the
+/// loaded preset since issue #177, so the row can be found.
+///
+/// \note Without loading it. `ignoreSelectionChange_` is what stops
+/// `selectedRowsChanged()` treating this as the user picking a row, and
+/// reloading would be wrong twice over: the sound is already here, and a session
+/// carrying edits nobody has saved would lose them to the file on disk.
+///
+/// \note And without the keyboard, which `refreshAndSelectPreset()` takes for the
+/// comment box. That one runs when the user has just saved a preset and is
+/// looking at it; nobody asked for this one.
+///
+/// \note Only when the *tree* matches too, and not merely the name: a user who
+/// loaded a preset and then went browsing elsewhere is looking at somewhere they
+/// chose, and a preset of the same name in another bank is a different preset.
+///                                           (22.08.2026.) \see issue #177.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void PresetBrowser::highlightLoadedPreset()
+{
+    auto const &loaded(editor().editorHost().loadedPreset());
+    if (loaded.name.isEmpty())
+        return;
+
+    bool const sameTree(inFactory() ? (loaded.location == PanelState::PresetLocation::factory) &&
+                                          (loaded.bank == factoryBank_)
+                                    : (loaded.location == PanelState::PresetLocation::user) &&
+                                          (loaded.file.parent_path() == currentDirectory_));
+    if (!sameTree)
+        return;
+
+    Item const *const pItem(findPreset(loaded.name));
+    if (pItem == files_.end())
+        return;
+
+    auto const row(static_cast<int>(pItem - files_.begin()));
+
+    ignoreSelectionChange_ = true;
+    listBox_.selectRow(row);
+    ignoreSelectionChange_ = false;
+
+    listBox_.scrollToEnsureRowIsOnscreen(row);
+    delete_.setEnabled(enablePresetSaving());
+}
+
+juce::String PresetBrowser::selectedPresetName() const
+{
+    int const row(listBox_.getLastRowSelected());
+    if ((row < 0) || (row >= files_.size()) || item(static_cast<unsigned>(row)).isDirectory())
+        return {};
+    return item(static_cast<unsigned>(row)).name;
+}
+
 void PresetBrowser::goToUserPresets()
 {
     if (!inFactory())
@@ -970,6 +1031,11 @@ void PresetBrowser::refresh()
     updateNavigation();
 
     listBox_.updateContent();
+
+    /// \note After updateContent(), which is what gives the rows their indices.
+    /// Here rather than in restoreLastPlace() so that it also holds for a user
+    /// who navigates *back* to the folder their preset came from. \see issue #177.
+    highlightLoadedPreset();
 }
 
 /// \note FactoryPresets::banks() is every directory under the preset root, as a

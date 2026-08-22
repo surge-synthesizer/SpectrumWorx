@@ -253,6 +253,10 @@ class PresetBrowser final : public PanelBackground,
     bool saveIsOffered() const { return save_.isEnabled(); }
     bool saveAsIsOffered() const { return saveAs_.isEnabled(); }
 
+    /// \brief The highlighted row's name, or nothing when no preset is selected.
+    /// Public for the same reason: it is what the user can see.
+    juce::String selectedPresetName() const;
+
   private:
     /// \brief Records what has just been loaded, and calls it unedited.
     /// \see LoadedPreset.
@@ -261,6 +265,10 @@ class PresetBrowser final : public PanelBackground,
     /// \brief Moves the list into the user's own presets, for a Save As pressed
     /// while a factory bank is showing. \see issue #177.
     void goToUserPresets();
+
+    /// \brief Puts the highlight on the preset the plugin is playing, when the
+    /// listing it is in is the one on screen. \see the definition.
+    void highlightLoadedPreset();
 
     unsigned int selectedIndex() const;
 
