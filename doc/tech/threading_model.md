@@ -132,7 +132,7 @@ engine the main thread owns.
 
 | `core/threading/messages.hpp` | cases |
 |---|---|
-| `ToEngine` | `SetBaseParameter`, `SetSlot`, `MoveModule`, `SwapChain`, `SwapSample`, `SetUnexportedLFOParameter` |
+| `ToEngine` | `SetBaseParameter`, `SetSlot`, `MoveModule`, `SwapChain`, `SwapSample` |
 | `ToUI` | `BaseParameterChanged`, `ChainChanged`, `TimingChanged`, `Retire` |
 
 Both are tagged unions, trivially copyable, owning nothing. Each case says which
@@ -516,9 +516,10 @@ display, `paramsValue`, `stateSave` and the preset writer all answer from the
 main thread's `Program`, so a test built out of any of them agrees with an edit
 the audio thread never received — and one that asserts a *message was queued*
 only moves the blind spot one step along. The LFO panel is where that was
-demonstrated: five of its seven sub-parameters go through `editParameter()`,
-which moves both copies, and the two that have no `ParameterID` take
-`ToEngine::SetUnexportedLFOParameter` — but the N/T/D buttons wrote
+demonstrated: all seven sub-parameters go through `editParameter()`, which moves
+both copies — five of them always did, and the other two took a
+`ToEngine::SetUnexportedLFOParameter` of their own until issue #159 gave them a
+`ParameterID` — but the N/T/D buttons wrote
 `LFO::addSyncType()` on the strip's own LFO and queued nothing, so a sync-mode
 change moved the display and the saved state and nothing anybody could hear. It
 was recorded as fixed on the day the waveform popup beside it was.

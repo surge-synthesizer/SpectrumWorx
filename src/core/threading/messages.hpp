@@ -62,13 +62,13 @@ struct ToEngine
         /// one user act ("play this file", "take the host's port") and because a
         /// block that saw one without the other would be a block fed from the
         /// wrong place. \see SideChainSource.
-        SwapSample,
-        /// An LFO sub-parameter that has no `ParameterID` -- Waveform and
-        /// SyncTypes, both past `ParameterCounts::lfoExportedParameters`.
-        /// Addressed by index because there is no identifier to address it by;
-        /// everything else the interface sends is a `SetBaseParameter`.
-        SetUnexportedLFOParameter
+        SwapSample
     };
+
+    /// \note `SetUnexportedLFOParameter` stood here, for the two LFO
+    /// sub-parameters that had no `ParameterID` to be addressed by. Issue #159
+    /// exported them, so every edit the interface makes is a `SetBaseParameter`
+    /// again and the exception has no cases left.
 
     Kind kind{Kind::None};
 
@@ -126,16 +126,6 @@ struct ToEngine
             bool replacesSample;
             std::uint8_t source;
         } swapSample;
-
-        /// \note The value in the parameter's own units, as a float, which is
-        /// what the interface already converts to before it stores one.
-        struct
-        {
-            float value;
-            std::uint8_t moduleIndex;
-            std::uint8_t moduleParameterIndex;
-            std::uint8_t lfoParameterIndex;
-        } setUnexportedLFOParameter;
     };
 }; // struct ToEngine
 
@@ -273,17 +263,6 @@ inline ToEngine swapSample(void *const pSample, bool const replacesSample,
     ToEngine message{};
     message.kind = ToEngine::Kind::SwapSample;
     message.swapSample = {pSample, replacesSample, source};
-    return message;
-}
-
-inline ToEngine setUnexportedLFOParameter(std::uint8_t const moduleIndex,
-                                          std::uint8_t const moduleParameterIndex,
-                                          std::uint8_t const lfoParameterIndex, float const value)
-{
-    ToEngine message{};
-    message.kind = ToEngine::Kind::SetUnexportedLFOParameter;
-    message.setUnexportedLFOParameter = {value, moduleIndex, moduleParameterIndex,
-                                         lfoParameterIndex};
     return message;
 }
 

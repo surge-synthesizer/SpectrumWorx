@@ -23,12 +23,25 @@ namespace SW
 {
 namespace ParameterCounts
 {
-// Implementation note:
-//   The SyncTypes and Waveform parameters are not yet exported for
-// automation. Consider solving this cleaner with separate Parameters<> and
-// ExtendedParameters<> instantiations.
-//                                        (18.02.2011.) (Domagoj Saric)
-static std::uint8_t const lfoExportedParameters = 5;
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief How many of an LFO's seven sub-parameters a host can address.
+///
+/// \note All of them, since issue #159. It was five from 2011 until 22.08.2026 --
+/// "the SyncTypes and Waveform parameters are not yet exported for automation"
+/// -- so the two that decide what an LFO *is* were the two a DAW could not
+/// touch, and the editor reached them by a side channel of its own.
+///
+/// \note They are the last two of `LFOImpl::Parameters`, which is what makes
+/// this a change to a count rather than to an identifier: every ParameterID a
+/// host has ever been given still means what it meant, and the two new ones take
+/// indices nothing had used. What *does* move is the position of everything
+/// after them in a list sorted by id, which is why the AUv2 ordering extension
+/// comes with this. \see CLAPEdge::parameterVersion().
+///
+////////////////////////////////////////////////////////////////////////////////
+
+static std::uint8_t const lfoExportedParameters = 7;
 
 static std::uint8_t const lfoParametersPerModule =
     lfoExportedParameters * (Constants::maxNumberOfParametersPerModule - 1);

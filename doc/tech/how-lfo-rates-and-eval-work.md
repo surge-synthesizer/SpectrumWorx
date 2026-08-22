@@ -385,12 +385,13 @@ The phase's percentage is a `DisplayValueTransformer`, which is where a display
 unit belongs. `ValuesDenominator<100>` on the declaration says the same thing to
 nobody: nothing in the printer reads that trait.
 
-`SyncTypes` and `Waveform` are **not** exported —
-`ParameterCounts::lfoExportedParameters` is 5, and the exported set is the first
-five in declaration order. They reach the engine as
-`ToEngine::SetUnexportedLFOParameter`, addressed by
-`(moduleIndex, moduleParameterIndex, lfoParameterIndex)` because they have no
-`ParameterID` to be addressed by. **Everything the panel edits has to go through
+`SyncTypes` and `Waveform` are exported like the other five, and have been since
+22.08.2026 (issue #159): `ParameterCounts::lfoExportedParameters` is 7. They were
+the last two in declaration order and the first five were the exported set, so
+they reached the engine as `ToEngine::SetUnexportedLFOParameter` — addressed by
+`(moduleIndex, moduleParameterIndex, lfoParameterIndex)` because they had no
+`ParameterID` to be addressed by. That message is gone with the exception.
+**Everything the panel edits has to go through
 `updateParameterAndNotifyHost<>`**: the N/T/D buttons wrote the LFO directly
 until 06.08.2026, and since the editor is bound to `programMain_` that meant a
 sync-mode change moved the display and the saved state and nothing the audio

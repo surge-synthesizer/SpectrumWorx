@@ -13,6 +13,7 @@
 //------------------------------------------------------------------------------
 #include "core/parameterID.hpp"
 
+#include "le/parameters/lfoImpl.hpp"
 #include "le/parameters/parametersUtilities.hpp"
 #include "le/plugins/clap/tag.hpp"
 #include "le/spectrumworx/engine/parameters.hpp"
@@ -142,6 +143,40 @@ inline double defaultToHost(ParameterID const parameterID, Info const &info)
 /// for CLAP_PARAM_IS_HIDDEN. \see issue #171.
 ///
 ////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Which release of the plugin first exported this parameter.
+///
+///   AUv2 hosts key automation on a parameter's *position* in the list rather
+/// than on its id, and the wrapper's default order is the id order -- so a
+/// parameter whose id lands in the middle of the existing ones pushes every
+/// parameter after it along, and every automation lane a user has drawn in Logic
+/// moves with it. Ordering by release first and by id within a release keeps
+/// what shipped where it was and appends what is new.
+///
+/// \note Zero is everything this plugin has ever shipped. One is the two LFO
+/// sub-parameters issue #159 exported: their ids are 5 and 6 of each LFO's
+/// seven, which is the middle of every LFO block in the id order.
+///
+/// \note A number rather than a bool, because the next addition is a two and
+/// wants the same treatment. \see CLAP_PLUGIN_AUV2_PARAM_ORDERING, whose header
+/// carries the six-sines implementation this follows.
+///                                           (22.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+inline unsigned parameterVersion(ParameterID const parameterID)
+{
+    if (parameterID.type() != ParameterID::LFOParameter)
+        return 0;
+
+    using LE::Parameters::IndexOf;
+    constexpr auto firstAddedByIssue159(
+        IndexOf<LE::Parameters::LFOImpl::Parameters, LE::Parameters::LFOImpl::SyncTypes>::value);
+
+    return (parameterID.value._.lfo.lfoParameterIndex >= firstAddedByIssue159) ? 1 : 0;
+}
 
 inline bool isAutomatable(ParameterID const parameterID)
 {

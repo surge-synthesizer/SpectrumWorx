@@ -77,8 +77,8 @@ In the default build configuration that is:
 | Globals | 6 | InputGain, OutputGain, MixPercentage, FFTSize, OverlapFactor, WindowFunction |
 | Module chain ("which effect is in slot N") | 5 | one per slot |
 | Module parameters | 50 | 5 slots × 10 |
-| LFO parameters | 225 | 5 exported LFO params × 9 non-Bypass module params × 5 slots |
-| **Total** | **286** | |
+| LFO parameters | 315 | 7 exported LFO params × 9 non-Bypass module params × 5 slots |
+| **Total** | **376** | |
 
 Caveats on the numbers:
 
@@ -94,11 +94,15 @@ Caveats on the numbers:
   moves this table and every automation lane a host has saved against it. That is
   why it is a decision rather than a switch, and why the option that used to hold
   the place open was deleted rather than left off.
-- `lfoExportedParameters` is **5**, unconditionally
-  (`src/core/host_interop/parameters.hpp:31`). SyncTypes and Waveform are not
-  exported for automation. It used to be 7 in a build without the GUI, behind
-  two edition macros that are gone; the editor reaches those two parameters by
-  another route (`spectrumWorxEditor.hpp:811-829`).
+- `lfoExportedParameters` is **7** — all of them — since 22.08.2026 (issue
+  #159). It was 5 from 2011 until then, SyncTypes and Waveform being the two an
+  LFO *is* and the two a DAW could not touch; the editor reached them by a side
+  channel of its own, `ToEngine::SetUnexportedLFOParameter`, which is gone with
+  the exception it existed for. The two are the **last** of `LFOImpl::Parameters`,
+  which is what made this a change to a count rather than to an identifier: every
+  ID a host had been given still means what it meant. What did move is the
+  *position* of everything after them in a list sorted by ID, which is what §6's
+  AUv2 ordering is for.
 
 This skeleton never changes at runtime. Everything below is about what the slots
 *mean*.
@@ -121,18 +125,19 @@ plus a `Type` discriminator (`GlobalParameter`, `ModuleChainParameter`,
 **zero-based**, like every other index in this system. So `In` is `0x00000000`
 and slot 1's selector is `0x01000000`.
 
-`tests/parameters/data/parameterTable.txt` pins them, in two sections: 482
+`tests/parameters/data/parameterTable.txt` pins them, in two sections: 438
 `effect/` rows, which are the per-effect parameter descriptions presets bind to
 — keyed by the effect's *streaming* name, so that retitling one does not drag
-its rows with it (`streaming_format.md` §6) — and 388 `id/` rows keyed by the
+its rows with it (`streaming_format.md` §6) — and 336 `id/` rows keyed by the
 packed ID. What each row holds still is its type, range and default; the label,
 the unit and the enumerator strings sit right of ` ;; ` and are recorded rather
 than checked, so that relabelling the interface is not a test failure. The `id/`
-rows pin nothing but their keys — the identifier space *is* the claim there. The second is deliberately larger than
-the 286 above — it also covers what a host cannot address, the two LFO
-sub-parameters that are not exported. **286 is the number a host sees**, and
-`pluginTests.cpp` asserts `params.count()` against the constant rather than
-against a literal.
+rows pin nothing but their keys — the identifier space *is* the claim there.
+Fewer than the 376 above rather than more, because the table is taken against an
+**empty** program: every slot's own effect parameters are absent, and what is
+listed is the globals, the five selectors and the base parameters every module
+has. **376 is the number a host sees**, and `pluginTests.cpp` asserts
+`params.count()` against the constant rather than against a literal.
 
 `In == 0` is a legal `clap_id` — only `CLAP_INVALID_ID` is reserved — but it is
 indistinguishable from an uninitialised value in a log or a debugger, and on
@@ -638,13 +643,11 @@ For anyone touching this:
   it; `maxNumberOfModules` is a single constant. But the GUI skin is fixed-size
   bitmaps laid out for 5, and `ParameterID` packs indices into bytes, so the ID
   encoding is good to 255.
-- **`lfoExportedParameters` 5 vs 7.** The GUI build hides SyncTypes and Waveform
-  from automation. Under CLAP there is no reason to keep them hidden; exporting
-  them changes the parameter count and therefore any host-side automation
-  bindings — and would also move `parameterTable.txt`. It has since acquired a
-  second reason to be decided: having no `ParameterID` is exactly why those two
-  are the last edits written straight into the engine from the message thread.
-  See issue #11.
+- **`lfoExportedParameters` 5 vs 7.** Settled: 7, on 22.08.2026 (issue #159).
+  Both reasons for deciding it are gone with the decision — the two are ordinary
+  parameters now, so nothing is written straight into the engine from the message
+  thread, and the automation bindings a host had are held by the AUv2 ordering
+  in §6 rather than by the count staying still.
 - **Preset compatibility.** Decided before the Boost.Fusion refactor, per
   `old/initial_scan.md` §8.3 — §7 above says the format is name-keyed, which
   gives more freedom than the index-based reading might suggest.

@@ -243,15 +243,6 @@ class Instance final : public GUI::EditorHost
     /// full one is a finding about the case rather than about the plugin. The
     /// plugin's own implementation counts the drop -- see
     /// `SpectrumWorxCLAP::pushed()`.
-    void publishUnexportedLFOParameter(std::uint8_t const moduleIndex,
-                                       std::uint8_t const moduleParameterIndex,
-                                       std::uint8_t const lfoParameterIndex,
-                                       float const value) override
-    {
-        toEngine_.push(Threading::setUnexportedLFOParameter(moduleIndex, moduleParameterIndex,
-                                                            lfoParameterIndex, value));
-    }
-
     /// \note Real ones, and nobody drains them: what the editor asks for goes
     /// into the queue and stays there. These cases are about the interface side,
     /// and a queue that fills would be a finding rather than a nuisance.

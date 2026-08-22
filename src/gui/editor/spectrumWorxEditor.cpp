@@ -2551,8 +2551,9 @@ void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
 
         // through updateParameterAndNotifyHost<> rather than LFO::addSyncType():
         // those write the strip's own module, which is the main thread's copy,
-        // and never reach the audio thread. SyncTypes has no ParameterID, so the
-        // route is ToEngine::SetUnexportedLFOParameter
+        // and never reach the audio thread. Every LFO sub-parameter takes the one
+        // route since #159; SyncTypes had a channel of its own before that, and
+        // only this branch had been left out of it
         //
         // the mask goes before the period, the ring being ordered and the engine
         // resnapping what it is given against whatever mask it holds
@@ -2717,17 +2718,6 @@ void SpectrumWorxEditor::LFODisplay::queueLFOParameter(std::uint8_t const lfoPar
     parameterID.value._.lfo = {lfoParameterIndex, moduleParameterIndex, moduleIndex()};
 
     editor().editorHost().editParameter(parameterID, value);
-}
-
-void SpectrumWorxEditor::LFODisplay::queueUnexportedLFOParameter(
-    std::uint8_t const lfoParameterIndex, float const value) const
-{
-    auto const moduleParameterIndex(control().moduleParameterIndex());
-    if (moduleParameterIndex >= (SW::Constants::maxNumberOfParametersPerModule - 1))
-        return;
-
-    editor().editorHost().publishUnexportedLFOParameter(moduleIndex(), moduleParameterIndex,
-                                                        lfoParameterIndex, value);
 }
 
 void SpectrumWorxEditor::LFODisplay::verifyGUIAndLFOConsistency() const

@@ -708,7 +708,17 @@ struct BothLFOs
 }; // struct BothLFOs
 } // anonymous namespace
 
-TEST_CASE("An LFO sub-parameter with no ParameterID reaches the engine", "[clap][threading][lfo]")
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The two an LFO *is*. They had no `ParameterID` until issue #159 and
+/// travelled down a channel of their own -- `SetUnexportedLFOParameter`,
+/// addressed by index, with the interface writing its own copy in a separate
+/// call, which is exactly how the two came apart. They are ordinary parameters
+/// now and `editParameter` moves both copies in one call.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("An LFO's sync and waveform reach the engine", "[clap][threading][lfo]")
 {
     using LE::Parameters::IndexOf;
     using LE::Parameters::LFO;
@@ -723,44 +733,44 @@ TEST_CASE("An LFO sub-parameter with no ParameterID reaches the engine", "[clap]
 
     BothLFOs const lfos(plugin, lfoable);
 
+    /// \brief The ID the panel builds. \see LFODisplay::queueLFOParameter().
+    auto const idFor([](std::uint8_t const lfoParameterIndex) {
+        LE::SW::ParameterID parameterID;
+        parameterID.value.type = LE::SW::ParameterID::LFOParameter;
+        parameterID.value._.lfo = {lfoParameterIndex, lfoable, 0};
+        return parameterID;
+    });
+
     // Quarter is the default, so Free is the smallest real edit -- and it is the
     // one the N button makes.
     REQUIRE(lfos.pEngine->syncTypes() == LFO::Quarter);
     REQUIRE(lfos.pMain->syncTypes() == LFO::Quarter);
 
-    /// \note What `LFODisplay::queueUnexportedLFOParameter` does, and the panel's
-    /// own write of its copy alongside it. The two are separate calls in the
-    /// interface, which is exactly how they came apart.
-    lfos.pMain->parameters().set<EngineLFO::SyncTypes>(LFO::Free);
-    editorHost.publishUnexportedLFOParameter(0, lfoable, syncTypesIndex,
-                                             static_cast<float>(LFO::Free));
+    editorHost.editParameter(idFor(syncTypesIndex), static_cast<float>(LFO::Free));
 
-    // Queued, not written: the audio thread has not been given a chance yet.
+    // The interface's copy is moved by the call itself; the engine's waits.
+    CHECK(lfos.pMain->syncTypes() == LFO::Free);
     CHECK(lfos.pEngine->syncTypes() == LFO::Quarter);
 
     plugin.flush();
-
     CHECK(lfos.pEngine->syncTypes() == LFO::Free);
-    CHECK(lfos.pMain->syncTypes() == LFO::Free);
 
     // And back up, through the whole mask, which is what each of N/T/D sends.
-    lfos.pMain->parameters().set<EngineLFO::SyncTypes>(LFO::All);
-    editorHost.publishUnexportedLFOParameter(0, lfoable, syncTypesIndex,
-                                             static_cast<float>(LFO::All));
+    editorHost.editParameter(idFor(syncTypesIndex), static_cast<float>(LFO::All));
     plugin.flush();
     CHECK(lfos.pEngine->syncTypes() == LFO::All);
 
     ////////////////////////////////////////////////////////////////////////////
     /// \note The waveform, which the GUI case deliberately cannot reach -- its
     /// only entry point is a popup menu, and a menu is one of the things a
-    /// headless editor cannot drive. From here it is another index.
+    /// headless editor cannot drive.
     ////////////////////////////////////////////////////////////////////////////
     constexpr std::uint8_t waveformIndex(
         IndexOf<EngineLFO::Parameters, EngineLFO::Waveform>::value);
 
     auto const shape(static_cast<float>(LFO::Waveform::Square));
     REQUIRE(float(lfos.pEngine->parameters().get<EngineLFO::Waveform>()) != shape);
-    editorHost.publishUnexportedLFOParameter(0, lfoable, waveformIndex, shape);
+    editorHost.editParameter(idFor(waveformIndex), shape);
     plugin.flush();
     CHECK(float(lfos.pEngine->parameters().get<EngineLFO::Waveform>()) == shape);
 }
@@ -768,10 +778,9 @@ TEST_CASE("An LFO sub-parameter with no ParameterID reaches the engine", "[clap]
 TEST_CASE("An LFO parameter the host can see reaches the engine too", "[clap][threading][lfo]")
 {
     ////////////////////////////////////////////////////////////////////////////
-    /// The other five, which do have a `ParameterID` and so take
-    /// `EditorHost::editParameter` -- both copies in one call. Here because the
-    /// entry above is about *reading the engine's side*, and five of the seven
-    /// sub-parameters had never been read there either.
+    /// One of the bounds, which has always had a `ParameterID`. Here because
+    /// the case above is about *reading the engine's side*, and none of the
+    /// seven sub-parameters had ever been read there.
     ////////////////////////////////////////////////////////////////////////////
     using LE::Parameters::IndexOf;
 

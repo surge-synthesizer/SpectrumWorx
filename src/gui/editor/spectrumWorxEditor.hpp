@@ -1128,11 +1128,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
         /// \brief One LFO parameter, queued rather than written.
         ///
-        /// \note The two past `lfoExportedParameters` -- Waveform and SyncTypes
-        /// -- have no ParameterID and so no route through the parameter queue.
-        /// They take `ToEngine::SetUnexportedLFOParameter` instead, addressed by
-        /// index. **Everything that edits an LFO has to come through here**, or
+        /// \note **Everything that edits an LFO has to come through here**, or
         /// the edit reaches the main thread's copy and never the engine.
+        ///
+        /// \note All seven take the same route since issue #159. Waveform and
+        /// SyncTypes had no ParameterID until then and travelled by index down a
+        /// channel of their own, which was the one place an edit reached the
+        /// engine without the host being told.
         template <class LFOParameter, typename T>
         void updateParameterAndNotifyHost(T const widgetValue)
         {
@@ -1142,17 +1144,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
             auto const parameterIndex(IndexOf<LFO::Parameters, LFOParameter>::value);
             auto const internalValue(Math::convert<float>(parameterValue));
 
-            //...mrmlj...fmod/separated DSP-GUI...
-            if (parameterIndex >= ParameterCounts::lfoExportedParameters)
-            {
-                // both copies, as everywhere else: lfo() is the main thread's
-                // own module, and the queue leg is what the engine hears. The
-                // host is told nothing, there being no ParameterID for it
-                lfo().parameters().set<LFOParameter>(parameterValue);
-                queueUnexportedLFOParameter(parameterIndex, internalValue);
-                return;
-            }
-
             queueLFOParameter(parameterIndex, internalValue);
             automatedParameterChanged(parameterIndex, internalValue);
         }
@@ -1160,10 +1151,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
         /// \brief The queued half of the above, non-template so that this header
         /// does not need the protocol.
         void queueLFOParameter(std::uint8_t lfoParameterIndex, float value) const;
-
-        /// \brief The same for the two an LFO does not export, which have no
-        /// ParameterID and so travel by index. \see ToEngine::SetUnexportedLFOParameter
-        void queueUnexportedLFOParameter(std::uint8_t lfoParameterIndex, float value) const;
 
         void verifyGUIAndLFOConsistency() const;
 

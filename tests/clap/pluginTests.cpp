@@ -36,6 +36,9 @@
 #include "le/spectrumworx/presetStorage.hpp"
 
 #include <clap/clap.h>
+#include <clapwrapper/auv2.h>
+
+#include "core/host_interop/clapParameterEdge.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -48,6 +51,7 @@
 #include <numbers>
 #include <optional>
 #include <functional>
+#include <limits>
 #include <set>
 #include <vector>
 //------------------------------------------------------------------------------
@@ -716,6 +720,95 @@ TEST_CASE("A parameter no effect currently owns is shown anyway, and answers", "
 /// \see issue #171 and CLAPEdge::isAutomatable().
 ///
 ////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The order an AUv2 host lays the parameters out in, which is a
+/// promise about every release and not only this one.
+///
+///   Logic and GarageBand key automation on a parameter's *position* in the
+/// list. clap-wrapper's default order is the parameter id order, so a parameter
+/// whose id lands in the middle of the existing ones pushes everything after it
+/// along -- and #159 exported two LFO sub-parameters whose ids are 5 and 6 of
+/// each LFO's seven, which is the middle of every one of the fifty LFO blocks.
+///
+///   So the order is stated: by release first, by id within a release. What
+/// shipped stays where it was and what is new is appended.
+///
+/// \see CLAP_PLUGIN_AUV2_PARAM_ORDERING, CLAPEdge::parameterVersion().
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The AUv2 parameter order is by release and then by id", "[clap][auv2]")
+{
+    Entry const entry;
+    ActivePlugin plugin(48000, 512);
+
+    auto const *const ordering(static_cast<clap_plugin_auv2_param_ordering_t const *>(
+        plugin->get_extension(&*plugin, CLAP_PLUGIN_AUV2_PARAM_ORDERING)));
+    REQUIRE(ordering != nullptr);
+
+    auto const &params(parameters(*plugin));
+    auto const count(params.count(&*plugin));
+    REQUIRE(count == LE::SW::ParameterCounts::maxNumberOfParameters);
+
+    std::vector<std::size_t> order(count, std::numeric_limits<std::size_t>::max());
+    REQUIRE(ordering->get_param_order(&*plugin, order.data(), order.size()));
+
+    // The wrapper refuses anything that is not a permutation, and asserts in a
+    // debug build. \see wrapasauv2.cpp.
+    CHECK(std::set<std::size_t>(order.begin(), order.end()).size() == count);
+    CHECK(*std::max_element(order.begin(), order.end()) == count - 1);
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note A parameter's id is its ParameterID, and the version is a property
+    /// of it -- so this reads the answer out of the ids the host is given rather
+    /// than out of the plugin, which is the same arithmetic seen from the side a
+    /// host sees.
+    ////////////////////////////////////////////////////////////////////////////
+    auto const versionOf([&](std::size_t const clapIndex) {
+        clap_param_info info{};
+        REQUIRE(params.get_info(&*plugin, static_cast<std::uint32_t>(clapIndex), &info));
+        LE::SW::ParameterID parameterID;
+        parameterID.binaryValue = info.id;
+        return LE::SW::CLAPEdge::parameterVersion(parameterID);
+    });
+    auto const idOf([&](std::size_t const clapIndex) {
+        clap_param_info info{};
+        REQUIRE(params.get_info(&*plugin, static_cast<std::uint32_t>(clapIndex), &info));
+        return info.id;
+    });
+
+    std::vector<unsigned> versions;
+    std::vector<clap_id> ids;
+    for (auto const clapIndex : order)
+    {
+        versions.push_back(versionOf(clapIndex));
+        ids.push_back(idOf(clapIndex));
+    }
+
+    // Releases in order, and never going back.
+    CHECK(std::is_sorted(versions.begin(), versions.end()));
+
+    // Both releases are present, or the sort is not being tested at all.
+    CHECK(versions.front() == 0);
+    CHECK(versions.back() == 1);
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note And within each release, the id order -- which for release zero is
+    /// byte for byte the layout the wrapper produced before this extension
+    /// existed, because that default *was* the id order. That is the whole
+    /// promise to somebody's Logic project.
+    ////////////////////////////////////////////////////////////////////////////
+    for (std::size_t index(1); index < ids.size(); ++index)
+        if (versions[index] == versions[index - 1])
+            CHECK(ids[index] > ids[index - 1]);
+
+    // The two LFO sub-parameters #159 added, and nothing else, are release one.
+    auto const added(std::count(versions.begin(), versions.end(), 1u));
+    CHECK(added == 2 * (LE::SW::Constants::maxNumberOfParametersPerModule - 1) *
+                       LE::SW::Constants::maxNumberOfModules);
+}
 
 TEST_CASE("Only the parameters that restart the engine are not automatable", "[clap]")
 {

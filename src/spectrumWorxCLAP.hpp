@@ -186,6 +186,21 @@ class SpectrumWorxCLAP final
 
   public:
     explicit SpectrumWorxCLAP(clap_host const *);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The plugin's own extensions, which is one: the order an AUv2 host
+    /// is to lay the parameters out in.
+    ///
+    /// \note Not a CLAP extension -- clap-wrapper defines it, and only its AUv2
+    /// side asks for it. \see CLAP_PLUGIN_AUV2_PARAM_ORDERING and issue #159.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void const *extension(char const *id) noexcept override;
+
+    /// \brief `order[auv2Position] = clapIndex`, by release and then by id.
+    /// \see CLAPEdge::parameterVersion().
+    bool auv2ParameterOrder(std::size_t *order, std::size_t parameterCount) const noexcept;
     ~SpectrumWorxCLAP() override;
 
     /// Called by the editor, on the UI thread, to drive a slot swap by hand.
@@ -238,8 +253,6 @@ class SpectrumWorxCLAP final
     void editParameter(ParameterID, float value) const override;
     bool editSlot(std::uint8_t slot, std::int8_t effectIndex) override;
     void editModuleMove(std::uint8_t from, std::uint8_t to) override;
-    void publishUnexportedLFOParameter(std::uint8_t moduleIndex, std::uint8_t moduleParameterIndex,
-                                       std::uint8_t lfoParameterIndex, float value) override;
 
     /// \note The one thing on this interface that only a plugin can answer:
     /// `clap_host_context_menu` needs the `clap_host *`, and the editor has

@@ -7,13 +7,13 @@
 ///
 ///   The panel had no test of any kind, and the shape of what it hid is worth
 /// stating: **every widget on it wrote the LFO the strip holds, and that stopped
-/// being the engine's LFO when the editor was bound to `programMain_`.** Five of
-/// the seven sub-parameters have a `ParameterID` and go through
-/// `EditorHost::editParameter`, which moves both copies. The two that do not --
-/// Waveform and SyncTypes -- take `ToEngine::SetUnexportedLFOParameter`, and the
-/// N/T/D buttons were not converted with the waveform popup: they called
-/// `LFO::addSyncType()` straight onto the main thread's module, so a sync-mode
-/// change moved the display and the saved state and nothing anybody could hear.
+/// being the engine's LFO when the editor was bound to `programMain_`.** All seven
+/// sub-parameters go through `EditorHost::editParameter` now, which moves both
+/// copies; Waveform and SyncTypes had no `ParameterID` until issue #159 and took
+/// a `ToEngine::SetUnexportedLFOParameter` of their own, and the N/T/D buttons
+/// were not converted with the waveform popup: they called `LFO::addSyncType()`
+/// straight onto the main thread's module, so a sync-mode change moved the
+/// display and the saved state and nothing anybody could hear.
 ///
 ///   So what these cases assert is not "the parameter changed" -- it did, that
 /// was never the bug -- but **that a message was queued for the engine**. The
@@ -117,14 +117,31 @@ std::vector<ToEngine> drain(LE::SW::Threading::ToEngineQueue &queue)
     return messages;
 }
 
-/// The last `SetUnexportedLFOParameter` in \p messages naming \p lfoParameterIndex.
-std::optional<ToEngine> lastUnexportedEdit(std::vector<ToEngine> const &messages,
-                                           std::uint8_t const lfoParameterIndex)
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The last edit of LFO sub-parameter \p lfoParameterIndex of module 0's
+/// parameter \p moduleParameterIndex.
+///
+/// \note A `SetBaseParameter` addressed by ParameterID. It was a
+/// `SetUnexportedLFOParameter` addressed by index until issue #159: SyncTypes
+/// and Waveform had no identifier to be addressed by, so they travelled down a
+/// channel of their own. They are ordinary exported parameters now and take the
+/// route every other edit takes.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+std::optional<ToEngine> lastLFOEdit(std::vector<ToEngine> const &messages,
+                                    std::uint8_t const moduleParameterIndex,
+                                    std::uint8_t const lfoParameterIndex)
 {
+    LE::SW::ParameterID parameterID;
+    parameterID.value.type = LE::SW::ParameterID::LFOParameter;
+    parameterID.value._.lfo = {lfoParameterIndex, moduleParameterIndex, /*moduleIndex*/ 0};
+
     std::optional<ToEngine> found;
     for (auto const &message : messages)
-        if ((message.kind == ToEngine::Kind::SetUnexportedLFOParameter) &&
-            (message.setUnexportedLFOParameter.lfoParameterIndex == lfoParameterIndex))
+        if ((message.kind == ToEngine::Kind::SetBaseParameter) &&
+            (message.setBaseParameter.parameterID == parameterID.binaryValue))
             found = message;
     return found;
 }
@@ -341,12 +358,12 @@ TEST_CASE("A sync mode set in the interface is queued for the engine", "[gui][lf
     CHECK_FALSE(panel.lfo().hasEnabledSync(LFO::Quarter)); // ...the half that worked
     CHECK(panel.lfo().syncTypes() == LFO::Free);
 
-    auto const queued(lastUnexportedEdit(drain(instance.toEngine()), syncTypesIndex));
+    auto const queued(lastLFOEdit(drain(instance.toEngine()),
+                                  panel.control().moduleParameterIndex(), syncTypesIndex));
     REQUIRE(queued.has_value()); // ...and the half that did not
-    /// \note The mask travels as a float, which is what the message carries for
-    /// every unexported sub-parameter; these are small exact integers in one.
-    CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::Free));
-    CHECK(queued->setUnexportedLFOParameter.moduleIndex == 0);
+    /// \note The mask travels as a float, which is what a parameter edit carries;
+    /// these are small exact integers in one.
+    CHECK(queued->setBaseParameter.value == static_cast<float>(LFO::Free));
 }
 
 TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
@@ -373,9 +390,10 @@ TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
 
     panel.click(" T ");
     {
-        auto const queued(lastUnexportedEdit(drain(instance.toEngine()), syncTypesIndex));
+        auto const queued(lastLFOEdit(drain(instance.toEngine()),
+                                      panel.control().moduleParameterIndex(), syncTypesIndex));
         REQUIRE(queued.has_value());
-        CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::Triplet));
+        CHECK(queued->setBaseParameter.value == static_cast<float>(LFO::Triplet));
         CHECK(panel.lfo().syncTypes() == LFO::Triplet);
         CHECK_FALSE(panel.lit(" N ")); // ...and the one that was lit went out
         CHECK(panel.lit(" T "));
@@ -384,9 +402,10 @@ TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
 
     panel.click(" D ");
     {
-        auto const queued(lastUnexportedEdit(drain(instance.toEngine()), syncTypesIndex));
+        auto const queued(lastLFOEdit(drain(instance.toEngine()),
+                                      panel.control().moduleParameterIndex(), syncTypesIndex));
         REQUIRE(queued.has_value());
-        CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::Dotted));
+        CHECK(queued->setBaseParameter.value == static_cast<float>(LFO::Dotted));
         CHECK(panel.lfo().syncTypes() == LFO::Dotted);
         CHECK_FALSE(panel.lit(" T "));
         CHECK(panel.lit(" D "));
@@ -395,9 +414,10 @@ TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
     // Clicking the lit one is how Free is reached, as it always was.
     panel.click(" D ");
     {
-        auto const queued(lastUnexportedEdit(drain(instance.toEngine()), syncTypesIndex));
+        auto const queued(lastLFOEdit(drain(instance.toEngine()),
+                                      panel.control().moduleParameterIndex(), syncTypesIndex));
         REQUIRE(queued.has_value());
-        CHECK(queued->setUnexportedLFOParameter.value == static_cast<float>(LFO::Free));
+        CHECK(queued->setBaseParameter.value == static_cast<float>(LFO::Free));
         CHECK(panel.lfo().syncTypes() == LFO::Free);
         CHECK_FALSE(panel.lit(" N "));
         CHECK_FALSE(panel.lit(" T "));
