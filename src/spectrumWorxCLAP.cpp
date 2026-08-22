@@ -544,7 +544,10 @@ bool SpectrumWorxCLAP::paramsInfo(std::uint32_t const index,
     std::memset(info, 0, sizeof(*info));
     info->id = id.value;
     info->cookie = nullptr;
-    info->flags = CLAP_PARAM_IS_AUTOMATABLE;
+    /// \note All but the three that rebuild the spectral setup, each of which
+    /// ends a change made while active in a `request_restart`. \see
+    /// CLAPEdge::isAutomatable() and issue #171.
+    info->flags = CLAPEdge::isAutomatable(parameterID) ? CLAP_PARAM_IS_AUTOMATABLE : 0;
 
     // nothing here is ever CLAP_PARAM_IS_HIDDEN. clap-wrapper maps flags once
     // at construction and VST3 re-reads them only under RESCAN_ALL, illegal

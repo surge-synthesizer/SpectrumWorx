@@ -13,7 +13,9 @@
 //------------------------------------------------------------------------------
 #include "core/parameterID.hpp"
 
+#include "le/parameters/parametersUtilities.hpp"
 #include "le/plugins/clap/tag.hpp"
+#include "le/spectrumworx/engine/parameters.hpp"
 
 namespace LE::SW
 {
@@ -114,6 +116,49 @@ inline Value fromHost(ParameterID const parameterID, Info const &info, double co
 inline double defaultToHost(ParameterID const parameterID, Info const &info)
 {
     return toHost(parameterID, info, static_cast<Value>(info.default_()));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief May a host put automation or modulation on this parameter?
+///
+/// \note No for the three that rebuild the spectral setup. Each defers through
+/// `deferOrApplySpectralSetup()` and is applied only with the engine stopped, so
+/// a change made while active ends in `clap_host::request_restart` -- a
+/// deactivate and reactivate mid-playback, on the host's own schedule. The FFT
+/// size is the reported latency as well (\see doc/tech/latency.md), and
+/// clap/ext/latency.h says outright that the latency may change only during
+/// `activate`. A promise the plugin cannot keep is worse than a missing lane.
+///
+/// \note The parameter is not unreachable: it is still in the list, still holds
+/// and reports its value, still round-trips through state, and a host's generic
+/// panel can still set it. CLAP_PARAM_IS_AUTOMATABLE governs automation and
+/// modulation, not parameter events.
+///
+/// \note Deliberately not `ParameterInformation::isAutomatable()`, which exists
+/// and means something else -- "has a non-empty range", i.e. some effect owns
+/// this slot's parameter. Conflating the two would mark every parameter of an
+/// empty slot non-automatable, which is what the note over `paramsInfo` rejects
+/// for CLAP_PARAM_IS_HIDDEN. \see issue #171.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+inline bool isAutomatable(ParameterID const parameterID)
+{
+    if (parameterID.type() != ParameterID::GlobalParameter)
+        return true;
+
+    using LE::Parameters::IndexOf;
+    using Globals = GlobalParameters::Parameters;
+    switch (parameterID.value._.global.index)
+    {
+    case IndexOf<Globals, GlobalParameters::FFTSize>::value:
+    case IndexOf<Globals, GlobalParameters::OverlapFactor>::value:
+    case IndexOf<Globals, GlobalParameters::WindowFunction>::value:
+        return false;
+    default:
+        return true;
+    }
 }
 } // namespace CLAPEdge
 

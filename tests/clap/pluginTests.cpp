@@ -237,6 +237,21 @@ std::size_t distinctHostVisibleValues(ActivePlugin &plugin, clap_plugin_params c
 }
 
 //------------------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////
+/// \brief The three global parameters that rebuild the spectral setup.
+///
+/// \note By the name a host reads rather than by asking CLAPEdge, which is what
+/// the cases below are checking: the exception list is the claim, and a list
+/// derived from the code under test would agree with it whatever it said.
+/// \see issue #171.
+////////////////////////////////////////////////////////////////////////////////
+
+bool rebuildsTheSpectralSetup(char const *const name)
+{
+    return (std::strcmp(name, "FFT Size") == 0) || (std::strcmp(name, "Overlap Factor") == 0) ||
+           (std::strcmp(name, "Window Type") == 0);
+}
+
 } // anonymous namespace
 //------------------------------------------------------------------------------
 
@@ -668,7 +683,11 @@ TEST_CASE("A parameter no effect currently owns is shown anyway, and answers", "
         double value{0};
         CHECK(params->get_value(&*plugin, info.id, &value));
         CHECK(info.min_value < info.max_value);
-        CHECK((info.flags & CLAP_PARAM_IS_AUTOMATABLE) != 0);
+
+        /// \note All but the three named exceptions, which is what the case
+        /// after this one is about. \see issue #171.
+        if (!rebuildsTheSpectralSetup(info.name))
+            CHECK((info.flags & CLAP_PARAM_IS_AUTOMATABLE) != 0);
 
         ownedByNoEffect += isNormalisedType(info.id);
     }
@@ -678,6 +697,59 @@ TEST_CASE("A parameter no effect currently owns is shown anyway, and answers", "
     // everything else is a parameter waiting for an effect.
     CHECK(ownedByNoEffect > 0);
     CHECK(ownedByNoEffect < params->count(&*plugin));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The exception list, which is the thing worth pinning.
+///
+///   Three parameters rebuild the spectral setup, and each is applied only with
+/// the engine stopped: a change made while active sets `spectralSetupPending_`
+/// and `drainCommands()` answers it with `clap_host::request_restart`. Offering
+/// a host an automation lane on any of them is offering to deactivate and
+/// reactivate the plugin mid-playback, on the host's schedule. The FFT size is
+/// also the reported latency, and clap/ext/latency.h allows that to change only
+/// during `activate` -- a promise the plugin cannot keep.
+///
+/// \note What must not happen is a parameter quietly *regaining* a lane it
+/// should not have, so the set is compared whole rather than checked one by one.
+/// \see issue #171 and CLAPEdge::isAutomatable().
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Only the parameters that restart the engine are not automatable", "[clap]")
+{
+    Entry const entry;
+    ActivePlugin plugin(48000, 512);
+
+    auto const &params(parameters(*plugin));
+
+    std::set<std::string> notAutomatable;
+    for (auto const &info : allParameterInfo(*plugin, params))
+        if ((info.flags & CLAP_PARAM_IS_AUTOMATABLE) == 0)
+            notAutomatable.insert(info.name);
+
+    CHECK(notAutomatable == std::set<std::string>{"FFT Size", "Overlap Factor", "Window Type"});
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note And dropping the flag does not make one unreachable: it is still in
+    /// the list, still answers for its value and still takes one. What the flag
+    /// governs is automation and modulation, not parameter events.
+    ////////////////////////////////////////////////////////////////////////////
+    for (auto const &info : allParameterInfo(*plugin, params))
+    {
+        if (!rebuildsTheSpectralSetup(info.name))
+            continue;
+        INFO("parameter '" << info.name << "'");
+
+        double value{0};
+        CHECK(params.get_value(&*plugin, info.id, &value));
+        CHECK(info.min_value < info.max_value);
+
+        std::array<char, CLAP_NAME_SIZE> text{};
+        CHECK(params.value_to_text(&*plugin, info.id, value, text.data(), text.size()));
+        CHECK(std::strlen(text.data()) > 0);
+    }
 }
 
 TEST_CASE("Filling a module slot renames its parameters without adding any", "[clap]")
