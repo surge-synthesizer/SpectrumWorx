@@ -131,17 +131,10 @@ class HarnessHost final : public GUI::EditorHost
         Threading::publishModuleMove(engine_, toEngine_, from, to);
     }
 
-    /// \note Unchecked, like everything else here: nothing drains this queue and
-    /// the page is a still image. The plugin's own implementation counts a
-    /// refusal -- see `SpectrumWorxCLAP::pushed()`.
-    void publishUnexportedLFOParameter(std::uint8_t const moduleIndex,
-                                       std::uint8_t const moduleParameterIndex,
-                                       std::uint8_t const lfoParameterIndex,
-                                       float const value) override
-    {
-        toEngine_.push(Threading::setUnexportedLFOParameter(moduleIndex, moduleParameterIndex,
-                                                            lfoParameterIndex, value));
-    }
+    /// \note Nothing reads either of these: the page is a still image, so no Save
+    /// button is drawn and nothing asks a host to save anything.
+    GUI::LoadedPreset &loadedPreset() override { return loadedPreset_; }
+    void markStateModified() const override {}
 
     /// \note Real, and nobody drains them: this harness renders a still image, so
     /// whatever the editor asks the engine for stays in the queue.
@@ -203,6 +196,7 @@ class HarnessHost final : public GUI::EditorHost
     SilentNotifications notifications_;
     mutable Threading::ToEngineQueue toEngine_;
     Threading::ValueMailbox values_;
+    GUI::LoadedPreset loadedPreset_;
 }; // class HarnessHost
 
 /// Owns the host so that it outlives the editor reaching into it.
