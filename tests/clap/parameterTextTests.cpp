@@ -27,6 +27,11 @@
 //------------------------------------------------------------------------------
 #include "testHost.hpp"
 
+/// \note Before anything that names SW::Module, as elsewhere.
+#include "core/modules/moduleDSPAndGUI.hpp"
+#include "le/parameters/lfoImpl.hpp"
+#include "le/parameters/parametersUtilities.hpp"
+
 #include "le/spectrumworx/effects/configuration/constants.hpp"
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
 
@@ -582,4 +587,82 @@ TEST_CASE("A note value typed into an LFO's period is the period it gets", "[cla
         break; // One is enough: they are 225 copies of one parameter.
     }
     CHECK(checked == 1);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief An LFO's sync reads as a choice and applies as a mask. Issue #159.
+///
+///   `SyncTypes` is a bit mask internally -- Quarter|Triplet|Dotted, `Free`
+/// being none of them -- and issue #159 exported it raw: a lane read `4` rather
+/// than `Dotted`, the parameter swept 0..7 unstepped, and a host could write 3,
+/// 5 or 6, combinations the panel stopped making in issue #111.
+///
+///   It crosses as one of four choices now, converted at the edge, so the file
+/// grammar and the engine keep the mask they always had.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("An LFO's sync is a four-way choice at the host edge", "[clap][text]")
+{
+    using LFO = LE::Parameters::LFOImpl;
+    using LE::Parameters::IndexOf;
+    constexpr std::uint8_t syncIndex(IndexOf<LFO::Parameters, LFO::SyncTypes>::value);
+
+    Entry const entry;
+    ActivePlugin plugin(48000, 512);
+    auto const &params(parameters(*plugin));
+
+    write(plugin, parameterID(moduleChainType, 0), 0);
+
+    auto const id(parameterID(lfoType, 0, syncIndex));
+
+    clap_param_info info{};
+    bool found{false};
+    for (std::uint32_t index(0); index < params.count(&*plugin) && !found; ++index)
+        if (params.get_info(&*plugin, index, &info) && (info.id == id))
+            found = true;
+    REQUIRE(found);
+
+    // A stepped choice rather than the raw mask's range.
+    CHECK(info.min_value == 0);
+    CHECK(info.max_value == LFO::syncChoices - 1);
+    CHECK((info.flags & CLAP_PARAM_IS_STEPPED) != 0);
+    CHECK((info.flags & CLAP_PARAM_IS_ENUM) != 0);
+
+    // Named, and in the order a host lists them -- which is part of what an
+    // automation lane means, so it is pinned rather than derived.
+    CHECK(displayOf(*plugin, params, id, 0) == "Free");
+    CHECK(displayOf(*plugin, params, id, 1) == "Note");
+    CHECK(displayOf(*plugin, params, id, 2) == "Triplet");
+    CHECK(displayOf(*plugin, params, id, 3) == "Dotted");
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note And the choice a host writes becomes the mask the engine holds:
+    /// Dotted is the *third* choice and the *fourth* bit pattern, which is the
+    /// whole reason the conversion exists.
+    ////////////////////////////////////////////////////////////////////////////
+    struct
+    {
+        double choice;
+        std::uint8_t mask;
+    } constexpr expected[]{{0, LE::Parameters::LFO::Free},
+                           {1, LE::Parameters::LFO::Quarter},
+                           {2, LE::Parameters::LFO::Triplet},
+                           {3, LE::Parameters::LFO::Dotted}};
+
+    for (auto const &pair : expected)
+    {
+        INFO("choice " << pair.choice);
+        write(plugin, id, pair.choice);
+
+        auto const &lfo(
+            SWTest::editorHostOf(*plugin).core().program().moduleChain().module(0)->lfo(0));
+        CHECK(lfo.syncTypes() == pair.mask);
+
+        // ...and reads back as the choice that was written, not as the mask.
+        double read{-1};
+        CHECK(params.get_value(&*plugin, id, &read));
+        CHECK(read == pair.choice);
+    }
 }

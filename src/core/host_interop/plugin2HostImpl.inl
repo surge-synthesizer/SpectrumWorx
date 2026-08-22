@@ -260,13 +260,40 @@ template <class ActualModule, class AutomatedParameter> struct ParameterParser
                                                 AutomatedParameter::normalised);
         }
 
-        ////////////////////////////////////////////////////////////////////////
-        /// \note The two bounds are shown in the units of the parameter they
-        /// modulate rather than as the normalised numbers they are -- see
-        /// ParameterValueStringGetter's LFO arm, which prints them through the
-        /// module parameter. So they are read back the same way round: parse in
-        /// the module parameter's units, normalise, and that is the bound.
-        ////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////////
+            /// \note The two bounds are shown in the units of the parameter they
+            /// modulate rather than as the normalised numbers they are -- see
+            /// ParameterValueStringGetter's LFO arm, which prints them through the
+            /// module parameter. So they are read back the same way round: parse in
+            /// the module parameter's units, normalise, and that is the bound.
+            ////////////////////////////////////////////////////////////////////////
+            ////////////////////////////////////////////////////////////////////
+            ///
+            /// \note The two that cross as a *choice* rather than as a quantity.
+            /// What a host is handed is the choice's ordinal, and
+            /// `paramsTextToValue` puts whatever comes back through
+            /// `CLAPEdge::toHost` -- so this owes it the natural value and not an
+            /// automation one. \see CLAPEdge::choiceCount() and issue #159.
+            ///
+            ////////////////////////////////////////////////////////////////////
+
+        case IndexOf<LFO::Parameters, LFO::SyncTypes>::value:
+        {
+            auto const choice(LFO::parseSyncChoice(parser.text));
+            if (!choice)
+                return {};
+            return LFO::syncTypeOfChoice(*choice);
+        }
+
+        case IndexOf<LFO::Parameters, LFO::Waveform>::value:
+        {
+            auto const waveform(LE::Parameters::invokeFunctorOnIndexedParameter<LFO::Parameters>(
+                parameterID.lfoParameterIndex, parser));
+            if (!waveform)
+                return {};
+            return *waveform;
+        }
+
         case IndexOf<LFO::Parameters, LFO::LowerBound>::value:
         case IndexOf<LFO::Parameters, LFO::UpperBound>::value:
         {

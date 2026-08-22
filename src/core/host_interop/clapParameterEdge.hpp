@@ -64,7 +64,89 @@ inline bool isNormalised(ParameterID::Type const type)
     return (type == ParameterID::ModuleParameter) || (type == ParameterID::LFOParameter);
 }
 
-inline bool isNormalised(ParameterID const parameterID) { return isNormalised(parameterID.type()); }
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief How many choices this parameter offers a host, or zero when it is not
+/// one at all.
+///
+///   The two LFO sub-parameters that are *choices* rather than quantities. They
+/// are the only module or LFO parameters whose range is the plugin's rather than
+/// the slot's effect's -- an LFO is an LFO whatever it modulates, so four sync
+/// choices and nine waveforms are four and nine for the life of the binary.
+///
+///   That is what lets them carry a real stepped range where every other one has
+/// to hide behind 0..1: `CLAP_PARAM_IS_STEPPED` needs `min_value` and
+/// `max_value` to be the integers it steps between, and all three of those sit in
+/// the RESCAN_ALL list a plugin may not use while active. A count that cannot
+/// move may be stated once and left.
+///
+/// \note Sync is the one that needed it. It is a bit *mask* internally, so a
+/// host handed the natural value could write 3, 5 or 6 -- combinations the panel
+/// stopped making in issue #111 -- and a lane read `4` rather than `Dotted`.
+/// \see LFOImpl::syncChoiceOf() and issue #159.
+///                                           (22.08.2026.)
+///
+////////////////////////////////////////////////////////////////////////////////
+
+inline unsigned choiceCount(ParameterID const parameterID)
+{
+    if (parameterID.type() != ParameterID::LFOParameter)
+        return 0;
+
+    using LFO = LE::Parameters::LFOImpl;
+    using LE::Parameters::IndexOf;
+
+    switch (parameterID.value._.lfo.lfoParameterIndex)
+    {
+    case IndexOf<LFO::Parameters, LFO::SyncTypes>::value:
+        return LFO::syncChoices;
+    case IndexOf<LFO::Parameters, LFO::Waveform>::value:
+        return LE::Parameters::LFO::Waveform::NumberOfWaveforms;
+    default:
+        return 0;
+    }
+}
+
+/// \brief A choice's natural stored value -> its ordinal, which is what a host
+/// is given. \see choiceCount().
+inline double choiceToHost(ParameterID const parameterID, Value const natural)
+{
+    using LFO = LE::Parameters::LFOImpl;
+    using LE::Parameters::IndexOf;
+
+    if (parameterID.value._.lfo.lfoParameterIndex ==
+        IndexOf<LFO::Parameters, LFO::SyncTypes>::value)
+        return LFO::syncChoiceOf(static_cast<std::uint8_t>(natural));
+
+    return natural; // a waveform is already its ordinal
+}
+
+/// \brief The ordinal a host wrote -> the natural stored value, rounded and
+/// clamped because a host may write anything.
+inline Value choiceFromHost(ParameterID const parameterID, unsigned const choices,
+                            double const host)
+{
+    auto const rounded(static_cast<long>(host + 0.5));
+    auto const clamped(static_cast<unsigned>((rounded < 0) ? 0
+                                             : (rounded >= static_cast<long>(choices))
+                                                 ? (choices - 1)
+                                                 : rounded));
+
+    using LFO = LE::Parameters::LFOImpl;
+    using LE::Parameters::IndexOf;
+
+    if (parameterID.value._.lfo.lfoParameterIndex ==
+        IndexOf<LFO::Parameters, LFO::SyncTypes>::value)
+        return LFO::syncTypeOfChoice(static_cast<std::uint8_t>(clamped));
+
+    return static_cast<Value>(clamped);
+}
+
+/// \note A choice carries its own integer range, so it is not one of these.
+inline bool isNormalised(ParameterID const parameterID)
+{
+    return isNormalised(parameterID.type()) && (choiceCount(parameterID) == 0);
+}
 
 /// \brief Is there an effect in this slot that owns this parameter at all?
 ///
@@ -77,6 +159,8 @@ inline bool isPresent(Info const &info) { return info.maximum() > info.minimum()
 /// \brief Natural stored value -> the value the host reads.
 inline double toHost(ParameterID const parameterID, Info const &info, Value const natural)
 {
+    if (choiceCount(parameterID) != 0)
+        return choiceToHost(parameterID, natural);
     if (!isNormalised(parameterID))
         return natural;
     if (!isPresent(info))
@@ -96,6 +180,8 @@ inline double toHost(ParameterID const parameterID, Info const &info, Value cons
 /// one that aborted.
 inline Value fromHost(ParameterID const parameterID, Info const &info, double const host)
 {
+    if (auto const choices = choiceCount(parameterID); choices != 0)
+        return choiceFromHost(parameterID, choices, host);
     if (!isNormalised(parameterID))
     {
         /// \note An absent parameter has nothing to clamp against -- see

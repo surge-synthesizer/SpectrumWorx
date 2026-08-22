@@ -499,6 +499,7 @@ char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::ope
     auto const lowerBoundIndex(IndexOf<LFO::Parameters, LFO::LowerBound>::value);
     auto const upperBoundIndex(IndexOf<LFO::Parameters, LFO::UpperBound>::value);
     auto const periodScaleIndex(IndexOf<LFO::Parameters, LFO::PeriodScale>::value);
+    auto const syncTypesIndex(IndexOf<LFO::Parameters, LFO::SyncTypes>::value);
     switch (lfoParameterIndex)
     {
     default:
@@ -554,6 +555,26 @@ char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::ope
         }
         LFO::printPeriodScale(periodScale, lfo.syncTypes(), printer.printer.buffer);
         return printer.printer.buffer.begin();
+    }
+
+        ////////////////////////////////////////////////////////////////////////////
+        ///
+        /// \note The sync mask reads as the choice it stands for -- "Free", "Note",
+        /// "Triplet", "Dotted" -- rather than as the number it is.
+        ///
+        /// \note A *mask* either way: a host is handed the choice's ordinal, but
+        /// `paramsValueToText` puts a supplied value back through `CLAPEdge::fromHost`
+        /// before it gets here, so what arrives is the natural value like everywhere
+        /// else in this switch. \see CLAPEdge::choiceCount() and issue #159.
+        ///                                       (22.08.2026.)
+        ///
+        ////////////////////////////////////////////////////////////////////////////
+
+    case syncTypesIndex:
+    {
+        auto const mask(printer.forValue ? static_cast<std::uint8_t>(*printer.forValue + 0.5f)
+                                         : lfo.syncTypes());
+        return LFO::syncChoiceName(LFO::syncChoiceOf(mask));
     }
 
     case lowerBoundIndex:

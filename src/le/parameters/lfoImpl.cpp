@@ -40,6 +40,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <ranges>
 
 namespace LE::Parameters
@@ -490,6 +491,65 @@ LFOImpl::PeriodScale::value_type LFOImpl::adjustValueFromPreset<LFOImpl::PeriodS
         return clampFreePeriod(periodScale / LFOImpl::Timer::referenceBarDuration / 1000);
     else
         return snapSyncedPeriod(periodScale, syncTypes()).first;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// The four sync choices
+// ---------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+/// \note In choice order, which is the order a host lists them in and therefore
+/// part of what an automation lane means. Do not reorder.
+constexpr struct
+{
+    LFO::SyncType mask;
+    char const *name;
+} syncChoiceTable[]{{LFO::Free, "Free"},
+                    {LFO::Quarter, "Note"},
+                    {LFO::Triplet, "Triplet"},
+                    {LFO::Dotted, "Dotted"}};
+
+static_assert(std::size(syncChoiceTable) == LFOImpl::syncChoices);
+} // anonymous namespace
+
+std::uint8_t LFOImpl::syncChoiceOf(std::uint8_t const syncTypes)
+{
+    if (syncTypes == LFO::Free)
+        return 0;
+
+    // the lowest bit set, so a mask carrying more than one answers with the
+    // first grid it would consider
+    for (std::uint8_t choice(1); choice < syncChoices; ++choice)
+        if (syncTypes & syncChoiceTable[choice].mask)
+            return choice;
+
+    return 0;
+}
+
+std::uint8_t LFOImpl::syncTypeOfChoice(std::uint8_t const choice)
+{
+    return static_cast<std::uint8_t>(syncChoiceTable[(choice < syncChoices) ? choice : 0].mask);
+}
+
+char const *LFOImpl::syncChoiceName(std::uint8_t const choice)
+{
+    return syncChoiceTable[(choice < syncChoices) ? choice : 0].name;
+}
+
+std::optional<std::uint8_t> LFOImpl::parseSyncChoice(char const *const text)
+{
+    if (!text)
+        return {};
+
+    for (std::uint8_t choice(0); choice < syncChoices; ++choice)
+        if (std::strcmp(text, syncChoiceTable[choice].name) == 0)
+            return choice;
+
+    return {};
 }
 
 void LFOImpl::snapPeriodScaleFromAutomation(PeriodScale &periodScale)

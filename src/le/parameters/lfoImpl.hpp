@@ -386,6 +386,40 @@ class LFOImpl : public LFO
     //...mrmlj...cleanup with a new 'logarithmic' parameter/control...
     static void snapPeriodScaleFromAutomation(PeriodScale &);
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \name The four sync choices a host is offered
+    ///
+    ///   `SyncTypes` is a bit mask internally -- Quarter|Triplet|Dotted, `Free`
+    /// being none of them -- and a host handed that raw can write 3, 5 or 6:
+    /// combinations the panel stopped being able to make in issue #111, and
+    /// which read as a bare number in a DAW's lane. So it crosses as one of four
+    /// choices and is converted here.
+    ///
+    /// \note A mask with more than one bit set answers with its lowest, which is
+    /// lossy and cannot not be: only two shipped presets carry one (`sync="5"`,
+    /// `sync="7"`), they still load and snap exactly as they did, and the panel
+    /// has imposed the same narrowing on any of them the user touches since #111.
+    ///                                       (22.08.2026.) \see issue #159.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    ///@{
+    static constexpr std::uint8_t syncChoices{4};
+
+    /// \brief The mask -> the choice, 0..syncChoices-1.
+    static std::uint8_t syncChoiceOf(std::uint8_t syncTypes);
+
+    /// \brief The choice -> the mask it means.
+    static std::uint8_t syncTypeOfChoice(std::uint8_t choice);
+
+    /// \brief What the choice is called: "Free", "Note", "Triplet", "Dotted".
+    static char const *syncChoiceName(std::uint8_t choice);
+
+    /// \brief syncChoiceName() run backwards, or nothing for text no choice
+    /// reads as.
+    static std::optional<std::uint8_t> parseSyncChoice(char const *text);
+    ///@}
+
   public: // Preset saving/loading section
     template <typename T> typename T::value_type adjustValueForPreset(T const &value) const
     {

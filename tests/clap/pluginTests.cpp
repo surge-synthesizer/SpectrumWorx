@@ -1158,13 +1158,35 @@ TEST_CASE("A module parameter's range and step flag survive an effect swap", "[c
             CHECK((filled[index].flags & CLAP_PARAM_IS_STEPPED) ==
                   (empty[index].flags & CLAP_PARAM_IS_STEPPED));
 
-            // And the edge those module parameters sit on is the unit interval.
-            if (isNormalisedType(filled[index].id))
+            ////////////////////////////////////////////////////////////////
+            ///
+            /// \note And the edge those parameters sit on is the unit interval
+            /// -- except the two LFO sub-parameters that are *choices* the
+            /// plugin owns rather than quantities the slot's effect owns. An
+            /// LFO is an LFO whatever it modulates, so four sync choices and
+            /// eleven waveforms are four and eleven for the life of the binary,
+            /// which is what lets them carry a real stepped range. The loop
+            /// above is what says they do not move.
+            /// \see CLAPEdge::choiceCount() and issue #159.
+            ///
+            ////////////////////////////////////////////////////////////////
+
+            if (!isNormalisedType(filled[index].id))
+                continue;
+
+            LE::SW::ParameterID parameterID;
+            parameterID.binaryValue = filled[index].id;
+            if (auto const choices = LE::SW::CLAPEdge::choiceCount(parameterID); choices != 0)
             {
                 CHECK(filled[index].min_value == 0);
-                CHECK(filled[index].max_value == 1);
-                CHECK((filled[index].flags & CLAP_PARAM_IS_STEPPED) == 0);
+                CHECK(filled[index].max_value == choices - 1);
+                CHECK((filled[index].flags & CLAP_PARAM_IS_STEPPED) != 0);
+                continue;
             }
+
+            CHECK(filled[index].min_value == 0);
+            CHECK(filled[index].max_value == 1);
+            CHECK((filled[index].flags & CLAP_PARAM_IS_STEPPED) == 0);
         }
     }
 }

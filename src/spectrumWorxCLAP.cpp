@@ -631,7 +631,18 @@ bool SpectrumWorxCLAP::paramsInfo(std::uint32_t const index,
     // and never CLAP_PARAM_REQUIRES_PROCESS: it says a change must go through
     // process() (ext/params.h:196), which forbids the flush() route a slot
     // change most needs, and paramsFlush() applies one just as process() does
-    if (CLAPEdge::isNormalised(parameterID))
+    if (auto const choices = CLAPEdge::choiceCount(parameterID); choices != 0)
+    {
+        // a real stepped range where every other module and LFO parameter has to
+        // hide behind 0..1: these two are the plugin's own choices rather than
+        // the slot effect's, so the count never moves and CLAP_PARAM_IS_STEPPED
+        // is legal for the life of the binary. \see CLAPEdge::choiceCount()
+        info->min_value = 0;
+        info->max_value = choices - 1;
+        info->default_value = CLAPEdge::defaultToHost(parameterID, fixed);
+        info->flags |= CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_ENUM;
+    }
+    else if (CLAPEdge::isNormalised(parameterID))
     {
         // a 0..1 edge over a natural range the effect owns. No
         // CLAP_PARAM_IS_STEPPED either: a step count is a property of whichever
