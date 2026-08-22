@@ -144,6 +144,9 @@ class SharedModuleControls : public WidgetBase<>
         /// which was protected then and is private now -- and which JUCE clears
         /// the moment a drag ends, whereas this must survive a hover. Ours.
         int selectedThumb_;
+
+        /// Shift-drag, as on every other slider. \see HorizontalSlider.
+        FineDrag fine_;
     }; // class FrequencyRange
 
   public:

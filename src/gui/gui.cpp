@@ -1047,6 +1047,90 @@ void TextButton::paintButton(juce::Graphics &g, bool const isMouseOverButton, bo
     g.drawSingleLineText(getName(), 0, height);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// FineDrag
+// --------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+void FineDrag::keepDragLinear(juce::Slider &slider)
+{
+    // the trailing false is userCanPressKeyToSwapMode, off so that every drag is
+    // the plain linear one adjust() can reason about: JUCE's default swaps
+    // command, control and alt into a velocity-based drag that responds to the
+    // mouse's speed rather than its distance. The first three arguments are
+    // JUCE's own defaults, there being no setter for the fourth alone
+    slider.setVelocityModeParameters(1.0, 1, 0.0, false);
+}
+
+void FineDrag::begin(float const anchor) noexcept
+{
+    start_ = last_ = anchor;
+    travel_ = 0;
+}
+
+float FineDrag::adjust(float const position, bool const fine) noexcept
+{
+    travel_ += (position - last_) / (fine ? ratio : 1.0f);
+    last_ = position;
+    return start_ + travel_;
+}
+
+juce::MouseEvent linkThumbsOnAlt(juce::MouseEvent const &event)
+{
+    auto const modifiers(event.mods.isAltDown()
+                             ? event.mods.withFlags(juce::ModifierKeys::shiftModifier)
+                             : event.mods.withoutFlags(juce::ModifierKeys::shiftModifier));
+
+    return {event.source,
+            event.position,
+            modifiers,
+            event.pressure,
+            event.orientation,
+            event.rotation,
+            event.tiltX,
+            event.tiltY,
+            event.eventComponent,
+            event.originalComponent,
+            event.eventTime,
+            event.mouseDownPosition,
+            event.mouseDownTime,
+            event.getNumberOfClicks(),
+            event.mouseWasDraggedSinceMouseDown()};
+}
+
+juce::MouseEvent refinedDrag(FineDrag &drag, juce::MouseEvent const &event)
+{
+    return linkThumbsOnAlt(event).withNewPosition(juce::Point<float>(
+        drag.adjust(event.position.x, event.mods.isShiftDown()), event.position.y));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// HorizontalSlider
+// ----------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+HorizontalSlider::HorizontalSlider()
+{
+    setSliderStyle(LinearHorizontal);
+    setTextBoxStyle(NoTextBox, true, 0, 0);
+    FineDrag::keepDragLinear(*this);
+}
+
+void HorizontalSlider::mouseDown(juce::MouseEvent const &event)
+{
+    fine_.begin(event.position.x);
+    juce::Slider::mouseDown(linkThumbsOnAlt(event));
+}
+
+void HorizontalSlider::mouseDrag(juce::MouseEvent const &event)
+{
+    juce::Slider::mouseDrag(refinedDrag(fine_, event));
+}
+
 Knob::Knob(juce::Component &parent, unsigned int const x, unsigned int const y,
            unsigned int const xMargin, unsigned int const yMargin)
 {
@@ -1058,12 +1142,7 @@ Knob::Knob(juce::Component &parent, unsigned int const x, unsigned int const y,
     // no setPopupMenuEnabled(): the right button raises ParameterMenu's
     setMouseDragSensitivity(coarseDragPixels());
 
-    // the trailing false is userCanPressKeyToSwapMode, off so that every drag is
-    // the plain linear one fineAdjusted() can reason about: JUCE's default swaps
-    // command, control and alt into a velocity-based drag that responds to the
-    // mouse's speed rather than its distance. The first three arguments are
-    // JUCE's own defaults, there being no setter for the fourth alone
-    setVelocityModeParameters(1.0, 1, 0.0, false);
+    FineDrag::keepDragLinear(*this);
 
     addToParentAndShow(parent, *this);
 }
@@ -1346,26 +1425,15 @@ void Knob::mouseDown(juce::MouseEvent const &event)
         return passMousePressToParent(*this, event);
     }
 
-    /// The anchor every later event measures itself against. \see fineAdjusted().
-    dragStartY_ = event.position.y;
-    lastDragY_ = event.position.y;
-    travel_ = 0;
+    fine_.begin(event.position.y);
 
     juce::Slider::mouseDown(event);
 }
 
 juce::MouseEvent Knob::fineAdjusted(juce::MouseEvent const &event)
 {
-    /// \note Shift, which is what the rest of the Surge Synth Team's plugins use
-    /// for this. Command is not free -- sst-jucegui quantizes a drag to the
-    /// parameter's step with it -- and shift is the same key on all three
-    /// platforms, which command is not.
-    auto const ratio(event.mods.isShiftDown() ? fineDragRatio : 1.0f);
-
-    travel_ += (lastDragY_ - event.position.y) / ratio;
-    lastDragY_ = event.position.y;
-
-    return event.withNewPosition(juce::Point<float>(event.position.x, dragStartY_ - travel_));
+    return event.withNewPosition(juce::Point<float>(
+        event.position.x, fine_.adjust(event.position.y, event.mods.isShiftDown())));
 }
 
 void Knob::mouseDrag(juce::MouseEvent const &event)

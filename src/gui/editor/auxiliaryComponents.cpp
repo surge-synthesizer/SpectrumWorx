@@ -187,6 +187,7 @@ SharedModuleControls::FrequencyRange::FrequencyRange()
     /// Slider::valueListener(). See the note in the Knob constructor.
 
     setWantsKeyboardFocus(true);
+    FineDrag::keepDragLinear(*this);
     setSliderStyle(juce::Slider::TwoValueHorizontal);
     setTextBoxStyle(juce::Slider::NoTextBox, true, 15, 18);
     setBounds(3, 54, 162, 51);
@@ -283,7 +284,8 @@ void SharedModuleControls::FrequencyRange::mouseDown(juce::MouseEvent const &eve
     //...mrmlj...LE_ASSERT( hasFocus() == this->isActive() );
     updateSliderSelection(event);
     verifyThumbAndParameterIndicies();
-    juce::Slider::mouseDown(event);
+    fine_.begin(event.position.x);
+    juce::Slider::mouseDown(linkThumbsOnAlt(event));
     verifyThumbAndParameterIndicies();
 }
 
@@ -293,7 +295,7 @@ void SharedModuleControls::FrequencyRange::mouseDrag(juce::MouseEvent const &eve
 {
     if ((selectedThumb_ != Constants::noThumb) && lfo().enabled())
         return;
-    juce::Slider::mouseDrag(event);
+    juce::Slider::mouseDrag(refinedDrag(fine_, event));
 }
 
 void SharedModuleControls::FrequencyRange::mouseMove(juce::MouseEvent const &event) noexcept

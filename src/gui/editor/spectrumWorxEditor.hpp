@@ -967,7 +967,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
                        private juce::Slider::Listener
     {
       public: //...mrmlj...
-        using AsyncSlider = juce::Slider;
+        using AsyncSlider = HorizontalSlider;
         using LFO = LE::Parameters::LFOImpl;
 
         class Period : public AsyncSlider

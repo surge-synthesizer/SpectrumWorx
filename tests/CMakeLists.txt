@@ -93,6 +93,7 @@ add_executable(sw-plugin-tests
         gui/presetNavigationTests.cpp
         gui/preferencesTests.cpp
         gui/sideChainSelectorTests.cpp
+        gui/sliderDragTests.cpp
         gui/skinTests.cpp
         gui/twoInstanceTests.cpp
         io/jucePathTests.cpp
