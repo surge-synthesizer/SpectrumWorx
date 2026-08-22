@@ -1836,6 +1836,10 @@ constexpr char loadedBankAttribute[]{"loadedPresetBank"};
 constexpr char loadedFileAttribute[]{"loadedPresetFile"};
 constexpr char loadedModifiedAttribute[]{"loadedPresetModified"};
 
+/// \note The comment the user typed, which for a factory preset has no file to
+/// live in. \see issue #180.
+constexpr char loadedCommentAttribute[]{"loadedPresetComment"};
+
 constexpr char presetsPanel[]{"presets"};
 constexpr char settingsPanel[]{"settings"};
 constexpr char factoryLocation[]{"factory"};
@@ -1884,6 +1888,7 @@ DawExtraState SpectrumWorxCLAP::sessionState()
                 element.SetAttribute(loadedFileAttribute, IO::pathToUTF8(loaded.file));
                 element.SetAttribute(loadedModifiedAttribute,
                                      loaded.modified.load(std::memory_order_relaxed) ? 1 : 0);
+                element.SetAttribute(loadedCommentAttribute, loaded.comment.toStdString());
             },
             [this](TiXmlElement const &element) {
                 auto &state(panelState_);
@@ -1919,6 +1924,8 @@ DawExtraState SpectrumWorxCLAP::sessionState()
                     loaded.bank = juce::String::fromUTF8(pBank);
                 if (auto const *const pFile = element.Attribute(loadedFileAttribute))
                     loaded.file = IO::utf8ToPath(pFile);
+                if (auto const *const pComment = element.Attribute(loadedCommentAttribute))
+                    loaded.comment = juce::String::fromUTF8(pComment);
 
                 /// \note Into a plain member rather than straight into the atomic:
                 /// this runs while the block is being parsed, and the load it is

@@ -271,9 +271,20 @@ class PresetBrowser final : public PanelBackground,
 
     Item const *findPreset(juce::String const &presetName) const;
 
-    juce::TextEditor &comment() { return commentBox_; }
     PanelBackground &background() { return *this; }
 
+  public:
+    /// \brief The comment area. Public since issue #180: it is a control a user
+    /// types into, so a headless run has to be able to type into it.
+    juce::TextEditor &comment() { return commentBox_; }
+
+    /// \brief What the comment box's listener does, which is where the whole of
+    /// the edit is. Public because juce::TextEditor *posts* that callback -- a
+    /// test binary has no message loop to deliver it, so a headless run says so
+    /// itself. \see textEditorTextChanged() and issue #180.
+    void commentChanged();
+
+  private:
   private: // friend class Detail::BackgroundWithCurrentFolder;
     juce::TextEditor presetNameEditBox_;
     juce::TextEditor commentBox_;

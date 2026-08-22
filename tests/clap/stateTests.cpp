@@ -1432,6 +1432,10 @@ TEST_CASE("The session carries the loaded preset and whether it was edited", "[c
 
         loaded.loaded("Robokid", PresetLocation::user);
         loaded.file = "/tmp/presets/Robokid.swp";
+        /// \note And the comment travels with it, which is issue #180: for a
+        /// factory preset there is nothing in the binary to write one to, so the
+        /// session is the only place it can live.
+        loaded.comment = "a note about this sound";
         CHECK_FALSE(loaded.modified.load());
 
         // ...and edited again, after the load, which is what has to survive.
@@ -1456,6 +1460,7 @@ TEST_CASE("The session carries the loaded preset and whether it was edited", "[c
         CHECK(loaded.name == "Robokid");
         CHECK(loaded.location == PresetLocation::user);
         CHECK(loaded.file == std::filesystem::path("/tmp/presets/Robokid.swp"));
+        CHECK(loaded.comment == "a note about this sound");
 
         ////////////////////////////////////////////////////////////////////////
         /// \note The one that needs saying twice. `GUI::loadPreset` ends in

@@ -156,6 +156,18 @@ struct LoadedPreset
     juce::String bank; ///< when location is factory
     fs::path file;     ///< when location is user: what Save overwrites
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What the browser's comment box holds.
+    ///
+    ///   Here rather than only in the file so that a comment typed against a
+    /// *factory* preset is not lost: there is nothing in the binary to write it
+    /// to, and it is still a note the user made about the sound they are
+    /// playing. It goes into the session with everything else. \see issue #180.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    juce::String comment;
+
     std::atomic<bool> modified{false};
 
     /// \brief Whether Save has somewhere to write, which a factory preset and a
@@ -171,6 +183,7 @@ struct LoadedPreset
     {
         name = presetName;
         location = from;
+        comment.clear();
         modified.store(false, std::memory_order_relaxed);
     }
 }; // struct LoadedPreset
@@ -439,6 +452,19 @@ class EditorHost
 
     virtual PanelState &panelState() = 0;
     PanelState const &panelState() const { return const_cast<EditorHost &>(*this).panelState(); }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Says the session has changed in a way that is not a parameter.
+    ///
+    /// \note The preset comment is the one that needs this. Everything else the
+    /// editor can change goes out through `editParameter`, which tells the host
+    /// on the way past; a comment reaches no parameter and no engine and would
+    /// otherwise be a change a host never hears about -- so a project closed
+    /// after typing one would be offered as unmodified. \see issue #180.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    virtual void markStateModified() const = 0;
 
     /// \brief The preset the plugin is playing. \see LoadedPreset and issue #177.
     virtual LoadedPreset &loadedPreset() = 0;

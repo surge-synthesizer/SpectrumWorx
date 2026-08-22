@@ -317,6 +317,18 @@ class Instance final : public GUI::EditorHost
     /// drive the Save buttons has to be able to set it. \see issue #177.
     GUI::LoadedPreset &loadedPreset() override { return loadedPreset_; }
 
+    /// \note The plugin tells the host; this records that it was asked, which is
+    /// what a case about the comment box wants to read. \see issue #180.
+    void markStateModified() const override
+    {
+        loadedPreset_.modified.store(true, std::memory_order_relaxed);
+        ++stateModifications;
+    }
+
+  public:
+    /// How many times the editor has said the session changed. \see issue #180.
+    mutable unsigned stateModifications{0};
+
   private:
     Engine engine_;
     SilentNotifications notifications_;
@@ -325,7 +337,7 @@ class Instance final : public GUI::EditorHost
     std::unique_ptr<GUI::SpectrumWorxEditor> pEditor_;
     SideChainSource sideChainSource_{defaultSideChainSource};
     GUI::PanelState panelState_;
-    GUI::LoadedPreset loadedPreset_;
+    mutable GUI::LoadedPreset loadedPreset_;
 }; // class Instance
 
 /// \brief JUCE, owned the way the shim owns it: one reference held across

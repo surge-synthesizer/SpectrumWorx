@@ -127,13 +127,22 @@ PresetBrowser::PresetBrowser()
     // the file list box.
     this->setWantsKeyboardFocus(true);
 
-    // Implementation note:
-    //   We enable the comment box only when a preset is selected (in other
-    // words to create a new preset with a comment you first need to create a
-    // preset and then add a comment to the new/existing preset).
-    //                                        (27.05.2010.) (Domagoj Saric)
-    comment().setEnabled(false);
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Always. It was enabled only while a *user* preset was selected --
+    /// "to create a new preset with a comment you first need to create a preset"
+    /// (27.05.2010.) -- so a note about a factory preset, or about a sound built
+    /// from nothing, could not be typed at all.
+    ///
+    ///   It is a note about what the plugin is playing rather than about a file,
+    /// so it does not need a file to exist. What has no file to be written to
+    /// travels in the session instead. \see LoadedPreset::comment and issue #180.
+    ///                                       (22.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    comment().setEnabled(true);
     comment().setInputRestrictions(PresetHeader::maxCommentLength - 1);
+    comment().setText(editor().editorHost().loadedPreset().comment, false);
 
     LE_ASSERT(!save_.getMouseClickGrabsKeyboardFocus());
     LE_ASSERT(!saveAs_.getMouseClickGrabsKeyboardFocus());
@@ -224,6 +233,7 @@ void PresetBrowser::rememberLoadedPreset(juce::String const &presetName, fs::pat
                                           : PanelState::PresetLocation::user);
     loaded.bank = inFactory() ? factoryBank_ : juce::String();
     loaded.file = file;
+    loaded.comment = originalComment_;
 
     updateSaveButtons();
 }
@@ -281,7 +291,6 @@ void PresetBrowser::presetSelectionChanged()
     rememberLoadedPreset(item.name, inFactory() ? fs::path() : selectedFile());
 
     comment().setText(originalComment_, false);
-    comment().setEnabled(enablePresetSaving);
     LE_ASSERT(comment().getWantsKeyboardFocus() || !comment().isEnabled());
 }
 
@@ -404,7 +413,34 @@ void PresetBrowser::textEditorTextChanged(juce::TextEditor &editor)
 {
     LE_ASSERT((&editor == &this->presetNameEditBox_) || (&editor == &this->comment()));
     if (&editor == &comment())
-        dirtyCommentPresetIndex_ = listBox_.getLastRowSelected();
+        commentChanged();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note An edit like any other. A comment reaches no parameter and no engine,
+/// so nothing else would tell the host its session had changed -- a project
+/// closed after typing one would be offered as unmodified -- and nothing would
+/// light the Save buttons that are the way to keep it.
+///
+/// \note Guarded on the text having actually moved, because
+/// `juce::TextEditor::setText` notifies for every call this makes itself:
+/// filling the box from a preset would otherwise count as editing it.
+///                                           (22.08.2026.) \see issues #177, #180.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void PresetBrowser::commentChanged()
+{
+    dirtyCommentPresetIndex_ = listBox_.getLastRowSelected();
+
+    auto &host(editor().editorHost());
+    if (host.loadedPreset().comment == comment().getText())
+        return;
+
+    host.loadedPreset().comment = comment().getText();
+    host.markStateModified();
+    updateSaveButtons();
 }
 
 /// \note The save path asks the user two questions -- "overwrite?" and "retry?"
@@ -516,6 +552,7 @@ void PresetBrowser::textEditorEscapeKeyPressed(juce::TextEditor &editor)
     {
         LE_ASSERT(&editor == &this->comment());
         comment().setText(originalComment_, false);
+        this->editor().editorHost().loadedPreset().comment = originalComment_;
     }
 }
 
@@ -1012,9 +1049,7 @@ void PresetBrowser::refreshAndSelectPreset(juce::String const &presetName)
     ignoreSelectionChange_ = true;
     listBox_.selectRow(indexToSelect);
     ignoreSelectionChange_ = false;
-    bool const enablePresetSaving(this->enablePresetSaving());
-    delete_.setEnabled(enablePresetSaving);
-    comment().setEnabled(enablePresetSaving);
+    delete_.setEnabled(enablePresetSaving());
 }
 
 void PresetBrowser::deselectAllRows()
@@ -1027,8 +1062,9 @@ void PresetBrowser::deselectAllRows()
     // implicitly (the comment will be automatically set to the one of the newly
     // selected preset).
     //                                    (23.03.2010.) (Domagoj Saric)
-    comment().clear();
-    comment().setEnabled(false);
+    /// \note The comment stays. It belongs to the preset being played rather
+    /// than to the row the list is pointing at, and clicking off the list is not
+    /// a reason to throw away what the user typed. \see issue #180.
 
     /// \note Not `save_.setEnabled( false )`: what is loaded is still loaded and
     /// still edited, whatever the list is pointing at. \see issue #177.

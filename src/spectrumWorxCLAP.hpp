@@ -277,6 +277,7 @@ class SpectrumWorxCLAP final
     /// project file.
     GUI::PanelState &panelState() override { return panelState_; }
     GUI::LoadedPreset &loadedPreset() override { return loadedPreset_; }
+    void markStateModified() const override { markCurrentProgramAsModified(); }
 
   protected:
     bool init() noexcept override;

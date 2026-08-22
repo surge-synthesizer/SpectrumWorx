@@ -164,3 +164,70 @@ TEST_CASE("The editor's timer keeps the Save buttons current", "[gui][presets]")
 
     CHECK(browser.saveAsIsOffered());
 }
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Issue #180. The comment box was enabled only while a *user* preset was
+/// selected, so a note about a factory preset -- or about a sound built from
+/// nothing -- could not be typed at all. It is always editable now, and what is
+/// typed is an edit of the session like any other.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The comment area is editable with nothing selected", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    auto &browser(browserOf(instance));
+
+    CHECK(browser.comment().isEnabled());
+}
+
+TEST_CASE("Typing a comment is an edit of the session", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    auto &browser(browserOf(instance));
+
+    pretendLoaded(instance, "Robokid", PanelState::PresetLocation::factory, {});
+    browser.updateSaveButtons();
+    REQUIRE_FALSE(browser.saveAsIsOffered());
+    auto const before(instance.stateModifications);
+
+    /// \note The text, and then the callback by hand: juce::TextEditor *posts*
+    /// its text-change message and a test binary has no message loop to deliver
+    /// it. \see PresetBrowser::commentChanged().
+    browser.comment().setText("a note about this sound", juce::dontSendNotification);
+    browser.commentChanged();
+
+    // The host has been told...
+    CHECK(instance.stateModifications > before);
+    // ...the plugin is carrying it...
+    CHECK(instance.loadedPreset().comment == "a note about this sound");
+    // ...and Save As is the way to keep it, even for a factory preset.
+    CHECK(browser.saveAsIsOffered());
+    CHECK_FALSE(browser.saveIsOffered());
+}
+
+TEST_CASE("Retyping the same comment is not an edit", "[gui][presets]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note juce::TextEditor::setText notifies whether or not the text moved,
+    /// and so does selecting a preset, which fills the box from the file. A
+    /// browser that marked the session dirty for that would mean opening a
+    /// preset counted as editing it.
+    ////////////////////////////////////////////////////////////////////////////
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    auto &browser(browserOf(instance));
+
+    browser.comment().setText("unchanged", juce::dontSendNotification);
+    browser.commentChanged();
+    auto const after(instance.stateModifications);
+
+    browser.commentChanged();
+    CHECK(instance.stateModifications == after);
+}
