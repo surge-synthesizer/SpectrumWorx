@@ -2341,10 +2341,18 @@ juce::String periodMillisecondsString(SpectrumWorxEditor::LFODisplay const &pare
     return juce::String(&buffer[0]);
 }
 
-juce::String phaseString(SpectrumWorxEditor::LFODisplay const & /*parent*/,
-                         double const &periodScale)
+////////////////////////////////////////////////////////////////////////////////
+/// \note Through the transformer the host prints with, rather than beside it:
+/// the panel drew degrees and a DAW's lane read percent for a day because these
+/// were two separate pieces of arithmetic. \see issue #181.
+////////////////////////////////////////////////////////////////////////////////
+
+juce::String phaseString(SpectrumWorxEditor::LFODisplay const &parent, double const &phase)
 {
-    return juce::String(periodScale * 360, 1) + "°";
+    using Display = LE::Parameters::DisplayValueTransformer<LFO::Phase>;
+    auto const &engineSetup(parent.control().editor().engineSetup());
+    return juce::String(Display::transform(static_cast<float>(phase), engineSetup), 1) +
+           Display::Suffix::c_str();
 }
 
 juce::String rangeValueString(SpectrumWorxEditor::LFODisplay const &parent,
@@ -2780,13 +2788,16 @@ juce::String periodString(SpectrumWorxEditor::LFODisplay const &parent)
     return juce::String(&buffer[0], written);
 }
 
-/// The degrees phaseString() prints, read back. \see issue #168.
-std::optional<double> parseDegrees(juce::String const &text)
+/// \brief What phaseString() prints, read back -- the unit stripped and the
+/// transformer's own inverse applied. \see issue #181.
+std::optional<double> parsePhase(SpectrumWorxEditor::LFODisplay const &parent,
+                                 juce::String const &text)
 {
-    auto const number(text.upToFirstOccurrenceOf("\xc2\xb0", false, false).trim());
+    using Display = LE::Parameters::DisplayValueTransformer<LFO::Phase>;
+    auto const number(text.upToFirstOccurrenceOf(Display::Suffix::c_str(), false, false).trim());
     if (number.isEmpty() || !number.containsOnly("0123456789.,+-eE"))
         return {};
-    return number.getDoubleValue();
+    return Display::inverse(number.getFloatValue(), parent.control().editor().engineSetup());
 }
 } // anonymous namespace
 
@@ -2874,10 +2885,10 @@ bool SpectrumWorxEditor::LFODisplay::ParameterSlider::setParameterFromText(juce:
 
     case IndexOf<LFO::Parameters, LFO::Phase>::value:
     {
-        auto const degrees(parseDegrees(text));
-        if (!degrees)
+        auto const phase(parsePhase(parent(), text));
+        if (!phase)
             return false;
-        setValue(*degrees / 360, juce::sendNotificationSync);
+        setValue(*phase, juce::sendNotificationSync);
         return true;
     }
 

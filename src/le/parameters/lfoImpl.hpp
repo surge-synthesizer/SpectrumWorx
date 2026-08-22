@@ -464,13 +464,18 @@ STREAMING_NAME(LFOImpl::Waveform, "wfrm")
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \note The phase is stored as a fraction of a period -- plus or minus a half
-/// -- and read as a percentage, which is what the LFO panel has always drawn and
-/// what a host was not being told. \see issue #158.
+/// -- and read as degrees, which is what the LFO panel draws. \see issues #158
+/// and #168.
 ///
-/// \note `ValuesDenominator<100>` on the declaration says the same thing and
-/// says it to nobody: nothing in the printer reads that trait. The transform is
-/// where a display unit lives, and the inverse beside it is what lets a host
-/// read the percentage back.
+/// \note It read as a percentage until #181: the panel had moved to degrees and
+/// the transformer a host prints through had not, so the two said different
+/// things about one parameter. Both go through this one now -- `phaseString()`
+/// prints through it rather than beside it.
+///
+/// \note `ValuesDenominator<100>` on the declaration says something else again
+/// and says it to nobody: nothing in the printer reads that trait. The transform
+/// is where a display unit lives, and the inverse beside it is what lets a host
+/// read the number back.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -479,14 +484,12 @@ template <> struct DisplayValueTransformer<LFOImpl::Phase>
     template <typename Source>
     static Source transform(Source const &value, SW::Engine::Setup const &)
     {
-        return value * 100;
+        return value * 360;
     }
-    static float inverse(float const percentage, SW::Engine::Setup const &)
-    {
-        return percentage / 100;
-    }
-    /// \note With the leading space, as every other unit in the tree has.
-    using Suffix = UnitString<" %">;
+    static float inverse(float const degrees, SW::Engine::Setup const &) { return degrees / 360; }
+    /// \note No leading space, unlike every other unit here: a degree sign is
+    /// written against its number.
+    using Suffix = UnitString<"°">;
 };
 
 //...mrmlj...this does not work yet because the Window enum is not a member

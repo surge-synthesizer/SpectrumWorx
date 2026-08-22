@@ -483,10 +483,14 @@ TEST_CASE("An LFO's bounds read as the two ends of what they modulate", "[clap][
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note Issue #158. A period is a note value and a phase is a percentage --
-/// which is what the LFO panel has drawn since 2011 and what a host was not
-/// being told: `LFO.T` read as its raw multiple of a bar, roughly 0.0208 to 24,
-/// and `LFO.ph` as the plus-or-minus half it is stored as.
+/// \note Issue #158. A period is a note value and a phase is an angle -- which
+/// is what the LFO panel draws and what a host was not being told: `LFO.T` read
+/// as its raw multiple of a bar, roughly 0.0208 to 24, and `LFO.ph` as the
+/// plus-or-minus half it is stored as.
+///
+/// \note The phase was a *percentage* here for a day, between #158 and #181: the
+/// panel moved to degrees in #168 and the transformer a host prints through did
+/// not move with it. Both go through the one transformer now.
 ///
 /// \note A default LFO is synced to quarters, so what the whole range reads as
 /// here is note values. The free arm -- milliseconds -- is not reachable from a
@@ -496,7 +500,7 @@ TEST_CASE("An LFO's bounds read as the two ends of what they modulate", "[clap][
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("An LFO's period reads as a note value and its phase as a percentage", "[clap][text]")
+TEST_CASE("An LFO's period reads as a note value and its phase as an angle", "[clap][text]")
 {
     Entry const entry;
     ActivePlugin plugin(48000, 512);
@@ -532,10 +536,11 @@ TEST_CASE("An LFO's period reads as a note value and its phase as a percentage",
             ++phases;
             INFO("'" << name << "'");
 
-            // The two ends and the middle, in percent rather than in halves.
-            CHECK(displayOf(*plugin, params, info.id, 0) == "-50.0 %");
-            CHECK(displayOf(*plugin, params, info.id, 0.5) == "0.0 %");
-            CHECK(displayOf(*plugin, params, info.id, 1) == "50.0 %");
+            // The two ends and the middle, in degrees rather than in halves --
+            // the same reading the panel draws beside the slider.
+            CHECK(displayOf(*plugin, params, info.id, 0) == "-180.0\xc2\xb0");
+            CHECK(displayOf(*plugin, params, info.id, 0.5) == "0.0\xc2\xb0");
+            CHECK(displayOf(*plugin, params, info.id, 1) == "180.0\xc2\xb0");
         }
     }
 
