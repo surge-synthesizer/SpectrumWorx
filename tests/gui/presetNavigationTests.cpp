@@ -9,7 +9,7 @@
 ///
 ///   And the thing the row exists to make possible: the browser opens *inside*
 /// a tree rather than on a two-row listing of the word "Factory" and the word
-/// "User". That was the report -- a plugin with 303 presets in it showed two
+/// "User". That was the report -- a plugin with hundreds of presets in it showed two
 /// rows and no preset names, every time the window opened.
 ///
 /// \note Through the list box and the buttons rather than through pixels, unlike

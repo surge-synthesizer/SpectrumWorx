@@ -43,7 +43,6 @@ namespace LE::SW::GUI
 /// been freed, and `reportInactiveControl()` would then call
 /// `editor().moduleControlDectivated()` on it. It is
 /// SpectrumWorxEditor::pActiveControl_ now, one per editor.
-///                                           (02.08.2026.) (SW port)
 
 bool ModuleControlBase::isActive() const { return this == editor().activeControl(); }
 
@@ -115,7 +114,6 @@ bool ModuleControlBase::reportInactiveControl() const
 /// all. Tune Worx is entirely made of the first and the last of those, so the
 /// one effect where a user most wants a host's own entries was the one effect
 /// that offered none.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -195,7 +193,6 @@ void ModuleControlBase::moduleParameterChanged()
 /// that: the type-in field takes the keyboard, so the knob loses it, so the
 /// control deactivates -- and `isActive()` is false by the time the user presses
 /// return on a value they are quite deliberately setting.
-///                                           (15.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -248,7 +245,6 @@ ModuleUI &ModuleControlBase::moduleUI()
 /// so it could only be asked once the module's region had been parented -- and
 /// `Module::createGUI` writes every parameter into the widgets before that
 /// happens. ModuleUI holds its editor now.
-///                                           (02.08.2026.) (SW port)
 SpectrumWorxEditor &ModuleControlBase::editor() const
 {
     /// \note The const_cast is what the previous body got for free: JUCE's
@@ -292,7 +288,6 @@ juce::String ModuleControlBase::getValueString(float const *LE_RESTRICT const pV
 /// \note The same parser `clap_plugin_params::text_to_value` runs, over the same
 /// module: a value typed into a knob's menu and a value typed into the host's
 /// generic panel are one question, and there is one answer to it.
-///                                           (15.08.2026.)
 std::optional<float> ModuleControlBase::parseValueString(juce::String const &text) const
 {
     LE::Parameters::ParameterValueParser const parser{text.toRawUTF8(),
@@ -307,13 +302,8 @@ namespace
 class ControlWidgetBridge : public ModuleControlBase, public WidgetBase<>
 {
   public:
-    /// \note The four `LE_ASSUME( &reference )`s that stood here are gone. They
-    /// told the optimiser that the address of a reference is not null, which is
-    /// something the language already guarantees and GCC 15 duly reports as a
-    /// nonnull argument compared to NULL. The dynamic_cast assertions below are
-    /// the checks that do say something -- that this really is the other half
-    /// of the same object -- and they stay.
-    ///                                       (05.08.2026.) (SW port)
+    /// \note The dynamic_cast assertions are the checks that say something --
+    /// that this really is the other half of the same object.
     static ModuleControlBase &asControl(juce::Component &widget)
     {
         ModuleControlBase &control(static_cast<ControlWidgetBridge &>(widget));

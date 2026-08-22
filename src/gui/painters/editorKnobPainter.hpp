@@ -50,10 +50,8 @@ namespace LE::SW::GUI
 /// KnobPainter's. \see knobPainter.hpp.
 namespace EditorKnobStyle
 {
-/// \note The ten colours stood here and are ColourMap::EditorKnob* now: the
-/// skin's palette is one file rather than one namespace per drawing. What is
-/// left is the geometry, which is this knob's alone.
-///                                       (18.08.2026.)
+/// \note Geometry only. The colours are ColourMap::EditorKnob*, the skin's
+/// palette being one file rather than one namespace per drawing.
 float constexpr bevelRadius{0.898f};
 /// How far off centre the bevel is lit from, as (x, y) -- down and to the right.
 float constexpr bevelShadingX{0.091f};

@@ -75,7 +75,6 @@ constexpr int japaneseDocumentsBytes{18};
 ///   That is the very trap io/jucePath.hpp exists to close, sprung inside the
 /// test for it. The base stays a plain construction because it is ASCII, and
 /// ASCII is a fixed point of every ANSI code page.
-///                                       (10.08.2026.) (SW port)
 fs::path awkwardPath()
 {
     return fs::path(SW_TEST_OUTPUT_DIR) / utf8ToPath(japaneseDocuments) / "SpectrumWorx";
@@ -124,7 +123,6 @@ TEST_CASE("A path with a non-ASCII component survives the trip through JUCE", "[
     /// passed, because a round trip is self-consistent whatever the bytes mean.
     /// Only the checks against the known sequence bit. \see the note in
     /// pathsTests.cpp on the same distinction.
-    ///                                       (10.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 

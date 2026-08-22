@@ -131,13 +131,9 @@ void Processor::process /// \throws nothing
                       engineSetup().windowOverlappingFactor<std::uint8_t>(),
                   "WOLA parameters not setup.");
 
-    /// \note A Math::FPUDisableDenormalsGuard stood here under
-    /// #ifdef LE_SW_SDK_BUILD, which nothing defined, so it never ran. The guard
-    /// is one sst::plugininfra FPUStateGuard at the top of
-    /// SpectrumWorxCLAP::process() now -- the outermost point of the audio
-    /// callback, which is the right scope for it and the only one all four
-    /// formats share.
-    ///                                   (29.07.2026.) (SW port)
+    /// \note No denormal guard here: it is one FPUStateGuard at the top of
+    /// `SpectrumWorxCLAP::process()`, the outermost point of the audio callback
+    /// and the only one all four formats share.
     ///
     /// \note Armed rather than called: the sampling happens at the first frame
     /// this call produces, and not at all if it produces none.
@@ -223,13 +219,9 @@ void Processor::process /// \throws nothing
                       engineSetup().windowOverlappingFactor<std::uint8_t>(),
                   "WOLA parameters not setup.");
 
-    /// \note A Math::FPUDisableDenormalsGuard stood here under
-    /// #ifdef LE_SW_SDK_BUILD, which nothing defined, so it never ran. The guard
-    /// is one sst::plugininfra FPUStateGuard at the top of
-    /// SpectrumWorxCLAP::process() now -- the outermost point of the audio
-    /// callback, which is the right scope for it and the only one all four
-    /// formats share.
-    ///                                   (29.07.2026.) (SW port)
+    /// \note No denormal guard here: it is one FPUStateGuard at the top of
+    /// `SpectrumWorxCLAP::process()`, the outermost point of the audio callback
+    /// and the only one all four formats share.
     ///
     /// \note Armed rather than called: the sampling happens at the first frame
     /// this call produces, and not at all if it produces none.
@@ -629,7 +621,6 @@ void Processor::calculateWindowAndWOLAGain()
     /// DataRange::iterator: it is the declaration that makes the promise, and
     /// this walk of a freshly made stack buffer is the one place in the tree
     /// that was making it through the alias.
-    ///                                       (05.08.2026.) (SW port)
     for (auto *LE_RESTRICT pBufferPosition(wolaBuffer.begin());; pBufferPosition += stepSize)
     {
         auto const bufferSpaceLeft(static_cast<std::uint16_t>(wolaBuffer.end() - pBufferPosition));
@@ -873,7 +864,6 @@ float const *const dummyNullSidePointer(nullptr);
 /// class never carried it, so only the two reads in the member initialiser list
 /// were ever affected. Dropped, and the Release goldens say the arithmetic did
 /// not move.
-///                                           (02.08.2026.) (SW port)
 LE_FORCEINLINE Processor::ProcessParameters::ProcessParameters(
     InputData const inputs, InputData const sideChannels, OutputData const outputs,
     Channels const &channels, std::uint32_t const numberOfSamples, float const outputGain,

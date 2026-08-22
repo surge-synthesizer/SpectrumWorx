@@ -7,18 +7,12 @@
 /// **The order is ABI**: presets and host automation refer to effects by index,
 /// so entries may be appended but never reordered or removed.
 ///
-/// \note **It is not what the menu looks like.** A fourth column named each
-/// effect's menu group until 18.08.2026, and the menu was a walk over this table
-/// that started a new sub-menu wherever that column changed -- so the menu's
-/// order was this table's order, which is the one order that may never move.
-/// gui/editor/moduleMenuLayout.cpp is where the groups and their order live now;
-/// see issue #121. The `/* … */` markers below are a reading aid and nothing
-/// reads them.
+/// \note **It is not what the menu looks like.** The menu's groups and their
+/// order are gui/editor/moduleMenuLayout.cpp's, precisely so that they can move
+/// when this table's order may not. The `/* … */` markers below are a reading aid
+/// and nothing reads them.
 ///
-/// This used to be effectsList.cmake, which string-concatenated nine headers
-/// through configure_file() into the source tree. The "edition" mechanism it
-/// existed for -- shipping a subset of the effects per SKU -- went with the
-/// licence manager, so every effect is now always built.
+/// \note Every effect is always built; there is no per-SKU subset.
 ///
 /// Consumers define a three-argument macro and expand LE_SW_EFFECT_LIST over it:
 ///
@@ -40,15 +34,11 @@
 
 /// \brief x( folder, module, EffectName )
 ///
-/// \note One entry per line, and clang-format is told to leave it that way.
-/// This is not only about reading it: tools/show-ui/CMakeLists.txt parses this
-/// table to register one UI-render test per effect, and its regex matches the
-/// first x(...) after a newline. Reflowed into a staircase with three entries
-/// on some lines and one broken across two others -- which is exactly what
-/// clang-format 21.1.5 does to it -- the parse silently drops to 40 of the 57
-/// and the suite loses seventeen tests without failing. It did, on 05.08.2026.
-/// WhitespaceSensitiveMacros does not cover this, because that governs *uses*
-/// of a macro and the table is a definition; the off/on pair is what does.
+/// \note **One entry per line, and clang-format is told to leave it that way.**
+/// tools/show-ui/CMakeLists.txt parses this table to register one UI-render test
+/// per effect, and its regex matches the first x(...) after a newline -- so a
+/// reflowed table silently drops tests without failing. WhitespaceSensitiveMacros
+/// does not cover this: that governs *uses* of a macro and this is a definition.
 // clang-format off
 #define LE_SW_EFFECT_LIST(x)                                                          \
     /* Pitch */                                                                       \

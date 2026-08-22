@@ -200,7 +200,6 @@ int channelDistance(juce::Colour const left, juce::Colour const right)
 /// rack shows up as a handful of pixels that are completely wrong, not as a
 /// handful that are one off. Anything worse than rounding still fails, and
 /// differenceOver() says how much worse.
-///                                       (18.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -574,7 +573,6 @@ TEST_CASE("Clicking the logo opens the About page, not an empty panel", "[gui][o
     ///   With the old value back this one goes red, and by a margin that says the
     /// measure is the right one: the panel covers **2.8 %** of its rectangle
     /// instead of 99 %. That 2.8 % is the tab bar, drawn over nothing.
-    ///                                       (03.08.2026.) (SW port)
     ///
     /// \note Through `juce::Component`, because the override is private on the
     /// editor and public on the base -- access is checked against the static type
@@ -651,7 +649,6 @@ TEST_CASE("The two panels are mutually exclusive and land in the same place", "[
     /// "and all of it is left of `overlayX`". Where those two buttons sit is a
     /// layout decision and the layout is being worked on; the claim this case
     /// is for is the exclusion, and their position is not part of it.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const moved(differenceBoundsOutside(settingsAlone, browser, overlayRectangle()));
@@ -683,7 +680,6 @@ TEST_CASE("The two panels are mutually exclusive and land in the same place", "[
 /// to decline and some will, so `expandContract` against a host that says no has
 /// to *be* the overlay rather than an editor drawn wider than its window. That is
 /// the case with the least chance of ever being exercised by hand.
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -790,18 +786,13 @@ TEST_CASE("Swapping panels in the column asks the host for nothing", "[gui][over
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note "A host that refuses the resize gets the overlay" stood here until
-/// 14.08.2026, and its twin at the CLAP layer -- "A host that refuses leaves the
-/// editor the size it was" -- stood in pluginTests.cpp. Both pinned the same
-/// fallback: asked for a column, told no, lay the panel over the module strips
-/// instead.
-///
-///   That is the right answer for an editor with one fixed size and the wrong
-/// one for an editor the user can zoom. A host that refuses `expandedWidth` has
-/// not refused the column; it has refused *that many window units*, and the
-/// answer a zoomable editor owes it is a smaller zoom, not a different layout.
-/// Pinning the old behaviour would make the change that fixes it look like a
-/// regression, so the pin is gone ahead of the change rather than after it.
+/// \note **Nothing here pins "a host that refuses the resize gets the overlay",
+/// deliberately.** That is the right answer for an editor with one fixed size and
+/// the wrong one for an editor the user can zoom: a host that refuses
+/// `expandedWidth` has not refused the column, it has refused *that many window
+/// units*, and what a zoomable editor owes it is a smaller zoom rather than a
+/// different layout. Pinning the current behaviour would make that change look
+/// like a regression.
 ///
 /// \note What is *not* being given up is that the editor asks and reads the
 /// answer: "A panel gets a column of its own" above still counts the requests
@@ -809,7 +800,6 @@ TEST_CASE("Swapping panels in the column asks the host for nothing", "[gui][over
 /// asking in window units through `ZoomedEditor::scaled()`. Only the refusal
 /// path's consequence is unstated, and it is unstated because it is about to
 /// change.
-///                                           (14.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -996,7 +986,6 @@ TEST_CASE("A bank that is not there leaves the browser drawable", "[gui][overlay
 /// \note Measured off the picture rather than off the member, for the reason at
 /// the top of this file: what was wrong is what was on the screen. A bank's
 /// listing and the root's two entries are not the same picture.
-///                                           (08.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

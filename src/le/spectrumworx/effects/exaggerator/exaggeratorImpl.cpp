@@ -77,7 +77,7 @@ void ExaggeratorImpl::process(Engine::ChannelData_AmPh data, Engine::Setup const
     ///
     ///   An exact zero is not exotic: a preceding Bandpass, Sharper or Denoiser
     /// leaves whole regions at zero, which is exactly the company this effect
-    /// keeps. Four of the 303 factory presets rendered NaN -- LE and ESS "Glass
+    /// keeps. A handful of shipped presets rendered NaN -- LE and ESS "Glass
     /// Rain", "Chime Dancing", "Glass Landscape" -- and every one of them has an
     /// Exaggerator in it. Found by rendering the whole bank, which nothing did:
     /// the corpus test loads presets without playing them and the goldens play
@@ -85,7 +85,6 @@ void ExaggeratorImpl::process(Engine::ChannelData_AmPh data, Engine::Setup const
     ///
     ///   Nothing else moves. For a positive exponent `pow( 0, e )` is already 0,
     /// so this changes the output only where the output was NaN or full scale.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     for (auto &amplitude : data.amps())

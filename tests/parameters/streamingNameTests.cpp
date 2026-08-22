@@ -14,7 +14,7 @@
 ///
 ///   `Parameters::StreamingName` and `Effects::EffectStreamingName` split the
 /// two, and both default to the display string, because the display string is
-/// exactly what the 303 factory presets contain. That default is what makes the
+/// exactly what the shipped presets contain. That default is what makes the
 /// split free; this file is what makes it safe. A streaming name here moving
 /// means a file on someone's disk stops being understood.
 ///

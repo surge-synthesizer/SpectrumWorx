@@ -13,7 +13,6 @@
 /// would fail on a redraw for a reason that has nothing to do with this tree.
 /// What is left is the contract a widget depends on: the file is embedded, it
 /// decodes, and what comes back is a valid image of plausible size.
-///                                           (14.08.2026.) (SW port)
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later

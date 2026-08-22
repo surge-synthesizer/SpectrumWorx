@@ -23,7 +23,6 @@
 /// \note This header names juce::Component and juce::Slider throughout but used
 /// to rely on whoever included it having pulled JUCE in first. That worked while
 /// there was exactly one includer.
-///                                       (28.07.2026.) (SW port)
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace LE
@@ -63,7 +62,6 @@ template <class ImplWidget> class ModuleControlImpl;
 /// its default and its LFO. So the seven questions have one set of answers, and
 /// a knob, an LED, a trigger and a combo box all get the menu by being module
 /// controls rather than by being knobs.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -169,7 +167,6 @@ class ModuleControlBase
     /// the last one yet and the readout would lag a drag by a block -- or for
     /// ever, with a host that is not processing. The widget's own value is what is
     /// on screen and is what the caption should say.
-    ///                                       (02.08.2026.) (SW port)
     juce::String getValueText() const
     {
         auto const value(getValue());
@@ -217,7 +214,6 @@ class ModuleControlBase
     /// Written here rather than in `ModuleControl<>` because each of them needs
     /// the editor, and a template in a header that the widgets include cannot
     /// have it. \see ParameterMenu and issue #93.
-    ///                                       (21.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     ///@{
@@ -259,7 +255,6 @@ class ModuleControlBase
     /// while \p region is being torn down, of controls that may already be
     /// pointing at freed memory. `moduleUI()` would assert and then hand out a
     /// reference to it.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool pointsInto(ModuleUI const &region) const { return pModuleUI_ == &region; }
@@ -298,9 +293,9 @@ class ModuleControlBase
     std::uint8_t parameterIndex_;
     ModuleUI *LE_RESTRICT pModuleUI_;
 
-    /// \note `static ModuleControlBase *pActiveControl` stood here, shared by
-    /// every instance of the plugin in the host. It is
-    /// SpectrumWorxEditor::pActiveControl_ now; see the note there.
+    /// \note Which control is active is the *editor's* -- see
+    /// SpectrumWorxEditor::pActiveControl_ -- so that two instances of the plugin
+    /// in one host do not share an answer.
 }; // class ModuleControlBase
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -380,7 +375,6 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
     /// arrives here reading "does not want focus", having never stopped wanting
     /// it. `ModuleKnob::mouseDown` does exactly that to a knob whose LFO is on,
     /// which is why clicking one fired this.
-    ///                                       (03.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     ///
@@ -403,7 +397,6 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
     /// \note The skin's own menus never reach here: they are desktop windows
     /// carrying `ComponentPeer::windowIgnoresKeyPresses` and take no keyboard, so
     /// no focus is lost when one opens. \see Knob::showParameterMenu().
-    ///                                       (15.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual void focusLost(juce::Component::FocusChangeType) noexcept override

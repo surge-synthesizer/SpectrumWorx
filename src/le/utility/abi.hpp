@@ -23,7 +23,6 @@
 /// with -std=c++11". This is a C++20 project and leConfigurationAndODRHeader.h
 /// states the real floor -- MSVC 19.29 -- so a 2010 one only ever answered a
 /// question nobody can ask any more.
-///                                           (07.08.2026.) (SW port)
 ///
 /// \note `!defined(__GNUC__)`, where this said `!defined(__clang__)`. What the
 /// arms hold is a dialect -- MSVC's keywords or GNU's -- and clang-cl writes
@@ -33,7 +32,6 @@
 /// #error. Asked about `__GNUC__` the cascade sorts every compiler by the
 /// dialect it actually speaks, which is what both arms are for. A clang driving
 /// a GNU target still answers `__GNUC__` and still takes the second arm.
-///                                           (09.08.2026.) (SW port)
 #if defined(_MSC_VER) && !defined(__GNUC__)
 
 #define LE_RESTRICT __restrict
@@ -51,7 +49,6 @@
 /// \note LE_BIG_ENDIAN and LE_LITTLE_ENDIAN used to be defined here, from
 /// __BYTE_ORDER__. The four sites that consulted them now use std::endian,
 /// which does not need every one of them to be a preprocessor branch.
-///                                           (28.07.2026.) (SW port)
 
 //------------------------------------------------------------------------------
 #endif // abi_hpp

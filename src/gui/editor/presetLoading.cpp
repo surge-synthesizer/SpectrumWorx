@@ -64,7 +64,6 @@ namespace
 /// its next block. That defers them, and the deferral is not new -- the chain
 /// this same load publishes has always been queued the same way, and lands at
 /// the same points (a block, a `params.flush()`, or `deactivate()`).
-///                                           (08.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -121,7 +120,6 @@ struct Loader
     /// longer arise. It arises again for a different reason: there are two copies
     /// of one program now, and the main thread's is filled by a pass that
     /// reconfigures nothing, publishes nothing and loads no sample.
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool mainThreadCopy;
@@ -146,10 +144,9 @@ struct Loader
         Threading::publishChain(host.core(), host.toEngine(), newChain);
     }
 
-    /// \note The DSP half alone. An `EditorModuleInitialiser` stood here, so
-    /// that a preset which filled slots built their strips as it went; the rack
-    /// follows the chain now, and `SpectrumWorxEditor::resyncModuleRack()` is
-    /// what builds them once the chain is installed.
+    /// \note The DSP half alone: the rack follows the chain, and
+    /// `SpectrumWorxEditor::resyncModuleRack()` builds the strips once the chain
+    /// is installed.
     SpectrumWorxCore::ModuleInitialiser moduleInitialiser() const
     {
         return host.core().moduleInitialiser();
@@ -191,7 +188,6 @@ struct Loader
     /// restoring a session. `PresetProblem` is where everything else wrong with a
     /// preset goes, and the caller decides: `GUI::loadPreset` folds it into the
     /// one summary a user who opened a preset gets, and `stateLoad` drops it.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -212,13 +208,9 @@ struct Loader
         /// is the one spelling no separator can spoil, and Sample::load()
         /// resolves it against the embedded set when there is nothing on disk.
         ///
-        /// \note On the bytes, before they become a path, and that ordering is
-        /// the point: `fs::path` does not normalise separators the way
-        /// `juce::File` did, so this is now the only thing standing between a
-        /// preset written on the other platform and a path with the wrong ones
-        /// in it. It used to be a belt-and-braces fixup in front of something
-        /// that would have coped anyway.
-        ///                                   (09.08.2026.) (SW port)
+        // on the bytes, before they become a path: fs::path does not normalise
+        // separators, so this is the only thing standing between a preset
+        // written on the other platform and a path with the wrong ones in it
         std::string spelling(sampleFileName);
 #ifdef _WIN32
         std::ranges::replace(spelling, '/', '\\');
@@ -267,7 +259,6 @@ struct Loader
     /// behind. A named file that will not decode is reported and cleared, and the
     /// source falls to `Main` -- so the selector never shows a file that is not
     /// there, and the engine never has a source it cannot honour.
-    ///                                       (18.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -288,29 +279,11 @@ struct Loader
         return true;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note A `TempoSyncedLFOWithoutTempo` report stood here, raised when a
-    /// preset used tempo-synced LFOs and the host had never said what the tempo
-    /// was. It is gone, and so is the problem kind, because there is no problem:
-    /// a host that reports no transport gets 120 BPM in four four, which is a
-    /// defined answer and a common one -- the standalone is such a host, so every
-    /// preset with a synced LFO opened there raised it.
-    ///
-    ///   The 2016 sources had already met it from the other side: `Timer::reset()`
-    /// deliberately does not clear `hasTempoInformation_` because doing so
-    /// produced "bogus sporadic" versions of this dialog while browsing presets
-    /// in Live. A warning that needs a workaround to stop firing at the wrong
-    /// time is describing something that is not wrong.
-    ///
-    ///   What the interface does say is better placed and stays: with no tempo
-    /// the LFO panel greys its N/T/D buttons and prints periods in milliseconds
-    /// rather than note ratios, so the state is visible where it matters without
-    /// interrupting anybody. See pluginTests.cpp's "With no transport the LFO
-    /// clock is 120 BPM in four four", which pins the assumption this rests on.
-    ///                                       (02.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note `syncedLFOFound` is ignored, and there is no problem kind for it: a
+    /// host that reports no transport gets 120 BPM in four four, which is a
+    /// defined answer and a common one -- the standalone is such a host. \see
+    /// pluginTests.cpp's "With no transport the LFO clock is 120 BPM in four
+    /// four", which pins the assumption.
     void moduleChainFinished(std::uint8_t const moduleCount, bool /*syncedLFOFound*/) const
     {
         if (pEditor)
@@ -365,7 +338,7 @@ struct Consumer
 /// \note "Owed an answer" is not "owed a count". A missing parameter on its own
 /// says nothing to a user: the effect grew that parameter after the preset was
 /// written and the value defaulted, which is the format's forward compatibility
-/// doing its job. 104 of the 303 shipped banks raise one, and it is the only kind
+/// doing its job. A good fraction of the shipped banks raise one, and it is the only kind
 /// any of them raises -- so this used to interrupt one factory preset in three
 /// with a number nobody could act on. See PresetLoadReport::worthTellingTheUser()
 /// and presetReportTests.cpp, which is what actually watches that total.
@@ -373,7 +346,6 @@ struct Consumer
 ///   It is still *mentioned* when something else has gone wrong, because "two
 /// effects are missing and so are forty parameters" is a fuller account of the
 /// same event.
-///                                           (02.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -432,7 +404,6 @@ bool loadPreset(EditorHost &host, SpectrumWorxEditor *const pEditor, char *const
     /// \note Only with a window open. `dismissAllActiveMenus()` is process-wide,
     /// and a session being restored into an instance that has no editor has no
     /// business closing a menu the user has open in a different one.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     if (pEditor)
@@ -461,7 +432,6 @@ bool loadPreset(EditorHost &host, SpectrumWorxEditor *const pEditor, char *const
     /// \note This one's report is dropped. It sees exactly the problems the pass
     /// below sees, and counting them twice would double every number a user is
     /// shown; `presetReportTests.cpp` is what watches those totals.
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     {
@@ -513,7 +483,6 @@ bool loadPreset(EditorHost &host, SpectrumWorxEditor *const pEditor, char *const
     /// its list-box callback and goes on to touch its own widgets afterwards
     /// (PresetBrowser::presetSelectionChanged), while a resync destroys strips
     /// and moves the keyboard focus. \see refreshModuleRackAsync().
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     if (pEditor)

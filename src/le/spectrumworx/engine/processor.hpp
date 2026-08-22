@@ -136,7 +136,6 @@ class Processor
     /// nothing an existing caller renders can move. And the channel loop is
     /// outside the frame loop, so without the flag channel 0's first frame would
     /// consume a trigger that channel 1 then never saw.
-    ///                                       (16.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     void preProcessForFirstFrame();

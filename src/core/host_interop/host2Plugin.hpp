@@ -63,7 +63,6 @@ class Host2PluginInteropControler
     /// `SpectrumWorxCore::blockAutomation()` which claimed the flag could not be
     /// raised there -- see the note on that function for why it could, and why the
     /// answer was to delete the claim rather than to synchronise it.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -81,7 +80,6 @@ class Host2PluginInteropControler::AutomationBlocker
     /// it does -- so a load that nests would be undefined behaviour rather than a
     /// caught bug, which is the wrong way round for a guard whose whole job is to
     /// notice one.
-    ///                                       (08.08.2026.) (SW port)
     AutomationBlocker(Host2PluginInteropControler const &effect)
         : pBlockAutomation_(&effect.blockAutomation_)
     {
@@ -99,7 +97,6 @@ class Host2PluginInteropControler::AutomationBlocker
     /// \note The gate was `defined(__clang__) || _MSC_VER >= 1900`, which is
     /// false on GCC, so GCC alone would have got no move constructor at all —
     /// and NRVO on a named local is permitted, not guaranteed. Unconditional.
-    ///                                       (29.07.2026.) (SW port)
     AutomationBlocker(AutomationBlocker &&other) : pBlockAutomation_(other.pBlockAutomation_)
     {
         static bool dummy;

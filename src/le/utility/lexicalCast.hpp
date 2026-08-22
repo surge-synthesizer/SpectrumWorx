@@ -49,7 +49,6 @@ namespace LE::Utility
 /// convert to one, which is why the call sites read the same as before. A bare
 /// pointer does not convert, which is the point: there is no way left to call
 /// these without saying how much room there is.
-///                                           (08.08.2026.) (SW port)
 ///
 /// \return the number of characters written, the terminator not counted, or zero
 /// when the value does not fit -- in which case \p buffer holds the empty string.
@@ -73,7 +72,6 @@ namespace LE::Utility
 /// digests did not move, so this is a property to keep in mind rather than a
 /// defect. A parameter whose values ever reach 1e300 wants its own printer, not a
 /// wider buffer.
-///                                           (08.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -99,7 +97,6 @@ unsigned int lexical_cast(double, std::span<char> buffer);
 /// the one value that matters most is the one that loses its point. \see issue
 /// #94, and le/parameters/linear/printer.hpp, which is where every float
 /// parameter's readout is rendered.
-///                                           (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -136,7 +136,6 @@ template <typename Widget> std::vector<Widget *> descendantsOfType(juce::Compone
 /// assumed, so that a layout change fails here instead of silently sending the
 /// rest of the case at the wrong widget. Which is what it did: the colour scheme
 /// box arrived as a fourth and this said so.
-///                                       (18.08.2026.)
 GUI::TitledComboBox &comboBoxOffering(Editor &editor, std::size_t const choices)
 {
     /// Zoom, colour scheme, mouse-over reaction and LFO update behaviour.

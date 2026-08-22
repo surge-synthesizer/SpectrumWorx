@@ -87,7 +87,6 @@ struct LFODumper
 /// bites -- they are the only parameters whose display name and streaming name
 /// differ -- so relabelling `FFT size` to `FFT Size` moved all eight fixture
 /// digests while every preset went on loading identically.
-///                                       (18.08.2026.) (SW port)
 struct GlobalDumper
 {
     using result_type = void;
@@ -112,13 +111,12 @@ void dumpModule(std::string &out, std::uint8_t const slot, ModuleParameters cons
 {
 
     /// \note Streaming names throughout, not display names. This dump is hashed
-    /// into presetCorpus.txt, whose contract is "a row that moves is a preset
+    /// into presetFixtures.txt, whose contract is "a row that moves is a preset
     /// that loads differently" -- and retitling an effect or relabelling a knob
     /// is precisely a change that does *not* load differently. Naming the
-    /// display strings here would have made every such rename a 303-row diff
+    /// display strings here would have made every such rename a whole-corpus diff
     /// that says nothing. They are the same strings for all but one parameter
     /// today, so what this buys is not readability but the right sensitivity.
-    ///                                       (01.08.2026.) (SW port)
     out += "module " + std::to_string(slot) + " = " +
            Effects::effectStreamingName(module.effectTypeIndex()) + '\n';
     out += "  bypass = " + std::string(module.bypass() ? "1" : "0") + '\n';
@@ -203,9 +201,9 @@ ScopedProblemCounter::~ScopedProblemCounter() { setPresetProblemReporter(previou
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \note Imbued, for the same reason the plugin's own writer is: this text is
-/// what `presetCorpus.txt` hashes, and `snprintf` spells the point whichever way
+/// what `presetFixtures.txt` hashes, and `snprintf` spells the point whichever way
 /// the machine's locale says. So every committed digest was a statement about
-/// the locale of the machine that generated it -- 303 rows that would all move
+/// the locale of the machine that generated it -- every row would move
 /// on a German developer's checkout, saying "these presets load differently"
 /// about presets that load identically.
 ///

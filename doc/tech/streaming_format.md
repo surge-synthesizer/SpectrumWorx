@@ -48,7 +48,7 @@ Two templates carry it, both defaulting to the display string:
 | effect | `Effects::effectName(i)` | `Effects::effectStreamingName(i)` | the title |
 
 **The default is what makes this free.** Today's display names *are* the 2016
-names — they are exactly the strings inside the 303 factory presets. Seeding the
+names — they are exactly the strings inside the shipped presets. Seeding the
 streaming name from the display name means the pre-port name table exists,
 complete and correct, at the point of definition, without a side table anyone has
 to maintain or trust. That is only true once: every rename that happens before
@@ -87,7 +87,7 @@ A 2011 instruction to the user wearing a parameter name. Its mangled form
 `<Center_(LFO_me!)>` is also one of the element names `repairLegacyElementNames()`
 exists to make parseable at all. Renaming it changed **one line** of
 `parameterTable.txt` and nothing else — not `streamingNames.txt`, not
-`presetCorpus.txt`, and no factory preset loads differently.
+`presetFixtures.txt`, and no factory preset loads differently.
 
 ### Where the strings come from
 
@@ -116,7 +116,7 @@ spirit for two of the four tuples; this finishes it.
 |---|---|---|
 | `tests/parameters/data/streamingNames.txt` | every string that reaches a file — 57 effects, their parameters, the globals, the LFO. Its third column, an effect's title, is *recorded* rather than pinned | a key changes. **Always a break.** A title moving is reported and passes |
 | `tests/parameters/data/parameterTable.txt` | types, ranges and defaults, keyed by streaming name, and the host-visible id space. Everything right of ` ;; ` — the display name, the unit, the enumerator strings — is *recorded* rather than pinned, like the title column above it | a range, a type or a default changes, or an id appears or disappears. A relabelling is reported and passes. Not when an effect is retitled |
-| `tests/presets/data/presetCorpus.txt` | what all 303 factory presets load into, by two routes: read directly, and read → rewritten as 3.0 → read again | a preset loads differently, or the translation into 3.0 loses something |
+| `tests/presets/data/presetFixtures.txt` | what the frozen fixtures under `data/fixtures` load into, by two routes: read directly, and read → rewritten as 3.0 → read again | a preset loads differently, or the translation into 3.0 loses something |
 | `tests/presets/data/format3.swp` | the 3.0 grammar itself — hand written, read by a test that never runs the writer | the grammar moves. A rename applied to writer *and* reader passes every round-trip test and orphans every file already saved; this is what does not pass. |
 | `tests/clap/stateTests.cpp` | `clap_plugin_state`: the round trip through a second instance, the bytes, the sample, and what a host may do to a stream | state stops being a preset, or stops surviving a truncated / mis-sized / hostile one |
 
@@ -126,11 +126,16 @@ resolved in `streamingName()`, so a fallback that came undone would show up as a
 preset written with no key on half its parameters), and every effect's streaming
 name mangles and un-mangles back to its own index.
 
-`presetCorpus.txt`'s digests are taken over a dump that now names parameters and
+`presetFixtures.txt`'s digests are taken over a dump that names parameters and
 effects by their **streaming** names. That is deliberate: its contract is *"a row
 that moves is a preset that loads differently"*, and a relabelled knob is exactly
 a change that does not. Naming display strings there would have made every rename
-a 303-row diff that says nothing.
+a whole-file diff that says nothing.
+
+They are taken over the frozen fixtures rather than over the shipping banks,
+which are edited as ordinary work: a snapshot of those says more about the last
+person to open the browser than about this tree. \see the note at the top of
+`presetCorpusTests.cpp`.
 
 ### The order to trust
 
@@ -138,7 +143,7 @@ Run the snapshots under `ctest`. All three live in `sw-dsp-tests`, which as of
 02.08.2026 is one of two test binaries.
 
 **A leaked *tempo* no longer moves a row.** A case that established one used to
-move 153 of the 303, because `adjustValueForPreset` converted a free LFO's period
+move a good half of them, because `adjustValueForPreset` converted a free LFO's period
 through `LFO::Timer`'s process-global bar duration; the binary split hid that and
 fixed nothing. The conversion reads a constant reference bar since 06.08.2026 —
 [`how-lfo-rates-and-eval-work.md`](how-lfo-rates-and-eval-work.md) §4.
@@ -213,14 +218,14 @@ deliberate and neither is the norm here —
   would be *migrated* rather than read.
 
 A patch with no `Side chain source` is migrated from 2016's `Input_mode`, which
-all 288 shipped presets carry and which is no longer a parameter — read at load,
+every shipped preset carries and which is no longer a parameter — read at load,
 never written. See [`sidechain-approach.md`](sidechain-approach.md) §4.
 
 Against 2.x:
 
 | 2.x | 3.0 | why |
 |---|---|---|
-| the element name *is* the mangled key — `<Start_frequency>`, `<1>`…`<12>`, `<Center_(LFO_me!)>` | the key is an attribute *value* — `<p n="Center (LFO me!)"/>` | anything is legal in an attribute value. 25 of the 303 factory files do not parse without `repairLegacyElementNames()`; 3.0 cannot produce a file that needs it |
+| the element name *is* the mangled key — `<Start_frequency>`, `<1>`…`<12>`, `<Center_(LFO_me!)>` | the key is an attribute *value* — `<p n="Center (LFO me!)"/>` | anything is legal in an attribute value. A number of the shipped files do not parse without `repairLegacyElementNames()`; 3.0 cannot produce a file that needs it |
 | an attribute on `<Global>`, element *text* on a module parameter | always `v="…"` | one lookup, not two |
 | the module element is the mangled effect title | `<Module effect="Ah-ah">` | resolved by `effectIndexFromStreamingName()` rather than 57 mangled string compares |
 | `Bypass` an attribute on the module element | `<p n="Bypass" v="0"/>` | uniform |
@@ -241,7 +246,7 @@ parameter's value lives, where its LFO attributes live, how the module elements
 are walked, and how an element names its effect — so it takes an element-access
 strategy rather than growing a second class.
 
-The 303 factory presets **stay 2.x**. They are the only corpus of that grammar
+The shipped factory presets **stay 2.x**. They are the only corpus of that grammar
 and the only thing keeping its reader honest.
 
 One thing the split touches that is not a grammar: `savePreset` and
@@ -259,7 +264,7 @@ reparses the file, moves the `Comment` attribute and prints back the document it
 read, so a 2.x preset stays 2.x. Changing a comment is not a reason to rewrite
 somebody's file into a grammar the plugin they had it from cannot open.
 
-### 4.4b Precision
+### 4.3b Precision
 
 3.0 prints floats at nine significant figures — the shortest that round-trips
 every `float` — where 2.x wrote four *decimals* (`lexicalCast.cpp:63`). Four is
@@ -431,7 +436,7 @@ simply skipped when there is nowhere to draw.
 - **Changing a default.** Free for any parameter that existed in 2016, and the
   reason is §4.2's first row inverted: the 2.x writer emits *every* parameter an
   effect has, at its default or not — `Gain 0`, `Start frequency 0` and `Stop
-  frequency 1` are written out in all 288 shipped files — so a 2.x preset naming
+  frequency 1` are written out in every shipped file — so a 2.x preset naming
   that effect names the parameter too, and the compiled default is never reached
   for. The 3.0 writer is exhaustive as well (`savePresetParameters`), so **the
   only file that can be missing a parameter which already existed is a 2.x file,
@@ -442,7 +447,7 @@ simply skipped when there is nowhere to draw.
 
   Not free for a parameter the effect *grew* later. A file written before it
   existed takes today's default rather than the one in force when it was
-  written — `PresetProblem::MissingParameter`, which 104 of the 303 shipped
+  written — `PresetProblem::MissingParameter`, which a good fraction of the shipped
   banks raise, every Freqverb preset for `HF absorb` and every TuneWorx preset
   for its vibrato section. Nothing migrates that yet; a table of prior defaults
   keyed on `Format` is the shape it would take, and issue #15 deliberately did

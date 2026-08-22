@@ -46,21 +46,11 @@ char const Bandstop::description[] = "Band-stop filter.";
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \note A windowed version of both filters stood here, behind
-/// LE_BAND_FILTER_USE_ENGINE_WINDOW: an engine window scaled into
-/// [1, attenuation] and applied as an up-slope and a down-slope either side of
-/// the band, so the edges rolled off instead of stepping. It was marked "Testing
-/// phase..." in 2012 and never left it.
-///
-///   It was not switched off, which is the reason it goes rather than staying as
-/// a dormant option. The macro was defined under `#if defined(_DEBUG)` -- MSVC's
-/// own debug-runtime macro, set by no build here -- so Clang and GCC never
-/// compiled it and MSVC Debug did. Bandpass and Bandstop therefore produced
-/// different audio in an MSVC Debug build than in every other build in
-/// existence, and the goldens could not see it. Worse, `pUpSlope_` had no
-/// initialiser and `BandGainImpl` no constructor, so the first setup() call read
-/// it to compute an alignment before anything had written it.
-///                                       (07.08.2026.) (SW port)
+/// \note A flat attenuation, with no windowed roll-off either side of the band.
+/// A windowed variant was tried and abandoned; if it comes back it must not come
+/// back behind a macro that only one compiler's debug build defines,
+/// which is how Bandpass and Bandstop came to produce different audio there than
+/// everywhere else with the goldens unable to see it.
 void Detail::BandGainImpl::setup(IndexRange const &, Engine::Setup const &)
 {
     attenuation_ = Math::dB2NormalisedLinear(-parameters().get<Attenuation>());

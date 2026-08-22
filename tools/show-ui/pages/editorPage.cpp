@@ -268,7 +268,6 @@ class EditorPage final : public juce::Component
             /// exercise that, and swapping between them is what a user does.
             /// What this page renders is therefore also the evidence that the
             /// browser went away.
-            ///                               (01.08.2026.) (SW port)
             editor_->showPresetBrowser(true);
             editor_->showSettings(static_cast<unsigned int>(settingsPage));
         }
@@ -388,7 +387,6 @@ class EditorPage final : public juce::Component
         /// building none of them, and "editor-module renders" meant "the empty
         /// editor renders, again". `tests/clap/pluginTests.cpp` had the same
         /// call for the same reason and this page never got it.
-        ///                                   (03.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         editor_->resyncModuleRack();
@@ -408,7 +406,6 @@ class EditorPage final : public juce::Component
     /// \note Through showModuleDrop() rather than a real drag, for the same
     /// reason that file gives: a JUCE drag needs a window, and this page renders
     /// offscreen.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 

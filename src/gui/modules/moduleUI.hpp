@@ -157,7 +157,6 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
     /// whenever something else happened to repaint the knob -- for a right press,
     /// not until the menu closed again, which is the second half of issue #92.
     /// The other two focusable module widgets have always had this.
-    ///                                       (17.08.2026.)
     void focusChanged() { repaint(); }
 
     void updateForEngineSetupChanges(Engine::Setup const &);
@@ -254,7 +253,6 @@ class ModuleLEDTextButton : public LEDTextButton, public ModuleControl<ModuleLED
 /// module knob's dome with a cap that turns blue. It paints itself now, from
 /// KnobPainter and TriggerButtonStyle, and what is left of that class here is
 /// the two words a boolean reads as.
-///                                       (18.08.2026.)
 class TriggerButton : public WidgetBase<juce::Button>, public ModuleControl<TriggerButton>
 {
   public: // ModuleUI control traits
@@ -314,7 +312,6 @@ class TriggerButton : public WidgetBase<juce::Button>, public ModuleControl<Trig
     /// press, a list you drop. What issue #93 asked for on these three is the
     /// host's own entries, which is what they now have; the field a knob offers
     /// would be a second and worse way to do what the widget does.
-    ///                                       (21.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -459,14 +456,10 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     /// blue rule. Public because it is also what the cursor says.
     bool isDragHandle(juce::Point<int> position) const;
 
-    /// \note Was `static ModuleUI *selectedModule()` over a file-scope pointer,
-    /// with a 2011 note arguing that a static was safe "even if there are multiple
-    /// effect editor instances open" because no two windows can have focus at
-    /// once, and a `\todo Verify this on the Mac` under it. Focus is not the
-    /// question: two instances shared one pointer, so the second editor to select
-    /// a module silently deselected the first one's, and an editor closing left
-    /// the other holding a pointer into freed storage. It is the editor's now.
-    ///                                       (02.08.2026.) (SW port)
+    /// \note Which module is selected is the *editor's*, not the process's: two
+    /// instances sharing one pointer would let the second to select a module
+    /// deselect the first's, and one closing would leave the other holding a
+    /// pointer into freed storage.
     bool selected() const;
 
   public:
@@ -474,18 +467,15 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     ///
     /// \brief One module's strip: its controls, and where they are on screen.
     ///
-    /// \note The module is held by *reference count*. A region has to outlive the
-    /// chain dropping the module -- a host can empty a slot from its own panel
-    /// while the window is open -- and the alternative was what used to be here:
-    /// the module owned the region as a member, so the module could not be
-    /// destroyed until the message thread had run `destroyGUI()`, which is why
-    /// `intrusive_ptr_release_deleter` posted a message from whichever thread
-    /// dropped the last reference. That thread can be the audio one.
+    /// \note The module is held by *reference count*, a region having to outlive
+    /// the chain dropping the module -- a host can empty a slot from its own
+    /// panel while the window is open. The other way round, the module could not
+    /// be destroyed until the message thread had taken the region down, and the
+    /// thread dropping the last reference can be the audio one.
     ///
     /// \note The editor is held rather than recovered from the component
     /// hierarchy: the constructor writes every parameter into the widgets before
     /// the region is parented.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -558,7 +548,6 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     /// std::uint8_t when the skin was rescaled to 845 x 564; a set of geometry
     /// constants where the type varies by how big the number happens to be is a
     /// trap the next rescale falls into.
-    ///                                       (19.08.2026.)
     static std::uint16_t const horizontalOffset = 320;
     static std::uint16_t const verticalOffset = 14;
     static std::uint16_t const height = 537;
@@ -622,7 +611,6 @@ template <class Widget> struct ModuleWidgetHolder
 /// on WidgetsStorage) and resolved to whichever it saw first. Interposing a
 /// holder keyed on the *parameter* makes every base distinct, which is the fix
 /// for all three compilers rather than for one.
-///                                           (29.07.2026.) (SW port)
 template <typename Parameter>
 struct ParameterWidgetHolder : ModuleWidgetHolder<typename WidgetForParameter<Parameter>::type>
 {
@@ -655,7 +643,6 @@ struct WidgetInitialiser
         /// do for themselves: one leaves the box on value zero and the other on
         /// its first power of two, both of which were the answer while zero was
         /// the only default an enumerated parameter could have. \see issue #163.
-        ///                                   (21.08.2026.)
         comboBox.DiscreteParameter::setValue(Parameter::default_());
     }
 
@@ -729,7 +716,6 @@ struct WidgetsStorage : PreviousWidgets, ParameterWidget<Parameter>::type
 // over the Fusion-adapted parameter container. The placeholder expression is
 // the only thing MPL was contributing; the traversal is a left fold over the
 // indices the container already knows about.
-//                                        (30.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////
 
 template <class Accumulated, class Parameters, std::size_t index,
@@ -820,16 +806,6 @@ template <> class ParameterWidgets<Effects::Detail::EmptyParameters>
     static void construct(ModuleUI &) {}
     static void destroy() {}
 }; // class ParameterWidgets<EmptyParameters>
-
-/// \note `template <class Interface> struct ParameterWidgetsVTable` stood here:
-/// a pair of function pointers, planted in every module at construction, that
-/// built and destroyed that effect's widgets. It existed because the *module*
-/// owned the widgets, so the only place that knew which effect's storage it was
-/// holding was the module itself.
-///
-///   The region owns them now and picks the instantiation by effect index --
-/// moduleWidgets.hpp -- so there is nothing left to plant.
-///                                           (02.08.2026.) (SW port)
 
 } // namespace GUI
 

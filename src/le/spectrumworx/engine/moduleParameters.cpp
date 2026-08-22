@@ -12,7 +12,6 @@
 
 // \note For Detail::ParametersInformation, which parameterInfos() - defined
 // below, and declared in the header for callers everywhere - returns.
-//                                            (28.07.2026.) (SW port)
 #include "moduleImpl.hpp"
 
 #include "le/parameters/conversion.hpp"
@@ -32,7 +31,6 @@
 /// compiling this file both ways -- the string " Hz" is in one object and not
 /// the other -- after the stage 7.0 parameter table snapshot noticed the unit
 /// appear when stage 8 switched the macro off.
-///                                           (31.07.2026.) (SW port)
 #include "le/spectrumworx/effects/baseParameters.hpp"
 
 #include "le/spectrumworx/presets.hpp"
@@ -358,7 +356,6 @@ void ModuleParameters::loadPresetParameters(ParametersLoader const &parameterLoa
         /// rule can be carrying one: `setEffectParameter` on a trigger arms it,
         /// and the next processed block consumes it. That is a preset that
         /// freezes the session it is loaded into. \see savePresetParameters().
-        ///                                   (16.08.2026.) (SW port)
         if (info.type == ParameterInfo::Trigger)
             continue;
 
@@ -380,7 +377,6 @@ void ModuleParameters::savePresetParameters(ParametersSaver const &parameterSave
     /// the parameter's value, and loading the file back read it as the setting.
     /// The load side has always read the value as an unmodulated one; see
     /// getParameterValueWithoutLFO() above.
-    ///                                       (02.08.2026.) (SW port)
     for (std::uint8_t i(1); i < numberOfBaseParameters; ++i)
     {
         saver.saveParameter<float>(parameterInfos()[i].streamingName, unmodulatedBaseParameter(i),
@@ -403,7 +399,6 @@ void ModuleParameters::savePresetParameters(ParametersSaver const &parameterSave
     /// effect's parameters are saved by this runtime loop while the globals go
     /// through the templated functor. The two paths need the same rule stated
     /// twice; \see LE::Parameters::isAnEvent for the other one. Issue #65.
-    ///                                       (16.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const effectSpecificParameters(numberOfEffectSpecificParameters());

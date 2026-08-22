@@ -40,7 +40,6 @@ namespace LE::SW::GUI
 /// business naming a knob. It has to be visible before WidgetsFor<> below
 /// instantiates the widgets that read it, which is what putting it at the top of
 /// the one file that builds them guarantees.
-///                                       (02.08.2026.) (SW port)
 template <> struct ModuleKnob::QuantizationFor<Effects::Detail::PitchMagnetBase::Target>
 {
     static ModuleKnob::Quantization const value = ModuleKnob::Fixed;

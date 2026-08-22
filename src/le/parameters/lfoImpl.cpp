@@ -199,7 +199,6 @@ void LFOImpl::setPeriodScale(value_type const newPeriodScale)
 /// `snapSyncedPeriodScale()`, which divides by the host's numerator throughout.
 /// It no longer decides what values are representable. Four four gives the wider
 /// of the two, so nothing that used to be in range has left it.
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -342,7 +341,6 @@ lfo_value_t diracUpsideDown(lfo_value_t /*position*/, LFOState &, bool const new
 ///
 ///   The Clang arm expanded to this same signature, top-level parameter const
 /// being no part of a function's type, so one plain typedef replaces both.
-///                                       (30.07.2026.) (SW port)
 typedef lfo_value_t (*GetWaveformAmplitudeForPosition)(lfo_value_t position, LFOState &,
                                                        bool newPeriodBegun);
 
@@ -377,7 +375,6 @@ LFOImpl::value_type LFOImpl::getValue(Timer const &timer) const
     /// is read against a bar that never changes length -- see
     /// `Timer::currentTimeInReferenceBars()`, which also has the identity
     /// showing this is what the old rescale-the-parameter arrangement computed.
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool const freeRunning(syncTypes() == LFO::Free);
@@ -465,13 +462,12 @@ LFOImpl::value_type LFOImpl::getValue(Timer const &timer) const
 /// the same session saved at two tempi wrote two different files.
 ///
 ///   That is why `[preset-corpus]` used to turn red about one run in three when
-/// the whole suite ran in one process -- 153 of the 303 rows, the ones with a
+/// the whole suite ran in one process -- every row with a
 /// tempo-synced LFO -- and why the two test binaries had to be split. Nothing
 /// was ever fixed there; this is the fix. A constant converts the same way from
 /// any tempo, which is what "the file holds an absolute duration" was always
 /// supposed to mean.
 ///                                       (07.01.2011.) (Domagoj Saric)
-///                                       (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -791,7 +787,6 @@ std::optional<LFOImpl::value_type> LFOImpl::parsePeriodScale(char const *const t
 ///   The synced arm stays, and is not the same thing: a *meter* change alters
 /// which divisions of a bar exist, so a period snapped to the old grid has to be
 /// resnapped to the new one. That is a quantisation, not a rescale.
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -942,7 +937,6 @@ LFOImpl::Timer::Timer() { reset(); }
 /// through the plugin in `tests/clap/pluginTests.cpp` are what measure it. Both
 /// go red on a revert of this line, dragging a quarter-of-a-bar period onto the
 /// new meter's grid on the first block.
-///                                           (03.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1023,16 +1017,6 @@ void LFOImpl::Timer::setPosition(unsigned int const numberOfSamples, float const
 
 void LFOImpl::Timer::setPosition(float const timeInSeconds)
 {
-    /// \note Three `LE_ASSUME`s stood here -- "assume 120 BPM 4/4" -- and two of
-    /// them compared the wrong pair: `barDuration_ == 4` and `measureNumerator_
-    /// == 60.0f / 120 * 4`, i.e. each against the other's value. An `LE_ASSUME`
-    /// is a promise to the optimiser rather than a check, so a false one is
-    /// undefined behaviour and nothing would have said so. Deleted rather than
-    /// corrected: nothing calls this (`Engine::Processor::setPosition` is the
-    /// only caller and has none of its own), so a promise about it cannot be
-    /// tested and is not worth keeping.
-    ///                                       (02.08.2026.) (SW port)
-
     // Position
     float const timeInBars(timeInSeconds / relaxed(barDuration_));
 

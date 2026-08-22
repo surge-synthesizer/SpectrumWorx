@@ -20,7 +20,6 @@
 /// header did not compile on one: `GlobalParameters::Parameters` and
 /// `Engine::actualModule` were undeclared at loadPreset()'s definition, which
 /// MSVC reported as a cascade of syntax errors rather than as missing names.
-///                                           (05.08.2026.) (SW port)
 #include "configuration/versionConfiguration.hpp"
 
 #include "le/math/conversion.hpp"
@@ -80,14 +79,12 @@ class SpectrumWorx;
 /// \note These were `GUI::warningMessageBox` calls made from inside the engine,
 /// one dialog per problem. Two things wrong with that. It is a layering
 /// inversion -- `sw-dsp` reaching up into the GUI -- and, more concretely, a
-/// 2009-2011 preset does not mention parameters that the 2016 effects grew: the
-/// 303 committed factory presets raise **722** MissingParameter reports between
-/// them, which as dialogs is a wall of them in front of a user who opened a
-/// bank.
+/// 2009-2011 preset does not mention parameters that the 2016 effects grew, so
+/// the shipped banks raise MissingParameter reports in bulk -- which as dialogs
+/// is a wall of them in front of a user who opened a bank.
 ///
 ///   So the preset layer says what happened and the caller decides. The default
-/// reporter is still the message box, so a plugin behaves as it did; the corpus
-/// test counts instead, which is how the number above is known.
+/// reporter is still the message box, so a plugin behaves as it did.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -114,7 +111,6 @@ enum struct PresetProblem : std::uint8_t
     ///   It needs the loader to *notice*, which it did not: reading is pull, one
     /// lookup per parameter the effect has, so an element nobody asked for was
     /// never visited. See ParametersLoader::reportUnreadParameters().
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     UnknownParameter,
@@ -131,7 +127,6 @@ enum struct PresetProblem : std::uint8_t
     ///   It raised a modal box of its own until 08.08.2026, from inside the
     /// load, which is how a host restoring a session came to be stopped by a
     /// dialog nobody had asked for.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     SampleNotLoaded,
@@ -143,16 +138,12 @@ enum struct PresetProblem : std::uint8_t
     /// \note Legitimately a *later* version's file rather than a damaged one, and
     /// reported for that reason: everything up to the last slot loads and plays,
     /// and what is missing is nameable. \see ParametersLoader::loadModuleChain.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     TooManyModules
-    /// \note A `TempoSyncedLFOWithoutTempo` stood here, for a preset with
-    /// tempo-synced LFOs loaded into a host that reports no transport. That is
-    /// not a problem: such a host gets 120 BPM in four four, which is a defined
-    /// answer, and the standalone is one of them. See the note in
-    /// presetLoading.cpp's moduleChainFinished().
-    ///                                       (02.08.2026.) (SW port)
+    /// \note There is no problem kind for a tempo-synced LFO in a host that
+    /// reports no transport: such a host gets 120 BPM in four four, which is a
+    /// defined answer, and the standalone is one of them.
 };
 
 /// \param detail the effect or parameter name where there is one, else empty.
@@ -174,8 +165,8 @@ void reportPresetProblem(PresetProblem, std::string_view detail = {});
 /// \note The default reporter was a `GUI::warningMessageBox` per problem, which
 /// was wrong three ways. It is a layering inversion -- the preset parser reaching
 /// up into the GUI. It is a *storm*: a 2011 preset does not mention parameters its
-/// effect grew later, and the 303 factory banks raise 722 `MissingParameter`
-/// reports between them, so opening a bank meant that many dialogs. And once the
+/// effect grew later, and the factory banks raise `MissingParameter` in bulk, so
+/// opening one meant that many dialogs. And once the
 /// session state became the preset serialisation, it happened on a host restoring
 /// a project -- without anyone asking, on whatever thread the host chose, possibly
 /// before there is a window to put a dialog in front of.
@@ -218,8 +209,8 @@ struct PresetLoadReport
     /// value defaults, and this is the format's forward compatibility working
     /// exactly as designed.
     ///
-    ///   It is also not rare. **104 of the 303 shipped banks** raise one --
-    /// every Freqverb preset predates `HF absorb`, every TuneWorx preset
+    ///   It is also not rare -- a good fraction of the shipped banks raise one.
+    /// Every Freqverb preset predates `HF absorb`, every TuneWorx preset
     /// predates its twelve per-semitone bypasses and its whole vibrato section
     /// -- and `MissingParameter` is the *only* kind any of them raises. So
     /// mentioning it put a dialog in front of anyone arrowing through the
@@ -229,7 +220,6 @@ struct PresetLoadReport
     /// somebody renamed one is a real defect, and it looks exactly like this
     /// from here. What catches that is the pinned total in
     /// presetReportTests.cpp, not a dialog the user learns to dismiss.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     /// \note `samplesNotLoaded` is told: the file has a name, and going and
@@ -304,7 +294,6 @@ struct PresetHeader
 /// the caller does not own the `Preset`: `savePreset` builds a `SavedPreset` and
 /// `loadPreset` builds a `Preset`, both internally, and neither is ever in a
 /// caller's hands to hang a hook on.
-///                                           (02.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -342,7 +331,6 @@ class Preset
     /// `currentFormatVersion` is refused by `loadPreset()` with
     /// `PresetProblem::FutureFormat`, so "saved by a newer SpectrumWorx" is not
     /// reported as a corrupt file.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -362,7 +350,6 @@ class Preset
     /// -- which is always -- so `loadFrom(...) != true` at the one call site was
     /// a comparison that could not fail, and a malformed preset was reported by
     /// RapidXML *throwing* instead. TinyXML says so in its return value.
-    ///                                       (31.07.2026.) (SW port)
     bool loadFrom(char const *pBuffer);
 
     /// \brief Prints the preset.
@@ -374,7 +361,6 @@ class Preset
     /// bought nothing: TiXmlPrinter builds the whole document in a string of its
     /// own before any of it is copied out. Session state, which has no size to
     /// be limited to, is what made keeping it indefensible.
-    ///                                       (02.08.2026.) (SW port)
     std::string saveTo() const;
 
     void getHeader(PresetHeader &) const;
@@ -423,8 +409,8 @@ class PresetHandler
     // semitones are called "1" .. "12" -- and the punctuation in
     // "Center (LFO me!)" and the seven "... (pvd)" effects. The 2016 writer
     // replaced the space and nothing else, and got away with it because
-    // RapidXML's fastest parse mode never checks a name. TinyXML does, and 25 of
-    // the 303 factory presets do not parse until read through
+    // RapidXML's fastest parse mode never checks a name. TinyXML does, and a
+    // number of the shipped presets do not parse until read through
     // repairLegacyElementNames().
     //
     // \note Not invertible, and it does not need to be: nothing unmangles. A
@@ -437,7 +423,6 @@ class PresetHandler
     // TinyXML copies what it is given, so these own what they return and the
     // arena, the `allocateString` that fed it and the lifetime rule that came
     // with them are all gone.
-    //                                        (31.07.2026.) (SW port)
     ////////////////////////////////////////////////////////////////////////////
 
     static std::string mangleName(std::string_view parameterName);
@@ -468,7 +453,6 @@ class PresetHandler
     /// actually needs. This is the one caller where that matters -- it writes the
     /// file, so a value falling back to `%g` would lose precision on disk rather
     /// than merely in a display.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -497,7 +481,6 @@ template <> std::string PresetHandler::makeString<bool>(bool);
 /// frequency, where it is about fourteen bits: "Start frequency" saved and
 /// reloaded did not come back the same number. Reading is unaffected -- strtof
 /// takes whatever it is given -- so no committed preset moves.
-///                                           (02.08.2026.) (SW port)
 template <> std::string PresetHandler::makeString<float>(float);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -651,8 +634,8 @@ class ParametersLoader : private PresetHandler
     // live, how the module elements are walked, and how one of them names its
     // effect. So this branches on a flag rather than growing a second class --
     // and the legacy arm is the code that was here, moved and not rewritten,
-    // because the 303 committed presets are the only sample of that grammar
-    // anyone will ever have.
+    // because the committed presets are the only sample of that grammar anyone
+    // will ever have.
     ////////////////////////////////////////////////////////////////////////////
 
     enum struct Grammar : std::uint8_t
@@ -730,7 +713,6 @@ class ParametersLoader : private PresetHandler
 /// them was how you avoided the allocation. TinyXML owns its children, so a node
 /// held by value cannot be linked into a document at all; the five module nodes
 /// and the `moduleNodesEnd()` walk over them go with the class.
-///                                           (31.07.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -790,7 +772,6 @@ class ParametersSaver : private PresetHandler
     /// engine's -- so from the first press onwards that copy reads armed for the
     /// life of the session, and it is the copy `stateSave` reads. \see
     /// LE::Parameters::isAnEvent, and issue #65.
-    ///                                       (16.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -878,7 +859,6 @@ struct Parameters;
 /// `char` outright now, because a preset is UTF-8 bytes on disk whatever the
 /// interface's string type happens to be -- and because this header is below
 /// JUCE. presetFile.hpp is where the two meet.
-///                                           (02.08.2026.) (SW port)
 using char_t = char;
 
 template <class PresetConsumer>
@@ -978,7 +958,6 @@ bool loadPreset(char *LE_RESTRICT const inMemoryPreset, bool const ignoreExterna
         /// top of the next block is the publisher's business rather than this
         /// function's. `newChain` comes back holding whatever it displaced, and
         /// its destructor is what finally lets those modules go.
-        ///                                   (02.08.2026.) (SW port)
         loader.publishChain(newChain);
         loader.moduleChainFinished(moduleIndex, parametersLoader.syncedLFOFound());
         return true;

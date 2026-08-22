@@ -70,7 +70,6 @@ template <> struct DisplayValueTransformer<SW::GlobalParameters::InputGain>
     /// The suffix is concatenated straight onto the value by both the editor
     /// (`EditorKnob::parameterValueText`) and `clap_plugin_params::value_to_text`,
     /// so it is the string itself that carries the separator. \see issue #94.
-    ///                                       (17.08.2026.)
     using Suffix = UnitString<" dB">;
 };
 

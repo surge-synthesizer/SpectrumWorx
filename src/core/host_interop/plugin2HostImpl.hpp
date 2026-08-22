@@ -116,23 +116,17 @@ class Plugin2HostPassiveInteropImpl : public Plugin2HostPassiveInteropController
     ///
     /// \brief Which edge a supplied value sits on, by ID type.
     ///
-    ///   One answer per protocol is what this used to be, and it was wrong for
-    /// two of the four: getParameter() does not answer in the same units for
-    /// every ID type, and a printer told the wrong one silently prints the wrong
+    ///   By ID type and not by protocol: `getParameter()` does not answer in the
+    /// same units for all four, and a printer told the wrong one prints the wrong
     /// number rather than failing. Read against ParameterGetter and
-    /// ParameterParser, which are the same three-way agreement seen from the
-    /// other two sides.
+    /// ParameterParser, which are the same three-way agreement from the other two
+    /// sides.
     ///
     ///   A module or LFO parameter's automation value *is* the engine's stored
     /// value when the protocol is not normalised -- see
-    /// Automation::internal2AutomatedValue, whose whole body for that case is
-    /// `return internalValue` -- so it wants no conversion at all. A global's
-    /// and a slot selector's went out through the protocol's range mapping and
-    /// have to come back through it.
-    ///
-    /// \note It cost nothing until 08.2026 because nothing ever supplied a
-    /// value: `paramsValueToText` passed a null and rendered the parameter's own.
-    ///                                       (09.08.2026.) (SW port)
+    /// Automation::internal2AutomatedValue -- so it wants no conversion at all. A
+    /// global's and a slot selector's went out through the protocol's range
+    /// mapping and have to come back through it.
     ///
     ////////////////////////////////////////////////////////////////////////////
 

@@ -13,7 +13,6 @@
 /// thing is 60 lines; a second translation unit would be more build than
 /// harness. It was twoInstanceTests.cpp's anonymous namespace until a second
 /// file needed an editor.
-///                                           (03.08.2026.) (SW port)
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later
@@ -52,7 +51,6 @@
 /// compile Catch2 and our own headers. Three functions and one opaque type is
 /// the whole of what aWindowCanBeMade() below needs, and libX11 is already on
 /// this target's link line through JUCE.
-///                                           (05.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 extern "C"
@@ -88,7 +86,6 @@ using namespace LE::SW;
 ///
 ///   So the atom is asked for the way JUCE asks for it, and its absence is the
 /// signal. macOS and Windows have no such hole and run these cases normally.
-///                                           (05.08.2026.) (SW port)
 ///
 /// \note **Any** case that puts a component on the desktop needs this, not only
 /// the ones that are about focus -- and a menu is the easy one to forget,
@@ -96,7 +93,6 @@ using namespace LE::SW;
 /// window (\see PopupMenu::showAt(), which names no parent component), so a case
 /// that so much as opens one dies here without this guard. \see issue #145's
 /// sibling, the knob's parameter menu, which is parented and does not.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 inline bool aWindowCanBeMade()

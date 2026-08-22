@@ -928,7 +928,6 @@ TEST_CASE("A host with state and no thread check survives a parameter write", "[
     /// this case measures the absence of -- one added here would discharge the
     /// deferral before the check below asks whether it is still pending, and the
     /// case would pass while proving nothing.
-    ///                                       (06.08.2026.) (SW port)
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), 0);
     params.flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
 
@@ -1151,11 +1150,9 @@ TEST_CASE("Silence in is silence out", "[clap]")
 ////////////////////////////////////////////////////////////////////////////////
 // LFO timing
 //
-//   All three of these failed before SpectrumWorxCLAP::updateLFOTiming() existed.
-// The engine's LFO clock only ever moved in SpectrumWorxSharedImpl::process(),
-// the 2016 host layer the CLAP does not inherit, so an enabled LFO answered with
-// its value at position 0 for the plugin's lifetime -- which is what "setting up
-// an LFO does not modulate anything" was.
+//   All three hold SpectrumWorxCLAP::updateLFOTiming() to moving the engine's LFO
+// clock. Without it an enabled LFO answers with its value at position 0 for the
+// plugin's lifetime, which is not a failure anything else notices.
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("An enabled LFO modulates when the host reports no transport", "[clap][lfo]")
@@ -1202,7 +1199,6 @@ TEST_CASE("An edit made in the interface reaches the engine through the queue", 
     /// `programMain_`, so the last assertion here was asking one copy about a
     /// write made to the other. One call is the whole edit -- see the note on
     /// `EditorHost::editParameter`.
-    ///                                       (06.08.2026.) (SW port)
     editorHostOf(*plugin).editParameter(
         LE::SW::ParameterID{LE::Plugins::ParameterID{modulatedParameterID(0, 0)}}, wanted);
 
@@ -1314,15 +1310,11 @@ TEST_CASE("With no transport the LFO clock is 120 BPM in four four", "[clap][lfo
     ///
     /// \note The assumed tempo, stated rather than described. A host that
     /// reports no transport -- the standalone is one -- leaves every LFO free
-    /// running against this, and it is a defined answer rather than a failure:
-    /// there used to be a dialog on loading any preset with a tempo-synced LFO
-    /// into such a host, saying so. The 2016 sources already record it firing
-    /// spuriously in Live.
+    /// running against this, and it is a defined answer rather than a failure.
     ///
-    ///   Pinned because the removal of that dialog rests on it. If the assumed
-    /// tempo ever stops being 120 BPM 4/4, a preset written against note ratios
-    /// plays at some other rate and nothing says anything at all.
-    ///                                       (02.08.2026.) (SW port)
+    ///   Pinned because everything else rests on it: if the assumed tempo ever
+    /// stops being 120 BPM 4/4, a preset written against note ratios plays at
+    /// some other rate and nothing says anything at all.
     ///
     ////////////////////////////////////////////////////////////////////////////
     constexpr float sampleRate{48000};
@@ -1808,7 +1800,6 @@ TEST_CASE("A full rack with LFOs running and an editor open processes cleanly", 
 /// is `alwaysVisible` and takes its column in the constructor -- so the shipping
 /// arrangement asks the host for nothing after the first `guiGetSize`, and these
 /// would have nothing to measure.
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1878,7 +1869,6 @@ TEST_CASE("Opening a panel asks the host for a wider window", "[clap][gui]")
 /// resizes its window and returns false (AppDelegate.mm), which is how this was
 /// found -- the editor slid up or down inside a window that had moved without
 /// it. So the refusal is exercised here rather than the acceptance.
-///                                           (16.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1944,7 +1934,6 @@ TEST_CASE("A host with no clap.gui still gets an editor", "[clap][gui]")
     /// here any more -- see the note in overlayPanelTests.cpp. It laid the panel
     /// over the module strips, which is the right answer for a fixed-size editor
     /// and the wrong one once the user can zoom.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     using Editor = LE::SW::GUI::SpectrumWorxEditor;
@@ -2084,7 +2073,6 @@ TEST_CASE("Two instances process while their editors come and go", "[clap][threa
 /// here runs `resyncModuleRack()` by hand because a headless build has no message
 /// loop, and doing so would hide exactly this bug: the rack would come out right
 /// either way. \see SpectrumWorxEditor::rackResyncRequests().
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2124,7 +2112,6 @@ TEST_CASE("A preset reaches the rack with no audio thread running", "[clap][pres
     /// reorganised as ordinary work, and none of that is news about the rack
     /// following a preset load. The fixture holds three modules because it is
     /// frozen. \see presets/presetCorpusTests.cpp.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     std::filesystem::path const presetFile(std::filesystem::path(SW_PRESET_FIXTURE_DIR) / "Voices" /
@@ -2212,7 +2199,6 @@ TEST_CASE("Loading preset after preset with the editor open", "[clap][presets][g
     /// real spectra in a checked build aborts on the negative-amplitude
     /// verification (see presetRenderTests.cpp) and this case has to run in the
     /// build where the assertions are.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     {
@@ -2255,7 +2241,6 @@ TEST_CASE("Loading preset after preset with the editor open", "[clap][presets][g
         ///
         ///   presetReportTests.cpp is the direct statement of the same thing;
         /// this is the end-to-end one, with a real editor attached.
-        ///                               (02.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////
         auto const name(file.path().stem().string());
@@ -2275,12 +2260,11 @@ TEST_CASE("Loading preset after preset with the editor open", "[clap][presets][g
         /// this case never renders a block -- so before the main thread had a
         /// Program of its own, every assertion below was made against whatever
         /// chain the *priming* left in the engine, not against the preset. It
-        /// read five modules for all 303 of them.
+        /// read five modules for every one of them.
         ///
         ///   `flush()` drains the command ring the same way `process()` does and
         /// renders nothing, which is what this case needs: rendering real spectra
         /// in a checked build aborts on the negative-amplitude verification.
-        ///                                   (06.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         plugin.flush();
@@ -2310,7 +2294,6 @@ TEST_CASE("Loading preset after preset with the editor open", "[clap][presets][g
         /// parameters that chain's LFOs happen to drive, and the first attempt at
         /// this case published index 1, which every effect has, and proved
         /// nothing.
-        ///                                   (02.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         auto &mailbox(const_cast<LE::SW::Threading::ValueMailbox &>(host.modulatedValues()));

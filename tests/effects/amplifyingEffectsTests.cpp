@@ -354,7 +354,6 @@ enum SpringDirection : int
 /// note should not be read as fixing: at 16 windows over a 250 ms modulation the
 /// grid is 4 samples per cycle and the extremes it reports are well short of the
 /// real ones. \see issue #87.
-///                                           (16.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

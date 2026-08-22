@@ -314,7 +314,6 @@ TEST_CASE("A displaced module may outlive the chain it came out of", "[core][own
     ///
     ///   Remove the two `reset()` calls from `~ModuleChainBase` and this reddens
     /// on its own assertion, before ASan has to be asked.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     using LE::SW::AutomatedModuleChain;

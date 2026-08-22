@@ -27,7 +27,6 @@ namespace LE
 /// itself -- write it without. MSVC agrees and mangles both as `PEBD`; clang-cl
 /// mangles the definition as `QEBD` and leaves every caller referring to a
 /// symbol nothing defines. Measured, on the two manglings, not deduced.
-///                                       (09.08.2026.) (SW port)
 template <typename Char>
 char *copyToBuffer(Char const *string, LE::Utility::Span<char> const &buffer)
 {

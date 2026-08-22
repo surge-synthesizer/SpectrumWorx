@@ -96,7 +96,6 @@ namespace Detail
 /// \note Returns *bytes*, and so is 32 bit: see the definition in
 /// channelDataAmPh.cpp for the truncation-to-zero this used to produce at the
 /// maximum FFT size.
-///                                           (29.07.2026.) (SW port)
 std::uint32_t fftBufferSize(std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t sizeoOfT,
                             std::uint16_t fftSize);
 } // namespace Detail

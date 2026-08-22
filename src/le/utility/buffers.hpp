@@ -61,7 +61,6 @@ inline unsigned int align(unsigned int const storageBytes)
 
 /// \note Used to derive from boost::simd::aligned_object<> for an over-aligned
 /// operator new. C++17's aligned new honours the alignas below on its own.
-///                                       (28.07.2026.) (SW port)
 template <typename Element, unsigned int numberOfElements,
           bool defaultAutomaticInitialization = true,
           unsigned int alignmentSize = std::alignment_of<Element>::value>
@@ -76,7 +75,6 @@ class AlignedBuffer
     /// \note Plain pointers for the reason given in span.hpp: begin() and end()
     /// return these, and a top level restrict on a return type is ignored --
     /// nothing in the tree declares a variable with either alias.
-    ///                                       (05.08.2026.) (SW port)
     typedef Element *iterator;
     typedef Element const *const_iterator;
     typedef Element &reference;
@@ -165,7 +163,6 @@ template <typename T> class AlignedHeapBuffer : public Span<T>
     /// promises more than alignof(std::max_align_t) — 8 on arm64, half of what
     /// the SIMD paths need — so the allocation is explicit on every platform
     /// now, and reallocation is allocate-copy-free.
-    ///                                   (28.07.2026.) (SW port)
     ~AlignedHeapBuffer() { alignedFree(this->data()); }
 
     unsigned int size() const { return static_cast<unsigned int>(Range::size()); }

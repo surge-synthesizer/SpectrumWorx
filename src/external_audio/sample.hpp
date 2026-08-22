@@ -68,7 +68,6 @@ class Sample
     // talked into: a bare name needed `createFileWithoutCheckingPath()` to stop
     // JUCE resolving it against the working directory, and the resulting object
     // was a File that was not a file. A relative path is just a relative path.
-    //                                        (09.08.2026.) (SW port)
     ////////////////////////////////////////////////////////////////////////////
 
     static std::vector<fs::path> factorySamples();
@@ -86,7 +85,6 @@ class Sample
     /// while it is being loaded any more: the caller decodes into one of its own
     /// and publishes it, and the one it displaces is destroyed on the main
     /// thread. See doc/tech/threading_model.md §5.
-    ///                                       (02.08.2026.) (SW port)
     char const *load(fs::path const &sampleFile, unsigned int desiredSampleRate);
 
     void clear();

@@ -44,20 +44,17 @@ std::uint16_t ChannelBuffers::readyOutputDataSize() const /// \throws nothing
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note The 2012 note that stood here wondered why priming the *input* FIFO
-/// with `windowSize - stepSize` did not reduce the latency: "It doesn't seem to
-/// have any effect so far so it requires further research...". It does have an
-/// effect -- without it the first frame would wait for a whole window of real
-/// input -- it just cannot reduce the latency below `windowSize - stepSize`,
-/// because that is how far behind the newest frame the overlap-add is still
-/// summing. \see doc/tech/latency.md for the derivation.
+/// \note Priming the *input* FIFO with `windowSize - stepSize` is what stops the
+/// first frame waiting for a whole window of real input. It cannot reduce the
+/// latency below that, which is how far behind the newest frame the overlap-add
+/// is still summing. \see doc/tech/latency.md for the derivation.
 ///
-/// \note The second priming is new (16.08.2026). `outputOLA_` is cleared, so
-/// declaring `stepSize` of it ready hands out one hop of silence before any real
-/// output -- and that hop is what a block whose length is not a whole number of
-/// hops draws its remainder from. Without it the engine had nothing to answer
-/// such a block with and emitted silence into a running stream, which shifted
-/// everything after it. \see Processor::processSingleChannel().
+/// \note The second priming: `outputOLA_` is cleared, so declaring `stepSize` of
+/// it ready hands out one hop of silence before any real output -- and that hop
+/// is what a block whose length is not a whole number of hops draws its remainder
+/// from. Without it the engine has nothing to answer such a block with and emits
+/// silence into a running stream, shifting everything after it.
+/// \see Processor::processSingleChannel().
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

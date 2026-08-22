@@ -26,7 +26,6 @@
 /// \note Kept because a `new (pRestrictPointer) T` in the engine relied on it
 /// under Clang; drop it once the placement new call sites are confirmed to bind
 /// to the standard `operator new( size_t, void * )`.
-///                                       (28.07.2026.) (SW port)
 #ifdef __clang__
 template <typename T>
 void *__attribute__((nothrow)) operator new(std::size_t /*count*/, T * LE_RESTRICT *const pStorage)

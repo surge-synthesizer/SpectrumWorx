@@ -33,7 +33,6 @@ namespace LE::Utility
 /// dynamic_cast in an assert three lines further down does not even compile
 /// without it. LE_VERIFY still evaluates its expression -- that is the whole
 /// difference between the two.
-///                                       (28.07.2026.) (SW port)
 #if defined(LE_ENABLE_ASSERT_HANDLER) && !defined(NDEBUG)
 
 /// Defined in assertionHandler.cpp. Never returns unless the user chooses to
@@ -42,7 +41,6 @@ namespace LE::Utility
 /// \note The function, file and line used to be LE_CURRENT_FUNCTION, __FILE__
 /// and __LINE__ threaded through the macro. std::source_location::current()
 /// captures all three at the call site as a defaulted argument.
-///                                       (28.07.2026.) (SW port)
 void assertionFailed(char const *expression, char const *message,
                      std::source_location const &location = std::source_location::current());
 
@@ -76,7 +74,6 @@ void assertionFailed(char const *expression, char const *message,
 ///
 ///   [[assume]] is C++23, so the hint is still per-compiler. It expands to a
 /// statement, not an expression.
-///                                       (07.08.2026.) (SW port)
 #if defined(_MSC_VER) && !defined(__clang__)
 #define LE_AUX_ASSUME_HINT(condition) __assume(condition)
 #elif defined(__clang__)

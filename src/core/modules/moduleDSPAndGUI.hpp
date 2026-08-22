@@ -34,7 +34,6 @@ namespace LE::SW
 ///   The region belongs to the editor now and holds a counted reference *to* the
 /// module -- the other way round -- so nothing here knows the interface exists.
 /// See gui/modules/moduleUI.hpp and doc/tech/threading_model.md.
-///                                           (02.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -56,20 +55,10 @@ class Module : public Engine::ModuleDSP, public AutomatedModuleImpl<Module>
     ~Module();
 
   private:
-    /// \note Four overrides stood here -- `set{Base,Effect}Parameter` and
-    /// `set{Base,Effect}ParameterFromLFO` -- and every one of them existed to push
-    /// a value into a `juce::Slider`. The last two ran once per block per enabled
-    /// LFO, from the audio thread, which is the stack in
-    /// doc/tech/threading_model.md §1; the first two put a `juce::String`
-    /// there whenever the moved parameter's control happened to be the active one.
-    ///
-    ///   Nothing replaces them in the engine. The plugin publishes what the LFOs
-    /// did into the ValueMailbox after the block, and reports a host's parameter
-    /// event on the ToUI ring, both of which it can do because it is the thing
-    /// that knows about both sides. `dsp.cmake` predicted this: those setters were
-    /// virtual only because of the interface, and being virtual is what gave the
-    /// engine two ABIs.
-    ///                                       (02.08.2026.) (SW port)
+    /// \note No parameter setters are overridden to reach a widget. The plugin
+    /// publishes what the LFOs did into the ValueMailbox after the block and
+    /// reports a host's parameter event on the ToUI ring, being the one thing
+    /// that knows about both sides. \see doc/tech/threading_model.md §1.
     friend class AutomatedModuleImpl<Module>;
 }; // class Module
 

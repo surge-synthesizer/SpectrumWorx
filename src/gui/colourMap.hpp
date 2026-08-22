@@ -5,19 +5,13 @@
 ///
 ///   Every colour the editor paints with, in one place and asked for by name.
 ///
-///   The skin used to be pixels, so its palette was not written down anywhere:
-/// it was inside the PNGs. As the artwork is redrawn in code -- the two knobs
-/// first, then the buttons and the tabs -- those colours have to live
-/// somewhere, and "a constant beside the drawing that uses it" is how a tree
-/// ends up with the accent blue spelled five slightly different ways. It was
-/// already spelled four: 0x13B5EA in Theme, 0x13B7EA on a module knob's wedge,
-/// #13b4e9 around a module strip and #12b4ea on a button's rim, none of which
-/// anybody chose and no two of which are more than three parts in 255 apart.
+///   The artwork is drawn in code, so its palette has to live somewhere, and "a
+/// constant beside the drawing that uses it" is how a tree ends up with the
+/// accent blue spelled five slightly different ways. So: one enumerator per
+/// colour the skin *chooses*, and a switch that answers it.
 ///
-///   So: one enumerator per colour the skin *chooses*, and a switch that
-/// answers it. Transparency is not in here -- it is an absence rather than a
-/// choice, and juce::Colours::transparentBlack says so better than a name
-/// would.
+///   Transparency is not in here -- it is an absence rather than a choice, and
+/// juce::Colours::transparentBlack says so better than a name would.
 ///
 /// \note A switch rather than a table so that the answer can grow a condition
 /// without every call site learning about it. Five palettes need that now, and
@@ -200,7 +194,6 @@ class ColourMap
         /// live the first time it was drawn. A neutral is returned untouched by
         /// every palette, which is what makes caching it correct rather than
         /// merely unnoticed.
-        ///                                       (19.08.2026.)
         ///
         ////////////////////////////////////////////////////////////////////////
         LFOWaveform,

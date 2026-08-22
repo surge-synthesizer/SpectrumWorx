@@ -58,7 +58,6 @@ void FreezeImpl::setup(IndexRange const &, Engine::Setup const &engineSetup)
     ///
     ///   So "no transition" is carried as the flag it is rather than as a number
     /// the arithmetic cannot represent.
-    ///                                       (16.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const transitionSteps(engineSetup.milliSecondsToSteps(parameters().get<TransitionTime>()));

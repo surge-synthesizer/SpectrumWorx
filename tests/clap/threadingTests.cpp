@@ -164,7 +164,6 @@ class AudioThread
     /// case that queues and then joins is asserting on whether the scheduler
     /// happened to fit another block in. Three, not one: a block already under
     /// way when the push landed did not see it.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     void waitForMoreBlocks(unsigned int const count = 3) const

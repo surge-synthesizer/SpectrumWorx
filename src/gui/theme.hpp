@@ -8,7 +8,6 @@
 /// \note A `Theme::Settings` used to travel with it -- the three answers the
 /// settings panel's Interface page asks for. They were never the LookAndFeel's
 /// and they are GUI::Preferences now. \see preferences.hpp.
-///                                       (15.08.2026.) (SW port)
 ///
 ///   Split out of gui.hpp so that it can be built and looked at before the
 /// widget set compiles: everything else in src/gui reaches Theme for a font or
@@ -41,11 +40,9 @@ namespace LE::SW::GUI
 /// \brief A slider that highlights a thumb the mouse is merely over, not only
 /// the one being dragged.
 ///
-/// \note juce::Slider::getThumbBeingDragged() answers the narrower question,
-/// and its state is private. The 2016 code wrote to that private member -- it
-/// was protected then -- to widen the meaning. This declares the wider notion
-/// instead, and Theme asks for it where a slider offers one.
-///                                           (29.07.2026.) (SW port)
+/// \note juce::Slider::getThumbBeingDragged() answers the narrower question and
+/// its state is private, so the wider notion is declared here rather than forced
+/// into JUCE's, and Theme asks for it where a slider offers one.
 ////////////////////////////////////////////////////////////////////////////////
 
 class SliderWithSelectedThumb
@@ -64,17 +61,13 @@ int selectedOrDraggedThumb(juce::Slider const &);
 
 /// \note LookAndFeel_V2, not LookAndFeel_V4, and not LookAndFeel.
 ///
-///   LookAndFeel is abstract in JUCE 8 -- it inherits some twenty-six
-/// LookAndFeelMethods interfaces whose members are pure -- so the 2016
-/// derivation no longer compiles.
+///   LookAndFeel is abstract in JUCE 8, inheriting some twenty-six
+/// LookAndFeelMethods interfaces whose members are pure.
 ///
-///   V4 is the wrong repair. LookAndFeel_V4::drawLinearSlider paints the whole
+///   V4 is the wrong repair: LookAndFeel_V4::drawLinearSlider paints the whole
 /// slider itself, so drawLinearSliderThumb below would never be called and the
-/// LFO slider would quietly lose its bitmap thumb. V2::drawLinearSlider
-/// forwards to background and thumb, which is what this skin was written
-/// against. Every other override here has the same signature on V2 that it had
-/// in 2016.
-///                                       (28.07.2026.) (SW port)
+/// LFO slider would quietly lose its skinned thumb. V2::drawLinearSlider
+/// forwards to background and thumb, which is what this skin is written against.
 class Theme final : public juce::LookAndFeel_V2
 {
   public:
@@ -117,7 +110,6 @@ class Theme final : public juce::LookAndFeel_V2
     /// TextButton draws its caption in, and it draws it *blue*. A font has a
     /// face and a size and nothing else, so these are named for what asks for
     /// them -- the name of a thing, and the text under or inside it.
-    ///                                       (18.08.2026.)
     juce::Font const &headingFont() const { return headingFont_; }
     juce::Font const &labelFont() const { return labelFont_; }
 
@@ -138,12 +130,9 @@ class Theme final : public juce::LookAndFeel_V2
                             juce::BorderSize<int> const &) override;
     void drawTabAreaBehindFrontButton(juce::TabbedButtonBar &, juce::Graphics &, int w,
                                       int h) override;
-    /// \note Returned juce::Image in 2016 and returns const Drawable * now
-    /// (juce_FileBrowserComponent.h). It is reached through an explicitly
-    /// qualified call from the preset browser rather than through the vtable,
-    /// which is why the 2016 declaration had its `override` commented out --
-    /// the signature had already drifted and nobody noticed.
-    ///                                       (28.07.2026.) (SW port)
+    /// \note Reached through an explicitly qualified call from the preset browser
+    /// rather than through the vtable, so `override` is what keeps the signature
+    /// pinned to juce_FileBrowserComponent.h's.
     juce::Drawable const *getDefaultFolderImage() override;
     int getMenuWindowFlags() override;
     juce::Font getPopupMenuFont() override;
@@ -170,7 +159,6 @@ class Theme final : public juce::LookAndFeel_V2
     /// (juce_Viewport.cpp:162), and a `juce::TextEditor`'s viewport never is --
     /// which is why the preset browser's comment box carried a bar half again as
     /// wide as the list's, with correspondingly larger arrows on it.
-    ///                                       (17.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     ///@{

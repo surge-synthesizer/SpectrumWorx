@@ -73,7 +73,6 @@ std::uint8_t abs(bool const value)
 /// -O3 does not, which is how they survived. std::bit_cast is the C++20
 /// spelling of what all of them meant, it is defined, and it compiles to the
 /// same instruction.
-///                                           (05.08.2026.) (SW port)
 bool isGreater(float const *LE_RESTRICT const pLeft, float const *LE_RESTRICT const pRight)
 {
     /// \note The integer version is better for in-memory operands.
@@ -205,7 +204,6 @@ float modulo(float const dividend, float const divisor)
     /// deliberate here (it is what makes this usable for phase mapping into
     /// [0, 2pi)), so the reference is the floored modulo, not fmod.
     /// Phasevolution was the first effect to feed it a negative dividend.
-    ///                                       (28.07.2026.) (SW port)
     LE_ASSERT_MSG(nearEqual(mod, static_cast<float>(std::fmod(dividend, divisor) +
                                                     ((std::fmod(dividend, divisor) != 0) &&
                                                              ((dividend < 0) != (divisor < 0))
@@ -419,17 +417,9 @@ float ln(float const value) { return std::log(value); }
 /// log2(0.5) came back -1.443. The commented-out `std` is the fossil of it; the
 /// divisor belongs to a natural log, which is what the call must once have been.
 ///
-///   It had never been compiled. This block was guarded on
-/// `__APPLE__ || !LE_HAS_NT2`, and in 2016 every Windows build had NT2, so
-/// MSVC took `nt2::log2` from vector.cpp and the arm meant for it was dead.
-/// Stage 4 removed NT2, which made this the only arm on every platform -- and
-/// the `__GNUC__` branch then covered for it everywhere except the compiler it
-/// was written for. The first Windows build in this port is what found it, in
-/// `scalarTests.cpp`, which exists to ask exactly this.
-///
 ///   Live callers: interval12TET2Semitone() -- so every pitch effect --
 /// musicalScales.cpp's octave detection, and the LFO's skew factor.
-///                                           (05.08.2026.) (SW port)
+/// `scalarTests.cpp` is what pins them.
 float log2(float const value) { return std::log2(value); }
 float log10(float const value) { return std::log10(value); }
 float exp(float const value) { return std::exp(value); }
@@ -455,7 +445,6 @@ namespace PowerOfTwo
 /// \note Declared as ceil( float ) and defined as ceil( float const & ), so
 /// the declaration had never resolved to anything. Nothing in the tree called
 /// it; sw-tests is the first thing that tried.
-///                                       (28.07.2026.) (SW port)
 unsigned int ceil(float const value)
 {
     // http://stackoverflow.com/questions/466204/rounding-off-to-nearest-power-of-2
@@ -727,7 +716,6 @@ void Rng::seedFromEntropy() noexcept
     /// channels seeded microseconds apart could have collided on it; `this` is
     /// distinct among live generators by definition. The clock separates runs,
     /// and reused addresses across them.
-    ///                                       (17.08.2026.)
     seed(static_cast<std::uint64_t>(std::chrono::system_clock::now().time_since_epoch().count()) ^
          reinterpret_cast<std::uintptr_t>(this));
 }
@@ -744,7 +732,6 @@ float Rng::normalised() noexcept
     /// double can hold: it converts to one more than it is -- 2^digits -- and
     /// the compiler said so. 2^digits is therefore the scale that was being
     /// applied, and it is spelt here as something a double does hold exactly.
-    ///                                       (02.08.2026.) (SW port)
     constexpr double scale(1 /
                            (static_cast<double>((std::numeric_limits<rand_t>::max() / 2) + 1) * 2));
     auto const result(static_cast<float>(static_cast<double>(narrow(next())) * scale));
@@ -807,4 +794,3 @@ std::int32_t Rng::ranged(std::int32_t const minimum, std::uint32_t const maximum
 /// juce_MathsFunctions.h, which does the same thing at least as well and does
 /// not need a definition in someone else's namespace. Redefining them is an
 /// ODR hazard for no gain.
-///                                       (28.07.2026.) (SW port)

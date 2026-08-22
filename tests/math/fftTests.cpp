@@ -69,7 +69,6 @@ constexpr std::uint16_t fftSize{256};
 /// forward transform carries a factor of two that pffft's does not, and the
 /// packed layouts they produce are not the same -- so an identity test alone
 /// cannot tell a correct unpacking from a self-consistently wrong one.
-///                                           (29.07.2026.) (SW port)
 void referenceSpectrum(float const *const time, std::uint16_t const size,
                        std::vector<double> &reals, std::vector<double> &imaginaries)
 {
@@ -212,7 +211,6 @@ TEST_CASE("The transform is linear", "[math][fft]")
 /// its output is laid out, and how much error it carries. They are what makes a
 /// golden difference attributable -- if these hold, a difference downstream is
 /// the effect amplifying an ulp, not the FFT being wrong.
-///                                           (29.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("The forward transform is the DFT over sqrt(N), bin for bin", "[math][fft][backend]")

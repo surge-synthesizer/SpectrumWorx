@@ -33,7 +33,6 @@ class WhispererImpl : public NoParametersEffectImpl<Whisperer>
     /// every hop of channel 0 before channel 1 starts, so cutting a host block
     /// into hop-sized pieces left the draw *count* untouched and changed which
     /// channel received which number. \see issue #86.
-    ///                                       (17.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     struct ChannelState : StaticChannelState

@@ -288,13 +288,9 @@ float LE_FORCEINLINE mapToPiInterval(float const phase)
 
     using namespace Math;
     using Math::Constants::twoPi;
-    /// \note `using Math::Constants::pi` stood here beside twoPi. Only the
-    /// assertion at the bottom and the three disabled princarg versions use it,
-    /// so in a build where _DEBUG is not defined -- every build off MSVC -- it
-    /// named something nothing referred to, which GCC 15 reports at -O3. It is
-    /// declared where it is used instead; a version switch below wants it back
-    /// up here.
-    ///                                       (05.08.2026.) (SW port)
+    // pi is declared where it is used: only the assertion at the bottom and the
+    // disabled princarg versions want it, so naming it here is unused in a
+    // build without assertions
 
 #if 0 // version 1 (slower)
 

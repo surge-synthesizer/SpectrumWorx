@@ -33,7 +33,6 @@ namespace Detail ///< \internal
 /// would silently hand back zero -- the primary-template failure
 /// `parameter_system.md` §7 is about, in its quiet form. Carried on the type,
 /// there is nowhere for it to be missing. \see issue #163.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -104,7 +103,6 @@ using EnumeratedParameter =
 // enumerator past the end of a list numbered from zero *is* the length. It costs
 // a name beside the parameter and no argument-counting macro, whose only other
 // spelling is a ladder of numbered arguments with a ceiling to raise later.
-//                                            (31.07.2026.) (SW port)
 
 #define LE_ENUMERATED_PARAMETER_IMPL(parameterName, defaultValueExpression, ...)                   \
     enum class parameterName##Values_ : std::uint8_t{__VA_ARGS__, numberOfValues_};                \
@@ -152,7 +150,6 @@ using EnumeratedParameter =
 /// by `clap_param_info.default_value` and by the parameter's own constructor; a
 /// specialisation any of those could not see would quietly hand back zero rather
 /// than fail. \see parameter_system.md §7.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

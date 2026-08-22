@@ -165,7 +165,6 @@ TEST_CASE("An audio callback scope is bounded, and is per thread", "[core][threa
     /// -- so under `-fsanitize=realtime` a case that asserted in here would abort
     /// on its own expression macro. Which is rtsan being right: this is a scope in
     /// which allocating is forbidden, and a test is not exempt.
-    ///                                       (02.08.2026.) (SW port)
     bool insideScope{false};
     bool insideNested{false};
     bool afterNested{false};
@@ -197,7 +196,6 @@ TEST_CASE("An audio callback scope is bounded, and is per thread", "[core][threa
     /// a thread is itself something a callback may not do, and the whole point of
     /// this file is that the scope means it. The handshake is two relaxed atomics
     /// and a bare spin -- `std::this_thread::yield()` is a syscall.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     std::atomic<bool> scopeIsOpen{false};

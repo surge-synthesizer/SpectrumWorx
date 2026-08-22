@@ -6,11 +6,9 @@
 ///   The settings panel's third tab: what this build is, who ported it and who
 /// wrote it in the first place.
 ///
-///   It was a single baked bitmap (skin file 20) with a version string drawn
-/// over it, which meant the credits could not be corrected, the year could not
-/// move and the version could not say anything the 2016 layout had not left room
-/// for. It is text and three links now, and every word of it is in one block at
-/// the top of about.cpp.
+///   Text and three links rather than a baked bitmap, so the credits can be
+/// corrected and the version can say whatever it needs to. Every word of it is in
+/// one block at the top of about.cpp.
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later

@@ -47,7 +47,6 @@ template <class T> class Span
     /// (processor.cpp's WOLA walk, which now spells it out). It was also a
     /// promise Span cannot keep: begin() and end() of the same span are two
     /// pointers to the same array, and so are any two copies of a span.
-    ///                                       (05.08.2026.) (SW port)
     using iterator = T *;
     using const_iterator = T const *;
     using pointer = T *;

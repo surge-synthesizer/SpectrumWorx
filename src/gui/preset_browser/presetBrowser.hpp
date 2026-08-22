@@ -91,18 +91,11 @@ class PresetBrowser final : public PanelBackground,
     ///
     /// \brief Which of the two trees the list is showing.
     ///
-    /// \note The browser was a directory browser: one `juce::File` and
-    /// `std::filesystem` over it. The factory banks are in the binary now (8.2)
-    /// and have no directory to point it at, so where it is looking became a
-    /// small sum type rather than a path.
-    ///                                       (31.07.2026.) (SW port)
+    /// \note A small sum type rather than a path, the factory banks living in
+    /// the binary with no directory to point a browser at.
     ///
-    /// \note There was a third, `Root`, whose listing was the two words
-    /// "Factory" and "User" -- so opening the browser showed a plugin with 303
-    /// presets in it two rows and no preset names, and every session began with
-    /// two clicks that told the user nothing. The trees are a *toggle* now, in
-    /// the navigation row, and the browser opens inside one of them.
-    ///                                       (19.08.2026.) issue #44
+    /// \note The two are a *toggle*, in the navigation row, and the browser opens
+    /// inside one of them rather than on a listing of the two names.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -114,10 +107,9 @@ class PresetBrowser final : public PanelBackground,
 
     struct Item
     {
-        /// \note `Parent` -- the ".." row -- went with `Root`: the up button
-        /// owns going up now, and a list whose first row is punctuation is a
-        /// row of preset names lost to a control that has somewhere better to
-        /// be. \see issue #44.
+        /// \note No ".." row: the up button owns going up, and a list whose
+        /// first row is punctuation is a row of preset names lost to a control
+        /// that has somewhere better to be.
         enum struct Kind : std::uint8_t
         {
             Folder, ///< a bank or a sub-directory
@@ -170,12 +162,10 @@ class PresetBrowser final : public PanelBackground,
     ///
     /// \param direction -1 or +1.
     ///
-    /// \note Clamped rather than wrapped, and folders are not stepped onto:
-    /// what a jog is for is hearing the presets in a bank one after another,
-    /// and both of those would interrupt that. Neither is a case this has to
-    /// handle gracefully, because canStep() has already disabled the button --
-    /// at the first preset in a listing the back arrow is dead and at the last
-    /// one the forward arrow is.
+    /// \note Clamped rather than wrapped, and folders are not stepped onto: a
+    /// jog is for hearing the presets in a bank one after another, and both
+    /// would interrupt that. canStep() has already disabled the button either
+    /// way.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -194,24 +184,12 @@ class PresetBrowser final : public PanelBackground,
     /// \name Where the browser was when it last closed
     ///
     ///   Somewhere outside the browser, because it is built and destroyed every
-    /// time the panels are swapped. It used to be half remembered: the
-    /// destructor wrote `currentDirectory_` into `GUI::presetsFolder()` and
-    /// nothing recorded `location_`, which is a member initialiser, so the
-    /// browser reopened at the root whatever the user had been looking at.
-    /// Writing the user's wanderings into `presetsFolder()` also moved the
-    /// anchor `goToParent()` stops at and the folder
-    /// `createUserPresetsFolder()` makes; that global means the preset root now
-    /// and nothing writes to it.
-    ///                                       (08.08.2026.) (SW port)
+    /// time the panels are swapped -- and in the *session's* state rather than a
+    /// process-wide one, so that two instances do not share an answer and the
+    /// answer survives the host being shut. \see issue #129.
     ///
-    /// \note It was a `static Place` here until 21.08.2026 -- process-wide, so
-    /// two instances shared one answer and none of it survived the host being
-    /// shut. It is the session's now, which is what issue #129 asked for and
-    /// what the reason above always wanted: the browser not outliving the window
-    /// is an argument for putting this *somewhere else*, and the plugin is a
-    /// better somewhere else than a global. The cost is that a brand new
-    /// instance opens at the factory root rather than where the last one was.
-    ///                                       (21.08.2026.)
+    /// \note The cost is that a brand new instance opens at the factory root
+    /// rather than where the last one was.
     ///
     ////////////////////////////////////////////////////////////////////////////
     ///@{
@@ -251,10 +229,8 @@ class PresetBrowser final : public PanelBackground,
 
     void addOneRow(bool const value) { addOneRow_ = value; }
 
-    /// \note Was `bool askForOverwrite()`, answered where it was asked. JUCE 8
-    /// builds with JUCE_MODAL_LOOPS_PERMITTED=0 -- and a plugin has no business
-    /// spinning a modal loop inside a host's message thread -- so the answer
-    /// arrives later, on the message thread.
+    /// \note The answer arrives later, on the message thread: JUCE 8 builds with
+    /// JUCE_MODAL_LOOPS_PERMITTED=0.
     static void askForOverwrite(std::function<void(bool)> onAnswer);
 
     bool enablePresetSaving() const;
@@ -282,8 +258,8 @@ class PresetBrowser final : public PanelBackground,
 
     /// \name The navigation row, between the Save buttons and the list
     ///
-    /// \note Issue #44's. The row is where "Ignore external audio" was; that
-    /// toggle is the editor's lock beside the sidechain source now.
+    /// \note In the gap the panel already had between the Save buttons and the
+    /// list. \see issue #44.
     ///@{
     GlyphButton upFolder_;
     GlyphButton userPresets_;

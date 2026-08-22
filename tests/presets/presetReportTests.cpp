@@ -7,7 +7,7 @@
 ///
 ///   **Loading a factory preset must tell the user nothing.** That is the whole
 /// of this file, and it is a stronger claim than "no dialog appears": what makes
-/// it safe to suppress the one thing all 303 banks do raise is that the total is
+/// it safe to suppress the one thing the banks do raise is that the total is
 /// pinned here, so a parameter that goes missing for a *bad* reason -- a rename,
 /// a dropped streaming name, a reader that stopped recognising an element --
 /// moves the number and reddens.
@@ -142,7 +142,6 @@ TEST_CASE("Loading a factory preset tells the user nothing", "[presets][report]"
 /// that at zero across every shipped file. A rename produces one of those for
 /// every preset that named the parameter -- which is the loud failure the count
 /// was standing in for.
-///                                           (14.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -70,14 +70,6 @@ ModuleChainBase &ModuleChainBase::operator=(ModuleChainBase &&other)
 ///   So the links go too. Nothing walks a chain that is being destroyed, which is
 /// the one thing the note on `remove()` says they are kept for.
 ///
-/// \note The 2016 sources met the same thing from the other end and left it: the
-/// two assertions in `resetRoot()` are commented out under "a module sent to be
-/// destroyed in the GUI thread might still be referencing the root node". That is
-/// this, exactly -- a module outliving the chain's account of it -- and it was
-/// silenced there rather than fixed. This destructor's copy of the same assertion
-/// is the one that survived to catch it.
-///                                           (02.08.2026.) (SW port)
-///
 ////////////////////////////////////////////////////////////////////////////////
 
 ModuleChainBase::~ModuleChainBase()
@@ -152,7 +144,6 @@ std::uint8_t ModuleChainBase::getIndexForModule(Node const &module) const
     /// is already handled -- `isValidParamId()` refuses it and `moduleAs()`
     /// answers null -- so the edit is dropped, which is what an edit against a
     /// module that is not in the chain should be.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const nodes(this->size());
@@ -270,7 +261,6 @@ void ModuleChainBase::remove(Node &node)
 /// address of a reference is not null by the language's own rules, so the
 /// assumption told the optimiser nothing and GCC 15 reported it as a nonnull
 /// argument compared to NULL.
-///                                           (05.08.2026.) (SW port)
 ModuleChainBase::iterator ModuleChainBase::iterator_to(Node &module) { return iterator(&module); }
 ModuleChainBase::const_iterator ModuleChainBase::iterator_to(Node const &module)
 {
@@ -316,11 +306,10 @@ bool ModuleChainBase::empty() const { return this->next_.get() == this; }
 /// "there are none".
 ///
 ///   The chain cannot get that long from anything this build does -- the slot
-/// model stops at `maxNumberOfModules` and the preset loader refuses the rest
-/// as of 08.08.2026 -- so this is the second guard on a number that has one. It
-/// is here anyway because the type is what makes the truncation possible, and
-/// the assert is what names it if the bound above is ever the thing that broke.
-///                                           (08.08.2026.) (SW port)
+/// model stops at `maxNumberOfModules` and the preset loader refuses the rest --
+/// so this is the second guard on a number that has one. It is here because the
+/// narrow type is what makes the truncation possible, and the assert is what
+/// names it if the bound above is ever the thing that broke.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

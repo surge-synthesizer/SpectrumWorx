@@ -12,12 +12,9 @@
 /// at runtime through wrong behaviour caused by the usage of a default
 /// implementation).
 ///
-/// \note "By the compiler" read "at link time" until 08.2026, and that is the
-/// difference this file turns on: a placeholder specialised in a .cpp is a
-/// definition the users of the parameter never see, which is ill-formed with no
-/// diagnostic required and was 283 of the 285 warnings the tree emitted. Every
-/// specialisation of one of these now belongs in the header that declares the
-/// parameter. See UI_NAME.
+/// \note **Every specialisation of one of these belongs in the header that
+/// declares the parameter**, not in a .cpp: a definition the parameter's users
+/// never see is ill-formed with no diagnostic required. \see UI_NAME.
 ///
 /// Copyright (c) 2009 - 2016. Little Endian Ltd.
 /// SPDX-License-Identifier: GPL-3.0-or-later
@@ -95,7 +92,6 @@ template <class Parameter> constexpr std::string_view name() { return Name<Param
 /// correct; making it a link error would buy nothing and cost 147 restatements
 /// of a string that is already there. What makes the default safe is
 /// tests/parameters/streamingNameTests.cpp, which pins every one of them.
-///                                           (01.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -181,7 +177,6 @@ struct ValueString
 // the pair sequence. It is the same check, said once, over a list the compiler
 // can read: a consteval function that throws is a compile error naming the
 // parameter, which is what the static_assert was for.
-//                                            (31.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <class Parameter, std::size_t count>
@@ -224,7 +219,6 @@ valueStrings(ValueString const (&pairs)[count])
 /// never be NULL", `-Werror=address`, which is a Linux-only build failure that
 /// clang does not raise. There is nothing to be null now: either the
 /// specialisation has the array or it does not.
-///                                           (19.08.2026.) (SW port)
 ///
 /// \note Seeding a default with `DiscreteValues<Parameter>::strings` would ask
 /// every enumerated parameter to instantiate a variable template it may not have
@@ -275,7 +269,6 @@ constexpr typename DiscreteValues<Parameter>::Strings const &shortValueStrings()
 /// \note And, as with ShortValues, the specialisation belongs in the header that
 /// declares the parameter: a translation unit that does not see it builds the
 /// menu in declaration order rather than saying so.
-///                                           (19.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -377,7 +370,6 @@ template <class Parameter> struct DisplayValueTransformer
     /// anything; what it had done before that was read the display units as if
     /// they were storage units, which clap-validator caught turning an input gain
     /// of 0.001 into a NaN.
-    ///                                       (07.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -535,7 +527,6 @@ template <class Parameter> struct DisplayValueTransformer
 /// itself, promoted to an error by the baseline (src/CMakeLists.txt): the
 /// placeholder primary template below has no definition, so naming nothing
 /// fails the build at the point of use rather than at link time.
-///                                           (04.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

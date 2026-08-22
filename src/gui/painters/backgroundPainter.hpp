@@ -168,7 +168,6 @@ Ramp constexpr buttonRowRamp{45.0f,   -45.0f, -265.5f, 265.5f,
 /// disagreed about their radius by one. A knob is placed by a constant, three
 /// of them share it, and a well that is not concentric with the knob in it is a
 /// mistake nobody would have made on purpose.
-///                                       (18.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
@@ -205,11 +204,9 @@ float constexpr wellRuleAlpha{0.30f};
 /// 0.69 wide and its panels sat on halves, so at one to one every edge landed
 /// across two pixels and read as a soft grey seam rather than as a line. That
 /// was the one thing about it that could not be fixed by redrawing it.
-///                                       (18.08.2026.)
 ///
 /// \note \see RuleStyle::thickness for why it is two rather than one, and for
 /// why the number is named once rather than in each painter that draws a line.
-///                                       (19.08.2026.)
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
 float constexpr ruleThickness{RuleStyle::thickness};
@@ -246,7 +243,6 @@ KnobWell constexpr knobWells[]{{27u, 56u, inLabel}, {27u, 165u, outLabel}, {27u,
 /// \note Twelve, which is Theme::labelFont() -- the size the live text beside
 /// them is set at. The artwork's were 8 to 10, sized for a 2010 screen, and
 /// against a module name at 14 and a combo box at 12 they read as small print.
-///                                       (18.08.2026.)
 float constexpr knobLabelHeight{18.0f};
 /// \note Centred over the knob and a constant above it, which the artwork's
 /// three were to within a pixel and a half. \see the note on the wells.
@@ -271,7 +267,6 @@ float constexpr sideChainSourceLabelY{439.f};
 /// preset does not get to bring its own audio file with it", which is a
 /// statement about the sidechain source and belongs beside it rather than in a
 /// row of preset navigation.
-///                                       (19.08.2026.)
 float constexpr sideChainLockGap{6.0f};
 
 float constexpr productLabelHeight{18.f};

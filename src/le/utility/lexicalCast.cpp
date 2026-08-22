@@ -21,11 +21,9 @@
 // out of the binary. That was the last Boost dependency in this file, so both
 // platforms now take the CRT path; if the size ever matters again, hand roll it
 // rather than bringing Spirit back.
-//                                        (28.07.2026.) (SW port)
 //   And then off the plain-CRT path again, for a reason that is not size:
 // `snprintf` and `strtod` read the *global* locale, which the host owns and the
 // plugin does not. See the note above renderInCLocale.
-//                                        (08.08.2026.) (SW port)
 
 #include <charconv>
 #include <clocale>
@@ -81,7 +79,6 @@ namespace
 /// locale gives what `%.*f` gave -- verified across the magnitudes, both
 /// infinities and a NaN before this was written, because a preset corpus digest
 /// depends on it.
-///                                           (08.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -213,14 +210,12 @@ unsigned int lexical_cast(float const value, std::uint8_t const decimalPlaces,
 /// \note `RequiredStringStorage<double>` sizes nothing here any more -- the
 /// rendering brings its own storage -- and is no longer a claim about the caller
 /// either. It is what a caller that wants every digit should declare.
-///                                           (08.08.2026.) (SW port)
 ///
 /// \note The trim is the caller's to ask for. It is what makes the text the
 /// shortest that reads back, which is right for a file and wrong for a readout
 /// -- \see TrailingZeros. The `%g` fallback below is unaffected either way: it is
 /// reached only when fixed notation does not fit at all, and a value that wide
 /// has no trailing zeros to argue about.
-///                                           (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -285,7 +280,6 @@ LE_NOINLINE unsigned int lexical_cast(double const value, std::uint8_t const dec
     ///   Here rather than at that subtraction, because the subtraction is not
     /// wrong -- it is as close to zero as a float gets -- and because every other
     /// route to a tiny negative lands here too.
-    ///                                       (07.08.2026.) (SW port)
     ////////////////////////////////////////////////////////////////////////////
     if (buffer[0] == '-')
     {
@@ -305,7 +299,6 @@ LE_NOINLINE unsigned int lexical_cast(double const value, std::uint8_t const dec
     /// for any value over FLT_MAX -- a NaN, so the check was vacuously false and
     /// only the `isfinite` arm was holding it up. The relative arm is what the
     /// `%g` fallback above needs: six significant digits is all it promises.
-    ///                                       (08.08.2026.) (SW port)
     [[maybe_unused]] auto const readBack(lexical_cast<double>(buffer.data()));
     LE_ASSERT_MSG(!std::isfinite(value) ||
                       (std::abs(readBack - value) < (1 / std::pow(10.0, decimalPlaces))) ||
@@ -352,7 +345,6 @@ namespace
 /// required to read "inf" -- and this plugin prints exactly that, for the
 /// ExImPloder gate's minimum. `strtod` reads it, always has, and taking the
 /// locale as an argument is the only thing it was missing.
-///                                           (08.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -360,7 +352,6 @@ namespace
 /// compiler speaks, and the answer is _MSC_VER on its own: clang-cl links the
 /// same MSVC CRT that cl.exe does, so `!defined(__clang__)` sent it to POSIX
 /// newlocale/strtod_l, which that CRT does not have.
-///                                           (09.08.2026.) (SW port)
 #if defined(_MSC_VER)
 using CLocale = ::_locale_t;
 #else

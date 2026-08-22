@@ -63,7 +63,6 @@ void generate(Signal const signal, std::span<float> const mono, float const samp
         /// \note Rounding down rather than to nearest keeps every power-of-two
         /// render exactly where it was -- 16384/4 is already 4096 -- so this
         /// moves the impulse only for the lengths that are not powers of two.
-        ///                                   (10.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         constexpr std::size_t hopAlignment{1024};
@@ -242,8 +241,7 @@ std::vector<float> renderChain(RenderSetup const &setup, std::span<Slot const> c
     /// what keeps two instances apart in a session and what makes a render
     /// unrepeatable. Freqverb, Whisperer and Burrito draw, as does any random
     /// LFO waveform.
-    ///                                   (28.07.2026.) (SW port)
-    ///                                   (17.08.2026.) seeds the engine, not a global
+    /// seeds the engine, not a global
     ///
     ////////////////////////////////////////////////////////////////////////////
     engine.setRandomSeed(0xA5A5C3C3u);
@@ -270,7 +268,6 @@ std::vector<float> renderChain(RenderSetup const &setup, std::span<Slot const> c
     /// over when nothing is patched into the port -- `runEngine()` falls back to
     /// `input.data32` -- and it is what every fixture in `goldens.txt` was minted
     /// under.
-    ///                                       (05.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool const separateSideChain(!monoSideInput.empty());

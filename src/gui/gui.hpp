@@ -4,7 +4,8 @@
 // GUI
 // ---
 //
-//   SpectrumWorx GUI implementation (based on our patched JUCE GIT tip).
+//   The widget vocabulary the editor is built from, and the process-wide bits
+// of it: the skin's lifetime, the palette, the paths and the message boxes.
 //
 // Copyright (c) 2009 - 2016. Little Endian Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -51,8 +52,7 @@
 
 /// \note Individual JUCE 8 headers have no include guards and open
 /// `namespace juce {` mid-file; they may only be reached through the module
-/// umbrella header. The old "juce/..." prefix was the deleted fork's layout.
-///                                       (28.07.2026.) (SW port)
+/// umbrella header.
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #if defined(_WIN32)
@@ -75,7 +75,6 @@ template <class Parameter> struct Name;
 /// \note Declared rather than included, as the two above are: the definition is
 /// in uiElements.hpp and reaches this header's one caller
 /// (fillComboBoxForParameter) through the translation unit that instantiates it.
-/// \see issue #120.
 template <class Parameter>
 constexpr typename DiscreteValues<Parameter>::Strings const &shortValueStrings();
 /// \note The same, for the order the rows come in. \see MenuOrder.
@@ -94,14 +93,6 @@ class SpectrumWorx;
 namespace GUI
 {
 
-/// \note `enum ResourceBitmaps` and `resourceBitmap()` used to be declared here
-/// too, numbered with multi-character literals ('01') and read off disk. Both
-/// now come from resources.hpp, which numbers them as plain integers, reads them
-/// out of the binary and can release the cache. The two spellings coexisted only
-/// while this header did not compile; the name sets were identical, so nothing
-/// at a call site changes.
-///                                       (28.07.2026.) (SW port)
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class SkinLifetime
@@ -114,22 +105,11 @@ namespace GUI
 /// the first one, so that it is constructed before the editor's widgets and
 /// destroyed after them.
 ///
-/// \note This was `ReferenceCountedGUIInitializationGuard`, and it did far more
-/// than its replacement: it called `juce::initialiseJuce_GUI()` and
-/// `juce::shutdownJuce_GUI()` **directly**, outside the `numScopedInitInstances`
-/// counter that `juce::ScopedJuceInitialiser_GUI` uses
-/// (juce_MessageManager.cpp:465-477). The CLAP shim holds one of those for the
-/// life of the plugin (clap_juce_shim_impl.cpp:115,235), so closing an editor ran
-/// `DeletedAtShutdown::deleteAll()` and `MessageManager::deleteInstance()` under a
-/// shim that still held a live reference -- and the counter, the shutdown list and
-/// the MessageManager singleton are one per binary, which is to say shared by
-/// every instance of this plugin the host has loaded. One instance closing its
-/// window deleted the message loop another was running on.
-///
-///   It also called `setCurrentThreadAsMessageThread()`, which is not a plugin's
-/// to say, and threw an exception refusing to open a second editor at all. JUCE's
-/// lifetime is the shim's; this keeps only what is ours.
-///                                           (02.08.2026.) (SW port)
+/// \note **JUCE's own lifetime is not this class's**, and must not be: the CLAP
+/// shim holds a `ScopedJuceInitialiser_GUI` for the life of the plugin, and the
+/// init counter, the shutdown list and the MessageManager singleton are one per
+/// binary -- shared by every instance the host has loaded. Shutting JUCE down
+/// from here would delete the message loop another instance is running on.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -148,12 +128,9 @@ class SkinLifetime
     static std::uint8_t liveEditors_;
 }; // class SkinLifetime
 
-/// \note These take an Artwork rather than a juce::Image, and there is no
-/// juce::Image overload on purpose. A widget holding a bitmap can only ever
-/// draw at the size the skin was authored for; holding an Artwork, it draws a
-/// converted file as a vector and an unconverted one exactly as before. Making
-/// it the only spelling is what stops the raster path growing back -- the
-/// symptom is invisible at 100 % and only shows as soft artwork once the
+/// \note An Artwork rather than a juce::Image, and there is no juce::Image
+/// overload on purpose: a widget holding a bitmap can only ever draw at the size
+/// the skin was authored for, which is invisible at 100 % and soft once the
 /// editor is zoomed.
 void paintImage(juce::Graphics &, Artwork const &);
 void paintImage(juce::Graphics &, Artwork const &, int x, int y);
@@ -171,27 +148,11 @@ float displayScale();
 // Global paths.
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \note The two mapPathsFile() overloads went with the boost::mmap dependency
-/// stage 2 removed. They mapped the `SpectrumWorx.paths` file the 2016 installer
-/// wrote, to find the skin and the most-recently-used presets folder; the skin
-/// is compiled in now (resources.hpp), so the only thing left worth keeping is
-/// the MRU folder, and that is an ordinary user-data path.
-///                                       (28.07.2026.) (SW port)
-
-/// \note `initializePaths()`, `havePathsBeenInitialised()` and `resourcesPath()`
-/// stood here. The first two were a two-phase initialisation whose initialiser
-/// nothing called -- see gui.cpp -- and the third was declared and never
-/// defined. These two answer on demand.
-///                                       (31.07.2026.) (SW port)
-
-/// \note **`fs::path`, not `juce::File`**, and that is what closed issue #28.
-/// `sst::plugininfra::paths` answers with an `fs::path`; this used to convert it
-/// into a `juce::File`, and getting that conversion wrong created a mojibake
-/// Documents folder on a `ja_JP.UTF-8` desktop. There is no conversion here any
-/// more -- the bytes the platform gave us are handed on untouched, and whoever
-/// needs them as a `juce::String` converts at the edge that needs it, through
-/// io/jucePath.hpp.
-///                                       (09.08.2026.) (SW port)
+/// \note **`fs::path`, not `juce::File`**: `sst::plugininfra::paths` answers
+/// with an `fs::path`, and converting it here is what put a mojibake Documents
+/// folder on a `ja_JP.UTF-8` desktop. The platform's bytes are handed on
+/// untouched, and whoever needs a `juce::String` converts at its own edge,
+/// through io/jucePath.hpp. \see issue #28.
 
 /// The user's SpectrumWorx folder: `~/Documents/SpectrumWorx` or the platform
 /// equivalent. Nothing is created by asking.
@@ -199,36 +160,14 @@ fs::path const &rootPath();
 
 /// \brief The browser's most-recently-used preset folder, which starts at the
 /// user's preset directory and which the browser writes back when it closes.
-/// \note Const: this is where the user's presets live, not where the browser
-/// last was. The browser used to assign to it, which moved the anchor
-/// `goToParent()` stops at and the folder `createUserPresetsFolder()` makes;
-/// where it was is its own business now (`PresetBrowser::Place`).
+/// \note Const: this is where the user's presets live, not where the browser last
+/// was -- it anchors `goToParent()` and is what `createUserPresetsFolder()`
+/// makes. Where the browser was is `PresetBrowser::Place`.
 fs::path const &presetsFolder();
 
 /// \brief Creates the user preset directory if it is not there.
 /// \note Not done by presetsFolder(); see the note at the definition.
 bool createUserPresetsFolder();
-
-/// \note makeFSRefFromPath() went with it: FSRef is Carbon, which was never
-/// ported to arm64. Its one caller was external_audio/sampleMac.cpp, which
-/// stage 5.0 replaces with juce::AudioFormatManager.
-
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Theme
-///
-////////////////////////////////////////////////////////////////////////////////
-
-/// \note Theme moved to theme.hpp, where it is a LookAndFeel_V2 (not a
-/// LookAndFeel, which is abstract in JUCE 8, and not a LookAndFeel_V4, which
-/// would paint linear sliders whole and silently drop the skinned thumb).
-///
-///   These two were static members of Theme purely because they read what is now
-/// GUI::preferences(). They ask about a ModuleControlBase and a ModuleUI, which
-/// a LookAndFeel has no business knowing about, and being members is what kept
-/// Theme from being separable at all. aModuleControlNeedsLFOUpdate went with
-/// them: it had no callers.
-///                                       (28.07.2026.) (SW port)
 
 class ModuleControlBase;
 class ModuleUI;
@@ -292,13 +231,10 @@ template <class BaseComponent = juce::Component> class WidgetBase : public BaseC
     {
     }
 
-    /// \note Not a Clang workaround, which is how this was gated: declaring the
-    /// placement pair above puts `operator delete` in class scope, and lookup for
-    /// the one the *deleting destructor* needs stops there rather than falling
-    /// back to `::operator delete`. Every widget here has a virtual destructor
-    /// (juce::Component does), so a usable single-argument form is required, and
-    /// GCC says so as plainly as Clang does. Only MSVC let it pass.
-    ///                                       (29.07.2026.) (SW port)
+    /// \note Required, not decorative: declaring the placement pair above puts
+    /// `operator delete` in class scope, and lookup for the one the *deleting
+    /// destructor* needs stops there rather than falling back to the global.
+    /// Every widget here has a virtual destructor.
     void *operator new(std::size_t const count) { return ::operator new(count); }
     void operator delete(void *const pObject) { return ::operator delete(pObject); }
 
@@ -306,15 +242,6 @@ template <class BaseComponent = juce::Component> class WidgetBase : public BaseC
     using BaseComponent::isParentOf;
     using BaseComponent::setVisible;
 }; // class WidgetBase
-
-/// \note `OwnedWindowBase` / `OwnedWindow<>` stood here: ~500 lines that made
-/// the preset browser and the settings panel separate top-level desktop windows
-/// owned by the editor's native one, kept in position by a process-wide
-/// `SetWindowsHookEx` on Windows and `[NSWindow addChildWindow:]` on macOS.
-/// **Stage 6.4** deleted them. Both panels are ordinary child components of the
-/// editor now, sharing one overlay rectangle over the module strips --
-/// `SpectrumWorxEditor::openOverlay()` is where that lives.
-///                                           (01.08.2026.) (SW port)
 
 void warningMessageBox(std::string_view title, std::string_view message, bool canBlock);
 
@@ -333,11 +260,7 @@ void warningMessageBox(std::string_view title, std::string_view message, bool ca
 ///
 ///   An assert rather than a refusal, because what is *missing* is a place for
 /// such a message to go. `PresetProblem` is that place for everything the preset
-/// layer runs into, and `GUI::loadPreset` still raises its one summary from
-/// inside a load whenever a window happens to be open -- which for a session
-/// restore is a window that was open for some other reason.
-/// \see issue #12, "A load problem has nowhere to go but a modal box".
-///                                           (08.08.2026.) (SW port)
+/// layer runs into. \see issue #12.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -353,12 +276,8 @@ class UnattendedLoad
     static bool inProgress();
 }; // class UnattendedLoad
 
-/// \note Was `bool warningOkCancelBox(title, question)`, answered synchronously.
-/// It cannot be: JUCE 8 defaults JUCE_MODAL_LOOPS_PERMITTED to 0, so
-/// showOkCancelBox returns immediately and delivers the answer to a callback.
-/// The two callers that want an answer are both in the preset browser's save
-/// path, and inverting them is that file's job.
-///                                       (28.07.2026.) (SW port)
+/// \note The answer arrives in a callback and cannot arrive any other way: JUCE 8
+/// defaults JUCE_MODAL_LOOPS_PERMITTED to 0, so showOkCancelBox returns at once.
 void warningOkCancelBox(TCHAR const *title, TCHAR const *question,
                         std::function<void(bool)> onResult);
 
@@ -366,12 +285,6 @@ void addToParentAndShow(juce::Component &parent, juce::Component &childToBe);
 
 void fadeOutComponent(juce::Component &, float finalAlpha, unsigned int duration,
                       bool useProxyComponent);
-
-/// \note `class Lock : private juce::MessageManagerLock` stood here. It had no
-/// call sites anywhere in `src/`, `tests/` or `tools/`, and its one line of body
-/// was an assertion about the reference count SkinLifetime no longer keeps -- so
-/// it either had to be rewritten or removed, and nothing calls it.
-///                                           (02.08.2026.) (SW port)
 
 namespace Detail
 {
@@ -477,9 +390,8 @@ void postOrExecuteMessage(GUIHolder &guiHolder, Functor &&functor)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \note Holds a GlyphArrangement rather than deriving from one: JUCE 8 marks
-/// GlyphArrangement final. Only the constructor and draw() were ever used, so
-/// forwarding the one is the whole of the change.
+/// \note Holds a GlyphArrangement rather than deriving from one, JUCE 8 marking
+/// GlyphArrangement final.
 class DrawableText
 {
   public:
@@ -504,12 +416,8 @@ class DrawableText
 /// \brief How much a button dims to say the pointer is on it, or that it cannot
 /// be pressed at all.
 ///
-/// \note These were BitmapButton's, which held two Artworks and blitted
-/// whichever the button's state called for. Nothing constructs one any more --
-/// every button in the editor draws itself -- so the class is gone and what it
-/// is remembered by is the three numbers every one of them still dims by, and
-/// therefore dims by *together*.
-///                                       (18.08.2026.)
+/// \note Here rather than per button, so that every button in the editor dims by
+/// the same amount and does so together.
 namespace PointerFeedback
 {
 float constexpr normal{1.00f};
@@ -525,19 +433,10 @@ float constexpr disabled{0.30f};
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \brief A caption on a ButtonPainter pill.
+/// \brief A caption on a ButtonPainter pill: Presets and Settings, and the preset
+/// browser's Save, Save as and Delete.
 ///
-///   What a BitmapButton is where the artwork was a *button* rather than a
-/// symbol: Presets and Settings, and the preset browser's Save, Save as and
-/// Delete. \see buttonPainter.hpp for what those fourteen files were.
-///
-/// \note Held down or toggled on is what "selected" means here, which is the
-/// rule a BitmapButton picked its artwork by -- and which the browser's three
-/// had backwards. `save_( *this, PresetSaveDown, PresetSaveUp )` handed the
-/// *plain* variant in as the button's `on`, so Save was lit at rest and went
-/// dark under the finger. Exactly the mistake issue #73 found on the Settings
-/// button, in the file names rather than at the call site.
-///                                       (18.08.2026.)
+/// \note Held down *or* toggled on is what "selected" means here.
 class PaintedButton : public WidgetBase<juce::Button>
 {
   public:
@@ -554,19 +453,10 @@ class PaintedButton : public WidgetBase<juce::Button>
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \note This used to hold a juce::PopupMenu and reach into its private `items`
-/// array through a shadow copy of JUCE's internal item struct -- to tick an
-/// entry, to read an entry's text or icon, and to map an ID to an index. The
-/// 2016 comment justified that by saying rebuilding the menu whenever the
-/// selection changed was too slow.
-///
-///   That judgement was made against 2010 hardware and a menu of a few dozen
-/// entries, and it is not true now: the items live here, and a juce::PopupMenu
-/// is built from them at the moment of showing. JUCE's layout is then nobody's
-/// business but JUCE's, getSelectedItemText() and getSelectedItemIcon() return
-/// references into storage we own rather than into menu internals, and the
-/// whole class survives a JUCE upgrade.
-///                                       (28.07.2026.) (SW port)
+/// \note The items live here and a juce::PopupMenu is built from them at the
+/// moment of showing, so JUCE's layout stays JUCE's business and
+/// getSelectedItemText() and getSelectedItemIcon() return references into
+/// storage we own rather than into menu internals.
 class PopupMenu
 {
   public:
@@ -590,8 +480,7 @@ class PopupMenu
     /// \note The menu is as wide as its longest line and a module strip's combo
     /// box is sixty pixels, so the two cannot always be the same string. Every
     /// other reading of the value -- the host's, the knob menu's, a preset's --
-    /// stays the full one; this is the widget's alone. \see issue #120,
-    /// LE::Parameters::ShortValues.
+    /// stays the full one. \see LE::Parameters::ShortValues.
     void addItem(ItemID, char const *newItemText, char const *shortText,
                  Artwork const *icon = nullptr, bool enabled = true);
     void addSubMenu(PopupMenu &, char const *name);
@@ -606,8 +495,7 @@ class PopupMenu
     /// unless addItem() was given a shorter one.
     juce::String const &getItemShortText(unsigned int itemIndex) const;
 
-    /// \note Asynchronous. JUCE 8 defaults JUCE_MODAL_LOOPS_PERMITTED to 0, and
-    /// showMenu() -- which blocked until the user chose -- is gone with it.
+    /// \note Asynchronous, JUCE 8 defaulting JUCE_MODAL_LOOPS_PERMITTED to 0.
     void showCenteredAtRight(juce::Component const &, OnChosen) const;
     void showCenteredBelow(juce::Component const &, OnChosen) const;
     /// \brief With its corner at \p screenPosition, which is what a right-click
@@ -621,13 +509,10 @@ class PopupMenu
     /// \brief True from the moment *this* menu is shown until its callback has
     /// run.
     ///
-    /// \note It was a process-wide `static bool`, so one editor's open menu
-    /// silenced the equivalent button in every other instance in the host. All
-    /// three readers ask about a menu they own -- a combo box's own, the LFO
-    /// type's, the sample area's -- so per menu is both correct and what they
-    /// meant. `mutable` because showing a menu changes nothing about what the
-    /// menu *is*, which is why showAt() is const.
-    ///                                       (02.08.2026.) (SW port)
+    /// \note Per menu rather than per process: all three readers ask about a menu
+    /// they own -- a combo box's, the LFO type's, the sample area's -- and a
+    /// shared flag would let one editor's open menu silence another's button.
+    /// `mutable` because showing a menu changes nothing about what it *is*.
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool menuActive() const { return menuActive_; }
@@ -644,8 +529,8 @@ class PopupMenu
         bool enabled;
         bool isSectionHeader;
         bool isSeparator;
-        /// Non-owning, as it was when this held a juce::PopupMenu: sub-menus are
-        /// members of the owning widget and outlive the menu.
+        /// Non-owning: a sub-menu is a member of the owning widget and outlives
+        /// the menu.
         PopupMenu const *pSubMenu;
     }; // struct Item
 
@@ -669,7 +554,6 @@ class PopupMenu
     /// \note And the area is in the owner's coordinates rather than the screen's
     /// for the same reason: every offset here is a skin pixel, and the screen
     /// stopped being measured in those the moment the editor took a zoom.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     void showAt(juce::Component const &owner, juce::Rectangle<int> area, OnChosen) const;
@@ -729,8 +613,7 @@ class PopupMenuWithSelection : public PopupMenu
   private:
     int currentSelection_;
     /// 0 means "nothing chosen yet"; a real ID is stored as id + 1 so that 0 is
-    /// a legal item ID. This replaces the old mangling into the top byte, which
-    /// existed because juce::PopupMenu reserves 0 for "dismissed".
+    /// a legal item ID, juce::PopupMenu reserving it for "dismissed".
     unsigned int currentSelectionID_;
 }; // class PopupMenuWithSelection
 
@@ -738,15 +621,12 @@ class PopupMenuWithSelection : public PopupMenu
 ///
 /// \name The two combo boxes
 ///
-///   Skin files 59 to 62 until 18.08.2026: the same rounded box at two sizes,
-/// twice each, and the two copies differing only in the colour of the hairline
-/// around them. It is blue at rest and white when the box has the keyboard
-/// focus, which is what those four files were.
+///   The same rounded box at two sizes, its hairline blue at rest and white when
+/// the box has the keyboard focus.
 ///
-/// \note Two styles rather than one. The 60 x 18 box and the 150 x 21 one
-/// disagree about their corner radius by a pixel and a third and about their
-/// insets by half a pixel, and averaging them would move two controls to no
-/// purpose. \see framePainter.hpp.
+/// \note Two styles rather than one: the two sizes disagree about their corner
+/// radius by a pixel and a third and about their insets by half a pixel, and
+/// averaging them would move two controls to no purpose.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
@@ -800,7 +680,7 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
 
   public:
     /// What the selected item's text keeps clear of the rounded background's
-    /// ends. \see paint(), and issue #76.
+    /// ends. \see paint().
     static int constexpr textMargin{9};
 
     void setSelectedID(unsigned int newSelectionID);
@@ -809,8 +689,7 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
   protected:
     /// \note \p height is the box's own, which for a TitledComboBox is not the
     /// widget's: that one is fifteen pixels taller and paints its title in the
-    /// difference. It was `normalBackground_.getHeight()` while there was
-    /// artwork to ask.
+    /// difference.
     ComboBox(juce::Component &parent, FrameStyle const &, int width, int height);
 
     void showMenu(std::function<void(bool)> onValueChanged);
@@ -826,9 +705,8 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
     /// menu is used too.
     ///
     /// \note The same seam `showMenu()`'s callback is, in the shape a wheel
-    /// needs: there is no menu to outlive the widget here, so it is a virtual
-    /// rather than a SafePointer and a std::function. \see issue #124.
-    ///                                   (21.08.2026.)
+    /// needs: nothing here outlives the widget, so it is a virtual rather than a
+    /// SafePointer and a std::function.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -842,16 +720,9 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
     /// \brief Steps the selection: **a notch away from the user is the next row
     /// down the list**, which is the *later* value.
     ///
-    /// \note Deliberately not what juce::ComboBox and sst-jucegui's
-    /// `DiscreteParamEditor` do, both of which step to the row *above*. Their
-    /// convention is a list's -- scrolling away from you moves you toward the
-    /// top of it -- and it is the wrong one here, because these boxes do not
-    /// stand where a list stands. A module strip's is a parameter editor in a
-    /// row of parameter editors, with knobs either side of it, and away from the
-    /// user raises a knob. A control that went the other way from the control
-    /// beside it would be answering a question about lists that the user is not
-    /// asking.
-    ///                                       (21.08.2026.) \see issue #124.
+    /// \note Deliberately not a list's convention, where scrolling away moves
+    /// toward the top. A module strip's box is a parameter editor in a row of
+    /// them with knobs either side, and away from the user raises a knob.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -884,11 +755,8 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
 
 /// \brief A widget whose whole job is the panel behind everything on it.
 ///
-/// \note Was `BackgroundImage`, holding a pointer to one skin file. There were
-/// only ever two panels and only ever two files -- 07 and 17, the second of
-/// them shared by all three settings pages -- and both are drawn now.
+/// \note There are only two, and both are drawn rather than blitted.
 /// \see panelPainter.hpp.
-///                                       (18.08.2026.)
 class PanelBackground : public WidgetBase<>
 {
   public:
@@ -919,10 +787,8 @@ class PanelBackground : public WidgetBase<>
 
 /// \brief A capsule that lights up, and nothing else.
 ///
-/// \note Was a BitmapButton holding two skin files. What it keeps of that class
-/// is the control traits, which is how a module strip's bypass reports a
-/// boolean; \see CapsulePainter for the drawing.
-///                                       (18.08.2026.)
+/// \note The control traits below are how a module strip's bypass reports a
+/// boolean. \see CapsulePainter for the drawing.
 class CapsuleButton : public WidgetBase<juce::Button>
 {
   public: // ModuleUI control traits
@@ -942,8 +808,7 @@ class CapsuleButton : public WidgetBase<juce::Button>
   public:
     /// \param litWhenOn false where the toggle state is the *opposite* of what
     /// the capsule shows. A module strip's bypass is the one: its state is
-    /// "bypassed" and its capsule says "running", which is what the artwork
-    /// said by handing the muted file over as the button's `on`.
+    /// "bypassed" and its capsule says "running".
     CapsuleButton(juce::Component &parent, CapsuleStyle const &, int width, int height,
                   bool litWhenOn = true);
 
@@ -972,8 +837,7 @@ class CapsuleButton : public WidgetBase<juce::Button>
 /// \brief A triangle pointing right, which is three of the editor's buttons:
 /// the one that adds an effect, and the two that step to the next of something.
 ///
-/// \note Was a BitmapButton handed the same artwork twice -- these have no
-/// second state, only a tint under the pointer. \see ArrowPainter.
+/// \note No second state, only a tint under the pointer. \see ArrowPainter.
 class ArrowButton : public WidgetBase<juce::Button>
 {
   public:
@@ -1019,10 +883,9 @@ class EjectButton : public WidgetBase<juce::Button>
 /// and the two halves of the preset jog. \see GlyphPainter for the drawings and
 /// for the sizes, which are each glyph's own.
 ///
-/// \note White when off and the accent when on, which issue #44 asks for
-/// literally -- so a toggling glyph needs nothing said about it at the call
-/// site, and a glyph that does not toggle is white for its whole life. Disabled
-/// and moused-over are PointerFeedback's, as everywhere else.
+/// \note White when off and the accent when on, so a toggling glyph needs nothing
+/// said about it at the call site and one that does not toggle is white for its
+/// whole life. Disabled and moused-over are PointerFeedback's.
 class GlyphButton : public WidgetBase<juce::Button>
 {
   public:
@@ -1082,11 +945,11 @@ class TextButton : public WidgetBase<juce::Button>
 ///
 /// \name Round controls, and the strip behind them
 ///
-///   A module knob and a trigger button are both circles, and both are drawn in
-/// a rectangle with room for a caption underneath. Everything in that rectangle
-/// which is not the circle reads as the module strip showing through -- so a
-/// right press there is a question for the strip, "replace this effect", and not
-/// for the control. \see issue #92.
+///   A module knob and a trigger button are both circles, drawn in a rectangle
+/// with room for a caption underneath. Everything in that rectangle which is not
+/// the circle reads as the module strip showing through, so a right press there
+/// is a question for the strip -- "replace this effect" -- and not for the
+/// control.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 ///@{
@@ -1124,21 +987,13 @@ void passMousePressToParent(juce::Component &widget, juce::MouseEvent const &eve
 /// add -- which is the menu the rest of the Surge Synth Team's plugins put on a
 /// parameter.
 ///
-/// \note What was on a knob until 15.08.2026: `setPopupMenuEnabled( true )`, so
-/// the right button raised *juce::Slider*'s own menu -- velocity-sensitive mode
-/// and the drag direction. Two settings about the mouse, offered on the one
-/// control a user opens a menu on to reach its parameter.
+/// \note A mix-in rather than something Knob owns: a knob is not the only widget
+/// standing for an automatable parameter. Tune Worx has none at all -- a combo
+/// box and twelve LEDs.
 ///
-/// \note A mix-in rather than something Knob owns, and that is issue #93: a knob
-/// is not the only widget standing for an automatable parameter. Tune Worx has
-/// no knobs at all -- a combo box and twelve LEDs -- so the one effect a user is
-/// most likely to want a host's menu on was the one effect that had none.
-///
-/// \note Every one of the questions below is virtual rather than a constructor
-/// argument because each is one only the concrete widget can answer, and two of
-/// them -- the value and whether it may be edited -- change under the user while
-/// the widget lives.
-///                                           (21.08.2026.)
+/// \note Every question below is virtual rather than a constructor argument
+/// because each is one only the concrete widget can answer, and two of them --
+/// the value and whether it may be edited -- change while the widget lives.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1161,9 +1016,9 @@ class ParameterMenu
     /// question, so the type-in and the default follow them rather than becoming
     /// another answer.
     ///
-    /// \note Public because a knob asks it about itself for a second reason --
-    /// whether there is a drag worth hiding the cursor for. \see
-    /// Knob::hidesCursorWhileDragging() and issue #82.
+    /// \note Public because a knob asks it about itself for a second reason:
+    /// whether there is a drag worth hiding the cursor for.
+    /// \see Knob::hidesCursorWhileDragging().
     ////////////////////////////////////////////////////////////////////////////
     virtual bool parameterEditable() const { return true; }
 
@@ -1204,11 +1059,10 @@ class ParameterMenu
     ///   An enumerated parameter is chosen rather than typed, and what a user
     /// right-clicking a combo box wants is the list they would otherwise have to
     /// left-click for -- so the menu reads name, values, then whatever the host
-    /// adds. \see issue #93 and DiscreteParameter::addParameterValueEntries().
+    /// adds. \see DiscreteParameter::addParameterValueEntries().
     ///
     /// \note Empty for everything else. A knob's values are a continuum and a
     /// button's are two, one of which is a press away.
-    ///                                       (21.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -1241,7 +1095,6 @@ class Knob : public WidgetBase<juce::Slider>
     /// themselves, and a module's answers through the ModuleControlBase every
     /// widget on a strip shares. One ParameterMenu subobject either way, which
     /// inheriting it here would not give.
-    ///                                       (21.08.2026.) \see issue #93.
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual ParameterMenu &parameterMenu() = 0;
@@ -1262,17 +1115,12 @@ class Knob : public WidgetBase<juce::Slider>
     ///
     ////////////////////////////////////////////////////////////////////////////
     ///@{
-    /// \brief The pixels of vertical travel a knob asked for, in 2012, before it
-    /// had moved through its whole range.
-    ///
-    /// Kept as the reference rather than edited away so that the sensitivity
-    /// below reads as a multiple of the feel this plugin shipped with.
+    /// \brief The vertical travel a whole range took in the 2.x plugin, kept as
+    /// the reference so the sensitivity below reads as a multiple of that feel.
     static constexpr float referenceDragPixels{1200};
 
-    /// \brief The multiple of that travel a knob covers now.
-    ///
-    /// One is the 2012 feel, and a 16" laptop screen is not tall enough to drag
-    /// a knob through its range at it.
+    /// \brief The multiple of that travel a knob covers. One is the 2.x feel, at
+    /// which a 16" laptop screen is not tall enough for a whole range.
     static constexpr float dragSensitivity{2};
 
     /// \brief What holding shift divides the travel by.
@@ -1280,9 +1128,8 @@ class Knob : public WidgetBase<juce::Slider>
     /// \note The same linear drag, only finer -- not JUCE's velocity mode, which
     /// the constructor switches off. \see Knob::fineAdjusted().
     ///
-    /// \note Four rather than the ten sst-jucegui uses, because this is dividing
-    /// an already brisk 600 px. Ten would put a fine sweep well past the 1200
-    /// this is getting away from.
+    /// \note Four rather than sst-jucegui's ten, this dividing an already brisk
+    /// 600 px: ten would put a fine sweep past even referenceDragPixels.
     static constexpr float fineDragRatio{4};
 
     /// \brief The travel a whole range takes, as JUCE counts it: 600 px, and
@@ -1298,25 +1145,13 @@ class Knob : public WidgetBase<juce::Slider>
 
     param_type getNormalisedValue() const;
 
-    /// \note \p diameter rather than the film strip it used to be measured off.
-    /// A knob that paints itself has no strip to ask, and the one knob that
-    /// still has one can hand over its width.
-    ///                                       (14.08.2026.) (SW port)
+    /// \note \p diameter, a knob that paints itself having no film strip to
+    /// measure off.
     void setupForParameter(char const *title, unsigned int diameter, param_type defaultValue);
 
   protected:
     Knob(juce::Component &parent, unsigned int x, unsigned int y, unsigned int xMargin,
          unsigned int yMargin);
-
-  public:
-    /// \note removeValueListeners() went with the fork's Slider::valueListener().
-    /// See the note in the Knob constructor.
-
-    /// \note paintFilmStrip() was here, and with it numberOfKnobSubbitmaps
-    /// (127) and a note about why it could not simply be called paint(). Both
-    /// knobs draw themselves now, so there is no strip left to index and no
-    /// second paint() to keep out of the way of the virtual one.
-    ///                                       (15.08.2026.) (SW port)
 
   public:
     ////////////////////////////////////////////////////////////////////////////
@@ -1325,20 +1160,17 @@ class Knob : public WidgetBase<juce::Slider>
     /// itself rather than on the space around it.
     ///
     ///   A right press that is not gets handed to the parent instead of raising
-    /// the parameter menu. A module knob is a circle in a rectangle with its
-    /// caption underneath, and the caption reads as part of the strip behind it
-    /// -- so a menu about the parameter is the wrong answer there and the strip's
-    /// own "replace this effect" is the right one. \see issue #92, and
-    /// ModuleKnob::isOnKnobFace(), which is the only override.
+    /// the parameter menu: a module knob is a circle in a rectangle with its
+    /// caption underneath, and the caption reads as part of the strip behind it.
+    /// ModuleKnob::isOnKnobFace() is the only override.
     ///
     /// \note The default is "all of it", which is what the editor's three main
     /// knobs want: they have no margin, nothing behind them offers a menu, and
     /// the four corners outside their circle are as much part of the knob as the
     /// middle is.
     ///
-    /// \note Public for the same reason ModuleUI::isDragHandle() is: it is a
-    /// statement about where the widget's regions are, and the only part of this
-    /// a test can put a number on.
+    /// \note Public for the same reason ModuleUI::isDragHandle() is: it is the
+    /// only part of this a test can put a number on.
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual bool isOnKnobFace(juce::Point<int> position) const;
@@ -1349,21 +1181,16 @@ class Knob : public WidgetBase<juce::Slider>
     /// \brief Whether pressing this knob hands the mouse to the knob -- cursor
     /// hidden, movement unbounded -- for the duration of the drag.
     ///
-    /// \note Two questions, and the second one was missing. The preference is the
-    /// user's; `parameterEditable()` is whether there is a drag to hand the mouse
-    /// over *for*. An LFO'd knob answers no to the second, because
-    /// `ModuleKnob::mouseDrag` returns at the top and the value cannot move -- so
-    /// the cursor was being hidden and unbounded for a gesture that did nothing,
-    /// and JUCE put it back inside the knob's bounds on release rather than where
-    /// the user had pressed. That is issue #82: the cursor jumps on a click that
-    /// was only ever going to select the control.
+    /// \note Two questions: the preference is the user's, and
+    /// `parameterEditable()` is whether there is a drag to hand the mouse over
+    /// *for*. An LFO'd knob answers no to the second -- `ModuleKnob::mouseDrag`
+    /// returns at the top -- and hiding the cursor for a gesture that cannot move
+    /// anything leaves JUCE to put it back inside the knob's bounds on release
+    /// rather than where the user pressed.
     ///
     /// \note Public and const because it is the only part of this a test can
-    /// reach. JUCE gates the mode on a real button being down
-    /// (`juce_MouseInputSourceImpl.h:463`, `enable = enable && isDragging()`), so
-    /// a synthesised press never turns it on and there is nothing to observe on
-    /// the far side. \see the note on `eventOver()` in moduleControlFocusTests.cpp
-    /// for the two other things a synthesised mouse cannot do.
+    /// reach: JUCE gates the mode on a real button being down, so a synthesised
+    /// press never turns it on.
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool hidesCursorWhileDragging() const;
@@ -1386,11 +1213,6 @@ class Knob : public WidgetBase<juce::Slider>
     void modifierKeysChanged(juce::ModifierKeys const &) override;
 
     void startedDragging() noexcept override;
-    /// \note Was declared and defined only under !NDEBUG, but
-    /// EditorKnob::stoppedDragging calls it unconditionally -- an undefined
-    /// symbol in every release build. The body is nothing but an assertion, so
-    /// it costs nothing to exist: LE_ASSERT compiles away on its own.
-    ///                                       (28.07.2026.) (SW port)
     void stoppedDragging() noexcept override;
 
   private:
@@ -1438,7 +1260,6 @@ class Knob : public WidgetBase<juce::Slider>
 class EditorKnob final : public Knob, public ParameterMenu
 {
   public:
-    /// What the film strip's frame width was.
     static constexpr unsigned int diameter{83};
 
     EditorKnob(SpectrumWorxEditor &parent, unsigned int x, unsigned int y);
@@ -1493,7 +1314,7 @@ class TitledComboBox : public ComboBox
     void mouseDown(juce::MouseEvent const &) override;
     void paint(juce::Graphics &) override;
 
-    /// \note The same call the menu's own callback makes. \see issue #124.
+    /// \note The same call the menu's own callback makes.
     void selectionScrolled() override;
 
   private:
@@ -1521,7 +1342,7 @@ void addPowerOfTwoValueStringsToComboBox(unsigned int firstValue, unsigned int l
 ///
 /// \note Two lists of the same length: what the menu lists each value under and
 /// what the box reads once it is chosen. They are the same array for every
-/// parameter that has not been given abbreviations. \see issue #120.
+/// parameter that has not been given abbreviations.
 ///
 /// \note Both are indexed by *value*, and \p menuOrder says which value each row
 /// holds -- declaration order for almost every parameter, and its own list for

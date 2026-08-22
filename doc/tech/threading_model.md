@@ -44,8 +44,8 @@ displaced module inside `process()`; the realtime sanitizer reports that as a
 into a `PresetLoadReport` and hands it back —
 `PresetLoadReport::worthTellingTheUser()` decides whether any of it is the
 user's business, `GUI::loadPreset` turns the survivors into **one** dialog, and
-`stateLoad` says nothing at all. Loading the 303 factory banks raises 722
-`MissingParameter`s and not one window.
+`stateLoad` says nothing at all. Loading the factory banks raises
+`MissingParameter`s in bulk and not one window.
 
 ---
 
@@ -384,12 +384,15 @@ Two live there that look like they belong below — `threadCheckTests` drives a
 real `clap_plugin` through its C entry point, and `parameterTableTests`
 exercises the host-facing parameter enumeration.
 
-Between them sits **`sw-io`**: `external_audio/sample.cpp` and
-`le/spectrumworx/presetFile.cpp`, the two things that open a file. Not `sw-gui`,
-because neither draws anything — a plugin reads a session's sample with no
-editor open. The format itself speaks no JUCE: `presetStorage.cpp` is
-`std::filesystem::path` and `<fstream>`, and `presetFile.cpp` above it is only
-`juce::File` conversion. That is what lets the preset tests link without JUCE.
+Between them sits **`sw-io`**: `external_audio/sample.cpp`, the audio file
+decoder. Not `sw-gui`, because it draws nothing — a plugin reads a session's
+sample with no editor open.
+
+Preset files are *not* up here. `presetStorage.cpp` opens them with
+`std::filesystem::path` and `<fstream>` and is part of `sw-dsp` itself, so the
+whole read-and-parse path speaks no JUCE and the preset tests link without it.
+Whatever needs a `juce::File` converts at its own edge, through
+`io/jucePath.hpp`.
 
 ---
 

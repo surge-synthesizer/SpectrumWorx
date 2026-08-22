@@ -34,7 +34,6 @@ namespace LE::SW::GUI::RuleStyle
 /// coordinate system a rule can be a whole number of pixels again, and two is
 /// the one that keeps the weight the eye is used to; one is measurably sharper
 /// and reads as a different, finer instrument.
-///                                       (19.08.2026.)
 ///
 /// \note Whole, and drawn just *inside* a whole-pixel edge -- which is why
 /// every rectangle in backgroundPainter.hpp is on integers. \see

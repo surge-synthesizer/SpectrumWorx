@@ -40,12 +40,10 @@ void Plugin2HostInteropControler::moduleChangedByUser(std::uint8_t const chainPa
     moduleChanged(chainParameterIndex, pModule);
 }
 
-/// \note By effect index, because the editor's callers no longer have a module
-/// to point at: filling a slot is a request the engine answers later, and what
-/// the host is being told is what the *user* did. Reading it back off the chain
-/// would be reading state another thread owns, to say something that was already
-/// known.
-///                                           (02.08.2026.) (SW port)
+/// \note By effect index, the editor's callers having no module to point at:
+/// filling a slot is a request the engine answers later, and what the host is
+/// told is what the *user* did. Reading it back off the chain would be reading
+/// state another thread owns, to say something already known.
 void Plugin2HostInteropControler::moduleChangedByUser(std::uint8_t const chainParameterIndex,
                                                       std::int8_t const effectIndex) const
 {
@@ -65,12 +63,9 @@ void Plugin2HostInteropControler::moduleChangedByUser(std::uint8_t const chainPa
     /// parameters are then pushed one by one -- see the assertion at the top of
     /// Plugin2HostActiveInteropImpl::moduleChanged, which is that push.
     ///
-    ///   This notification used to sit below the early return, so a host that
-    /// re-reads the list itself was told nothing at all when a module was added
-    /// from the plugin's own UI. Under CLAP that is every host: the parameters
-    /// kept the names they were first read with, which for an empty slot is
-    /// "N/A".
-    ///                                       (29.07.2026.) (SW port)
+    ///   It is above the early return, so a host that re-reads the list itself
+    /// -- which under CLAP is every host -- still hears that a module was added
+    /// from the plugin's own UI, rather than keeping the names it first read.
     ///
     /// \note And only this: pushing the *rest* of that slot's parameters needs a
     /// module to read them off, so it stays in the overload that has one.
@@ -233,17 +228,10 @@ namespace
 /// \note How many of Program's global parameters actually reach the host: all
 /// of them, and this is the name for that rather than a subtraction.
 ///
-///   It used to subtract InputMode, an I/O-routing parameter that entered the
-/// list at LE_SW_ENGINE_INPUT_MODE >= 1 and was withheld from the host at >= 2
-/// -- two different conditions, and numberOfParameters() and getParameterIDs()
-/// each read a different one. Nothing defined the macro, so the parameter was
-/// absent to begin with, the subtraction removed a real parameter, and
-/// getParameterIDs wrote one ID past the buffer its own caller had sized.
-/// Latent since 2013 and invisible to the 2016 builds, which all set it to 2.
-/// The macro and the parameter are gone as of 04.08.2026 -- CLAP configures I/O
-/// through audio-ports-config, not through an automatable parameter -- so what
-/// is left is the name.
-///                                           (28.07.2026.) (SW port)
+///   CLAP configures I/O through audio-ports-config rather than through an
+/// automatable parameter, so there is no input-mode parameter to withhold and
+/// this is the plain count. A subtraction here has to agree with
+/// getParameterIDs()' own, or the host sizes a buffer this then overruns.
 std::uint16_t constexpr exportedGlobalParameters{Program::Parameters::static_size};
 } // anonymous namespace
 
@@ -351,21 +339,10 @@ Plugin2HostPassiveInteropController::numberOfParameters(Program const *LE_RESTRI
         pProgram->moduleChain().forEach<Engine::ModuleParameters>(
             [&numberOfParameters](Engine::ModuleParameters const &module) {
                 std::uint8_t const numberOfModuleParameters(module.numberOfParameters());
-                /// \note std::uint16_t, and not the std::uint8_t this was
-                /// written with. lfoExportedParameters used to be 7 in a build
-                /// without the GUI against 5 with it, and the effects with the
-                /// most parameters -- Armonizer and Tune Worx -- have enough
-                /// that (parameters - 1) * 7 passes 255 and wraps to 256 less
-                /// than the truth. numberOfParameters() then under-reports by
-                /// exactly 256, and getParameterIDs, which counts the same thing
-                /// in wider arithmetic, writes 256 IDs past the buffer the host
-                /// sized from it.
-                ///
-                ///   The multiplier is unconditionally 5 now, which no effect
-                /// overflows, so this is the narrow type's last line of defence
-                /// rather than a live bug -- and it is why raising the count is
-                /// not the local change it looks like.
-                ///                               (28.07.2026.) (SW port)
+                // std::uint16_t rather than std::uint8_t: at five exported LFO
+                // parameters nothing overflows, but raising that count would
+                // wrap this and make getParameterIDs -- which counts the same
+                // thing in wider arithmetic -- write past the host's buffer
                 std::uint16_t const numberOfModuleLFOParameters(
                     (numberOfModuleParameters - 1 /*Bypass*/) *
                     ParameterCounts::lfoExportedParameters);
@@ -465,7 +442,6 @@ char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::ope
 /// never asks a plugin what some *other* value would read as -- the printer was
 /// only ever asked about the parameter's own. CLAP does ask, on every platform,
 /// so they had become false facts handed to the optimiser.
-///                                           (09.08.2026.) (SW port)
 char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::operator()(
     ParameterID::ModuleChain const parameterID, Program const *LE_RESTRICT const pProgram) const
 {

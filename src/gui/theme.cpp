@@ -49,7 +49,6 @@ void paintSliderThumb(juce::Graphics &graphics, float const position,
 /// registering the .ttf files with the operating system. The typefaces come
 /// straight out of the binary now, so they are handed to JUCE by pointer and
 /// no system font of the same name can win. See resources.hpp.
-///                                       (28.07.2026.) (SW port)
 ///
 /// \note **Regular, not bold, since issue #76.** Both of these were the bold
 /// face, which is why every label in the skin read as emphasised and why the
@@ -57,7 +56,6 @@ void paintSliderThumb(juce::Graphics &graphics, float const position,
 /// all. Bitstream Vera Sans ships Roman and Bold and nothing between, so "one
 /// weight down" is the regular face; `boldTypeface()` is still what the About
 /// page's title asks for.
-///                                       (16.08.2026.)
 Theme::Theme()
     : headingFont_(juce::FontOptions(regularTypeface()).withHeight(21.0f)),
       labelFont_(juce::FontOptions(regularTypeface()).withHeight(18.0f)),
@@ -134,11 +132,8 @@ void Theme::takeColours()
     setColour(juce::TabbedComponent::backgroundColourId, colour(ColourMap::Transparent));
     setColour(juce::TabbedComponent::outlineColourId, colour(ColourMap::Transparent));
 
-    /// \note `ScrollBar::trackColourId, lightgrey` stood here and was the whole
-    /// of issue #90's contrast complaint: it made the groove the brightest
-    /// rectangle in the preset browser and left the white thumb sitting on it
-    /// almost invisible. drawScrollbar() paints no groove now, so there is no
-    /// track colour to name; the thumb is the only mark a scroll bar makes.
+    // no ScrollBar::trackColourId: drawScrollbar() paints no groove, so the
+    // thumb is the only mark a scroll bar makes
     setColour(juce::ScrollBar::thumbColourId, colour(ColourMap::ScrollBarThumb));
 }
 

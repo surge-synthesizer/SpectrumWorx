@@ -58,7 +58,6 @@ using namespace LE::SW;
 /// \note Instance, SilentNotifications and HostSideJuce were defined here until
 /// moduleControlFocusTests.cpp needed an editor too; they are in
 /// gui/editorHarness.hpp now, unchanged.
-///                                           (03.08.2026.) (SW port)
 using SWTest::HostSideJuce;
 using SWTest::Instance;
 
@@ -318,7 +317,6 @@ TEST_CASE("A preset load counts its problems instead of raising dialogs",
     /// *counted* rather than raised as a dialog -- and the proof of that is the
     /// absence of a leak at exit, which no assertion here can spell because JUCE
     /// reports it from its own destructor. `failures == 0` is the rest.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const report(takePresetLoadReport());

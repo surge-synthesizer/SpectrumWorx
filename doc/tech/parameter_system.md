@@ -266,7 +266,7 @@ which is legal while active because the parameter *count* never moves (§2).
 Two decisions are worth stating because both went against what the mechanism
 seems to offer.
 
-**Nothing is ever `CLAP_PARAM_IS_HIDDEN.** Flagging a parameter hidden while no
+**Nothing is ever `CLAP_PARAM_IS_HIDDEN`.** Flagging a parameter hidden while no
 effect owns it is what the flag is for, and it would be right if hosts re-read
 flags. The shipped clap-wrapper maps them once, at construction, and a VST3
 `RESCAN_INFO` re-reads only the name — flags come back only under `RESCAN_ALL`.
@@ -599,7 +599,7 @@ attached:
 |---|---|
 | **CLAP** | native. `clap_param_info.id` takes `SW::ParameterID`'s packed `uint32` with zero translation; `clap_host_params::rescan(INFO\|TEXT\|VALUES)` *is* `parameterListChanged()`; §6's probing and the whole manual-push fallback delete outright |
 | **VST3** | `restartComponent( kParamTitlesChanged )`; honoured unevenly, so some form of §6 survives |
-| **JUCE `AudioProcessorParameter`** | worst fit — parameters are objects constructed once with fixed `getName()`/`getLabel()`/ranges. You either expose 287 generic "Mod 3 Param 7" slots or subclass to return changing names and lean on `updateHostDisplay( ChangeDetails().withParameterInfoChanged( true ) )` |
+| **JUCE `AudioProcessorParameter`** | worst fit — parameters are objects constructed once with fixed `getName()`/`getLabel()`/ranges. You either expose 286 generic "Mod 3 Param 7" slots or subclass to return changing names and lean on `updateHostDisplay( ChangeDetails().withParameterInfoChanged( true ) )` |
 
 Concrete mapping for the CLAP backend:
 

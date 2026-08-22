@@ -29,17 +29,10 @@ template <unsigned int size> void clear(void *LE_RESTRICT const pPODObject)
 
 template <typename POD> void clear(POD &pod)
 {
-    /// \note `std::is_pod<POD>::value || __has_trivial_assign(POD)` stood here,
-    /// the second arm for a 2011 Boost bug the two links below are about. Both
-    /// halves are deprecated -- is_pod in C++20, __has_trivial_assign in favour
-    /// of __is_trivially_assignable -- and neither says what memsetting to zero
-    /// actually needs, which is that the bytes may be copied around and that the
-    /// all-zero pattern is a value the type could have had anyway. is_pod also
-    /// demanded standard layout, which memset does not care about.
-    ///
-    /// https://svn.boost.org/trac/boost/ticket/5635
-    /// http://boost.2283326.n4.nabble.com/TypeTraits-A-patch-for-clang-s-intrinsics-was-type-traits-is-enum-on-scoped-enums-doesn-t-works-as-e-td3781550.html
-    ///                                       (02.08.2026.) (SW port)
+    /// \note These two are what memsetting to zero actually needs -- that the
+    /// bytes may be copied around, and that all-zero is a value the type could
+    /// have had anyway. `is_pod` would also demand standard layout, which memset
+    /// does not care about.
     static_assert(std::is_trivially_copyable_v<POD> &&
                       std::is_trivially_default_constructible_v<POD>,
                   "Will not memset a non trivial type.");

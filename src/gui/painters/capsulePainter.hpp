@@ -15,7 +15,6 @@
 /// disagreed about their rim by a quarter of a pixel. A capsule that changes
 /// size when it lights is not something anyone drew on purpose, so there is one
 /// geometry per widget and only the colours and the halo answer to \c lit.
-///                                       (18.08.2026.)
 ///
 /// \note Close kin to FramePainter -- a rim around a body with a glow outside --
 /// and deliberately not it. This one is fully round, its body carries a

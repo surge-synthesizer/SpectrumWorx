@@ -28,15 +28,14 @@ namespace LE::SW
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \note The buffer is one byte longer than the file and terminated, because the
-/// parser is handed a C string. 193 of the 303 factory presets already end in a
+/// parser is handed a C string. Most shipped presets already end in a
 /// NUL -- Preset::saveTo() appends one and the 2016 writer put it on disk -- and
-/// 110 do not. Appending unconditionally is correct for both: a second NUL after
+/// the rest do not. Appending unconditionally is correct for both: a second NUL after
 /// the first is never reached.
 ///
 /// \note `<fstream>` where this was `juce::File::loadFileAsData`. Same bytes,
 /// and it is what lets the reader sit beside the format in `sw-dsp` -- see the
 /// note on the header.
-///                                           (02.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -57,7 +56,6 @@ Preset::InMemoryPreset readPresetFile(std::filesystem::path const &file)
     ///
     ///   Neither needs a hostile file to reach -- any large file renamed to
     /// `.swp`, or picked in the browser, is one.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 

@@ -66,7 +66,6 @@ typename std::remove_reference_t<F>::result_type switchOn(TypeList<Types...>, In
     /// below is `Case cases[]{}`, a zero-length array, which Clang and GCC take
     /// as an extension and **MSVC rejects** (C2466, "cannot allocate an array of
     /// constant size 0").
-    ///                                       (05.08.2026.) (SW port)
     if constexpr (sizeof...(Types) == 0)
     {
         LE_UNREACHABLE_CODE();
@@ -80,7 +79,6 @@ typename std::remove_reference_t<F>::result_type switchOn(TypeList<Types...>, In
         // value was not its position. A table indexed directly is the honest
         // spelling of that, and it compiles to the jump table the generated
         // `switch` was there to produce.
-        //                                    (30.07.2026.) (SW port)
         static constexpr Case cases[]{
             +[](Functor &functor) -> typename Functor::result_type { return functor(Types()); }...};
 

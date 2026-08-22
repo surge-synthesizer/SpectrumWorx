@@ -125,7 +125,7 @@ unheard, in either direction.
 
 ## 4. What an old patch means
 
-No 2.x file records a source. All 288 shipped presets record an `Input_mode`,
+No 2.x file records a source. Every shipped preset records an `Input_mode`,
 written by a 2016 parameter that was compiled out behind
 `LE_SW_ENGINE_INPUT_MODE`, never present in any build this port produced, and
 deleted on 04.08.2026 — so for a fortnight the plugin was discarding the only
@@ -169,7 +169,7 @@ Three things worth knowing about it:
 - **`Input_mode` is read and never written.** It is migration input, not a
   parameter, and a file that omits it is not missing anything.
 
-`presetCorpusTests.cpp`'s `[side-chain]` case walks all 288 shipped presets and
+`presetCorpusTests.cpp`'s `[side-chain]` case walks every shipped preset and
 holds the outcome: the `Sidechainables` bank is exactly the set that comes back
 `Host`, and it is the whole bank.
 
@@ -217,7 +217,7 @@ itself.
 |---|---|
 | `tests/external_audio/sampleFeedTests.cpp` | each of the three reaches the DSP, and **only** the selected one does — three `==` pairs with a file loaded and a port patched at once. Plus the two fallbacks, and that `File` with no file is refused rather than stored |
 | `tests/clap/pluginTests.cpp` | a patched, signal-carrying port is bit-identical to no port at all under `Main`; an untouched patch reads it, which is the default's audible consequence |
-| `tests/presets/presetCorpusTests.cpp` | the migration, over all 288 shipped presets |
+| `tests/presets/presetCorpusTests.cpp` | the migration, over every shipped preset |
 | `tests/presets/presetRoundTripTests.cpp` | the 3.0 fixture, built so that only one reading passes: it records `main` (not the default) *and* `Input mode="1"` (which migrates to `host`), so `main` is reachable only by reading the recorded source and letting it win |
 | `tests/gui/sideChainSelectorTests.cpp` | the box draws the selection and the editor asks its host for it |
 | `tests/presets/data/presetFixtures.txt` | the source is inside the hashed dump, so a shipped preset whose `Input_mode` stopped being read moves its row |

@@ -60,7 +60,6 @@ class SpectrumWorxEditor;
 /// moving the slot marker afterwards -- both of which are simply skipped, which
 /// is what `EditorModuleInitialiser` already documents its own null pointer as
 /// meaning. Everything below that line is the engine's and happens either way.
-///                                           (02.08.2026.) (SW port)
 /// \param comment  the preset's comment, if it has one and the caller wants it.
 /// \param presetName goes into Program::name(), truncated to fit.
 ///

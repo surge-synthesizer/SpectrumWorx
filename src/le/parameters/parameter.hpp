@@ -76,7 +76,6 @@ namespace Traits
 //   Was boost::mpl::pair. Nothing here uses an MPL sequence algorithm on a
 // trait; GetTraitImpl (linear/parameter.hpp) partially specialises on the pair
 // and reads `second` off it, and that is the entire protocol.
-//                                            (30.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <class Tag, class Value> struct TraitPair
@@ -127,7 +126,6 @@ DECLARE_PARAMETER_TRAIT(ValuesDenominator, unsigned int); /// \ingroup Parameter
 /// be: a trait is a {tag, value} pair and there is nothing symmetric-specific
 /// about this one, and the namespaces that declare parameters import the six
 /// traits together.
-///                                           (31.07.2026.) (SW port)
 
 namespace Tag
 {
@@ -151,7 +149,6 @@ using MaximumOffset = TraitPair<Tag::MaximumOffset, std::integral_constant<std::
 // that existed only because a comma cannot appear inside a Boost.PP sequence
 // element. A C++20 class-type NTTP has neither problem, so `Unit2` is gone and
 // the two effects that needed it (frecho, slew_limiter) say their unit inline.
-//                                            (30.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace Tag
@@ -262,7 +259,6 @@ template <class OriginalParameter, class... NewTraits> struct Modify
 /// not a trait and does not survive the round trip through one. This is the case
 /// LE_DEFINE_PARAMETER used to spell as a separate macro, chosen by counting the
 /// elements of a Boost.PP sequence.
-///                                           (31.07.2026.) (SW port)
 template <class OriginalParameter> struct Modify<OriginalParameter>
 {
     typedef OriginalParameter type;
@@ -305,7 +301,6 @@ template <class OriginalParameter> struct Modify<OriginalParameter>
 //   The traits are no longer qualified here, so they have to be visible where
 // the parameter is declared; the namespaces that declare parameters import them
 // beside the parameter types they already import.
-//                                            (31.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 #define LE_DEFINE_PARAMETER(name, ...)                                                             \

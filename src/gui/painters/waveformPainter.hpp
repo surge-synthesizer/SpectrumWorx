@@ -70,7 +70,6 @@ float constexpr gridHeight{17.0f};
 /// drawn at the size they were used at. The skin is 1.5x what it was and these
 /// have to be too, or the icon that used to fill the LFO's well would cover two
 /// thirds of it.
-///                                       (19.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 ///@{

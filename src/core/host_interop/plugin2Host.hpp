@@ -31,11 +31,8 @@ namespace Parameters
 {
 //...mrmlj...required to be in the header only for getParameterProperties() and EditorKnob::paint()...
 
-/// \note The overlap factor's "print the overlap percentage rather than the
-/// factor" specialisation stood here from 2011 to 08.2026, and named two
-/// overloads that did not exist -- so it never printed anything. The percentage
-/// comes from DisplayValueTransformer now, like every other display transform;
-/// see the note on the power-of-two printer.
+/// \note The overlap factor prints as a percentage rather than as a factor, and
+/// that comes from DisplayValueTransformer like every other display transform.
 } // namespace Parameters
 
 namespace SW
@@ -194,7 +191,6 @@ struct Plugin2HostPassiveInteropController::ParameterLabelGetter
     /// top level qualifiers that a return type cannot carry -- both ignored,
     /// and warned about once per overload per translation unit. Spelled as the
     /// sibling getter below already spells it.
-    ///                                       (05.08.2026.) (SW port)
     using result_type = char const *;
 
     result_type operator()(ParameterID::Global, Program const *) const;

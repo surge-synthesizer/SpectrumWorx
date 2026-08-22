@@ -57,8 +57,7 @@ target_link_libraries(sw-impl PUBLIC clap)
 # it. The bundles link one JUCE and compile none.
 #
 #   What this costs: a consumer that wants sw-gui's headers has to say so.
-# tests/CMakeLists.txt does, and tools/show-ui always did.
-#                                           (09.08.2026.) (SW port)
+# tests/CMakeLists.txt does, and so does tools/show-ui.
 #
 # \note It used to carry the force-include across this link line as well, which
 # is how clap-wrapper's sources came to be compiled with a header of ours. They

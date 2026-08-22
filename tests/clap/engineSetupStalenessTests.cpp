@@ -94,7 +94,6 @@ TEST_CASE("A stale engine setup still answers the audio thread", "[engine-setup]
 /// \note In this file because `Engine::Setup` is what it is about, which is also
 /// what the case above is about. What the *page* does with these is
 /// tests/gui/overlayPanelTests.cpp.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

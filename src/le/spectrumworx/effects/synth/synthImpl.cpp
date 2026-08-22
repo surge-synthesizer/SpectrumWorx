@@ -227,13 +227,9 @@ void SynthImpl::setup(IndexRange const &workingRange, Engine::Setup const &engin
 
 void SynthImpl::ChannelState::reset()
 {
-    /// \note The disabled branch here randomised the initial phases "for a more
-    /// 'spacey' effect. To be further investigated..." (22.10.2015., Domagoj
-    /// Saric) and drew from the process-global RNG. It is gone with that RNG
-    /// rather than left pointing at a deleted function; reviving it means giving
-    /// this ChannelState a `Math::Rng` of its own, which is what every effect
-    /// that does draw now has. \see issue #86.
-    ///                                       (17.08.2026.)
+    /// \note The phases start at zero rather than randomised. Reviving that would
+    /// mean giving this ChannelState a `Math::Rng` of its own, which is what
+    /// every effect that draws has -- there is no process-global one.
     Math::clear(phases.front().begin(), phases.back().end());
 }
 

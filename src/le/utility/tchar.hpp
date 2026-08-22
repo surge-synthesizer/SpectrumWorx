@@ -55,15 +55,6 @@ typedef char TCHAR;
 #endif
 #endif // _MSC_VER
 
-/// \note The LE_INT_SPRINTFA/W/LE_INT_SPRINTF family stood here, over USER32's
-/// wsprintfA on Windows and std::sprintf elsewhere, to keep the statically linked
-/// CRT's printf out of the binary -- the same size argument lexicalCast.cpp
-/// retired. Every one of its six call sites knew the size of the buffer it was
-/// writing into and none of them passed it, which is what the deprecation of
-/// sprintf is about; they say std::snprintf now, with that size. The wide arm
-/// never had a caller.
-///                                           (02.08.2026.) (SW port)
-
 #include "platformSpecifics.hpp"
 
 /// \note There was a global operator==( std::string_view, std::string_view )
@@ -72,7 +63,6 @@ typedef char TCHAR;
 /// string_view comparison in the codebase -- and it only ever compiled because a
 /// string_view iterator happens to be a `char const *` in libc++ and libstdc++.
 /// MSVC's is a class type, which is what finally objected.
-///                                           (30.07.2026.) (SW port)
 
 //------------------------------------------------------------------------------
 #endif // tchar_hpp

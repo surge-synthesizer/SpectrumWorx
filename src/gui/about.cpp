@@ -151,8 +151,7 @@ void drawLine(juce::Graphics &graphics, juce::String const &text, int const y,
 /// \brief The git tag this was built from, or empty when there is none.
 ///
 /// \note sst-plugininfra writes the literal string "-no-tag-" for an untagged
-/// tree rather than leaving the field empty, so an emptiness test is not enough
-/// and the About page announced `Version 3.0.0 (-no-tag-)` until this existed.
+/// tree rather than leaving the field empty, so an emptiness test is not enough.
 juce::String releaseTag()
 {
     juce::String const tag(sst::plugininfra::VersionInformation::git_tag);

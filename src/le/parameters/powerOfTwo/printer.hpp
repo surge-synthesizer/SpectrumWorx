@@ -44,7 +44,6 @@ namespace LE::Parameters::Detail
 ///   One template, through the transformer, is what makes that unrepresentable:
 /// there is no second spelling to specialise and miss, and it is the same
 /// transformer the parser inverts.
-///                                           (07.08.2026.) (SW port)
 ///
 /// \note The number of decimal places follows what the transform *returns*: an
 /// identity transform hands back the parameter's own integral type and the value

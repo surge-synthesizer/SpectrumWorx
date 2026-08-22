@@ -22,7 +22,6 @@
 /// one: a corner of it outside every pill, a wedge of the page showing between
 /// each pair, and the strip stopping dead after the last tab where the page
 /// carried on. One shape behind all three answers all three.
-///                                       (18.08.2026.)
 ///
 /// \note The rectangles below are in skin pixels from the panel's top left, as
 /// the artwork had them. They are not fractions of the panel: both panels are

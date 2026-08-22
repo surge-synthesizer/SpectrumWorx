@@ -41,7 +41,6 @@ cmake_minimum_required(VERSION 3.28)
 # reported 325 offenders, every one of them an assertion that had swallowed the
 # rest of its file. So lines are peeled off a plain string with string(FIND) and
 # string(SUBSTRING), which have no such parsing.
-#                                           (08.08.2026.) (SW port)
 #
 ################################################################################
 

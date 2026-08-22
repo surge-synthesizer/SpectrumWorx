@@ -43,7 +43,6 @@ namespace LE::Parameters
 // lets it be an NTTP. Deliberately not a general-purpose string class: the
 // implicit deduction guide from the constructor is the whole interface, so that
 // UnitString< " dB" > reads as the literal it is.
-//                                            (30.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <std::size_t lengthWithTerminator> struct FixedString

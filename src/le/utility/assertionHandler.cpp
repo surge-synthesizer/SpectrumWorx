@@ -11,7 +11,6 @@
 /// assert.hpp only declares assertionFailed() when the asserts themselves are
 /// live, which NDEBUG now decides. A public build that wants its asserts back
 /// asks for them with LE_CHECKED_BUILD=1.
-///                                           (28.07.2026.) (SW port)
 #if !defined(NDEBUG) && defined(LE_ENABLE_ASSERT_HANDLER)
 //------------------------------------------------------------------------------
 #include "platformSpecifics.hpp"
@@ -26,7 +25,6 @@
 /// spells out only what macOS, Windows and Linux were already selecting -- and
 /// three of them had nothing left to choose between: the CoreServices include
 /// below, the backtrace one, and printDebugMessage()'s whole body.
-///                                           (07.08.2026.) (SW port)
 #if defined(__APPLE__)
 #include "CoreServices/CoreServices.h"
 #include "signal.h"
@@ -39,12 +37,10 @@
 /// `signal.h` was included only under `__APPLE__` — so every other POSIX target
 /// took an arm whose declarations it had not seen. Debug-build-only, since a
 /// release build has no assert handler to break from.
-///                                           (29.07.2026.) (SW port)
 /// \note sst-plugininfra's, not `execinfo.h` directly: it has a Windows arm
 /// over DbgHelp, which `backtrace()` does not exist on at all, and Windows is
 /// the platform whose failures arrive here as a log rather than a debugger
 /// session.
-///                                           (31.07.2026.) (SW port)
 #define LE_ASSERT_HAS_BACKTRACE
 #include <sst/plugininfra/misc_platform.h>
 
@@ -55,7 +51,6 @@
 /// LE_PUBLIC_BUILD arms, so no other configuration compiles the line that needs
 /// the declaration -- and libc++ hands it over transitively anyway, which is why
 /// only MSVC ever asked.
-///                                           (30.07.2026.) (SW port)
 #include <exception>
 #include <source_location>
 
@@ -66,15 +61,9 @@ namespace LE
 
 LE_WEAK_SYMBOL_CONST char const assertionFailureMessageTitle[] = "LE SDK assertion failure";
 
-/// \note A `LEB_PRECOMPILE_JUCE` arm declared `GUI::warningOkCancelBox()` here
-/// and called it from `assertMessageBox()` below, so that a failed assertion
-/// raised a JUCE dialog. Nothing defines that macro -- the only other mention is
-/// in `precompiledHeaders.hpp`, which no target includes -- so the arm has never
-/// compiled in this port, and it was the last thing in `sw-dsp` that named JUCE
-/// outside a comment. Deleted rather than kept for a build that does not exist:
-/// a dialog from an assertion is also the wrong shape for a plugin, which cannot
-/// know whether it has a message thread. See doc/tech/threading_model.md §6.
-///                                           (02.08.2026.) (SW port)
+/// \note **No JUCE dialog from a failed assertion**, which is also what keeps
+/// `sw-dsp` from naming JUCE at all: a plugin cannot know whether it has a
+/// message thread to put one on. \see doc/tech/threading_model.md §6.
 
 } // namespace LE
 
@@ -88,7 +77,6 @@ namespace
 #if defined(__APPLE__)
     /// \note Was DebugStr(), deprecated since 10.8 and now gone. stderr is
     /// what a DAW log and a test runner both capture.
-    ///                               (28.07.2026.) (SW port)
     std::fputs(LE::assertionFailureMessageTitle, stderr);
     std::fputs("\n", stderr);
 #elif defined(_WIN32)
@@ -103,7 +91,6 @@ static void printDebugMessage(char const *const message)
 {
     /// \note Was LE::Utility::Tracer::error() with its tag swapped to the title
     /// for the duration. The tracer is gone; this is what it did with it.
-    ///                                   (07.08.2026.) (SW port)
     char formatted[4096];
     std::snprintf(formatted, sizeof(formatted), "%s, ERROR: %s", LE::assertionFailureMessageTitle,
                   message);
@@ -167,7 +154,6 @@ static bool assertMessageBox(char const *const message)
 /// symbol table, so a bundle built with -fvisibility=hidden shows fewer of them
 /// than a debugger would; the addresses are still there to run through atos or
 /// addr2line.
-///                                           (31.07.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -253,7 +239,6 @@ static LE_NOINLINE void assertionFailedMsgAux([[maybe_unused]] char const *const
 /// boost::assertion_failed_msg, the Boost.Assert hook. Stage 2 pointed
 /// LE_ASSERT at LE::Utility::assertionFailed and left the handler behind, so
 /// nothing had defined it since.
-///                                           (28.07.2026.) (SW port)
 namespace LE::Utility
 {
 void assertionFailed(char const *const expression, char const *const message,

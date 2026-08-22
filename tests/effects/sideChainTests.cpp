@@ -594,7 +594,6 @@ TEST_CASE("Side-chain fixtures", "[golden][side-chain]")
     ///   None of the three is a bound that could be widened and still fail on
     /// silence, so they get `sameBuildOnly()` and keep the hash. The twelve keep
     /// the wide bound, which none of them has yet needed all of.
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const tolerancesFor([](std::string const &key) {

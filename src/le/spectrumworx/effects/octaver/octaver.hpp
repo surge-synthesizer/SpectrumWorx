@@ -51,7 +51,6 @@ struct Octaver
     /// 2.x preset writes every parameter its effect has, so no committed file
     /// moves with this. What moves is a freshly inserted Octaver -- and the
     /// golden fixtures, which render every effect at its defaults.
-    ///                                       (21.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
 

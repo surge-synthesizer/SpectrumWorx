@@ -74,7 +74,6 @@ class ModuleMenuHolder
     /// is therefore refilled per use rather than built once in the constructor:
     /// it is a handful of strings, and the effects' own sub-menus -- the part
     /// that is a compile-time traversal -- are still built exactly once.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     Menu const &menuWithHeader(char const *title);

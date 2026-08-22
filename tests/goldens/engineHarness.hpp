@@ -71,7 +71,6 @@ class Engine : public LE::SW::SpectrumWorxCore
     /// imposes on the CLAP cases -- a harness that mutates a running engine
     /// without declaring which role it is playing is not reproducing anything a
     /// host does.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     template <class Parameter> bool set(typename Parameter::param_type const value)
@@ -114,7 +113,6 @@ class Engine : public LE::SW::SpectrumWorxCore
 /// retitled, which is fifty of the fifty-seven, so most call sites read the
 /// same as they always did. `Effects::effectStreamingName()` defaults to the
 /// title precisely so that they can.
-///                                       (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 std::int8_t effectByStreamingName(std::string_view streamingName);
@@ -128,7 +126,6 @@ std::int8_t effectByStreamingName(std::string_view streamingName);
 /// something this repository has, so Voice below stands in for it -- a
 /// harmonic stack with formant shaping and vibrato, which exercises the same
 /// machinery (dense partials, a moving pitch) without shipping audio.
-///                                       (28.07.2026.) (SW port)
 enum struct Signal : std::uint8_t
 {
     Impulse,
@@ -209,7 +206,6 @@ struct RenderSetup
     ///
     /// \note A call larger than `blockSize` is a caller error, not a wider test:
     /// the engine sized its buffers for `blockSize` and the harness asserts.
-    ///                                       (16.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     std::uint32_t callSize{0};
@@ -233,7 +229,6 @@ std::vector<float> render(RenderSetup const &, std::int8_t effectIndex, Signal,
 /// from one that ignores its side chain entirely: with side == main the two
 /// produce the same render, and fourteen shipping effects were pinned only that
 /// way. `sideChainTests.cpp` is what says which fourteen and what they do.
-///                                       (05.08.2026.) (SW port)
 std::vector<float> renderWithSideChain(RenderSetup const &, std::int8_t effectIndex, Signal main,
                                        Signal side, std::uint32_t frames);
 
@@ -275,7 +270,6 @@ struct Slot
     /// is: a host's parameter event arrives on the audio thread, and the engine
     /// asserts that whoever mutates it while it runs is that thread. \see
     /// Engine::set(), which says the same thing about a global.
-    ///                                       (16.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     std::function<void(std::uint32_t frameOffset, LE::SW::Engine::ModuleParameters &)>

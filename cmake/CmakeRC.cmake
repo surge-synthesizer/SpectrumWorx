@@ -625,7 +625,6 @@ function(_cmrc_generate_intermediate_cpp lib_ns symbol outfile infile)
     # token `('". Forty of the factory presets are named like
     # "(drums 104bpm) Drum Battle.swp". Spaces survived because the generator
     # escapes those anyway; parentheses do not.
-    #                                         (31.07.2026.) (SW port)
     add_custom_command(
         # This is the file we will generate
         OUTPUT "${outfile}"

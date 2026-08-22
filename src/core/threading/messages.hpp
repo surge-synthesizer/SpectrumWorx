@@ -54,8 +54,8 @@ struct ToEngine
         MoveModule,
         /// A whole module chain, built on the main thread. The audio thread
         /// exchanges it with the live one and hands the same object back as
-        /// ToUI::Retire, now holding what used to be live -- so nothing is ever
-        /// destroyed under the callback.
+        /// ToUI::Retire, now holding what was live, so nothing is ever destroyed
+        /// under the callback.
         SwapChain,
         /// Likewise a decoded Sample -- and, in the same message, what the side
         /// channel is to be fed from. The two travel together because they are

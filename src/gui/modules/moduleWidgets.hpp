@@ -6,15 +6,10 @@
 ///   The controls for one effect's parameters, owned by the region that draws
 /// them.
 ///
-/// \note They used to be owned by the *module*: `Module::Impl<Effect>` inherited
-/// `ModuleWidgets<Effect>`, so every module the factory `malloc`ed carried the
-/// JUCE widget storage for its effect inline, sized at compile time -- and
-/// `sw-dsp`, the target whose own comment says "the engine, the effects and
-/// everything they need. No host.", linked `juce_gui_basics` because of it.
-///
-///   Which effect's widgets to build is an *index* at runtime, so the per-effect
-/// instantiation happens behind one table here rather than through a pair of
-/// function pointers planted in each module at construction.
+/// \note Not by the module: a module carrying its effect's widget storage inline
+/// is what would make `sw-dsp` -- the engine, the effects, and no host -- link
+/// `juce_gui_basics`. Which effect's widgets to build is an *index* at runtime,
+/// so the per-effect instantiation happens behind one table here.
 ///
 /// See doc/tech/threading_model.md.
 ///

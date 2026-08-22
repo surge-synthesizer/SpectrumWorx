@@ -290,7 +290,7 @@ What changed is that the conversion uses the reference bar rather than
 same preset loaded at 140 BPM produced a different `PeriodScale` than at 120, and
 the same session saved at two tempi wrote two different files. That is what made
 `[preset-corpus]` fail about one run in three when the whole suite ran in one
-process — 153 of the 303 rows — and it is why the suite was split into two
+process — a good half of the rows — and it is why the suite was split into two
 binaries. **Splitting the binaries fixed nothing; the constant is the fix.**
 
 The *meter* is a different matter and is not fixed, because it is not broken: a

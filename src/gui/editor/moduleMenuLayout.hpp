@@ -31,15 +31,11 @@ namespace LE::SW::GUI
 ///
 /// \details An effect's index is ABI: presets and host automation refer to
 /// effects by it, so `LE_SW_EFFECT_LIST` may be appended to but never reordered.
-/// The menu used to be a walk over that list, which made the two one thing: a
-/// group could not be moved and an effect could not be listed anywhere but where
-/// its index fell. This table is the other one. \see issue #121.
+/// This table is the separate answer to what the menu shows and in what order.
 ///
 /// \note The entries name effects by their **streaming name** -- the name a
-/// preset writes, not the title the menu shows. A title moves (nine of them did,
-/// for issue #80); the streaming name is what is pinned against exactly that.
-/// So retitling an effect leaves this table alone, which is the point of keying
-/// it this way.
+/// preset writes, not the title the menu shows -- so retitling an effect leaves
+/// this table alone.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

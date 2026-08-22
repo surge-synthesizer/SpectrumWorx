@@ -5,7 +5,7 @@
 ///
 ///   Every shipped preset, played.
 ///
-///   presetCorpusTests.cpp loads all 303 factory banks and compares what they
+///   presetCorpusTests.cpp loads every factory bank and compares what they
 /// put in the parameter tree; the goldens play one effect at a time at its
 /// defaults. Neither runs audio through a preset -- so a chain that a preset
 /// builds and a user hears had no coverage at all, and the first run of this
@@ -35,12 +35,11 @@
 /// length and this file met eight times over: rendering real spectra in a checked
 /// build aborts on a debug-only verification that no amplitude is negative, and a
 /// running sum across thousands of bins drifts a hair below zero on plenty of
-/// ordinary material. Benign in the output -- the release run renders all 303
+/// ordinary material. Benign in the output -- the release run renders every one
 /// finite, which is the property this file is here for -- and a real numerical
 /// weakness in the vector primitives rather than in any of these presets. A skip
 /// list would have needed a dozen names and would have grown; recorded in
 /// issue #10 instead.
-///                                           (02.08.2026.) (SW port)
 #ifndef NDEBUG
 #define LE_SW_PRESET_RENDER_NEEDS_A_RELEASE_BUILD                                                  \
     SKIP("Presets render in a release build; a checked build aborts on the negative amplitude "    \

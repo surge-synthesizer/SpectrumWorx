@@ -36,12 +36,6 @@
 namespace LE::SW
 {
 
-/// \note A `ModuleKnob::QuantizationFor` specialisation for
-/// `PitchMagnetBase::Target` stood here -- a statement about a *widget*, in the
-/// module factory, which is why this translation unit needed the widget headers.
-/// It is beside the widgets now, in gui/modules/moduleWidgets.cpp.
-///                                           (02.08.2026.) (SW port)
-
 namespace
 {
 
@@ -67,22 +61,13 @@ template <class ModuleInterface> struct ModuleSizeGetter
 /// \struct ModuleConstructor
 ////////////////////////////////////////////////////////////////////////////
 
-/// \note This has no data members, and used to have one: `char storage[]`, a
-/// flexible array member that both operator()s below placement-new'd into.
-/// It was never anything but the address of the object itself -- create()
-/// mallocs, casts the block to a ModuleConstructor & and calls through it, so a
-/// zero-sized array at offset 0 is spelled `this`. **GCC rejects a flexible
-/// array member in an otherwise empty struct**, where Clang and MSVC take it as
-/// an extension; MSVC needed a #pragma warning(disable : 4200) to keep quiet
-/// about it, which is gone with it.
-///                                           (05.08.2026.) (SW port)
+/// \note No data members: create() mallocs, casts the block to a
+/// `ModuleConstructor &` and calls through it, so the storage both operator()s
+/// placement-new into is spelled `this`.
 template <class ModuleInterface> struct ModuleConstructor
 {
-    /// \note Was `ModuleInterface *LE_RESTRICT`, and this is the return type of
-    /// the two operator()s below -- where the qualifier is ignored, and warned
-    /// about, once per effect. The one variable it also declared holds the
-    /// result of a placement new that is returned on the next line.
-    ///                                       (05.08.2026.) (SW port)
+    /// \note No LE_RESTRICT: this is the two operator()s' return type, where the
+    /// qualifier is ignored and warned about once per effect.
     using result_type = ModuleInterface *;
 
     template <class EffectIndex> result_type operator()(EffectIndex)
@@ -111,7 +96,6 @@ template <class ModuleInterface> struct ModuleConstructor
         /// directly, so that the unmodulated value moves with it. Writing the
         /// storage behind the setter's back would leave this module claiming a
         /// Wet of 100 to the host and to a preset while sounding like 50.
-        ///                                   (02.08.2026.) (SW port)
         /// \note Qualified: ModuleInterface may override this privately to push
         /// the value into a widget, and there is no widget at factory time.
         pModule->Engine::ModuleParameters::setBaseParameter(
@@ -170,7 +154,6 @@ LE::Utility::IntrusivePtr<ModuleInterface> ModuleFactory::create(std::int8_t con
         /// reporter a preset uses, which is in this layer and raises nothing.
         /// (`LE_SW_FULL` stood above it, asserting the table's contents, and
         /// went with the demo SKU it gated on 04.08.2026.)
-        ///                                   (02.08.2026.) (SW port)
         reportPresetProblem(PresetProblem::EffectNotAvailable, Effects::effectName(effectIndex));
         return nullptr;
     }
@@ -214,6 +197,5 @@ template void ModuleFactory::destroy(SW::Module const &);
 /// for module.cpp and moduleChainImpl.cpp to call. It is an ordinary function
 /// in one translation unit now, which is what moduleDSPAndGUI.cpp does for the
 /// GUI build.
-///                                       (28.07.2026.) (SW port)
 
 } // namespace LE::SW

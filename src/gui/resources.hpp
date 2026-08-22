@@ -135,7 +135,6 @@ class Artwork
 /// every named bitmap is actually in the binary -- the failure it replaces (a
 /// mistyped number) is otherwise a blank widget nobody notices until someone
 /// looks at a screenshot. Same idiom as LE_SW_EFFECT_LIST.
-///                                       (28.07.2026.) (SW port)
 ///
 /// \brief x( Name, fileNumber )
 // clang-format off
@@ -270,7 +269,6 @@ Artwork const &logoArtwork();
 /// them by family name, which needed a file on disk, leaked the registration if
 /// the plugin was unloaded abruptly, and let a system font of the same name win.
 /// JUCE 8 can make a Typeface directly out of memory.
-///                                       (28.07.2026.) (SW port)
 juce::Typeface::Ptr regularTypeface();
 juce::Typeface::Ptr boldTypeface();
 

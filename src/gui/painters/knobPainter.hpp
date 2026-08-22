@@ -101,7 +101,6 @@ class KnobPainter
     /// crest just outside the cap that the knob has never had. Two controls a
     /// centimetre apart in the same strip, drawn from one gradient with two
     /// fits: the difference was never a decision.
-    ///                                       (18.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     ///@{

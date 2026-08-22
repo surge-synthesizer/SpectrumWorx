@@ -27,7 +27,6 @@ namespace LE::Parameters
 /// le/parameters/parameter.hpp: a trait is a {tag, value} pair and nothing about
 /// this one is symmetric-specific, and the namespaces that declare parameters
 /// import the six of them together.
-///                                           (31.07.2026.) (SW port)
 
 namespace Detail ///< \internal
 {

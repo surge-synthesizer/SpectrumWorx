@@ -91,7 +91,6 @@ inline double toHost(ParameterID const parameterID, Info const &info, Value cons
 /// always clamped, across its fixed 0..1 edge; the other one passed the host's
 /// double straight through to the engine. A global gain ranged 0.001..2 was the
 /// one that aborted.
-///                                           (03.08.2026.) (SW port)
 inline Value fromHost(ParameterID const parameterID, Info const &info, double const host)
 {
     if (!isNormalised(parameterID))

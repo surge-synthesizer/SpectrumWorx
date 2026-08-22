@@ -26,7 +26,6 @@ std::uint8_t constexpr numberOfEffects{LE_SW_NUMBER_OF_EFFECTS};
 /// \note Every effect ships in every build now that editions are gone. Kept as
 /// a separate name because the plugin, the presets and the GUI all still ask
 /// the question separately.
-///                                       (28.07.2026.) (SW port)
 std::uint8_t constexpr numberOfIncludedEffects{numberOfEffects};
 
 } // namespace LE::SW::Effects::Constants

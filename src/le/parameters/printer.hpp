@@ -109,7 +109,6 @@ struct Printer
 /// \note Disengaged is not a value of `valueSource`, so a caller that has no
 /// value to give still has to name the edge it *would* be on. That costs
 /// nothing and keeps the two questions from sharing a spelling.
-///                                           (09.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -148,7 +147,6 @@ struct AutomatedParameterPrinter
     /// by walking from its own address to the owner that has none -- so a
     /// perfectly ordinary what-if question aborted a checked build. Nothing
     /// needed the object; `print()` takes a value.
-    ///                                       (09.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 

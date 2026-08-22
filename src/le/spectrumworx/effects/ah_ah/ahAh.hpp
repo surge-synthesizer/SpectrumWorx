@@ -60,21 +60,19 @@ struct AhAh
 /// \note The one parameter in the plugin whose display name and streaming name
 /// differ, and deliberately so -- it is the worked example for the mechanism.
 /// "Center (LFO me!)" is a 2011 instruction to the user wearing a parameter
-/// name; it is also what the 303 factory presets and every user preset since
+/// name; it is also what the shipped presets and every user preset since
 /// call this knob, and `<Center_(LFO_me!)>` is one of the element names
 /// repairLegacyElementNames() exists to make parseable at all. So the label
 /// moved and the key did not.
 ///
 ///   What proves the pin works: streamingNames.txt does not move across this
-/// rename, and neither does presetCorpus.txt. Only parameterTable.txt does,
+/// rename, and neither does presetFixtures.txt. Only parameterTable.txt does,
 /// which is the display side.
-///                                           (01.08.2026.) (SW port)
 ///
 /// \note This was the first of the two to be written here rather than in
 /// ahAhImpl.cpp, and the argument for it -- a specialisation has to be visible
 /// wherever `Detail::info<>()` builds the parameter table -- turned out to be
 /// the argument for the display name as well. Both are here now; see UI_NAME.
-///                                           (04.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

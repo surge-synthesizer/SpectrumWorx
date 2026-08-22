@@ -105,7 +105,7 @@ constexpr std::optional<SideChainSource> sideChainSourceFromString(std::string_v
 ///
 /// \note The four values were `(Stereo)(StereoSideChain)(Mono)(MonoSideChain)`,
 /// so the odd ones are the two that asked the host for a side chain. Every one of
-/// the 288 shipped presets carries one, and this is the whole of what it means
+/// every shipped preset carries one, and this is the whole of what it means
 /// once a file is out of the picture -- when a patch names a file, the file is
 /// the source whatever the mode said, which is what 2016 did.
 ///

@@ -17,7 +17,6 @@
 /// \note That method keeps one caller -- SpectrumWorxEditor::paint() stretches
 /// the background's leftmost pixel column across the gutter a panel opens. The
 /// commit that moved this bead said drawScaled() had none left, and was wrong.
-///                                       (18.08.2026.)
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later

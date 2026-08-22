@@ -49,10 +49,9 @@ static std::uint8_t const stopFrequencyIndex =
 static std::uint8_t const invalidIndex = static_cast<std::uint8_t>(-1);
 static std::uint8_t const startFrequencyThumbIndex = 1;
 static std::uint8_t const stopFrequencyThumbIndex = 2;
-/// \note "No thumb", and -1 rather than invalidIndex. These are thumb indices,
-/// not parameter indices: JUCE spells the absent one -1, and
-/// verifyThumbAndParameterIndicies() below has always switched on -1 -- so the
-/// 2016 code storing 255 here reached that switch's unreachable default.
+/// \note "No thumb", and -1 rather than invalidIndex: these are thumb indices
+/// rather than parameter indices, JUCE spells the absent one -1, and
+/// verifyThumbAndParameterIndicies() below switches on -1.
 static int const noThumb = -1;
 } // namespace Constants
 
@@ -139,7 +138,6 @@ ModuleControlBase &SharedModuleControls::controlForParameter(std::uint8_t const 
 /// the editor's record of what is selected is cleared before that -- so "there
 /// is a selected module" is exactly what does not hold here. In a shipped build
 /// the assertion was not there and the null was dereferenced.
-///                                           (08.08.2026.) (SW port)
 void SharedModuleControls::focusLost(FocusChangeType)
 {
     /// \note Not while a menu is up. These two knobs each have a right button
@@ -180,7 +178,6 @@ SpectrumWorxEditor const &SharedModuleControls::editor() const
 /// `ModuleControlBase`'s, which goes through `pModuleUI_` -- the member this
 /// initialiser list is setting. `parent()` is pointer arithmetic from a member
 /// back to its owner and needs nothing constructed.
-///                                           (02.08.2026.) (SW port)
 SharedModuleControls::FrequencyRange::FrequencyRange()
     : ModuleControlBase(Constants::invalidIndex, *parent().editor().selectedModule()),
       parameterIndexForInternalWriteAccess_(Constants::invalidIndex),
@@ -188,7 +185,6 @@ SharedModuleControls::FrequencyRange::FrequencyRange()
 {
     /// \note The removeValueListeners() call that was here went with the fork's
     /// Slider::valueListener(). See the note in the Knob constructor.
-    ///                                       (28.07.2026.) (SW port)
 
     setWantsKeyboardFocus(true);
     setSliderStyle(juce::Slider::TwoValueHorizontal);
@@ -291,12 +287,8 @@ void SharedModuleControls::FrequencyRange::mouseDown(juce::MouseEvent const &eve
     verifyThumbAndParameterIndicies();
 }
 
-/// \note `setEnabled( !lfo().enabled() )` stood in mouseDown and `setEnabled(
-/// true )` in mouseUp, "in order to disable changing the parameter value through
-/// the GUI" (04.10.2011.) -- the same trick, and the same cost, as
-/// ModuleKnob::mouseDown; see the note there. Only the drag needs blocking, and
-/// disabling a focused control makes JUCE deactivate it.
-///                                           (03.08.2026.) (SW port)
+/// \note Only the drag needs blocking, and disabling a focused control instead
+/// would make JUCE deactivate it. \see ModuleKnob::mouseDown().
 void SharedModuleControls::FrequencyRange::mouseDrag(juce::MouseEvent const &event) noexcept
 {
     if ((selectedThumb_ != Constants::noThumb) && lfo().enabled())
@@ -337,7 +329,6 @@ void SharedModuleControls::FrequencyRange::valueChanged() noexcept
 /// same -- so a shipped build dereferenced a pointer that is null whenever
 /// nothing is selected, to obtain something it already had. `pointsInto()`'s note
 /// says when that is: the editor forgets what is selected before the strip goes.
-///                                           (08.08.2026.) (SW port)
 LFOImpl &SharedModuleControls::FrequencyRange::lfo()
 {
     auto &controlModule(this->module());
@@ -475,7 +466,6 @@ void SharedModuleControls::FrequencyRange::verifyThumbAndParameterIndicies() con
 ///
 ///   What is left is the honest half: a preset load pushes values into the
 /// controls, and that is when a write without a mouse behind it is expected.
-///                                           (02.08.2026.) (SW port)
 bool SharedModuleControls::FrequencyRange::canUseWriteAccessIndex() const
 {
     LE_ASSERT(isThisTheGUIThread());

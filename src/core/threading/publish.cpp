@@ -58,7 +58,6 @@ Module *createModuleForSlot(SpectrumWorxCore &core, std::int8_t const effectInde
 /// \note The `LE_ASSERT_MSG(false, ...)` that stood at these sites is gone for
 /// the reason given there: an assertion answers differently in a checked build
 /// and a shipped one, and this whole branch has been about that.
-///                                           (08.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -96,7 +95,6 @@ bool publishModuleMove(SpectrumWorxCore &core, ToEngineQueue &toEngine, std::uin
     /// because the push was inside an assert and `LE_ASSERT_MSG` is
     /// `static_cast<void>(0)` under NDEBUG: every shipped build reordered the
     /// rack and the saved state and left the engine playing the old order.
-    ///                                       (08.08.2026.) (SW port)
     return toEngine.push(moveModule(from, to));
 }
 
@@ -104,9 +102,8 @@ bool publishChain(SpectrumWorxCore &core, ToEngineQueue &toEngine, AutomatedModu
 {
     if (!core.engineIsRunning())
     {
-        /// \note The same exchange the audio thread would do, and then the
-        /// caller's own chain holds what used to be live -- which its destructor
-        /// releases. One code path, two threads, no special case.
+        // the same exchange the audio thread would do, after which the
+        // caller's own chain holds what was live and its destructor frees it
         core.swapModuleChain(newChain);
         return true;
     }

@@ -74,16 +74,10 @@ class LFOImpl : public LFO
     /// \note A bit mask over Quarter|Triplet|Dotted, not an ordinal -- see
     /// `LFO::SyncType`. `All` is the three of them offered together.
     ///
-    /// \note This used to be a class whose only purpose was to hide the trait
-    /// default with `hasTempoInformation() ? Quarter : Free` -- a parameter
-    /// *default* that was a function of when it was asked, on a process-global
-    /// flag. Two constructions of the same module at two moments then disagreed,
-    /// which is what `clap-cpp-validator`'s `state-reproducibility-flush`
-    /// caught: `stateSave` reads the main thread's Program, whose module is
-    /// built when the slot echo is drained, and the engine's is built inside
-    /// `process()` *before* `updateLFOTiming()` -- so the transport became known
-    /// in between and the two copies wrote different `sync` attributes.
-    ///                                       (06.08.2026.) (SW port)
+    /// \note **The default is `Quarter`, full stop**, and must not be a function
+    /// of the transport: the two Programs build their modules at two different
+    /// moments, so a default that read whether a tempo was known yet would have
+    /// them write different `sync` attributes for one LFO.
     ////////////////////////////////////////////////////////////////////////////
 
     using SyncTypes = Parameters::Parameter<Parameters::LinearUnsignedInteger::Modify<
@@ -133,7 +127,6 @@ class LFOImpl : public LFO
     /// \note The traits are qualified here rather than imported: this is
     /// namespace LE::Parameters itself, and only the namespaces that declare a
     /// lot of parameters -- LE::SW::Effects -- import them.
-    ///                                       (31.07.2026.) (SW port)
     LE_DEFINE_PARAMETER(Enabled, Boolean);
     LE_DEFINE_PARAMETER(Phase, SymmetricFloat, Traits::MaximumOffset<50>,
                         Traits::ValuesDenominator<100>);
@@ -196,7 +189,6 @@ class LFOImpl : public LFO
         /// free one is a duration in seconds, and expressing it against a bar
         /// that never changes length is how it stays one without the parameter
         /// having to be rewritten every time the tempo moves.
-        ///                                   (06.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         static constexpr value_type referenceBarDuration{60.0f / 120 * 4};
@@ -221,7 +213,6 @@ class LFOImpl : public LFO
         /// -- which is exactly this clock divided by a period expressed in these
         /// units. Same phase, same locate behaviour, same everything an LFO does;
         /// what stops moving is the number the host and the file hold.
-        ///                                   (06.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         value_type currentTimeInReferenceBars() const
@@ -257,15 +248,11 @@ class LFOImpl : public LFO
         /// period-scale bounds, all *static* and all called from the parameter
         /// layer and the editor, so a per-instance timer means threading one
         /// through the LFO parameter interface. Recorded in issue #11.
-        ///                                   (02.08.2026.) (SW port)
         ///
-        /// \note There used to be a third, `hasTempoInformation_`, and it was the
-        /// worst of them: sticky by design, never cleared by reset(), and read by
-        /// exactly one thing -- an LFO's *default* sync type. Deleted with that
-        /// reader. "Has a host told us a tempo" is not a question the plugin
-        /// needs an answer to: one that has not is 120 BPM 4/4, which every LFO
-        /// already runs against.
-        ///                                   (06.08.2026.) (SW port)
+        /// \note There is deliberately no "has a host told us a tempo" flag: one
+        /// that has not is 120 BPM 4/4, which every LFO already runs against, and
+        /// a sticky process-global answer is not something a parameter default
+        /// may depend on.
         ///
         ////////////////////////////////////////////////////////////////////////
         static value_type basePeriod() { return barDuration_.load(std::memory_order_relaxed); }
@@ -311,7 +298,6 @@ class LFOImpl : public LFO
         /// tempo against an assumption we invented and calling the difference a
         /// change silently moved every LFO period in the plugin on the first
         /// block of any session not at 120 BPM.
-        ///                                   (03.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         bool timingInformationEstablished_{false};
@@ -332,7 +318,6 @@ class LFOImpl : public LFO
     /// because it is evaluated once per call from `ModuleDSP::preProcess()`;
     /// making that motion per chunk is issue #78 and is a separate question from
     /// issue #86, which is what put this generator here.
-    ///                                       (17.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     struct WaveformState
@@ -381,7 +366,6 @@ class LFOImpl : public LFO
     /// what a host is told and what the panel says have to be the same thing and
     /// this layer is the one both can reach -- the panel is JUCE and the
     /// parameter edge may not link it.
-    ///                                   (21.08.2026.)
     ///
     /// \returns the number of characters written, not counting the terminator.
     ///
@@ -487,7 +471,6 @@ STREAMING_NAME(LFOImpl::Waveform, "wfrm")
 /// says it to nobody: nothing in the printer reads that trait. The transform is
 /// where a display unit lives, and the inverse beside it is what lets a host
 /// read the percentage back.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

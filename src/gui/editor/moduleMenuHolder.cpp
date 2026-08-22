@@ -40,11 +40,8 @@ void addModuleToMenuEntry(Menu &menu, std::uint8_t const moduleIndex)
 
 /// \brief The effects themselves, which is the part that is built once.
 ///
-/// \note A walk over ModuleMenuLayout rather than the compile-time recursion
-/// over the effect list this used to be. That recursion took the effects in
-/// index order and started a new sub-menu wherever the group changed, which made
-/// the menu a *rendering* of `LE_SW_EFFECT_LIST` -- and that list's order is ABI.
-/// \see issue #121.
+/// \note A walk over ModuleMenuLayout rather than over the effect list, whose
+/// order is ABI: the menu's groups and their order are that table's to decide.
 void fillSubMenus(Menus &menus, std::true_type /*has sub menus*/)
 {
     std::uint8_t menuIndex{1};

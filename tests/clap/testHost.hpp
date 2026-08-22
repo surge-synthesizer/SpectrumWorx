@@ -84,7 +84,6 @@ namespace SWTest
 /// ordinary single-threaded case rather than for the ones in threadingTests.cpp
 /// that run an audio thread of their own. In a clean run nothing writes to it at
 /// all, which is the point.
-///                                           (09.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -230,7 +229,6 @@ class TestHost
     /// `unsigned` here is a data race in the *harness*, which tsan reports at
     /// length while saying nothing about the plugin. It said exactly that about
     /// `restartRequests` the first time anything drove two threads at it.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -303,7 +301,6 @@ class TestHost
     /// `log()`, so `clap.log` cannot see it and this filter cannot reach it.
     /// `CapturedStandardError` above is what does, and free-audio/clap-helpers#98
     /// is the upstream report.
-    ///                                       (03.08.2026, amended 09.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -779,7 +776,6 @@ class ActivePlugin
     /// a shared counter -- so a `REQUIRE` on a worker thread is a data race in
     /// the *harness*, and tsan says so at length while saying nothing about the
     /// plugin.
-    ///                                       (02.08.2026.) (SW port)
     clap_process_status processStatus(std::vector<float> &leftIn, std::vector<float> &rightIn,
                                       std::vector<float> &leftOut, std::vector<float> &rightOut,
                                       clap_event_transport const *const transport = nullptr,
@@ -833,7 +829,6 @@ class ActivePlugin
     ///   Found by TestHost offering `clap.log`: clap-helpers reported "Host
     /// called the method clap_plugin_params.flush() on wrong thread" the first
     /// time anything was listening.
-    ///                                       (03.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     void flush(clap_input_events const *const events = nullptr,
@@ -856,7 +851,6 @@ class ActivePlugin
         /// Every case that flushes a value and then reads it back depends on
         /// this, and none of them had a reason to say so before there were two
         /// copies to keep level.
-        ///                                   (06.08.2026.) (SW port)
         pumpMainThread();
     }
 
@@ -870,7 +864,6 @@ class ActivePlugin
     /// of the model brought level has to say when. That is where a host parameter
     /// write, applied to the engine on the audio thread, is echoed into
     /// `programMain_`; until it runs, the two are legitimately one drain apart.
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     void pumpMainThread() const { pPlugin_->on_main_thread(pPlugin_); }

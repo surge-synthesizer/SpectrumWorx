@@ -17,7 +17,6 @@
 /// beside the user's presets -- `rootPath()` is in the widget layer and Theme is
 /// below it, so a Theme that persisted itself would have had to work out where
 /// the user's folder is a second time.
-///                                       (15.08.2026.) (SW port)
 ///
 /// Copyright (c) 2009 - 2016. Little Endian Ltd.
 /// Copyright (c) 2026 the SpectrumWorx contributors.
@@ -53,13 +52,11 @@ namespace LE::SW::GUI
 /// comparison. Each setter writes its own key through, so the file is one
 /// rewrite per user click rather than three.
 ///
-/// \note The enumerations are streamed by *name*, not by ordinal. The struct
-/// this replaces carried a "layout is on disk; do not reorder it" note -- about
-/// a binary blob that no longer exists -- and a name has no such constraint:
-/// inserting a value in the middle cannot silently change what an existing file
-/// means, and the file stays legible to whoever opens it. The names are the enum
-/// identifiers, so a value in the file can be grepped for in the source. An
-/// unrecognised one reads as the default.
+/// \note The enumerations are streamed by *name*, not by ordinal, so inserting a
+/// value in the middle cannot silently change what an existing file means and the
+/// file stays legible to whoever opens it. The names are the enum identifiers, so
+/// a value in the file can be grepped for in the source, and an unrecognised one
+/// reads as the default.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -58,7 +58,6 @@ class AutomatedModuleChain final : public Engine::ModuleChainImpl
     /// index compared against this constant should never have been. It is the
     /// module chain parameter's own value type, which is what the two
     /// conditionals produce and what every caller of these already holds.
-    ///                                       (05.08.2026.) (SW port)
     static std::int8_t constexpr noModule = SW::noModule;
 
     //...mrmlj...GUI only chains don't hold ModuleDSPs...
@@ -126,7 +125,6 @@ class AutomatedModuleChain final : public Engine::ModuleChainImpl
     /// the one route into the chain that never got them. A caller that owns the
     /// engine outright -- either copy on the main thread -- may simply release
     /// what it is given.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     template <class ModuleInitialiser>
@@ -245,7 +243,6 @@ class Program
     ///   It reads empty far more often than not, which is what made it a ghost:
     /// a first instance in a fresh process gets zeroed pages from the OS, and
     /// one created after the process has churned memory does not.
-    ///                                       (07.08.2026.) (SW port)
     Name name_{};
 }; // class Program
 

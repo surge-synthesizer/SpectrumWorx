@@ -60,7 +60,6 @@ FrameStyle constexpr moduleStripFrame{
 /// change of appearance rather than a port. It also would not have been an
 /// improvement: the knobs, the name and the rule are children and full strength
 /// whatever the frame does, and the halo already says which strip is live.
-///                                       (18.08.2026.)
 void paintModuleStrip(juce::Graphics &, juce::Rectangle<float> bounds, bool selected);
 
 } // namespace LE::SW::GUI

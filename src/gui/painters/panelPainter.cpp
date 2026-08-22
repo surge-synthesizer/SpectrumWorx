@@ -96,7 +96,6 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
 /// with the first two tab pills and then with nothing at all: the third runs
 /// half again past its tab and the fourth sits where there is no tab. Whatever
 /// they were measured from, it was not this tab bar.
-///                                       (18.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

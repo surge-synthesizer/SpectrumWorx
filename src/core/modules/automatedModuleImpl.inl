@@ -28,7 +28,6 @@ AutomatedModuleImpl<Impl>::getSharedAutomatedParameter(std::uint8_t const parame
     /// answers, and a host must not see an LFO sweeping there: the sweep is a
     /// modulation, and CLAP models modulation separately from value. It read the
     /// live parameter, so a host's generic panel polled the sweep.
-    ///                                       (02.08.2026.) (SW port)
     float const parameterValue(impl().unmodulatedBaseParameter(parameterIndex));
     return Automation::sharedInternal2AutomatedValue(parameterIndex, parameterValue, normalised);
 }
@@ -51,7 +50,6 @@ Plugins::AutomatedParameterValue AutomatedModuleImpl<Impl>::getEffectSpecificAut
     /// event *is* lives in the moment between arming and consuming, and that
     /// moment belongs to the audio thread. \see LE::Parameters::isAnEvent and
     /// ParametersSaver::valueToStream(), and issue #65.
-    ///                                       (16.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     if (impl().effectSpecificParameterInfo(effectSpecificParameterIndex).type ==

@@ -79,13 +79,6 @@ template <> void fillComboBoxForParameter<Engine::OverlapFactor>(ComboBox &combo
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// Constants private to this module.
-// ---------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
 namespace Constants::Layout
 {
 unsigned int const textBoxHorizontalOffset = 114;
@@ -94,11 +87,9 @@ unsigned int const textBoxWidth = 170;
 
 /// \brief What the main area's strings keep clear of their boxes' edges.
 ///
-/// \note The boxes are painted by the skin and the text was laid out across
-/// their full width, so a long effect title -- "Pitch Follower (PV)" -- ran into
-/// the rounded ends. Only the fitting rectangle shrinks; the text is centred, so
-/// nothing moves that was not already touching. \see issue #76.
-///                                           (16.08.2026.)
+/// \note The boxes are painted by the skin, and a long effect title -- "Pitch
+/// Follower (PV)" -- runs into their rounded ends at full width. Only the
+/// fitting rectangle shrinks; the text is centred. \see issue #76.
 unsigned int const textBoxMargin = 6;
 
 unsigned int const moduleNameVerticalOffset = 20;
@@ -123,18 +114,9 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
 
       moduleMenuButton_(*this), dropIndicator_(mainArea_),
 
-      /// \todo Reimplement these Alex's widgets.
-      ///                                       (22.09.2009.) (Domagoj Saric)
-      //cSamplerDisplay ( CRect( 0, 0, 235, 129 ).offset( 222, 17 ), this, kBankSelect, 0, &resourceBitmap<kbLoad>(), &resourceBitmap<kbDel>(), &resourceBitmap<kbLock>() ),
-      //cSpectrumDisplay( CRect( 0, 0, 235, 129 ).offset( 222, 17 ), this, SpectrumDisplay, 0, capture ),
+      /// \todo A sampler display and a spectrum display were planned here.
 
       // buttons...
-      /// \note These two lines never changed for issue #73 and never needed to:
-      /// what was wrong was which file each name pointed at. \see resources.hpp.
-      /// \note The size was the artwork's -- 57 x 24, of which 50 x 17 was the
-      /// pill and the rest the room its halo needed. It is written down here
-      /// now, and the two are placed three pixels apart as they were.
-      ///                                       (18.08.2026.)
       preset_(mainArea_, "PRESETS", 86, 36), settingsButton_(mainArea_, "SETTINGS", 86, 36),
       ignoreExternalSample_(mainArea_, GlyphButton::Glyph::Lock, true /*toggles*/)
 {
@@ -158,18 +140,10 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
     //                                        (10.06.2010.) (Domagoj Saric)
     updateSampleNameAsync();
 
-    /// \note The focus grab that was here moved to parentHierarchyChanged().
-    /// A component can only take focus once it is on screen, and in 2016 the
-    /// editor was constructed by a plugin that had already parented it. The
-    /// CLAP shim builds it first and parents it after, so grabbing here asserts
-    /// in JUCE and does nothing.
-    ///                                       (29.07.2026.) (SW port)
+    // the focus grab is in parentHierarchyChanged(): the shim builds this
+    // editor before parenting it, and a component off screen cannot take focus
     setDefaultFocusHandling();
 
-    // Resizable VST GUI discussions:
-    // http://www.kvraudio.com/forum/viewtopic.php?t=141313
-    // http://lists.steinberg.net:8100/Lists/vst-plugins/Message/17785.html
-    // http://www.u-he.com/vstsource
     LE_ASSERT_MSG(mainArea_.getWidth() == estimatedWidth && mainArea_.getHeight() == artworkHeight,
                   "the skin and the editor's constants disagree");
     setSize(mainArea_.getWidth(), mainArea_.getHeight());
@@ -193,17 +167,10 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
 
     resyncModuleRack();
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note The column, taken here rather than through requestEditorSize(),
-    /// because at this point there is no window to resize: the shim builds this
-    /// editor inside `guiCreate()` and then answers `guiGetSize()` out of the
-    /// holder, which it sizes from *this* component. So an alwaysVisible editor
-    /// has to already be the width it wants, and the host is told once, the way
-    /// it is told 845 x 564 otherwise.
-    ///                                       (06.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // the column is taken here rather than through requestEditorSize(), there
+    // being no window to resize yet: the shim answers guiGetSize() out of the
+    // holder it sizes from this component, so an alwaysVisible editor has to
+    // already be the width it wants
     if (panelPlacement_ == PanelPlacement::alwaysVisible)
     {
         panelHasOwnColumn_ = true;
@@ -214,8 +181,8 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
     setOpaque(true);
     setVisible();
 
-    /// \note Whatever the mailbox has been accumulating with no editor open is
-    /// not this editor's news: it starts from what the widgets were built with.
+    // what the mailbox accumulated with no editor open is not this editor's
+    // news: it starts from what the widgets were built with
     editorHost_.modulatedValues().discardChanges();
 
     startTimerHz(modulationRefreshHz);
@@ -234,31 +201,12 @@ SpectrumWorxEditor::~SpectrumWorxEditor()
     stopTimer();
     editorHost_.editorClosed(*this);
 
-    /// \note And nothing may be *pointing* at one either. A menu is asynchronous
-    /// -- JUCE 8 defaults JUCE_MODAL_LOOPS_PERMITTED to 0 -- so a host closing
-    /// the window with one down leaves a callback holding a `SafePointer` to a
-    /// component that is going. The SafePointers are what make that survivable;
-    /// this is what makes it not happen.
-    ///                                       (02.08.2026.) (SW port)
+    // nor may anything be pointing at one: a menu is asynchronous, so a host
+    // closing the window with one down leaves a callback holding a SafePointer
+    // to a component that is going
     juce::PopupMenu::dismissAllActiveMenus();
 
     editorHost_.deregisterSampleLoadedListener(*this);
-
-    /// \note Two spin-waits stood here, on plain `bool`s read through a
-    /// `volatile` cast: "wait until whatever non-GUI thread is inside the LFO
-    /// display or the shared controls has left". Both producers carried the
-    /// comment "This gets called from a non GUI thread", and by the time this
-    /// port began neither did -- the editor's `updateForNewTimingInfo()` had no
-    /// live caller at all, and `updateLFO()` is reached from
-    /// `parameterChangedElsewhere()`, which is the main thread draining a
-    /// message. Stage 5 removed the last route by which the audio thread could
-    /// have reached either. `updateForNewTimingInfo()` has a caller again as of
-    /// 09.08.2026 and it is the same kind: a `ToUI` message, drained here.
-    ///
-    ///   A `volatile` read is not a synchronisation primitive in any case, so
-    /// this was never the guarantee it looked like; what made it work was that
-    /// the loops always exited immediately.
-    ///                                       (02.08.2026.) (SW port)
 
     /// \note
     ///   Take the focus beforehand to workaround JUCE's problematic focus
@@ -284,23 +232,10 @@ SpectrumWorxEditor::~SpectrumWorxEditor()
     presetBrowser_ = std::nullopt;
 }
 
-/// \note `attachToHostWindow` had three overloads here -- a Win32 SetParent, a
-/// Cocoa NSView one and a 32 bit Carbon HIView one -- and no callers on any
-/// platform: the CLAP shim parents the editor. Deleted with the rest of the
-/// owned-window machinery in stage 6.4, and they took `-framework Carbon` with
-/// them.
-///                                           (01.08.2026.) (SW port)
-
 /// \note Walks up to the nearest enclosing editor rather than to the top-level
-/// component. Those were the same thing in 2016: VST 2.4 and AU parented the
-/// editor straight into the host's window, so "the top" *was* the editor.
-/// clap-wrapper's JUCE shim nests it two deep instead --
-/// implDesktop -> implHolder -> editor (clap_juce_shim_impl.cpp) -- so the old
-/// walk landed on implDesktop, and the downcast asserted in a checked build and
-/// silently produced a bad pointer in a release one. Every widget that asks its
-/// editor for the engine setup went through here, so this failed as soon as a
-/// module's widgets were built.
-///                                           (29.07.2026.) (SW port)
+/// component: clap-wrapper's JUCE shim nests it two deep --
+/// implDesktop -> implHolder -> editor -- so the top is not the editor. Every
+/// widget that asks its editor for the engine setup comes through here.
 SpectrumWorxEditor &SpectrumWorxEditor::fromChild(juce::Component const &widget)
 {
     LE_ASSERT(widget.getParentComponent());
@@ -359,22 +294,11 @@ void SpectrumWorxEditor::togglePresetBrowser(juce::Button const &button)
     editor.showPresetBrowser(button.getToggleState());
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::showPanel()
-// -------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note The whole of what stage 6.4 replaced ~500 lines of OwnedWindowBase
-/// with. The panel is an ordinary child; the only thing that needed saying is
-/// that it goes on top -- gradient_ raises itself to always-on-top for a module
-/// drag, and a stale one would otherwise paint through this. *Where* it goes is
-/// layOutPanels()' answer and not this function's, because the placement can
-/// change under a panel that is already up.
-///                                           (01.08.2026, amended 06.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note The panel is an ordinary child, and the only thing that needs saying is
+/// that it goes on top: `gradient_` raises itself to always-on-top for a module
+/// drag, and a stale one would paint through this. *Where* it goes is
+/// layOutPanels()' answer, the placement being able to change under a panel that
+/// is already up.
 
 void SpectrumWorxEditor::showPanel(juce::Component &panel)
 {
@@ -392,58 +316,33 @@ juce::Component *SpectrumWorxEditor::currentPanel()
     return nullptr;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::layOutPanels()
-// ----------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-///   Where the three placements are the three placements, and the only code that
-/// reads panelPlacement_. Everything that opens or shuts a panel ends here, so
-/// there is one answer to "how wide is the editor and where is the panel" rather
-/// than one per entry point.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note The only code that reads `panelPlacement_`. Everything that opens or
+/// shuts a panel ends here, so "how wide is the editor and where is the panel"
+/// has one answer rather than one per entry point.
 
 void SpectrumWorxEditor::layOutPanels()
 {
     auto *const pPanel(currentPanel());
 
-    /// \note alwaysVisible keeps the column whether or not anything is in it: it
-    /// is what the resting panel is opened *into*, and holding it means the
-    /// editor does not flicker a width between one panel closing and the next
-    /// opening.
+    // alwaysVisible keeps the column whether or not anything is in it, so the
+    // editor does not flicker a width between one panel closing and the next
     bool const wantColumn((panelPlacement_ == PanelPlacement::alwaysVisible) ||
                           ((panelPlacement_ == PanelPlacement::expandContract) && pPanel));
 
     auto const ownColumn(setPanelColumnVisible(wantColumn));
 
-    /// \note The skin moves and the panel does not follow it: the column is at
-    /// the left edge either way, and an overlay is a position *in* the skin --
-    /// which is the editor's own coordinates only while there is no column.
+    // the skin moves and the panel does not follow: the column is at the left
+    // edge either way, and an overlay is a position in the skin, which is the
+    // editor's own coordinates only while there is no column
     mainArea_.setTopLeftPosition(ownColumn ? mainAreaX : 0, 0);
     if (pPanel)
         pPanel->setTopLeftPosition(ownColumn ? panelColumnX : overlayX, overlayY);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::setPanelColumnVisible()
-// -------------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note The host is asked first and the editor follows its answer, because the
-/// window is the host's and this is a request. One that refuses to *grow* leaves
-/// everything as it was and the panel goes over the module strips, which is
-/// exactly overlay placement -- so a host with no `clap.gui` at all gets the
-/// stage 6.4 editor and nothing worse. One that refuses to *shrink* has already
-/// been handed the space back and the worst of that is a margin, so the editor
-/// contracts either way.
-///                                           (06.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note The host is asked first and the editor follows its answer, the window
+/// being the host's. One that refuses to *grow* leaves the panel over the module
+/// strips, which is exactly overlay placement; one that refuses to *shrink* has
+/// already been handed the space back, and the worst of that is a margin.
 
 bool SpectrumWorxEditor::setPanelColumnVisible(bool const wanted)
 {
@@ -470,14 +369,11 @@ void SpectrumWorxEditor::setZoom(unsigned int const zoomPercent)
     if (auto *const pWrapper = findParentComponentOfClass<ZoomedEditor>())
         pWrapper->setZoomPercent(zoomPercent);
 
-    /// \note In skin pixels, like every other caller: the scaling to window
-    /// units happens on the far side, out of the same preference this has just
-    /// written.
-    ///
-    /// \note And an announcement rather than a request -- the editor has already
-    /// changed and there is no fallback to negotiate for. \see
-    /// EditorHost::editorSizeChanged(), which has what treating it as a request
-    /// looked like.
+    // in skin pixels, like every other caller: the scaling to window units
+    // happens on the far side, out of the preference this has just written
+    //
+    // an announcement rather than a request -- the editor has already changed
+    // and there is no fallback to negotiate for
     editorHost_.editorSizeChanged(getWidth(), getHeight());
 }
 
@@ -488,8 +384,8 @@ void SpectrumWorxEditor::panelPlacement(PanelPlacement const placement)
 
     panelPlacement_ = placement;
 
-    /// \note Leaving alwaysVisible drops the resting panel, because nothing the
-    /// user asked for is in it -- a panel they *did* ask for stays up and moves.
+    // leaving alwaysVisible drops the resting panel, nothing the user asked for
+    // being in it; one they did ask for stays up and moves
     if ((placement != PanelPlacement::alwaysVisible) && settings_.has_value() &&
         !settingsButton_.getToggleState())
         settings_ = std::nullopt;
@@ -503,24 +399,15 @@ void SpectrumWorxEditor::panelPlacement(PanelPlacement const placement)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::openRestingPanel()
-// --------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
 ///
-///   The preset browser, and its button lit like any other way of opening it.
+/// \brief The preset browser, with its button lit as by any other way of
+/// opening it.
 ///
 /// \note In `alwaysVisible` the column cannot be empty, so the two buttons stop
 /// being independent toggles and become a two-way selector: pressing the lit one
-/// lands back here. Which is why this goes through showPresetBrowser() rather
-/// than building the panel itself -- there is one way to put the browser up, and
-/// the button state and the layout follow from it either way.
-///
-/// \note The About page is the fallback and not the resting state. It was the
-/// resting state briefly, on the reasoning that it is the one panel with nothing
-/// in it to get wrong; the browser is what a user opens the plugin for.
-///                                           (06.08.2026.) (SW port)
+/// lands here. Hence showPresetBrowser() rather than building the panel outright
+/// -- one way to put the browser up, with the button state and the layout
+/// following from it.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -538,16 +425,13 @@ void SpectrumWorxEditor::openRestingPanel()
 /// session was last left on.
 ///
 /// \note Which is *not* what pressing the lit button does, and the difference is
-/// why this is a second function rather than an argument to the one above. In
-/// `alwaysVisible` the two buttons are a two-way selector -- pressing the lit one
-/// lands on the other panel -- and a "resting" state that read the remembered
-/// panel would land back on the panel just pressed, making the button a no-op.
+/// why this is a second function rather than an argument to the one above: a
+/// "resting" state that read the remembered panel would land back on the panel
+/// just pressed, making the button a no-op.
 ///
-///   This is for the other case: a column being filled from nothing, at
-/// construction or when the placement changes under an editor that had no panel
-/// up. There the last place the user was is the right answer, and it is the whole
-/// of what issue #129 asks for.
-///                                           (21.08.2026.)
+/// \note This is for a column filled from nothing -- at construction, or when the
+/// placement changes under an editor with no panel up -- where the last place the
+/// user was is the right answer. \see issue #129.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -578,11 +462,9 @@ void SpectrumWorxEditor::hidePanels()
 /// \note The two panels share one rectangle, so opening either shuts the other
 /// and un-toggles its button.
 ///
-/// \note Only *builds* a browser when there is none, as showSettings() does. It
-/// used to rebuild unconditionally, which was invisible while the only way here
-/// was a button that had just been off -- and is not, now that `alwaysVisible`
-/// rests on an open browser: pressing PRESETS would have thrown away whichever
-/// bank the user was in and dropped them back at the root.
+/// \note Only *builds* a browser when there is none, as showSettings() does:
+/// `alwaysVisible` rests on an open browser, and rebuilding would throw away
+/// whichever bank the user was in and drop them back at the root.
 void SpectrumWorxEditor::showPresetBrowser(bool const show)
 {
     if (!show)
@@ -600,8 +482,7 @@ void SpectrumWorxEditor::showPresetBrowser(bool const show)
     }
     preset_.setToggleState(true, juce::dontSendNotification);
 
-    /// \note \see showSettings(), which records the other half of the same
-    /// answer.
+    // \see showSettings(), which records the other half of the same answer
     editorHost_.panelState().panel = PanelState::Panel::presets;
 }
 
@@ -617,8 +498,8 @@ void SpectrumWorxEditor::setDefaultFocusHandling()
     setMouseClickGrabsKeyboardFocus(true);
 }
 
-/// \note Where the constructor's focus grab went. Fires when the host's window
-/// takes the editor, which is the first moment it can hold focus.
+/// \note Fires when the host's window takes the editor, which is the first
+/// moment it can hold focus.
 void SpectrumWorxEditor::parentHierarchyChanged()
 {
     if (isShowing() || isOnDesktop())
@@ -626,29 +507,21 @@ void SpectrumWorxEditor::parentHierarchyChanged()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Reordering the rack
-// -------------------
-//
-////////////////////////////////////////////////////////////////////////////////
 ///
-///   A strip can be dropped in two ways and they do different things. On another
-/// strip it changes places with it, and nothing else moves; between two of them,
-/// or at either end, it is inserted there and everything from there on shifts
-/// along. Which of the two a given point means is moduleDropAt()'s answer, drawn
-/// by DropIndicator and carried out by applyModuleDrop() -- one function each, so
-/// that what the user is shown while dragging and what happens when they let go
-/// cannot disagree.
+///   A strip can be dropped two ways. On another strip it changes places with it
+/// and nothing else moves; between two of them, or at either end, it is inserted
+/// and everything from there shifts along. Which one a point means is
+/// moduleDropAt()'s answer, drawn by DropIndicator and carried out by
+/// applyModuleDrop() -- one function each, so what the user is shown while
+/// dragging and what happens when they let go cannot disagree.
 ///
-/// \note The middle half of a strip is a swap and its outer quarters are inserts,
-/// which is what makes both reachable without aiming: an insert is a gap, and a
-/// gap with no width to it is a target nobody can hit. The zone also runs half a
-/// strip past each end of the rack, so dropping at the front or the back does not
-/// need the strip to be over the rack at all.
+/// \note The middle half of a strip is a swap and its outer quarters are
+/// inserts, which makes both reachable without aiming: a gap with no width to it
+/// is a target nobody can hit. The zone runs half a strip past each end of the
+/// rack, so a drop at the front or the back needs no strip over the rack at all.
 ///
-/// \note And the point all of that is measured at is the **dragged strip's own
+/// \note The point all of that is measured at is the **dragged strip's own
 /// middle**, not the pointer. \see draggedStripCentre().
-///                                           (14.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -665,34 +538,23 @@ constexpr int insertZone{slotWidth / 4};
 } // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::draggedStripCentre()
-// ----------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
 ///
 ///   A drag is aimed with the strip, not with the pointer. Somebody who picked a
-/// strip up by its left edge is carrying the whole thing, and what they are
-/// lining up against the rack is the middle of what they can see -- which is the
-/// column the eject `X` is drawn in, that marker being centred on the strip. It
-/// is also where JUCE's drag image is: `startDragging()` snapshots the strip and
-/// offsets the ghost by the grab, so the ghost sits where the strip would be.
+/// strip up by its left edge is carrying the whole thing, and what they line up
+/// against the rack is the middle of what they see -- which is also where JUCE's
+/// drag image is, `startDragging()` offsetting the ghost by the grab.
 ///
-///   Deciding the drop from the pointer instead put the answer out by however far
-/// from the middle it was picked up -- up to half a strip, which is exactly the
-/// width of a swap zone. Carrying a strip until it covered another one and being
-/// told "insert to the left of it" is what that looked like, and which way it was
-/// wrong depended on which edge had been grabbed.
-///                                           (14.08.2026.) (SW port)
+///   Measuring from the pointer would put the answer out by however far from the
+/// middle the strip was picked up: up to half a strip, which is exactly the width
+/// of a swap zone.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 juce::Point<int> SpectrumWorxEditor::draggedStripCentre(juce::Point<int> const pointer,
                                                         juce::Point<int> const grabbedAt)
 {
-    /// \note The strip itself has not moved -- it stays in its slot for the whole
-    /// drag -- so this is where it *would* be: the pointer, less where in the
-    /// strip it was picked up, plus half a strip.
+    // the strip stays in its slot for the whole drag, so this is where it
+    // *would* be: the pointer, less where it was picked up, plus half a strip
     return pointer - grabbedAt + juce::Point<int>(ModuleUI::width / 2, ModuleUI::height / 2);
 }
 
@@ -726,8 +588,8 @@ SpectrumWorxEditor::moduleDropAt(std::uint8_t const sourceSlot,
 
     auto const alongTheRack(position.getX() - ModuleUI::horizontalOffset);
 
-    /// \note The two margins first: past either end of the rack there is no strip
-    /// to be over, so the only thing a drop there can mean is the gap it is past.
+    // the two margins first: past either end of the rack there is no strip to
+    // be over, so a drop there can only mean the gap it is past
     if (alongTheRack < 0)
         drop = {ModuleDrop::insert, 0};
     else if (alongTheRack >= (strips * slotWidth))
@@ -745,10 +607,9 @@ SpectrumWorxEditor::moduleDropAt(std::uint8_t const sourceSlot,
             drop = {ModuleDrop::swap, slot};
     }
 
-    /// \note And the drops that would change nothing, which are three: swapping a
-    /// strip with itself, and the two gaps either side of it -- it is already in
-    /// both. Answering "nothing" for those is what stops the indicator offering a
-    /// move the user would not see happen.
+    // the three drops that would change nothing: swapping a strip with itself,
+    // and the two gaps either side of it, which it is already in. Answering
+    // "nothing" stops the indicator offering a move nobody would see happen
     bool const pointless(
         (drop.action == ModuleDrop::swap)
             ? (drop.slot == sourceSlot)
@@ -788,10 +649,9 @@ void SpectrumWorxEditor::showModuleDrop(ModuleDrop const drop)
 
 void SpectrumWorxEditor::moduleDragEnd(ModuleUI &moduleUI, juce::MouseEvent const &event)
 {
-    /// \note Asked again rather than remembered from the last moduleDrag(): the
-    /// two answers are the same function of the same point, and a click that never
-    /// became a drag has no last answer to remember. Such a click leaves the strip
-    /// exactly where it was, which moduleDropAt() calls "nothing".
+    // asked again rather than remembered from the last moduleDrag(): a click
+    // that never became a drag has no last answer, and leaves the strip where it
+    // was -- which moduleDropAt() calls "nothing"
     auto const drop(moduleDropAt(moduleUI.slot(), draggedStripCentre(moduleUI, event)));
 
     dropIndicator_.hide();
@@ -799,21 +659,11 @@ void SpectrumWorxEditor::moduleDragEnd(ModuleUI &moduleUI, juce::MouseEvent cons
     applyModuleDrop(moduleUI.slot(), drop);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::applyModuleDrop()
-// -------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note The rack is told first and the engine second, which is the order every
-/// edit takes now: the strips move here so the drag ends where the user let go,
-/// and resyncModuleRack() puts them where the chain says once the engine has
-/// caught up. They agree either way -- this is the same permutation, applied to
-/// the same two orderings. The host is told last, because what it is told is read
-/// back out of the rack.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// edit takes: the strips move here so the drag ends where the user let go, and
+/// resyncModuleRack() puts them where the chain says once the engine has caught
+/// up. The host is told last, because what it is told is read back out of the
+/// rack.
 
 void SpectrumWorxEditor::applyModuleDrop(std::uint8_t const sourceSlot, ModuleDrop const drop)
 {
@@ -837,9 +687,8 @@ void SpectrumWorxEditor::applyModuleDrop(std::uint8_t const sourceSlot, ModuleDr
         swapModuleSlots(sourceSlot, drop.slot);
     else
     {
-        /// \note A gap index is one more than the slot to its left, and taking the
-        /// source strip out closes every gap after it -- so a gap beyond the
-        /// source names a slot one lower once the strip has left.
+        // a gap index is one more than the slot to its left, and taking the
+        // source strip out closes every gap after it
         moveModuleSlot(sourceSlot, static_cast<std::uint8_t>(
                                        (drop.slot > sourceSlot) ? (drop.slot - 1) : drop.slot));
     }
@@ -873,17 +722,11 @@ void SpectrumWorxEditor::moveModuleSlot(std::uint8_t const from, std::uint8_t co
     host().gestureEnd();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note Two moves, because a move is the only reordering primitive the chain
-/// has and a swap of two strips that are not neighbours is not one. Taking the
-/// first to where the second is drags the second back one place -- everything
-/// between them shifted left to close the gap -- so bringing it from there to
-/// where the first was puts the block between them back where it started. For
-/// neighbours the first move is already the swap and the second is a no-op, which
-/// is why it is skipped rather than special-cased.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note Two moves, a move being the only reordering primitive the chain has.
+/// Taking the first to where the second is drags the second back one place, so
+/// bringing it from there to where the first was puts the block between them back
+/// where it started. For neighbours the first move is already the swap and the
+/// second a no-op, which is why it is skipped rather than special-cased.
 
 void SpectrumWorxEditor::swapModuleSlots(std::uint8_t const a, std::uint8_t const b)
 {
@@ -905,7 +748,7 @@ void SpectrumWorxEditor::swapModuleSlots(std::uint8_t const a, std::uint8_t cons
     if (auto const displaced(static_cast<std::uint8_t>(second - 1)); displaced != first)
         editorHost().editModuleMove(displaced, first);
 
-    /// \note Only the two, unlike a move: nothing between them changed slots.
+    // only the two, unlike a move: nothing between them changed slots
     host().gestureBegin("Swap modules");
     host().moduleChangedByUser(first, effectInRackSlot(first));
     host().moduleChangedByUser(second, effectInRackSlot(second));
@@ -913,25 +756,16 @@ void SpectrumWorxEditor::swapModuleSlots(std::uint8_t const a, std::uint8_t cons
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//
-// The right-click effect menu
-// ---------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
 ///
-///   The same list of effects the add-module button opens, asked in three places
-/// and meaning something different in each: on a strip it replaces that effect,
-/// between two it goes in there and shifts the rest along, and past the last one
-/// it is simply added. Which of the three is the heading on the menu, so that the
-/// answer is read before anything is chosen rather than discovered afterwards.
+///   The same list of effects the add-module button opens, meaning something
+/// different in three places: on a strip it replaces that effect, between two it
+/// goes in there and shifts the rest along, past the last one it is added. Which
+/// of the three is the menu's heading, so the answer is read before anything is
+/// chosen rather than discovered afterwards.
 ///
-/// \note The zones are the drag's in shape -- a band at each end of a strip means
-/// "between these two" and the middle means "this one" -- but narrower. A drag
-/// draws where it would land and can be walked back before the button is let go;
-/// a right-click is committed to the moment it goes down, and the heading is the
-/// first the user hears of which of the two they asked for. So the seam is
-/// something to be aimed at here and something to be fallen into there.
-///                                           (14.08.2026.) (SW port)
+/// \note The zones are the drag's in shape but narrower. A drag draws where it
+/// would land and can be walked back; a right-click is committed the moment it
+/// goes down, so the seam is something to aim at here and to fall into there.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -945,9 +779,8 @@ static_assert(menuInsertZone < insertZone, "The menu's seam is the narrower of t
 SpectrumWorxEditor::EffectMenuTarget
 SpectrumWorxEditor::effectMenuTargetAt(juce::Point<int> const position) const
 {
-    /// \note The whole rack, not the filled part of it: what is past the last
-    /// strip is where a module is added, and that is the emptiest and most
-    /// obvious place to ask for one.
+    // the whole rack, not the filled part: past the last strip is where a
+    // module is added, and the most obvious place to ask for one
     juce::Rectangle<int> const rack(ModuleUI::horizontalOffset, ModuleUI::verticalOffset,
                                     SW::Constants::maxNumberOfModules * slotWidth,
                                     ModuleUI::height);
@@ -961,9 +794,8 @@ SpectrumWorxEditor::effectMenuTargetAt(juce::Point<int> const position) const
     if (slot >= filled)
         return {EffectMenuTarget::append, filled};
 
-    /// \note And a full rack has no gaps to insert into, so its strips are
-    /// replaceable edge to edge. Offering an insert that would have to drop
-    /// somebody's last module to make room is the one answer nobody wants.
+    // a full rack has no gaps to insert into, so its strips are replaceable edge
+    // to edge: an insert would have to drop somebody's last module to make room
     if (filled < SW::Constants::maxNumberOfModules)
     {
         auto const acrossTheStrip(alongTheRack % slotWidth);
@@ -971,10 +803,8 @@ SpectrumWorxEditor::effectMenuTargetAt(juce::Point<int> const position) const
             return {EffectMenuTarget::insert, slot};
         if (acrossTheStrip >= (slotWidth - menuInsertZone))
         {
-            /// \note Except off the right of the last strip, which is the end of
-            /// the rack rather than a gap in it -- and inserting there is adding.
-            /// Said as an add so that the heading does not change across a
-            /// boundary the user cannot see and the action does not.
+            // except off the right of the last strip, which is the end of the
+            // rack rather than a gap in it, and inserting there is adding
             auto const gap(static_cast<std::uint8_t>(slot + 1));
             return (gap < filled) ? EffectMenuTarget{EffectMenuTarget::insert, gap}
                                   : EffectMenuTarget{EffectMenuTarget::append, filled};
@@ -984,11 +814,8 @@ SpectrumWorxEditor::effectMenuTargetAt(juce::Point<int> const position) const
     return {EffectMenuTarget::replace, slot};
 }
 
-/// \note A replacement names what it would replace -- "Replace Tonal Effect" --
-/// because that is the one of the three where the user has pointed at something
-/// in particular, and a heading that read "Replace with" left them checking which
-/// strip the menu had opened over. The other two point at a gap, which has no
-/// name.
+/// \note A replacement is the one of the three where the user has pointed at
+/// something in particular; the other two point at a gap, which has no name.
 juce::String SpectrumWorxEditor::effectMenuHeader(EffectMenuTarget const target) const
 {
     switch (target.action)
@@ -1002,15 +829,14 @@ juce::String SpectrumWorxEditor::effectMenuHeader(EffectMenuTarget const target)
     case EffectMenuTarget::none:
         break;
     }
-    /// \note `none` never gets this far -- showEffectMenuAt() answers it by not
-    /// opening a menu -- so this is the switch being total, not a fourth heading.
+    // `none` never gets this far -- showEffectMenuAt() answers it by opening no
+    // menu -- so this is the switch being total, not a fourth heading
     return "Add Effect";
 }
 
 PopupMenu::OnChosen SpectrumWorxEditor::effectMenuCallback(EffectMenuTarget const target)
 {
-    /// \note The same SafePointer the add-module button has always taken: the
-    /// menu no longer blocks, so the editor can be torn down while it is open.
+    // the menu does not block, so the editor can be torn down while it is open
     juce::Component::SafePointer<SpectrumWorxEditor> pEditor(this);
     return [pEditor, target](PopupMenu::OptionalID const chosenMenuEntryID) {
         if (!pEditor || !chosenMenuEntryID.has_value())
@@ -1029,9 +855,8 @@ void SpectrumWorxEditor::showEffectMenuAt(juce::Point<int> const screenPosition)
         return;
 
     auto const header(effectMenuHeader(target));
-    /// \note The main area rather than the strip that was clicked: the rack is
-    /// rebuilt from the chain and a strip can be replaced under an open menu,
-    /// which JUCE would take as its cue to dismiss it.
+    // the main area rather than the strip that was clicked: a strip can be
+    // replaced under an open menu, which JUCE would take as its cue to dismiss
     moduleMenu_.menuWithHeader(header.toRawUTF8())
         .showAtScreenPosition(mainArea_, screenPosition, effectMenuCallback(target));
 }
@@ -1060,24 +885,23 @@ void SpectrumWorxEditor::applyEffectMenuChoice(EffectMenuTarget const target,
 void SpectrumWorxEditor::replaceModuleInSlot(std::uint8_t const slot,
                                              std::uint8_t const effectIndex)
 {
-    /// \note Not an assertion, for removeModule()'s reason: the menu is
-    /// asynchronous, so the strip it was opened on can leave the rack -- a host
-    /// changing a slot, a preset arriving -- while it is down.
+    // not an assertion: the menu is asynchronous, so the strip it was opened on
+    // can leave the rack -- a host changing a slot, a preset arriving
     if (slot >= nextAvailableModuleSlot_)
         return;
     if (effectInRackSlot(slot) == static_cast<std::int8_t>(effectIndex))
-        return; // Already that effect; nothing to tell anybody.
+        return; // already that effect; nothing to tell anybody
 
-    /// \see the note in applyModuleDrop() for why the chain is not walked while
-    /// the host is being told about it.
+    // \see applyModuleDrop() for why the chain is not walked while the host is
+    // being told about it
     Host2PluginInteropControler::AutomationBlocker const automationBlocker(
         /*host*/ moduleChainOwner /*mrmlj*/ ());
 
     if (!setModuleInSlot(slot, static_cast<std::int8_t>(effectIndex)))
-        return; // The effect is not in this build; nothing was asked of the engine.
+        return; // not in this build; nothing was asked of the engine
 
-    /// \note As the add-module menu does: what the user just asked for is what
-    /// they are about to reach for.
+    // as the add-module menu does: what the user just asked for is what they
+    // are about to reach for
     slotAwaitingFocus_ = slot;
 
     host().gestureBegin("Replace module");
@@ -1087,45 +911,33 @@ void SpectrumWorxEditor::replaceModuleInSlot(std::uint8_t const slot,
     refreshModuleRackAsync();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::insertModuleAtGap()
-// ---------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note Added on the end and then moved, because those are the two things the
-/// chain can be asked for and an insert is not one of them. Both edits reach the
-/// engine through the same ring and it drains the whole ring per block, so the
-/// two are one change as far as anything processing is concerned -- the same
-/// reasoning swapModuleSlots() runs on.
+/// \note Added on the end and then moved, an insert not being something the
+/// chain can be asked for. Both edits reach the engine through the same ring and
+/// it drains the whole ring per block, so the two are one change as far as
+/// anything processing is concerned.
 ///
 /// \note No strip is moved here, unlike a drag: the module the user asked for has
-/// no strip yet -- it gets one when resyncModuleRack() next runs -- so there is
-/// nothing to move it *around*, and the rack is left as it is until then. Which
-/// is also what makes effectInRackSlot() below the right thing to ask: it still
-/// describes the rack the menu was opened over.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// no strip until resyncModuleRack() next runs. Which is what makes
+/// effectInRackSlot() below the right thing to ask -- it still describes the rack
+/// the menu was opened over.
 
 void SpectrumWorxEditor::insertModuleAtGap(std::uint8_t const gap, std::uint8_t const effectIndex)
 {
     auto const filled(nextAvailableModuleSlot_);
     if ((gap >= filled) || (filled >= SW::Constants::maxNumberOfModules))
-        return; // The rack changed under the open menu. \see replaceModuleInSlot().
+        return; // the rack changed under the open menu
 
     Host2PluginInteropControler::AutomationBlocker const automationBlocker(
         /*host*/ moduleChainOwner /*mrmlj*/ ());
 
     if (!setModuleInSlot(filled, static_cast<std::int8_t>(effectIndex)))
-        return; // The effect is not in this build; nothing was asked of the engine.
+        return; // not in this build; nothing was asked of the engine
     editorHost().editModuleMove(filled, gap);
 
     slotAwaitingFocus_ = gap;
     moduleAdded();
 
-    /// \note The new module, and every one it pushed along -- which is
-    /// removeModule()'s loop with the shift the other way.
+    // the new module, and every one it pushed along
     host().gestureBegin("Insert module");
     host().moduleChangedByUser(gap, static_cast<std::int8_t>(effectIndex));
     for (std::uint8_t moved(gap + 1); moved <= filled; ++moved)
@@ -1167,12 +979,8 @@ struct EditorMainAreaText
 // but construct our own white juce::Colour here.
 //                                        (25.01.2011.) (Domagoj Saric)
 //
-/// \note Which the name below settles for good: there is no colour here to be
-/// initialised in any order at all. It was a juce::Colour until the palettes
-/// arrived, and a colour taken at static-initialisation time is taken before a
-/// palette has been chosen -- so these four strings stayed the skin's original
-/// blue and white whatever the user had picked.
-///                                       (18.08.2026.)
+/// \note A `ColourMap::Name` rather than a `juce::Colour`: a colour taken at
+/// static-initialisation time is taken before a palette has been chosen.
 EditorMainAreaText mainAreaTexts[] = {
     {0, 0, ColourMap::Accent, Constants::Layout::moduleNameVerticalOffset,
      juce::Justification::centred, 1}, // active module name
@@ -1197,22 +1005,13 @@ void drawMainAreaText(juce::Graphics &graphics, EditorMainAreaText const &text)
 }
 } //anonymous namespace
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::MainArea
-// ----------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
 SpectrumWorxEditor::MainArea::MainArea()
 {
     setSize(BackgroundStyle::width, BackgroundStyle::height);
     setOpaque(true);
 
-    /// \note Neither wanted nor grabbed: this is a background, and the component
-    /// a click on it should focus is the editor. JUCE walks up to the first
-    /// parent that wants the keyboard, which is what this being transparent to
-    /// both flags leaves in place.
+    // neither wanted nor grabbed: this is a background, and a click on it
+    // should focus the editor, which JUCE walks up to
     setWantsKeyboardFocus(false);
     setMouseClickGrabsKeyboardFocus(false);
 
@@ -1255,14 +1054,12 @@ void SpectrumWorxEditor::MainArea::paint(juce::Graphics &graphics)
     }
 }
 
-/// \note The logo, and it is this component's rather than the editor's because
-/// the rectangle is a position in the skin -- which is what this component's
-/// coordinates are and what the editor's stopped being when the panel column
-/// went to the left.
+/// \note The logo, and this component's rather than the editor's because the
+/// rectangle is a position in the skin -- which is what these coordinates are and
+/// the editor's are not once the panel column is up.
 ///
 /// \note And the right button, which is the rack's empty slots asking for an
-/// effect. The strips have their own handler for it; this is what is left of the
-/// skin underneath them. \see showEffectMenuAt().
+/// effect. The strips have their own handler; this is the skin underneath them.
 void SpectrumWorxEditor::MainArea::mouseDown(juce::MouseEvent const &event)
 {
     if (event.mods.isPopupMenu())
@@ -1273,36 +1070,18 @@ void SpectrumWorxEditor::MainArea::mouseDown(juce::MouseEvent const &event)
 
     if (logoArea().contains(event.x, event.y))
     {
-        /// \note Was 3, and there are three tabs. JUCE clamps an out of range
-        /// index to -1, so clicking the logo raised the panel with *no* page
-        /// selected -- an empty transparent window over the desktop, which is
-        /// why nobody saw it, and an empty panel over the editor now. The About
-        /// page this means is index 2.
-        ///                                   (01.08.2026.) (SW port)
+        // JUCE clamps an out of range tab index to -1, which raises the panel
+        // with no page selected at all
         editor().showSettings(aboutPageIndex);
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note What is left of the editor once the skin is a child of it: the column
-/// the panel sits in, and the build-stamp bar.
-///
-///   The column is the bitmap's *first* pixel column stretched across it. That
-/// column is the skin's outer surround -- flat, top to bottom, because the
-/// rounded rectangle holding the knobs starts a few pixels inside it -- so
-/// stretching it is what "the panel sits on the same chrome" looks like, and it
-/// stays right for a skin that changes the colour. The alternative was a constant
-/// here that a new skin would silently disagree with. This component is opaque,
-/// so something has to cover it.
-///                                           (06.08.2026, mirrored 14.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note What is left of the editor once the skin is a child of it: the gutter
+/// the panel column sits in. The colour comes from the skin's own outer surround
+/// rather than a constant here, so it stays right for a skin that changes it.
 void SpectrumWorxEditor::paint(juce::Graphics &graphics)
 {
-    /// \note Only what is outside the skin: the gutter beside the panel column.
-    /// The skin itself is MainArea's.
+    // only what is outside the skin; the skin itself is MainArea's
     if (auto const column(mainArea_.getX()); column > 0)
     {
         graphics.setColour(BackgroundPainter::gutterColour());
@@ -1339,7 +1118,7 @@ void LE_NOINLINE SpectrumWorxEditor::updateString(String const stringID,
     string(stringID) = updatedString;
 
     using namespace Constants::Layout;
-    /// \note The skin's coordinates, which are the main area's. \see MainArea.
+    // the skin's coordinates, which are the main area's
     mainArea_.repaint(textBoxHorizontalOffset, stringVerticalOffset, textBoxWidth, stringHeight);
 }
 
@@ -1361,14 +1140,9 @@ void SpectrumWorxEditor::setActiveControlValue(juce::String const &newValue)
     updateString(activeControlValue, controlValueVerticalOffset, textBoxHeight, newValue);
 }
 
-/// \note The check where an assertion was. There is no display between one
-/// control being deactivated and the next being selected -- and this is called
-/// from the timer, which does not know that -- so the assertion described a
-/// state that does not hold and a shipped build dereferenced an empty optional
-/// on the strength of it. The `catch (...)` around it was catching nothing: none
-/// of the three calls throws, and an empty optional is not an exception in any
-/// case.
-///                                           (08.08.2026.) (SW port)
+/// \note A check rather than an assertion: there is no display between one
+/// control being deactivated and the next being selected, and the timer this
+/// runs from does not know that.
 void SpectrumWorxEditor::updateActiveControlValue()
 {
     if (!lfoDisplay_)
@@ -1387,14 +1161,9 @@ void SpectrumWorxEditor::updateSampleName(juce::String const &newSampleName)
     updateString(currentSampleName, sampleNameVerticalOffset, textBoxHeight, newSampleName);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note The box shows the **source**, which is a file's name only when a file is
-/// what was selected. It is never empty: "nothing" is not one of the three
-/// answers, and an empty box was 2016's way of saying `Main` without a word for
-/// it. \see doc/tech/sidechain-approach.md.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// what was selected, and it is never empty -- "nothing" is not one of the three
+/// answers. \see doc/tech/sidechain-approach.md.
 
 void SpectrumWorxEditor::updateSampleName()
 {
@@ -1409,12 +1178,9 @@ void SpectrumWorxEditor::updateSampleName()
     }
 }
 
-/// \note "Async" is 2016's, and the branch it names is currently unreachable:
-/// loading happens on this thread inside setNewSample(), so the host is never
-/// mid-load when it is asked. Kept whole rather than collapsed to
-/// updateSampleName(), because whether the loader gets a thread again is the
-/// threading redesign's decision and this is the shape it would come back in.
-///                                           (01.08.2026.) (SW port)
+/// \note The loading branch is unreachable while setNewSample() decodes on this
+/// thread, so the host is never mid-load when it is asked. Kept whole rather than
+/// collapsed, as the shape a threaded loader would come back in.
 void SpectrumWorxEditor::updateSampleNameAsync()
 {
     if (editorHost_.isSampleLoadInProgress())
@@ -1435,26 +1201,19 @@ void SpectrumWorxEditor::setSampleLoadingStatus()
     updateSampleName("Loading...");
 }
 
-/// \note The dialog is raised here rather than by the loader, and this is the
-/// only call site that raises one: a user picked this file out of a browser a
-/// moment ago and is owed an answer about it. Every other caller of
-/// `setNewSample` is a preset or a session being loaded, where there is nobody to
-/// answer a modal box and possibly no window to put one in.
-///                                           (08.08.2026.) (SW port)
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note Picking one of these **discards** a loaded file. The box has three
-/// answers and it should not be hiding a fourth piece of state behind one of
-/// them; \see the note on `SpectrumWorxCLAP::setSideChainSource()`.
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note Picking one of these **discards** a loaded file: the box has three
+/// answers and should not hide a fourth piece of state behind one of them.
+/// \see `SpectrumWorxCLAP::setSideChainSource()`.
 void SpectrumWorxEditor::sideChainSourceSelected(SideChainSource const source)
 {
     editorHost_.setSideChainSource(source);
     updateSampleName();
 }
 
+/// \note The only call site that raises a dialog: a user picked this file out of
+/// a browser a moment ago and is owed an answer. Every other caller of
+/// `setNewSample` is a preset or a session, where there is nobody to answer a
+/// modal box and possibly no window to put one in.
 void SpectrumWorxEditor::newSampleFileSelected(fs::path const &file)
 {
     auto const *const pErrorMessage(editorHost_.setNewSample(file));
@@ -1468,11 +1227,9 @@ void SpectrumWorxEditor::newSampleFileSelected(fs::path const &file)
 /// \brief What the rack says is in \p slotIndex, which is not the same question
 /// as what the chain says.
 ///
-/// \note And it is deliberately the rack. A slot change is a request now, so
-/// between the click and the engine applying it the two disagree -- and every
-/// caller here is describing what the *user* did, which is a statement about
-/// what they were looking at.
-///                                           (02.08.2026.) (SW port)
+/// \note Deliberately the rack. A slot change is a request, so between the click
+/// and the engine applying it the two disagree -- and every caller here is
+/// describing what the *user* did, which is what they were looking at.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1494,24 +1251,9 @@ void SpectrumWorxEditor::removeModule(ModuleUI &moduleUI)
     Host2PluginInteropControler::AutomationBlocker const automationBlocker(
         /*host*/ moduleChainOwner /*mrmlj*/ ());
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note A strip whose module has already left the chain is still on screen
-    /// and still clickable until the resync runs -- a window this editor did not
-    /// used to have, because a module owned its own strip and destroying the
-    /// module destroyed it.
-    ///
-    ///   Clicking one was the reported "Invalid downcast": the slot came from the
-    /// stale strip's *position*, so ejecting the last one and then its ghost gave
-    /// slot 2 against a `nextAvailableModuleSlot_` of 2, and the walk that
-    /// followed ran 255 times off the end of the chain and onto its sentinel node.
-    /// That walk is gone -- the rack is a function of the chain now, computed in
-    /// one place -- and this is what is left of the guard.
-    ///                                       (02.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-    ///   Not an assertion: clicking a strip that is on its way out is something
-    /// a user does, not a fault. It only used to be impossible.
+    // a strip whose module has already left the chain is still on screen and
+    // still clickable until the resync runs. Not an assertion: clicking one is
+    // something a user does, not a fault
     auto const slot(moduleUI.slot());
     if (slot >= nextAvailableModuleSlot_)
     {
@@ -1521,10 +1263,9 @@ void SpectrumWorxEditor::removeModule(ModuleUI &moduleUI)
 
     setModuleInSlot(slot, AutomatedModuleChain::noModule);
 
-    /// \note What the host is told, and it is told what was *asked for* rather
-    /// than what the chain currently holds -- which may still be the old chain
-    /// for another block. Removing a module shifts every later one down a slot,
-    /// so every selector from here to the end moves.
+    // the host is told what was *asked for* rather than what the chain holds,
+    // which may still be the old chain for another block. Removing a module
+    // shifts every later one down, so every selector to the end moves
     host().gestureBegin("Remove module");
     for (std::uint8_t moved(slot); moved < nextAvailableModuleSlot_; ++moved)
         host().moduleChangedByUser(moved, effectInRackSlot(moved + 1));
@@ -1538,47 +1279,21 @@ bool SpectrumWorxEditor::setModuleInSlot(std::uint8_t const slotIndex,
                                          std::int8_t const effectIndex)
 {
     LE_ASSERT(isThisTheGUIThread());
-    /// \note Both copies, and the module building that goes with each, belong to
-    /// the host now -- it is the one that owns them. \see EditorHost::editSlot().
+    // both copies, and the module building that goes with each, are the host's
     return editorHost().editSlot(slotIndex, effectIndex);
 }
 
 void SpectrumWorxEditor::addUserAddedModule(std::uint8_t const effectIndex)
 {
-    // Implementation note:
-    //   This is certainly executed from the GUI thread so this function expects
-    // the module creation to be done synchronously, in order for the focus
-    // grabbing to be safe.
-    //                                        (06.07.2011.) (Domagoj Saric)
-    /// \note It no longer is, and cannot be: filling a slot is a request the
-    /// engine answers when it next runs. So the focus is asked for by slot and
-    /// taken by resyncModuleRack() when the strip exists -- which is the same
-    /// moment, when nothing is processing, and one block later when something
-    /// is.
-    ///                                       (02.08.2026.) (SW port)
+    // filling a slot is a request the engine answers when it next runs, so the
+    // focus is asked for by slot and taken by resyncModuleRack() once the strip
+    // exists
     LE_ASSERT(isThisTheGUIThread());
     // Implementation note:
     //   We want any user-added module (using the add module menu) to
     // automatically gain focus.
     //                                        (09.02.2010.) (Domagoj Saric)
 #ifdef _WIN32
-    /// \note There was a runDispatchLoopUntil( 2 ) here, pumping the message
-    /// queue before taking focus. It was a 2013 quick-fix for crashes in
-    /// SoundForge 10, whose own diagnosis -- recorded at the time -- was that
-    /// SetFocus() let Windows deliver a queued message that called
-    /// loadProgramState() in the middle of adding a module. That is a re-entrancy
-    /// hazard being treated by draining the queue *first*, which is the same
-    /// hazard a moment earlier.
-    ///
-    ///   It cannot survive the port in any case: runDispatchLoopUntil() only
-    /// exists when JUCE_MODAL_LOOPS_PERMITTED is 1, and this build sets it to 0 --
-    /// the premise of the stage 6 rewrite that made the menus and dialogs
-    /// asynchronous. A nested dispatch loop in the middle of a slot change is
-    /// precisely what that setting exists to forbid.
-    ///
-    ///   If SoundForge 10 ever matters again, the fix is to make the add-module
-    /// path re-entrancy-safe rather than to pick a quieter moment for it.
-    ///                                       (30.07.2026.) (SW port)
     LE_ASSERT(getWantsKeyboardFocus());
     LE_ASSERT(getMouseClickGrabsKeyboardFocus());
     this->grabKeyboardFocus();
@@ -1586,7 +1301,7 @@ void SpectrumWorxEditor::addUserAddedModule(std::uint8_t const effectIndex)
 
     std::uint8_t const changedSlot(nextAvailableModuleSlot_);
     if (!setModuleInSlot(changedSlot, static_cast<std::int8_t>(effectIndex)))
-        return; // The effect is not in this build; nothing was asked of the engine.
+        return; // not in this build; nothing was asked of the engine
 
     slotAwaitingFocus_ = changedSlot;
     moduleAdded();
@@ -1624,16 +1339,14 @@ void SpectrumWorxEditor::savePreset(fs::path const &presetFile, bool const ignor
 {
     fs::path const externalSample(ignoreExternalSample ? fs::path()
                                                        : editorHost_.currentSampleFile());
-    /// \note A preset saved with the browser's "Ignore external audio" on names
-    /// no file, so it cannot honestly say its side channel comes from one. The
-    /// other two sources are unaffected: what that toggle withholds is somebody
-    /// else's audio, not the patch's routing.
+    // a preset saved with "Ignore external audio" on names no file, so it
+    // cannot honestly say its side channel comes from one. The other two
+    // sources are unaffected: that toggle withholds audio, not routing
     auto source(editorHost_.sideChainSource());
     if (externalSample.empty() && (source == SideChainSource::File))
         source = SideChainSource::Main;
 
-    /// \note Where the interface's `juce::String` becomes the format's bytes, and
-    /// the last thing presetFile.cpp used to do before it was deleted.
+    // where the interface's juce::String becomes the format's bytes
     SW::savePreset(presetFile, externalSample, source,
                    std::string_view(comment.toRawUTF8(), comment.getNumBytesAsUTF8()), program());
 }
@@ -1719,22 +1432,10 @@ void SpectrumWorxEditor::moduleDeactivated()
 ///
 /// \brief The ID a host knows \p control's parameter by.
 ///
-/// \note `+ 1 /*Bypass*/`, because `ModuleControlBase::moduleParameterIndex()`
-/// is the **LFO-able** index -- Bypass is not LFO-able and is not counted -- and
-/// a `ParameterID::Module` carries the module parameter index, which counts it.
-/// The two differ by one and every other reader of that getter says so
-/// (`moduleControl.cpp`, three times).
-///
-///   This did not, so the gesture that brackets a knob drag named the parameter
-/// *before* the one being dragged: touching a module's Gain announced a gesture
-/// on its Bypass, and the values that followed were Gain's. A host that binds its
-/// automation gutter to the last touched parameter -- Bitwig does -- then bound
-/// it to Bypass, and dragging that lane moved nothing on screen because the knob
-/// it moved was not the one the user had touched. The *values* were always right:
-/// they go through updateModuleParameterAndNotifyHost(), whose callers add the
-/// one. Only the gesture was wrong, which is why this survived the automation
-/// tests.
-///                                           (07.08.2026.) (SW port)
+/// \note `+ 1 /*Bypass*/`, because `ModuleControlBase::moduleParameterIndex()` is
+/// the **LFO-able** index -- Bypass is not LFO-able and is not counted -- while a
+/// `ParameterID::Module` carries the module parameter index, which counts it.
+/// Every other reader of that getter adds the one too.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1821,19 +1522,10 @@ void SpectrumWorxEditor::retireLFODisplay()
 /// control had it -- and that calls `moduleControlDectivated()`, which asserts
 /// that the LFO display for that control is still there.
 ///
-/// \note This is the general form of a workaround the 2016 code carried in
-/// `ModuleUI::buttonClicked`, deactivating the active control by hand before
-/// removing the module, with an "...investigate why this doesn't work when
-/// placed inside the ModuleUI destructor..." beside it. It worked because the
-/// whole eject happened inside one message callback, so the *deferred* LFO
-/// display destruction could not run in between. Dropping a strip is its own
-/// posted message now, so it can and does.
-///
 /// \note Deliberately **not** `moduleControlDectivated()`: that ends the host's
 /// automation gesture, and `moduleControlID()` walks the chain for the control's
 /// module -- which by the time a strip is dropped has left it. The gesture is
 /// ended on the path that removes the module, where the module is still there.
-///                                           (02.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1841,74 +1533,26 @@ void SpectrumWorxEditor::detachFrom(ModuleUI &region)
 {
     LE_ASSERT(isThisTheGUIThread());
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note Each of the three asks whether **it** points into the strip, which
-    /// is the question, and is not the question the first two used to ask.
-    ///
-    ///   `lfoDisplay_` was guarded on `pActiveControl_` and the shared controls
-    /// on `pSelectedModule_` -- the editor's record of what is *current*, not of
-    /// what these two are pointing at. Deactivation is deferred: it clears those
-    /// records and leaves the widgets alive, still parented to the editor, still
-    /// holding a raw `ModuleUI *` into the strip. So a control deactivated before
-    /// the strip was dropped made both guards false and both widgets survived,
-    /// pointing into freed memory -- and painting one reads
-    /// `ModuleControlBase::isLFOEnabled()` -> `module()` -> `moduleUI().pModule_`
-    /// straight through it.
-    ///
-    ///   `drainEngineEvents()` resynchronises the rack synchronously from
-    /// `on_main_thread()`, so the window between the deactivation and the strip
-    /// being freed is as long as the host's callback interval.
-    ///                                       (08.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
+    // each of the three asks whether *it* points into the strip. Guarding on
+    // the editor's record of what is current instead would miss a control
+    // deactivated before the strip was dropped: deactivation is deferred, so the
+    // widget is still alive, still parented to the editor, still holding a raw
+    // ModuleUI * into the strip
     bool const activeControlIsRegions(pActiveControl_ && pActiveControl_->pointsInto(region));
     bool const lfoDisplayIsRegions(lfoDisplay_ && lfoDisplay_->pointsInto(region));
     bool const sharedControlsAreRegions(sharedModuleControls_ &&
                                         sharedModuleControls_->pointsInto(region));
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note The pointer first, before anything is destroyed. Destroying a
-    /// component moves the keyboard focus and JUCE delivers the loss
-    /// *synchronously* to whichever control had it, which comes back here through
-    /// `ModuleControlBase::reportInactiveControl()`. That guards on `isActive()`,
-    /// so a cleared `pActiveControl_` makes the re-entry a no-op -- and a live one
-    /// takes it into `moduleControlDectivated()`, which is what the note above
-    /// says must not happen on this path.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
+    // the pointer first, before anything is destroyed: JUCE delivers a focus
+    // loss synchronously, which comes back here through reportInactiveControl(),
+    // and a cleared pActiveControl_ makes that re-entry a no-op
     if (activeControlIsRegions)
         pActiveControl_ = nullptr;
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note And then both of these are destroyed **now**, where
-    /// `retireLFODisplay()` and `moduleDeactivated()` only disable them and post
-    /// a message to do it later. That deferral is an optimisation for the case
-    /// they were written for -- a user moving between controls, or between
-    /// modules, where the strip they point into survives -- and it is not
-    /// available here, because here the strip is about to be freed.
-    ///
-    ///   Both are children of the *editor* rather than of the strip
-    /// (`moduleControl.cpp:145-148` says so of the shared controls) and both hold
-    /// a raw `ModuleUI *`. So a deferred cleanup leaves them in the component
-    /// tree, still painted, pointing at freed memory -- and painting one reads
-    /// `ModuleControlBase::isLFOEnabled()` -> `module()` -> `moduleUI().pModule_`,
-    /// straight through the hole.
-    ///
-    ///   Found with ASan under Bitwig, deleting a module: heap-use-after-free
-    /// reading a freed 1496-byte `ModuleUI`, freed by `resyncModuleRack()`'s
-    /// `pRegion.reset()` a moment earlier, read by `ModuleKnob::paint`. Both on
-    /// the main thread -- this is a lifetime bug and not a race. It needs a host
-    /// that resyncs the rack from `clap_plugin::on_main_thread` while CoreAnimation
-    /// can paint in between, which is why the standalone never showed it.
-    ///                                       (07.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
+    // both destroyed *now*, where retireLFODisplay() and moduleDeactivated()
+    // only disable them and post a message to do it later. That deferral suits a
+    // user moving between controls, where the strip survives; here it is about
+    // to be freed, and both are children of the editor holding a raw ModuleUI *
     if (lfoDisplayIsRegions)
     {
         retireLFODisplay(); // for the focus handling it does on the way out
@@ -1920,31 +1564,20 @@ void SpectrumWorxEditor::detachFrom(ModuleUI &region)
     /// \note And the keyboard out of the shared controls before they are
     /// destroyed, rather than leaving JUCE to move it for us.
     ///
-    ///   JUCE answers a focused component going away by walking the focus to
-    /// the next thing that will take it, synchronously, from inside
-    /// `~Component`. These are parented to `mainArea_`, which does not want the
-    /// keyboard, so the walk goes up to it and back down its default focus
-    /// child -- **another strip**. That is `ModuleUI::focusGained` ->
-    /// `activate()` -> `moduleActivated()`, which reaches for the shared
-    /// controls -- and `std::optional::reset()` destroys the value *before* it
-    /// clears the engaged flag, so `sharedModuleControls_` still answers
-    /// `has_value()` at that moment. `updateForActiveModule()` then writes
-    /// `gain_`, whose `juce::Slider` destructor has already run and nulled its
-    /// Pimpl.
-    ///
-    ///   Reported as a crash on removing a module with the shared Gain knob
-    /// selected: two modules, a control in the second one, then Gain, then its
-    /// eject button. `grabKeyboardFocus()` is the same move
-    /// `moduleDeactivated()` makes for the same reason -- the editor wants the
-    /// keyboard, so the walk stops there -- and it leaves nothing focused inside
-    /// what is about to go.
+    ///   JUCE answers a focused component going away by walking the focus to the
+    /// next thing that will take it, synchronously, from inside `~Component`.
+    /// These are parented to `mainArea_`, which does not want the keyboard, so
+    /// the walk goes up to it and back down into **another strip** --
+    /// `ModuleUI::focusGained` -> `activate()` -> `moduleActivated()`, which
+    /// reaches for the shared controls while `std::optional::reset()` is midway
+    /// through destroying them. Taking the keyboard to the editor, which wants
+    /// it, stops the walk there.
     ///
     /// \note After the LFO display and not before: taking the focus out of the
     /// shared controls deselects the module, and `moduleDeactivated()` asserts
     /// that the module's *control* was deselected first. This path skips that
     /// deliberately (see the note on `pActiveControl_` above), so the strip has
     /// to be retired by hand before anything can deselect the module.
-    ///                                       (21.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -1972,11 +1605,9 @@ void SpectrumWorxEditor::mainKnobDragStopped(std::uint8_t const index) const
     host().automatedParameterEndEdit(parameterID);
 }
 
-/// \note Moved here from gui.cpp. It instantiates globalParameterChanged<>,
-/// which reaches host() and so needs the complete SpectrumWorx; leaving it in
-/// the widget layer meant every widget translation unit pulled in the 2016 VST2
-/// plugin class and the deleted VST 2.4 SDK behind it.
-///                                       (28.07.2026.) (SW port)
+/// \note Here rather than in the widget layer: it instantiates
+/// globalParameterChanged<>, which reaches host() and so needs the complete
+/// plugin type.
 void EditorKnob::valueChanged() noexcept
 {
     using LE::Parameters::IndexOf;
@@ -2001,9 +1632,8 @@ void EditorKnob::valueChanged() noexcept
 
 void SpectrumWorxEditor::destroyChainGUIs()
 {
-    /// \note Everything, whatever the chain holds. This walked the chain and
-    /// asked each module to destroy the strip it owned; the strips are here now,
-    /// and dropping one drops its reference to its module.
+    // everything, whatever the chain holds: the strips are the editor's, and
+    // dropping one drops its reference to its module
     for (auto &pRegion : moduleRegions_)
     {
         if (!pRegion)
@@ -2029,26 +1659,18 @@ void SpectrumWorxEditor::showSettings(unsigned int const pageIndexToActivate)
     settings_->setCurrentTabIndex(pageIndexToActivate, false);
     settingsButton_.setToggleState(true, juce::dontSendNotification);
 
-    /// \note Which panel the user is in is as much a place as which tab of it
-    /// they are on, and both are the session's. \see PanelState and issue #129.
+    // which panel the user is in is as much a place as which tab of it they
+    // are on, and both are the session's. \see issue #129
     editorHost_.panelState().panel = PanelState::Panel::settings;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/// \note Checked against the tabs this build has rather than trusted: the number
+/// comes out of a host's state blob, written by some earlier version, and JUCE
+/// clamps an out-of-range tab index to -1 and opens a panel with no page in it.
 ///
-/// \note Checked against the tabs this build has rather than trusted. The number
-/// comes out of a host's state blob, which is a file written by some earlier
-/// version -- the preset browser's remembered bank has the same problem and the
-/// same answer (\see PresetBrowser::restoreLastPlace()). JUCE clamps an
-/// out-of-range tab index to -1 and opens a panel with no page in it, which is
-/// the hole tests/gui/overlayPanelTests.cpp measures.
-///
-/// \note The argument is read before the call, which is what makes the
-/// delegation correct rather than merely short: building a Settings adds its
-/// first tab and so selects page 0, and that write goes through
-/// `currentTabChanged` like any other.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note The argument is read before the call, which is what makes the delegation
+/// correct rather than merely short: building a Settings adds its first tab and
+/// so selects page 0, and that write goes through `currentTabChanged`.
 
 void SpectrumWorxEditor::showSettings()
 {
@@ -2117,17 +1739,13 @@ void SpectrumWorxEditor::updateForEngineSetupChanges()
     });
 }
 
-/// \note Where a tempo change lands. Its 2016 caller was
-/// `SpectrumWorx::updatePosition()`, in a host class that is in no target, and
-/// the CLAP's equivalent -- `updateLFOTiming()` -- runs on the audio thread,
-/// where reaching a widget is what this whole redesign is about. So it arrives as
-/// `ToUI::TimingChanged` and `drainEngineEvents()` calls this.
+/// \note Where a tempo change lands. It arrives as `ToUI::TimingChanged`, the
+/// change being noticed on the audio thread where a widget may not be reached.
 ///
-///   Only a *synced* LFO moves: its period is a fraction of the host's bar, so
-/// the same parameter is a different number of seconds at a new tempo and snaps
-/// to a different grid. A free one is measured against a bar that never changes
-/// length and is unaffected -- see how-lfo-rates-and-eval-work.md.
-///                                           (02.08.2026, wired up 09.08.2026.) (SW port)
+/// \note Only a *synced* LFO moves: its period is a fraction of the host's bar,
+/// so the same parameter is a different number of seconds at a new tempo and
+/// snaps to a different grid. A free one is measured against a bar that never
+/// changes length. \see doc/tech/how-lfo-rates-and-eval-work.md.
 void SpectrumWorxEditor::updateForNewTimingInfo()
 {
     LE_ASSERT(isThisTheGUIThread());
@@ -2146,29 +1764,14 @@ void SpectrumWorxEditor::updateLFO(ModuleUI const &moduleUI, std::uint8_t const 
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note This called `Module::setParameterValueFromUI()` -- the engine, written
-/// from the message thread while `process()` was reading it -- and used the
-/// snapped value it returned. It queues now.
-///
-///   Nothing is lost by not waiting for the answer. Snapping is a pure function of
-/// the parameter's *static* description, and the widget already carries that: a
-/// knob's range and interval are set from the same `ParameterInfo`
-/// (`ModuleKnob::setupForParameter`), a combo box's value is an index, a button's
-/// is a bool. So the value arriving here is the snapped one, which is what the old
-/// assertion in `Module::setEffectParameter` says too.
+///   The module strips, and nothing waits for the engine's answer. An edit
+/// queues; snapping is a pure function of the parameter's *static* description
+/// and the widget already carries that -- a knob's range and interval come from
+/// the same `ParameterInfo`, a combo box's value is an index, a button's a bool
+/// -- so the value arriving here is already the snapped one.
 ///
 /// \see doc/tech/threading_model.md §3.
 ///
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// What the engine has been doing
-//
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-// The module strips
 ////////////////////////////////////////////////////////////////////////////////
 
 ModuleUI *SpectrumWorxEditor::regionFor(Module const &module)
@@ -2202,9 +1805,9 @@ void SpectrumWorxEditor::createModuleRegion(LE::Utility::IntrusivePtr<Module> co
     LE_ASSERT(isThisTheGUIThread());
     LE_ASSERT(pModule);
 
-    /// \note A module that already has a strip keeps it and moves; only a newly
-    /// created one needs building. Both cases matter: a slot can be refilled with
-    /// the same effect, and strips shift left when one ahead of them is removed.
+    // a module that already has a strip keeps it and moves; only a newly built
+    // one needs one. A slot can be refilled with the same effect, and strips
+    // shift left when one ahead of them is removed
     if (auto *const pExisting = regionFor(*pModule))
     {
         pExisting->moveToSlot(slotIndex);
@@ -2222,11 +1825,8 @@ void SpectrumWorxEditor::createModuleRegion(LE::Utility::IntrusivePtr<Module> co
         }
         catch (...)
         {
-            /// \note Swallowed, because this can run while a preset is being
-            /// applied and a strip that failed to build is not worth taking the
-            /// host down for. A checked build stops here, because a slot with no
-            /// strip is invisible in exactly the way that wastes an afternoon.
-            ///                               (29.07.2026.) (SW port)
+            // swallowed: this can run while a preset is being applied, and a
+            // strip that failed to build is not worth taking the host down for
             LE_ASSERT_MSG(false, "Module region construction threw; the slot has no strip.");
             return;
         }
@@ -2241,19 +1841,12 @@ void SpectrumWorxEditor::createModuleRegion(LE::Utility::IntrusivePtr<Module> co
 ///
 /// \brief Makes the rack a function of the chain, and nothing else.
 ///
-/// \note The one place the two are reconciled, and the reason there is only one.
-/// The rack used to be maintained incrementally -- a strip built here, a strip
-/// dropped there, every other strip shifted by a slot width at each call site --
-/// against a running total in `nextAvailableModuleSlot_`. Any disagreement
-/// between that total and the chain was then a walk off the end of it (§6.5a).
-///
-///   It also has to be a recomputation rather than an update, because a slot
-/// change is a request now: between the click and the engine applying it the
-/// rack is what the user asked for and the chain is what is playing, and this is
-/// what closes the gap when the answer arrives. `ToUI::ChainChanged` is one
-/// caller; the editor's own edits, which want the strip moved before the engine
-/// has caught up, are the others.
-///                                           (02.08.2026.) (SW port)
+/// \note The one place the two are reconciled, and a recomputation rather than an
+/// update: a slot change is a request, so between the click and the engine
+/// applying it the rack is what the user asked for and the chain is what is
+/// playing. This closes the gap when the answer arrives. `ToUI::ChainChanged` is
+/// one caller; the editor's own edits, which move a strip before the engine has
+/// caught up, are the others.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2261,23 +1854,10 @@ void SpectrumWorxEditor::resyncModuleRack()
 {
     LE_ASSERT(isThisTheGUIThread());
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note Before any strip is destroyed, and for the same reason
-    /// `~SpectrumWorxEditor` does it: a menu opened from a module strip -- its
-    /// effect combo box, its LFO type -- is asynchronous, and this is where the
-    /// strip under it can go. A module ejected, a preset with fewer modules than
-    /// the rack has, a resync arriving because the engine caught up: all three
-    /// come through here.
-    ///
-    /// \note It is queued rather than immediate. `dismissAllActiveMenus()` ends
-    /// the modal state, and `ModalComponentManager` delivers the result through
-    /// `triggerAsyncUpdate()` -- so the menu stops taking input here and answers
-    /// "dismissed" a message-loop turn later, rather than answering with a choice
-    /// made against a module that has since left the chain.
-    ///                                       (08.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // before any strip is destroyed: a menu opened from one -- its effect combo
+    // box, its LFO type -- is asynchronous, and this is where the strip under it
+    // can go. The dismissal is queued, so the menu stops taking input here and
+    // answers "dismissed" a message-loop turn later
     juce::PopupMenu::dismissAllActiveMenus();
 
     auto &chain(moduleChain());
@@ -2293,28 +1873,23 @@ void SpectrumWorxEditor::resyncModuleRack()
         if (stillChained)
             continue;
 
-        /// \note Before the reset, never after: destroying a strip moves the
-        /// keyboard focus, and JUCE delivers that to whichever control had it.
-        /// See detachFrom().
+        // before the reset, never after: destroying a strip moves the keyboard
+        // focus, and JUCE delivers that to whichever control had it
         detachFrom(*pRegion);
         pRegion.reset();
     }
 
     std::uint8_t slot(0);
     chain.forEach<Module>([&](Module &module) {
-        /// \note Builds one when the module has none, which is how a chain the
-        /// engine installed -- a preset, a session, a host-driven slot change --
-        /// comes to have strips at all.
+        // builds one when the module has none, which is how a chain the engine
+        // installed comes to have strips at all
         createModuleRegion(LE::Utility::IntrusivePtr<Module>(&module), slot);
         ++slot;
     });
     setLastModulePosition(slot);
 
-    /// \note And whatever the mailbox is holding is about the rack that was here
-    /// a moment ago. It coalesces rather than queues, so there is nothing to
-    /// deliver late -- an LFO that is still running writes again within the
-    /// block, and one that is not has nothing to say.
-    ///                                       (02.08.2026.) (SW port)
+    // whatever the mailbox holds is about the rack that was here a moment ago.
+    // It coalesces rather than queues, so there is nothing to deliver late
     editorHost().modulatedValues().discardChanges();
 
     if (slotAwaitingFocus_ != noSlotAwaitingFocus)
@@ -2322,16 +1897,10 @@ void SpectrumWorxEditor::resyncModuleRack()
         if (auto *const pRegion = regionInRackSlot(slotAwaitingFocus_))
         {
             slotAwaitingFocus_ = noSlotAwaitingFocus;
-            /// \note JUCE's own precondition for the call, spelled out: a
-            /// component that is on no screen cannot take the keyboard, and
-            /// `grabKeyboardFocus()` says so with a jassert rather than by
-            /// declining. An offscreen render reaches here with the editor on no
-            /// desktop -- tools/show-ui builds a rack this way -- so the request
-            /// is dropped here instead of being made and complained about. The
-            /// slot is cleared either way: the grab was already a no-op in this
-            /// state, and holding the request back for a later resync would let
-            /// focus jump to a slot chosen some time ago.
-            ///                                   (05.08.2026.) (SW port)
+            // a component on no screen cannot take the keyboard, and
+            // grabKeyboardFocus() says so with a jassert rather than by
+            // declining -- which an offscreen render would hit. The slot is
+            // cleared either way, so focus cannot jump to a stale choice later
             if (pRegion->isShowing() || pRegion->isOnDesktop())
                 pRegion->grabKeyboardFocus();
         }
@@ -2345,10 +1914,7 @@ void SpectrumWorxEditor::resyncModuleRack()
 /// \note Asynchronous, and it has to be: the path that removes a module is
 /// `ModuleUI::buttonClicked` -> `removeModule`, so dropping the strip
 /// synchronously would destroy the component whose button callback is on the
-/// stack. The 2016 code met the same thing from the other side and left an
-/// "...investigate why this doesn't work when placed inside the ModuleUI
-/// destructor..." beside it.
-///                                           (02.08.2026.) (SW port)
+/// stack.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2381,18 +1947,13 @@ void SpectrumWorxEditor::parameterChangedElsewhere(ParameterID const parameterID
         return;
 
     case ParameterID::GlobalParameter:
-        /// \note The six global knobs. `updateForGlobalParameterChange()` and
-        /// `updateGlobalParameterWidget<>` have had no callers since the 2016
-        /// plugin class was deleted -- so host automation
-        /// of a global never moved the editor -- and this is the route that gives
-        /// them one back, without the audio-thread write the naive fix would have
-        /// recreated.
+        // the six global knobs, and the only route by which host automation of
+        // one moves the editor
         updateForGlobalParameterChange();
         return;
 
     case ParameterID::ModuleChainParameter:
-        /// \note A slot's effect changed under us. Rebuilding a strip is stage 6's
-        /// `ToUI::SlotChanged`; nothing sends this yet.
+        // a slot's effect changed under us; nothing sends this yet
         return;
 
         LE_DEFAULT_CASE_UNREACHABLE();
@@ -2408,8 +1969,8 @@ void SpectrumWorxEditor::timerCallback()
     pumpModulatedValues();
 }
 
-/// \note Costs four `lexical_cast`s and four string compares per tick, and only
-/// while the settings panel happens to be up. \see Settings::updateEngineInformation().
+/// \note Four `lexical_cast`s and four string compares per tick, and only while
+/// the settings panel happens to be up.
 bool SpectrumWorxEditor::updateEngineInformationIfChanged()
 {
     LE_ASSERT(isThisTheGUIThread());
@@ -2417,21 +1978,11 @@ bool SpectrumWorxEditor::updateEngineInformationIfChanged()
     return settings_.has_value() && settings_->updateEngineInformation();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::applyPaletteIfChanged()
-// -------------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note Polled rather than pushed because the change may not be this editor's.
-/// The palette is process-wide, so a second instance in the same host has just
-/// had its colours swapped by a settings page it has never heard of and nothing
-/// has marked a pixel of it dirty. Every editor watching one counter is what
-/// makes "change it once, change it everywhere" true without a registry of live
-/// editors to keep correct.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note Polled rather than pushed, because the change may not be this editor's:
+/// the palette is process-wide, so a second instance has just had its colours
+/// swapped by a settings page it never heard of. Every editor watching one
+/// counter makes "change it once, change it everywhere" true without a registry
+/// of live editors to keep correct.
 
 void SpectrumWorxEditor::applyPaletteIfChanged()
 {
@@ -2442,21 +1993,17 @@ void SpectrumWorxEditor::applyPaletteIfChanged()
         return;
     palette_ = generation;
 
-    /// \note Before the repaint, and idempotent: whichever editor gets here
-    /// first takes the colours and the rest find them taken.
+    // before the repaint, and idempotent: whichever editor gets here first
+    // takes the colours and the rest find them taken
     Theme::singleton().reloadColours();
 
-    ////////////////////////////////////////////////////////////////////////////
-    /// \note The wrapper rather than this, where there is one: ZoomedEditor
-    /// paints ColourMap::Ground behind the transform -- the half pixel rounding
-    /// leaves down the right edge -- and it is this editor's *parent*, so a
-    /// repaint from here would not reach it. \see setZoom(), which reaches for
-    /// it the same way.
-    ///
-    /// \note And sendLookAndFeelChange() rather than repaint(): it repaints
-    /// every descendant *and* tells each one its colours moved, which is what a
-    /// widget holding a LookAndFeel colour of its own needs to hear.
-    ////////////////////////////////////////////////////////////////////////////
+    // the wrapper rather than this, where there is one: ZoomedEditor paints
+    // ColourMap::Ground behind the transform and is this editor's parent, so a
+    // repaint from here would not reach it
+    //
+    // sendLookAndFeelChange() rather than repaint(): it repaints every
+    // descendant and tells each one its colours moved, which a widget holding a
+    // LookAndFeel colour of its own needs to hear
     auto *const pWrapper(findParentComponentOfClass<ZoomedEditor>());
     juce::Component &root(pWrapper ? static_cast<juce::Component &>(*pWrapper) : *this);
     root.sendLookAndFeelChange();
@@ -2467,10 +2014,9 @@ void SpectrumWorxEditor::setPalette(ColourMap::Palette const palette)
     preferences().setPalette(palette);
     ColourMap::setPalette(palette);
 
-    /// \note Not applied here. This editor picks the change up on its next tick
-    /// through exactly the path a *second* instance does, so there is one way
-    /// a palette reaches the screen rather than two that have to agree.
-    /// \see applyPaletteIfChanged().
+    // not applied here: this editor picks it up on its next tick through the
+    // same path a second instance does, so a palette reaches the screen one way
+    // rather than two that have to agree
 }
 
 void SpectrumWorxEditor::pumpModulatedValues()
@@ -2486,21 +2032,10 @@ void SpectrumWorxEditor::pumpModulatedValues()
         if (!pRegion)
             return;
 
-        ////////////////////////////////////////////////////////////////////////
-        ///
-        /// \note The slot's effect may have changed since the value was written,
-        /// and then this is a parameter index the *previous* effect had. The
-        /// mailbox is a fixed array indexed by the maximal parameter layout and
-        /// keeps a dirty bit until somebody sweeps it, so a preset load leaves
-        /// values for slots whose effects it replaced -- and a knob's index that
-        /// meant Whisperer's tenth parameter means nothing at all in a Gain.
-        ///
-        ///   Reported as "Parameter index out of range" from
-        /// `effectSpecificParameterControl`, which is that index walked off the
-        /// end of the strip's child list.
-        ///                                   (02.08.2026.) (SW port)
-        ///
-        ////////////////////////////////////////////////////////////////////////
+        // the slot's effect may have changed since the value was written, and
+        // then this is an index the *previous* effect had: the mailbox is a
+        // fixed array over the maximal layout and keeps its dirty bit until
+        // swept, so a preset leaves values for slots whose effects it replaced
         if (parameterID.value._.module.moduleParameterIndex >=
             pRegion->module().numberOfParameters())
             return;
@@ -2510,14 +2045,9 @@ void SpectrumWorxEditor::pumpModulatedValues()
     });
 }
 
-/// \note `editGlobalParameter` rather than `editParameter`, which is what this
-/// built the ParameterID for and called directly. The value here is in the
-/// parameter's own units -- that is what every caller holds and what this
-/// function's declaration has always said -- and `editParameter` takes the
-/// automation edge's, which for a power-of-two parameter is the exponent. So the
-/// three knobs worked, being linear, and the settings page's FFT size, overlap
-/// factor and window function did not.
-///                                           (08.08.2026.) (SW port)
+/// \note `editGlobalParameter` rather than `editParameter`: the value here is in
+/// the parameter's own units, and `editParameter` takes the automation edge's,
+/// which for a power-of-two parameter is the exponent.
 void SpectrumWorxEditor::queueGlobalParameter(std::uint8_t const index, float const value) const
 {
     editorHost().editGlobalParameter(index, value);
@@ -2536,11 +2066,10 @@ void SpectrumWorxEditor::updateModuleParameterAndNotifyHost(ModuleUI &moduleUI,
 
     editorHost().editParameter(parameterID, parameterValue);
 
-    /// \note Straight to the host rather than waiting for the engine to confirm.
-    /// `automatedParameterChanged` queues too -- into the ring the host collects
-    /// on its next `process()` or `flush()` -- so both ends of the edit are on
-    /// their way in one place, and it is `requestParameterFlush()` inside that
-    /// call which gets the command drained when the transport is parked.
+    // straight to the host rather than waiting for the engine to confirm:
+    // automatedParameterChanged queues into the ring the host collects on its
+    // next process() or flush(), and the requestParameterFlush() inside it is
+    // what gets the command drained with the transport parked
     host().automatedParameterChanged(module, moduleIndex, moduleParameterIndex, parameterValue);
 }
 
@@ -2561,8 +2090,7 @@ void SpectrumWorxEditor::ModuleMenuButton::moveToSlot(std::uint8_t const slotInd
 
 void SpectrumWorxEditor::ModuleMenuButton::clicked()
 {
-    /// \note fromChild() rather than a downcast of the parent: the parent is the
-    /// main area now, not the editor. \see MainArea.
+    // fromChild() rather than a downcast of the parent, which is the main area
     SpectrumWorxEditor &editor(SpectrumWorxEditor::fromChild(*this));
     LE_ASSERT(editor.nextAvailableModuleSlot_ < SW::Constants::maxNumberOfModules);
 
@@ -2572,35 +2100,17 @@ void SpectrumWorxEditor::ModuleMenuButton::clicked()
         .showCenteredAtRight(*this, editor.effectMenuCallback(target));
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::DropIndicator
-// ---------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
 SpectrumWorxEditor::DropIndicator::DropIndicator(juce::Component &parent)
 {
-    /// \note Neither focusable nor clickable: it is drawn over the rack during a
-    /// drag, and a drag is delivered to the strip it started on.
+    // neither focusable nor clickable: it is drawn over the rack during a drag,
+    // and a drag is delivered to the strip it started on
     setWantsKeyboardFocus(false);
     setInterceptsMouseClicks(false, false);
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note And on top for good, rather than raised and lowered around each
-    /// drag. It has to be above the module strips or a swap's fill is painted
-    /// over by the strip it is marking -- and it is built before any strip
-    /// exists, so ordinary z-order puts it underneath every one of them.
-    ///
-    ///   The raise-and-lower this replaces was there because the thing being
-    /// raised was a child of the *editor*, alongside the panels, so a stale
-    /// always-on-top left it painting over an open preset browser. It is a child
-    /// of the main area now and a panel is a sibling of that, so there is nothing
-    /// left for it to rise above.
-    ///                                       (14.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // on top for good rather than raised per drag: it has to be above the module
+    // strips or a swap's fill is painted over by the strip it marks, and it is
+    // built before any strip exists. A panel is a sibling of the main area, so
+    // there is nothing here for it to wrongly rise above
     setAlwaysOnTop(true);
 
     addToParentAndShow(parent, *this);
@@ -2617,8 +2127,7 @@ void SpectrumWorxEditor::DropIndicator::showSwap(std::uint8_t const slotIndex)
 
 /// \note Taller than a strip, by a few pixels at each end. A strip is already
 /// outlined in the skin's blue, so a line exactly as tall as one reads as a
-/// thicker border on whichever strip the eye assigns it to; overrunning both is
-/// what makes it a divider between them instead.
+/// thicker border on whichever strip the eye assigns it to.
 void SpectrumWorxEditor::DropIndicator::showInsert(std::uint8_t const gapIndex)
 {
     insert_ = true;
@@ -2783,12 +2292,9 @@ void SpectrumWorxEditor::LFODisplay::setupForControl(ModuleControlBase &control,
 
 namespace
 {
-/// \note `|| !LFO::Timer::hasTempoInformation()` stood here, so a host that
-/// reported no transport printed every period in milliseconds. There is always a
-/// tempo -- the host's, or an assumed 120 BPM in four four -- so a note ratio
-/// always means something, and only the LFO's own sync setting decides which of
-/// the two to show. See the note on updateSnapControls().
-///                                           (02.08.2026.) (SW port)
+/// \note Only the LFO's own sync setting decides between a note ratio and
+/// milliseconds. There is always a tempo -- the host's, or an assumed 120 BPM in
+/// four four -- so a ratio always means something.
 bool skipPeriodRatio(SpectrumWorxEditor::LFODisplay::Period const &period)
 {
     return period.lastSyncType() == LFO::Free;
@@ -2796,15 +2302,13 @@ bool skipPeriodRatio(SpectrumWorxEditor::LFODisplay::Period const &period)
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note The formatter a host's `value_to_text` uses, so that the panel and a
-/// DAW's automation lane cannot come to say different things about one period.
-/// This drew the ratio itself -- the same switch over the three grids, written
-/// out twice -- until the host was taught to print one. \see
-/// LFOImpl::printSyncedPeriodScale() and issue #158.
+/// \note The formatter a host's `value_to_text` uses, so the panel and a DAW's
+/// automation lane cannot come to say different things about one period.
+/// \see LFOImpl::printSyncedPeriodScale().
 ///
-/// \note By the grid the last snap chose rather than by the whole mask, which is
-/// what this always did: a file may carry more than one (`sync="5"`), and what a
-/// reading is labelled with is the grid the value is actually on.
+/// \note By the grid the last snap chose rather than by the whole mask: a file
+/// may carry more than one (`sync="5"`), and a reading is labelled with the grid
+/// the value is actually on.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2825,21 +2329,8 @@ juce::String periodMillisecondsString(SpectrumWorxEditor::LFODisplay const &pare
     bool const skipRatio(skipPeriodRatio(parent.period()));
     unsigned char const precision(!skipRatio * 2);
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note The number is written into the buffer *less the suffix*, so that
-    /// `strcpy` at the returned offset cannot reach the end however wide the
-    /// number turns out to be.
-    ///
-    ///   Which is the shape of what went wrong here. `lexical_cast` was handed
-    /// `&buffer[0]` and a constant it had no way to check, returned the length
-    /// `snprintf` would have *wanted*, and this indexed a 32-byte stack array
-    /// with it. Handing over the room there actually is makes both halves of that
-    /// impossible rather than merely unlikely.
-    ///                                       (08.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
+    // the number is written into the buffer *less the suffix*, so the strcpy at
+    // the returned offset cannot reach the end however wide the number is
     constexpr char suffix[]{" ms"};
     std::array<char, 32> buffer;
     auto const charactersWritten(Utility::lexical_cast(
@@ -2858,9 +2349,6 @@ juce::String phaseString(SpectrumWorxEditor::LFODisplay const & /*parent*/,
 juce::String rangeValueString(SpectrumWorxEditor::LFODisplay const &parent,
                               double const &periodScale)
 {
-    /// \note `LE_ASSERT( activeControl() )` stood above this, over the file-scope
-    /// pointer. It said "something is active"; the line below says "and it is this
-    /// control", which subsumes it.
     LE_ASSERT(parent.control().isActive());
     return parent.control().getTextFromValue(static_cast<float>(periodScale));
 }
@@ -2949,10 +2437,9 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
                           text.height, text.justification, false);
     }
 
-    /// \note The well before the mark that goes in it, and both here rather
-    /// than in the chassis: this strip is on screen only while a control is
-    /// selected, and a pill sitting alone in an empty LFO box was what the
-    /// chassis drawing it looked like. \see issue #134.
+    // the well before the mark that goes in it, and both here rather than in
+    // the chassis: this strip is on screen only while a control is selected,
+    // and the chassis would leave a pill alone in an empty LFO box
     BackgroundPainter::paintLFOWaveformWell(graphics, getPosition());
 
     // Null for an item with no icon; every LFO waveform has one.
@@ -2960,22 +2447,13 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
         paintImage(graphics, *icon, 119, 144);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::setLFOEnabled()
-// -----------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note The parameter goes out through `editParameter()` and the host is told
-/// separately, which is what `LFODisplay::updateParameterAndNotifyHost<>` does
-/// for the five LFO parameters that have a ParameterID -- spelled out here
-/// because this is reachable with no LFO strip on screen at all.
+/// separately, as `LFODisplay::updateParameterAndNotifyHost<>` does for the five
+/// LFO parameters that have a ParameterID -- spelled out here because this is
+/// reachable with no LFO strip on screen at all.
 ///
-/// \note `lfoStateChanged()` is not cosmetic: it is what re-keys the knob's
-/// scroll wheel and its double-click default on the answer that just changed.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note `lfoStateChanged()` is not cosmetic: it re-keys the knob's scroll wheel
+/// and its double-click default on the answer that just changed.
 
 void SpectrumWorxEditor::setLFOEnabled(ModuleControlBase &control, bool const enable)
 {
@@ -3008,19 +2486,14 @@ void SpectrumWorxEditor::LFODisplay::resyncEnabledSwitch()
     repaint();
 }
 
-/// \note No `auto &lfo( this->lfo() )` at the top any more: the sync branch below
-/// stopped reading the mask when the three buttons became one choice, which left
-/// the reference used by nothing but two `LE_ASSERT`s -- and those are gone in a
-/// release build, where an unused variable is an error.
 void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
 {
     if (pButton == &switch_)
     {
         bool const enable(switch_.getToggleState());
         LE_ASSERT(enable != lfo().enabled());
-        /// \note Through the editor, which is where the knob's own menu goes as
-        /// well -- see setLFOEnabled(). The button has already toggled itself,
-        /// so the resync that comes back is a no-op here.
+        // through the editor, where the knob's own menu goes too. The button
+        // has already toggled itself, so the resync coming back is a no-op
         editor().setLFOEnabled(control(), enable);
     }
     else if (pButton == &typeArrow_)
@@ -3054,40 +2527,19 @@ void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
             syncType = LFO::Dotted;
         }
 
-        ////////////////////////////////////////////////////////////////////////
-        ///
-        /// \note Through `updateParameterAndNotifyHost<>` rather than through
-        /// `LFO::addSyncType()`/`removeSyncType()`, which write the parameter and
-        /// nothing else. Those wrote the strip's own module, and since the editor
-        /// was bound to `programMain_` that module is the *main thread's* -- so
-        /// clicking N, T or D moved the display, moved what a session saved, and
-        /// never reached the audio thread. `SyncTypes` is past
-        /// `lfoExportedParameters` and has no ParameterID, so the route is the
-        /// same `ToEngine::SetUnexportedLFOParameter` the waveform popup already
-        /// took; only this branch had been left behind.
-        ///
-        ///   Before the mask reaches the queue and not after, because the ring is
-        /// ordered and `updateLFOAndHostFromPeriodControl()` below queues the
-        /// period the new mask snapped it to. The engine resnaps what it is given
-        /// against whatever mask it holds, so the two have to arrive that way
-        /// round.
-        ///                                   (06.08.2026.) (SW port)
-        ///
-        /// \note **The three buttons are one choice, not three toggles.** The
-        /// mask can hold any combination and `snapSyncedPeriod()` then picks
-        /// whichever of the enabled grids lands nearest -- so with all three lit
-        /// the period reads N almost everywhere and T and D look broken, which is
-        /// issue #111. Selecting a grid therefore clears the other two, and
-        /// clicking the lit one goes back to Free.
-        ///
-        ///   The *parameter* is still a mask and the file grammar is untouched:
-        /// two shipped presets carry `sync="5"` and `sync="7"`, they load and
-        /// snap exactly as they always did, and `updateSnapControls()` lights
-        /// both of their grids. What has gone is the panel's ability to make such
-        /// a value.
-        ///                                   (18.08.2026.) (SW port)
-        ///
-        ////////////////////////////////////////////////////////////////////////
+        // through updateParameterAndNotifyHost<> rather than LFO::addSyncType():
+        // those write the strip's own module, which is the main thread's copy,
+        // and never reach the audio thread. SyncTypes has no ParameterID, so the
+        // route is ToEngine::SetUnexportedLFOParameter
+        //
+        // the mask goes before the period, the ring being ordered and the engine
+        // resnapping what it is given against whatever mask it holds
+        //
+        // the three buttons are one choice, not three toggles: the mask can hold
+        // any combination and snapSyncedPeriod() picks whichever enabled grid
+        // lands nearest, so all three lit reads N almost everywhere. The
+        // parameter is still a mask -- two shipped presets carry sync="5" and
+        // sync="7" and load exactly as they did
         bool const selectSyncType(pButton->getToggleState());
         LE_ASSERT(selectSyncType != lfo().hasEnabledSync(syncType));
 
@@ -3173,9 +2625,8 @@ void SpectrumWorxEditor::LFODisplay::updatePeriodControl()
     float const rangeMaximum(LFO::PeriodScale::maximum());
     double const rangeBeginning(LFO::snapPeriodScale(rangeMinimum, lfo.syncTypes()).first);
     double const rangeEnd(LFO::snapPeriodScale(rangeMaximum, lfo.syncTypes()).first);
-    /// \note One millisecond of the bar a free period is measured against, which
-    /// is the reference one and therefore a constant -- the slider's step no
-    /// longer changes under the user when the host changes tempo.
+    // one millisecond of the *reference* bar, so the slider's step does not
+    // change under the user when the host changes tempo
     double const step(
         (lfo.syncTypes() != LFO::Free) ? 0 : 1 / 1000.0 / LFO::Timer::referenceBarDuration // 1 ms
     );
@@ -3183,8 +2634,7 @@ void SpectrumWorxEditor::LFODisplay::updatePeriodControl()
     period_.setRange(rangeBeginning, rangeEnd, step);
     period_.setSkewFactorFromMidPoint(1);
 
-    /// \note JUCE 8 passes a DragMode where 2016 passed a bool; the override
-    /// ignores it, and notDragging is what "not a drag" spells now.
+    // the override ignores the DragMode; notDragging spells "not a drag"
     double const resnappedValue(
         period_.Period::snapValue(lfo.periodScale(), juce::Slider::notDragging));
     lfo.setPeriodScale(static_cast<LFO::value_type>(
@@ -3203,27 +2653,9 @@ void SpectrumWorxEditor::LFODisplay::updateRangeControl()
                        juce::dontSendNotification, false);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note The N, T and D buttons used to be disabled whenever
-/// `LFO::Timer::hasTempoInformation()` was false -- which is every host that
-/// reports no transport, the standalone among them. So an LFO could be *loaded*
-/// tempo-synced there and run at the assumed 120 BPM, and the three buttons that
-/// say so could not be touched.
-///
-///   There is always a tempo. A host that reports one gives it; one that does not
-/// gets 120 BPM in four four, which every LFO already free-runs against -- see
-/// pluginTests.cpp's "With no transport the LFO clock is 120 BPM in four four".
-/// So a quarter note always means half a second of something, and the question
-/// the flag answers -- "did the host tell us?" -- is not the question the panel
-/// was asking.
-///
-/// \note The disabling was also one-way: nothing ever called `setEnabled( true )`
-/// on these. A host that reported a tempo, stopped, and started again left them
-/// dead for the rest of the session.
-///                                           (02.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note Never disabled on "the host reported no tempo". There is always one --
+/// the host's, or an assumed 120 BPM in four four that every LFO free-runs
+/// against -- so a quarter note always means half a second of something.
 
 void SpectrumWorxEditor::LFODisplay::updateSnapControls()
 {
@@ -3320,10 +2752,9 @@ double SpectrumWorxEditor::LFODisplay::Period::snapValue(double const attemptedV
 
 double SpectrumWorxEditor::LFODisplay::Period::milliseconds() const
 {
-    /// \note Whichever bar the period is a fraction of: the reference one for a
-    /// free LFO, the host's for a synced one. \see LFOImpl::getValue -- the panel
-    /// has to convert the way the oscillator does or it prints a number the LFO
-    /// is not running at.
+    // whichever bar the period is a fraction of: the reference one for a free
+    // LFO, the host's for a synced one. The panel has to convert the way
+    // LFOImpl::getValue does, or it prints a rate the LFO is not running at
     float const bar((lastSyncType() == LFO::Free)
                         ? LFO::Timer::referenceBarDuration
                         : parent().editor().effect().lfoTimer().basePeriod());
@@ -3341,27 +2772,16 @@ SpectrumWorxEditor::SampleArea::SampleArea()
     addToParentAndShow(editor().mainArea(), *this);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::SampleArea::mouseUp()
-// -----------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note A menu rather than 2016's straight-to-the-file-dialog, because the
-/// factory samples are in the binary now and a file dialog cannot show them.
-/// The dialog is still one entry away, and the right button still clears, as it
-/// always did.
-///                                           (01.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note A menu rather than a file dialog outright, because the factory samples
+/// are in the binary and a file dialog cannot show them. The dialog is one entry
+/// away.
 
 void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
 {
     SpectrumWorxEditor &editor(this->editor());
     juce::ModifierKeys const mouseButtons(event.mods);
-    /// \note The right button used to clear the file, which meant "the main
-    /// input" without saying so. It says so.
+    // the right button selects the main input, which is what clearing the file
+    // always meant
     if (mouseButtons.isRightButtonDown())
     {
         editor.sideChainSourceSelected(SideChainSource::Main);
@@ -3380,20 +2800,12 @@ void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
         firstFactorySample
     };
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note The three sources first, because they are what this control is for,
-    /// and "No external audio" is gone from among them: it named the *absence* of
-    /// one source rather than the presence of another, which is why a user who
-    /// cleared a file could not say what they wanted instead. \see issue #113.
-    ///
-    /// \note Neither of the two is disabled when it is already selected. They are
-    /// a choice rather than a command, and greying out the current one is how the
-    /// old `clear` entry came to be disabled in exactly the state a user most
-    /// wanted to see what it said.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
+    // the three sources first, being what this control is for, and each named
+    // by the source it selects rather than by the absence of another.
+    // \see issue #113
+    //
+    // neither is disabled when already selected: they are a choice rather than a
+    // command, and greying out the current one hides what it says
     menu_.clear();
     menu_.addItem(mainAsSideChain, "Main Input (1+2)");
     menu_.addItem(hostSideChain, "Sidechain Input (3+4)");
@@ -3425,30 +2837,20 @@ void SpectrumWorxEditor::SampleArea::browseForFile()
 {
     SpectrumWorxEditor &editor(this->editor());
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note **One of the two places in `src/` that may name `juce::File`**, the
-    /// other being the preset browser's folder chooser; tests/checkNoJuceFile.cmake
-    /// allowlists both. `juce::FileChooser` is handed one to start from and
-    /// answers with one, so the conversion happens here and the type goes no
-    /// further -- `newSampleFileSelected()` takes an `fs::path`.
-    ///
-    /// \note Only a real file is a place to start from: a factory sample is a
-    /// bare name and no directory, and JUCE would resolve it against whatever
-    /// the host's working directory happens to be. `getSpecialLocation()` stays
-    /// a `juce::File` because it feeds the constructor on the next line and
-    /// never leaves the expression.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
+    // one of the two places in src/ that may name juce::File, the other being
+    // the preset browser's folder chooser; tests/checkNoJuceFile.cmake
+    // allowlists both. The conversion happens here and the type goes no further
+    //
+    // only a real file is a place to start from: a factory sample is a bare name
+    // with no directory, which JUCE would resolve against the working directory
     auto const currentFile(editor.editorHost().currentSampleFile());
     std::error_code error;
     auto const startingFile(fs::is_regular_file(currentFile, error)
                                 ? LE::IO::pathToJuceFile(currentFile)
                                 : juce::File::getSpecialLocation(juce::File::userMusicDirectory));
 
-    /// \note Held rather than stack-allocated: launchAsync() returns
-    /// immediately and the chooser must outlive the dialog.
+    // held rather than stack-allocated: launchAsync() returns immediately and
+    // the chooser must outlive the dialog
     fileChooser_ = std::make_unique<juce::FileChooser>("Choose audio file", startingFile,
                                                        Sample::supportedFormats(), true);
     juce::Component::SafePointer<SpectrumWorxEditor> pEditor(&editor);
@@ -3469,13 +2871,6 @@ SpectrumWorxEditor &SpectrumWorxEditor::SampleArea::editor()
                                      &SpectrumWorxEditor::sampleArea_>()(*this);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::Settings::Settings()
-// ----------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
 #pragma warning(push)
 #pragma warning(disable : 4355) // 'this' used in base member initializer list.
 
@@ -3485,17 +2880,9 @@ SpectrumWorxEditor::Settings::Settings() /// \throws std::bad_alloc Out of memor
       fftSize_(enginePage_, xMargin, yMargin + yStep * 0, (Engine ::FFTSize *)(0)),
       overlapFactor_(enginePage_, xMargin, yMargin + yStep * 1, (Engine ::OverlapFactor *)(0)),
       windowFunction_(enginePage_, xMargin, yMargin + yStep * 2, (Engine ::WindowFunction *)(0))
-/// \note pRegistrationData_(0) came last here; the member itself went with the
-/// licence manager in stage 0 and the initialiser did not, so nothing had
-/// compiled this constructor since.
-///                                       (28.07.2026.) (SW port)
 {
-    /// \note The height was editor().getHeight() -- 564 -- while what this
-    /// paints is a 16 px tab bar over a 347 px page bitmap: 363. The 13 px
-    /// difference was empty and invisible while this was a transparent desktop
-    /// window, and would not be as an overlay over the editor. So it is the sum
-    /// of what it draws, which is also what the preset browser measures.
-    ///                                       (01.08.2026.) (SW port)
+    // the sum of what it draws -- a 16 px tab bar over a 347 px page bitmap --
+    // rather than the editor's height, so an overlay leaves no empty band
     this->setSize(PanelPainter::width, ButtonStyle::tabHeight + PanelPainter::settingsPageHeight);
 
     updateEnginePage();
@@ -3504,19 +2891,13 @@ SpectrumWorxEditor::Settings::Settings() /// \throws std::bad_alloc Out of memor
     setIndent(0);
     setTabBarDepth(ButtonStyle::tabHeight);
 
-    /// \note Real names, not the `dummyName( "a" )` that stood here: the three
-    /// captions were baked into six bitmaps, so what a tab was called was
-    /// nobody\'s business but the artwork\'s and the name JUCE held said
-    /// nothing. \see SettingsTab.
+    // real names, even though the captions are baked into the artwork: the name
+    // JUCE holds is what accessibility and the tests read
     addTab("Engine", ColourMap::getColour(ColourMap::Transparent), &enginePage_, false);
     addTab("GUI", ColourMap::getColour(ColourMap::Transparent), &interfacePage_, false);
     addTab("About", ColourMap::getColour(ColourMap::Transparent), &aboutPage_, false);
 
     LE_ASSERT(getNumTabs() == numberOfSettingsPages);
-
-    /// \note `OwnedWindow<Settings>::attach()` stood here; the editor parents
-    /// and positions this now -- see SpectrumWorxEditor::openOverlay().
-    ///                                       (01.08.2026.) (SW port)
 }
 
 SpectrumWorxEditor::Settings::~Settings()
@@ -3577,11 +2958,9 @@ void SpectrumWorxEditor::Settings::comboBoxValueChanged(ComboBox const &comboBox
         LE_UNREACHABLE_CODE();
     }
 
-    /// \note The engine has been *asked*; it has not necessarily answered. A
-    /// spectral parameter is queued and applied on whichever thread owns the
-    /// engine, so the setup this would read here is still the old one -- which
-    /// is half of issue #142, the other half being that nothing repainted the
-    /// page at all. Both are updateEngineInformation()'s, which polls.
+    // the engine has been asked, not necessarily answered: a spectral parameter
+    // is applied on whichever thread owns the engine, so the setup read here is
+    // still the old one. updateEngineInformation() polls for the new one
     settings.updateEngineInformation();
 }
 
@@ -3603,11 +2982,6 @@ void SpectrumWorxEditor::Settings::updateEnginePage()
     // there will surely be a next message/asynchronous call when it will be up
     // to date).
     //                                        (15.06.2010.) (Domagoj Saric)
-    /// \note And it was not used: the line above this note read
-    /// `editor.engineSetup()`, the checked getter, which is precisely what the
-    /// note says must not be called here. Whether that happened in the port or
-    /// earlier, the comment has been describing a fix that was not present.
-    ///                                       (31.07.2026.) (SW port)
     auto const &engineSetup(editor.effect().uncheckedEngineSetup());
     auto const &parameters(editor.program().parameters());
 
@@ -3632,29 +3006,14 @@ bool SpectrumWorxEditor::Settings::updateEngineInformation()
 
 SpectrumWorxEditor::Settings::EnginePage::EnginePage() : PanelBackground(SettingsPage) {}
 
-////////////////////////////////////////////////////////////////////////////////
+/// \note All four lines, and it answers whether any of them moved. They are held
+/// as strings and compared rather than rebuilt inside paint(), which is what lets
+/// the editor poll this at the modulation rate without repainting thirty times a
+/// second.
 ///
-/// \note All four lines, and it answers whether any of them moved.
-///
-///   Three of them used to be built inside paint() out of the live
-/// `Engine::Setup`, which meant the page could only be right by accident: the
-/// setup is applied on whichever thread owns the engine, some time after the
-/// user picks a size, and nothing marked the page dirty when it happened. So a
-/// panel left open showed the numbers from before the change until something
-/// else repainted it -- issue #142, where the four lines describe the *previous*
-/// FFT size while the combo boxes describe the current one.
-///
-///   Held as strings and compared instead. The comparison is what lets the
-/// editor poll this at the modulation rate without repainting thirty times a
-/// second. \see Settings::updateEngineInformation().
-///
-/// \note And it takes the setup rather than reading it, so paint() no longer
-/// calls the *checked* `engineSetup()` getter -- which asserts that the setup
-/// agrees with the spectral parameters, and which is false for exactly as long
-/// as this bug was visible for.
-///                                           (21.08.2026.)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note It takes the setup rather than reading it, so paint() never calls the
+/// *checked* `engineSetup()` getter -- which asserts that the setup agrees with
+/// the spectral parameters, and which is false for as long as one is in flight.
 
 bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setup const &setup)
 {
@@ -3676,21 +3035,11 @@ bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setu
         description = "% (average)";
     else
         description = "% (poor)";
-    /// \note No `LE_VERIFY` on the length any more: the buffer goes over whole,
-    /// so staying inside it is the callee's promise rather than the caller's
-    /// hope. It was a check made one write too late in any case.
+    // the buffer goes over whole, so staying inside it is the callee's promise
     char buffer[32];
     Utility::lexical_cast(qualityFactor * 100.0f, 2, buffer);
-    /// \note Assigned rather than truncated in place. This read
-    /// `*engineQuality_.getCharPointer().getAddress() = 0;` -- a poke of a nul
-    /// into the string's own buffer, to empty it while keeping the allocation.
-    /// An empty juce::String does not own a buffer: it points at the shared
-    /// `emptyString` singleton, which JUCE 8 declares `constexpr` and the linker
-    /// therefore puts in .rodata. So the first call -- and it is always the
-    /// first call, the string is default-constructed and this is what fills it
-    /// -- wrote to a read-only page. Every case that opened the settings panel
-    /// segfaulted here.
-    ///                                       (05.08.2026.) (SW port)
+    // assigned rather than emptied in place: an empty juce::String owns no
+    // buffer, pointing instead at a constexpr shared singleton in .rodata
     engineQuality_ = "Ripple Amount: ";
     engineQuality_ += buffer;
     engineQuality_ += description;
@@ -3715,9 +3064,8 @@ bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setu
            (timeResolution_ != previousStep) || (latency_ != previousLatency);
 }
 
-/// \note Four strings and nothing computed. What they say is
-/// setEngineInformation()'s question, which is also where the answer to "when
-/// does this page get repainted" lives.
+/// \note Four strings and nothing computed; setEngineInformation() is what fills
+/// them and what decides when this page is repainted.
 void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 {
     PanelBackground::paint(g);
@@ -3745,9 +3093,8 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     Settings &parent(
         Utility::ParentFromMember<Settings, InterfacePage, &Settings::interfacePage_>()(*this));
 
-    /// \note The percentage is the item's ID, so what comes back out of
-    /// `getValue()` is the zoom itself rather than a position in this list that
-    /// something else would have to translate.
+    // the percentage is the item's ID, so getValue() answers the zoom itself
+    // rather than a position in this list something would have to translate
     for (auto const percent : Preferences::zoomPercentages)
     {
         std::array<char, 8> text;
@@ -3756,12 +3103,9 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     }
     zoom_.setSelectedID(preferences().zoomPercent());
 
-    ////////////////////////////////////////////////////////////////////////////
-    /// \note Spelled here rather than taken from ColourMap::nameOf(), which
-    /// answers with the enumerator: what goes in the preferences file has to be
-    /// greppable in the source and what goes in this list has to be readable,
-    /// and "SSTDark" cannot be both. Same split as every other box on this page.
-    ////////////////////////////////////////////////////////////////////////////
+    // spelled here rather than taken from ColourMap::nameOf(): what goes in the
+    // preferences file has to be greppable and what goes in this list has to be
+    // readable, and "SSTDark" cannot be both
     palette_.addItem(ColourMap::Classic, "Classic");
     palette_.addItem(ColourMap::Reds, "Reds");
     palette_.addItem(ColourMap::Greens, "Greens");
@@ -3793,21 +3137,12 @@ void SpectrumWorxEditor::Settings::InterfacePage::paint(juce::Graphics &graphics
 
 #pragma warning(pop)
 
-/// \note SpectrumWorxEditor::Settings::AboutPage's constructor and paint() stood
-/// here. \see gui/about.cpp.
-
-/// \note Was a pair of bitmaps per tab -- six files, one caption baked into
-/// each, so the three tabs could not be renamed without redrawing them. They
-/// are the tab's name and a ButtonPainter now, which is also what makes the
-/// widths below follow the words rather than the artwork.
-///                                       (18.08.2026.)
+/// \note Drawn from the tab's name and a ButtonPainter rather than from a
+/// bitmap per tab, which is what lets the widths below follow the words. Where
+/// the bar itself goes is Settings::resized()'s question.
 class SettingsTab : public juce::TabBarButton
 {
   public:
-    /// \note `ownerBar.setTopLeftPosition( { 9, 9 } )` stood here and did
-    /// nothing: `TabbedComponent::resized()` runs after every `addTab()` and
-    /// puts the bar back in the corner. Where the bar goes is the panel's
-    /// question rather than a tab's -- \see Settings::resized().
     SettingsTab(juce::String const &tabName, juce::TabbedButtonBar &ownerBar)
         : TabBarButton(tabName, ownerBar)
     {
@@ -3837,9 +3172,8 @@ juce::TabBarButton *SpectrumWorxEditor::Settings::createTabButton(juce::String c
 /// \note Two of the indices arriving here are not a user's choice, and the range
 /// check is what keeps either out of the session state: addTab() selects the
 /// first tab as it adds it, and clearTabs() deselects with -1 on the way out.
-/// JUCE reaches this whether or not setCurrentTabIndex() was asked to send the
-/// change message -- the bar calls it unconditionally -- so opening the About
-/// page by the logo is remembered too.
+/// JUCE reaches this whether or not `setCurrentTabIndex()` was asked to send the
+/// change message, so opening the About page by the logo is remembered too.
 void SpectrumWorxEditor::Settings::currentTabChanged(int const newCurrentTabIndex,
                                                      juce::String const & /*newTabName*/)
 {
@@ -3854,12 +3188,6 @@ SpectrumWorxEditor &SpectrumWorxEditor::Settings::editor()
                                              &SpectrumWorxEditor::settings_, false>()(*this);
 }
 
-/// \note One button left. The other branch here opened
-/// `<user>/Documents/SpectrumWorx/Documents/User's Guide.PDF` -- a path the 2016
-/// installer wrote and nothing has written since, so the About tab's one control
-/// had been a button that could only fail. Its replacement is a link to the
-/// manual in the repository. \see gui/about.cpp.
-///                                           (15.08.2026.) (SW port)
 void SpectrumWorxEditor::Settings::buttonClicked(juce::Button *const pButton)
 {
     LE_ASSERT(pButton == &interfacePage_.hideCursorOnKnobDrag_);
@@ -3869,39 +3197,3 @@ void SpectrumWorxEditor::Settings::buttonClicked(juce::Button *const pButton)
 }
 
 } // namespace LE::SW::GUI
-
-/*
-    Alex's scrap:
-
-	AudioEffectX *effect = (AudioEffectX*)getEffect ();
-	VstFileType aiffType ("AIFF File", "AIFF", "aif", "aiff", "audio/aiff", "audio/x-aiff");
-	VstFileType waveType ("Wave File", ".WAV", "wav", "wav",  "audio/wav", "audio/x-wav");
-	VstFileType aifcType ("AIFC File", "AIFC", "aif", "aifc", "audio/x-aifc");
-	VstFileType sdIIType ("SoundDesigner II File", "Sd2f", "sd2", "sd2");
-
-	VstFileSelect vstFileSelect;
-	memset (&vstFileSelect, 0, sizeof (VstFileType));
-
-	vstFileSelect.command     = kVstFileLoad;
-	vstFileSelect.type        = kVstFileType;
-	strcpy (vstFileSelect.title, "Load sample..");
-	vstFileSelect.nbFileTypes = 2;
-	vstFileSelect.fileTypes   = &aiffType;
-	vstFileSelect.returnPath  = new char[1024];
-	sprintf(vstFileSelect.returnPath, "");
-	//vstFileSelect.initialPath  = new char[1024];
-	vstFileSelect.initialPath = 0;
-
-	CFileSelector* cFile = new CFileSelector(effect);
-
-	if (cFile->run (&vstFileSelect))
-	{
-		StandardAlert(0, "File", vstFileSelect.returnPath, 0,0);
-		UpdateDisplay(vstFileSelect.returnPath);
-	}
-
-	delete cFile;
-
-	delete [] vstFileSelect.returnPath;
-	if (vstFileSelect.initialPath)	delete []vstFileSelect.initialPath;
-*/

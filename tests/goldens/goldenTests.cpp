@@ -93,7 +93,6 @@ constexpr std::uint32_t renderedFrames{sampleRate / 2};
 /// ordinary parameter defaults, not fixture length -- and stay that way;
 /// `silentDefaultsTests.cpp` states each and holds the count, now 9 rather
 /// than 25.
-///                                       (10.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 constexpr std::uint32_t longRenderedFrames{sampleRate * 2};
@@ -207,14 +206,12 @@ constexpr char const *fixturePreamble[]{
 /// detected pitch lands within N cents of the input's, latency is exact, a
 /// bypassed slot is transparent — rather than a fixture with a wide bound. That
 /// is what actually tests them; this declines to. See stage 4.4.
-///                                       (29.07.2026.) (SW port)
 ///
 /// \note **Written, 01.08.2026: `tests/effects/amplifyingEffectsTests.cpp`.**
 /// Nineteen cases, and they run in both build types where this file renders in
 /// Release only. So the wide bound below is no longer the whole of what holds
 /// these nine to anything; it is the same-platform regression net, and what the
 /// effects *do* is asserted there.
-///                                       (01.08.2026.) (SW port)
 bool amplifiesRounding(std::string const &key)
 {
     // Keys carry the effect's *streaming* name with spaces turned into
@@ -240,7 +237,6 @@ bool amplifiesRounding(std::string const &key)
         /// and the file's own note has said since 2012 that it "produces invalid
         /// values due to taking the logarithm of zero or near-zero values". No
         /// bin moves; the amplification is the arithmetic.
-        ///                                   (06.08.2026.) (SW port)
         "Talking_Wind",
     };
     auto const effect(std::string_view(key).substr(0, key.find('/')));
@@ -276,7 +272,6 @@ bool amplifiesRounding(std::string const &key)
 /// the same answer `amplifyingEffectsTests.cpp` gave for the nine. Renders that
 /// disagree by 99 % between two architectures may also be worth a second look
 /// on their own account: this says only that a fixture cannot referee them.
-///                                       (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 bool divergesWithoutBound(std::string const &key)
@@ -298,7 +293,6 @@ SWTest::Tolerances tolerancesFor(std::string const &key)
 /// "bit-exact hash mismatch" for nearly every row and stops there, which says
 /// only that the two builds are not the same build. This says how far apart they
 /// are, which is the question a backend swap actually raises.
-///                                       (29.07.2026.) (SW port)
 std::string driftReport(std::vector<SWTest::Fixture> const &rendered,
                         std::map<std::string, SWTest::Digest> const &golden,
                         std::string const &goldenProvenance)
@@ -401,7 +395,6 @@ std::string driftReport(std::vector<SWTest::Fixture> const &rendered,
 ///
 /// The goldens are therefore a release-build artifact, which is also the build
 /// that ships. The checked build still runs every other test.
-///                                       (28.07.2026.) (SW port)
 #ifndef NDEBUG
 #define LE_SW_GOLDENS_NEED_A_RELEASE_BUILD                                                         \
     SKIP("Goldens render in a release build; a checked build aborts inside Smoother -- see the "   \
@@ -440,7 +433,6 @@ TEST_CASE("Golden fixtures", "[golden]")
     /// different libm or a different compiler, and was never meant to. Checking
     /// it anyway turned the whole cross-platform question into 439 identical
     /// "bit-exact hash mismatch" lines that answered nothing.
-    ///                                   (29.07.2026.) (SW port)
     auto const sameBuild(golden.mintedByThisBuild());
 
     std::vector<std::string> failures;

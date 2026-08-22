@@ -39,7 +39,6 @@ namespace LE::Parameters
 // them forwarded to ParameterAt and get<>(), which LE_DEFINE_PARAMETERS
 // generates and which are right here -- so the adaptation was a translation of
 // the container's own interface into a vocabulary nothing else spoke.
-//                                            (30.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <class Parameters, std::size_t index>
@@ -116,7 +115,6 @@ template <class Parameters, class Functor> class StaticInvoker : public Functor
         /// \note Functor is a template parameter, so the `template` keyword is
         /// required rather than a GNU extension -- without it `<` parses as
         /// less-than and the error surfaces at the call site rather than here.
-        ///                                   (30.07.2026.) (SW port)
         return Functor::template operator()<Parameter>();
     }
 

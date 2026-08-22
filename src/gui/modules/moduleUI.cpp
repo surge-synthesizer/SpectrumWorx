@@ -44,11 +44,10 @@ void ModuleLEDTextButton::clicked() { moduleParameterChanged(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note **Both, where this was either/or.** A module control has to be the
-/// selected one before it may be changed -- that is what puts its LFO on screen
-/// -- and taking the selection used to be the whole of the first press, so a
-/// button needed two clicks to toggle once. That is not how a button behaves
-/// anywhere else. \see issue #65.
+/// \note **Both, rather than either/or.** A module control has to be the selected
+/// one before it may be changed -- that is what puts its LFO on screen -- and a
+/// button that spent its first press on the selection would need two clicks to
+/// toggle once, which is not how a button behaves anywhere else.
 ///
 ///   Nothing about selection needs the press thrown away. `grabKeyboardFocus()`
 /// delivers `focusGained` synchronously, which is where
@@ -59,14 +58,13 @@ void ModuleLEDTextButton::clicked() { moduleParameterChanged(); }
 /// \note And only if the focus was actually taken. `Component::takeKeyboardFocus`
 /// is the window manager's to refuse -- see the note on `tookTheKeyboard()` in
 /// tests/gui/moduleControlFocusTests.cpp -- and a control that is not selected
-/// must not publish a value. A refusal leaves the old behaviour exactly: the
-/// press selects and does nothing else.
+/// must not publish a value, so a refusal leaves the press selecting and nothing
+/// else.
 ///
 /// \note The SafePointer guards the gap rather than a known crash: taking focus
 /// runs the *previous* holder's `focusLost`, and that reaches the editor, which
 /// retires an LFO strip and can drop the shared controls. This widget is a
 /// module's own and never one of those, so there is nothing to catch today.
-///                                           (16.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -116,8 +114,7 @@ TriggerButton::TriggerButton(juce::Component &parent, unsigned int const x, unsi
     setClickingTogglesState(false);
     addToParentAndShow(parent, *this);
 
-    /// \note The thirteen is the caption's room under the face, which the
-    /// artwork's height used to be added to. \see paintButton().
+    // the extra height is the caption's room under the face. \see paintButton()
     setBounds(x, y, ModuleUI::width, TriggerButtonStyle::diameter + 20);
 
     setTriggeredOnMouseDown(true);
@@ -157,7 +154,6 @@ bool TriggerButton::isOnFace(juce::Point<int> const position) const
 /// ones this was noticed on. On the face there is nothing for it to raise yet: a
 /// trigger has no parameter menu of its own, where a knob has. \see issue #92 and
 /// Knob::mouseDown().
-///                                           (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -265,20 +261,14 @@ void ModuleKnob::setupForParameter(Polarity const polarity, unsigned int const k
     }
 }
 
-/// \note `mouseDown` was `Knob::mouseDown( event ); setEnabled( !isLFOEnabled() )`
-/// and `mouseUp` put the enabled flag back, with "in order for the base class to
-/// handle the mouseDown() event, the control has to be disabled afterwards"
-/// (09.12.2011.) over it. What that bought was one thing --
-/// `juce::Slider::mouseDrag` is gated on `isEnabled()` -- and what it cost was
-/// the focus: `Component::setEnabled( false )` hands the keyboard focus to the
-/// parent, so pressing a knob whose LFO was on deactivated the control and took
-/// its own LFO display off the screen, on the way to tripping
-/// `ModuleControlImpl::focusLost`'s assertion.
+/// \note The drag is blocked here rather than by disabling the control:
+/// `Component::setEnabled( false )` hands the keyboard focus to the parent, so
+/// pressing a knob whose LFO is on would deactivate the control and take its own
+/// LFO display off the screen.
 ///
-///   Blocking the one gesture instead is also what the other two already do:
+///   Blocking the one gesture is also what the other two do:
 /// `lfoStateChanged()` keys `setScrollWheelEnabled()` and
 /// `setDoubleClickReturnValue()` on the same question. This is the drag.
-///                                           (03.08.2026.) (SW port)
 void ModuleKnob::mouseDrag(juce::MouseEvent const &event) noexcept
 {
     if (isLFOEnabled())
@@ -288,9 +278,8 @@ void ModuleKnob::mouseDrag(juce::MouseEvent const &event) noexcept
 
 void ModuleKnob::paint(juce::Graphics &graphics)
 {
-    /// \note valueToProportionOfLength() rather than getNormalisedValue(): it is
-    /// what the film strip picked its frame with, so a skewed range keeps
-    /// pointing where it used to.
+    // valueToProportionOfLength() rather than getNormalisedValue(), so a skewed
+    // range points where the artwork does
     auto const value(static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())));
 
     paintModuleKnob(
@@ -322,7 +311,6 @@ void ModuleKnob::lfoStateChanged()
     /// \note JUCE 8 split the out-parameter off into isDoubleClickReturnEnabled();
     /// getDoubleClickReturnValue() now just returns the value, which is all this
     /// wanted -- the flag it had to pass a variable for was discarded.
-    ///                                       (28.07.2026.) (SW port)
     double const defaultValue(getDoubleClickReturnValue());
     setDoubleClickReturnValue(!isLFOEnabled(), defaultValue);
     syncMouseWheelAndLFOState();
@@ -360,7 +348,6 @@ void ModuleKnob::updateForEngineSetupChanges(Engine::Setup const &engineSetup)
     /// from the other end, and it is what a large FFT size at a low sample rate
     /// produces for a parameter measured in milliseconds. Leaving the range alone
     /// beats deriving one whose minimum has been rounded up past its maximum.
-    ///                                       (29.07.2026.) (SW port)
     if ((quantization <= 0) || (quantization >= maximum))
         return;
 
@@ -417,14 +404,9 @@ DiscreteParameter::DiscreteParameter(juce::Component &parent, unsigned int const
     setName(control().name());
     DiscreteParameter::setTopLeftPosition(x, y);
 
-    /// \note `LE_ASSERT( control().info().default_ == 0 )` stood here and was
-    /// true by construction: zero was every enumerated parameter's default
-    /// because it was the only one a declaration could express. It stopped being
-    /// true the moment one could say otherwise (issue #163), and what it was
-    /// guarding -- a box showing a value its parameter does not hold -- is
-    /// settled where the rows exist to select among, which is not here. \see
-    /// WidgetInitialiser::setup().
-    ///                                       (21.08.2026.)
+    // no assertion that the default is zero: an enumerated parameter may name
+    // any of its values, and a box showing one its parameter does not hold is
+    // settled where the rows exist to select among. \see WidgetInitialiser::setup()
 }
 
 /// \note The third of the three, and the one that was missed the first time --
@@ -432,7 +414,6 @@ DiscreteParameter::DiscreteParameter(juce::Component &parent, unsigned int const
 /// enough to make this control the active one. A combo box is the same complaint
 /// as a button in a different shape: the first press selected the control and
 /// swallowed itself, so opening the menu took two clicks. \see issue #65.
-///                                           (17.08.2026.) (SW port)
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -451,7 +432,6 @@ DiscreteParameter::DiscreteParameter(juce::Component &parent, unsigned int const
 /// is what each already did and what a knob does: a press that is going to
 /// change the value has to make this the active control, and one that is only
 /// going to open a menu about it does not.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -580,10 +560,7 @@ ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Mod
     LE_ASSERT_MSG(unsigned(this->getNumChildComponents()) == baseWidgets,
                   "Unexpected number of child widgets before the effect's own controls.");
 
-    ////////////////////////////////////////////////////////////////////////////
-    // The effect's own controls, and everything Module::createGUI() used to do
-    // after building them.
-    ////////////////////////////////////////////////////////////////////////////
+    // the effect's own controls
 
     /// \note Parented before the effect's controls are built, and invisible until
     /// the caller shows it. Several of them walk `getParentComponent()` up to the
@@ -591,7 +568,6 @@ ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Mod
     /// a strip that is not in the hierarchy yet has nothing to walk. The old
     /// createGUI() did the same thing with an `editor.addChildComponent()` under
     /// `#ifndef NDEBUG`, for the same reason and only in a checked build.
-    ///                                       (02.08.2026.) (SW port)
     editor_.mainArea().addChildComponent(this);
 
     pWidgets_ = createModuleWidgets(module().effectTypeIndex(), *this);
@@ -663,7 +639,6 @@ void ModuleUI::moveToSlot(std::uint8_t const slotIndex)
     /// assertion. It is the answer now: the rack is what the user asked for and
     /// the chain is what is playing, so a strip has to know its own place
     /// without asking the chain.
-    ///                                       (02.08.2026.) (SW port)
     slot_ = slotIndex;
     std::uint16_t const myHorizontalOffset(horizontalOffset + slotIndex * (width + distance));
     setTopLeftPosition(myHorizontalOffset, verticalOffset);
@@ -689,7 +664,6 @@ void ModuleUI::paint(juce::Graphics &graphics)
     /// the floor to 0.8 is what makes a long name break rather than squash,
     /// which is the two rows the issue asks for; the margin is what keeps
     /// whichever way it lands off the rounded border.
-    ///                                       (16.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     graphics.setFont(Theme::singleton().labelFont());
@@ -928,7 +902,6 @@ void ModuleUI::buttonClicked(juce::Button *LE_RESTRICT const pButton)
         /// SpectrumWorxEditor::detachFrom(), which does the other half where the
         /// strip actually dies. This one stays because the module is still in the
         /// chain here, which is what ending the host's gesture needs.
-        ///                                   (02.08.2026.) (SW port)
         auto *const pActiveControl(editor().activeControl());
         if (pActiveControl && (this == &pActiveControl->moduleUI()))
             editor().moduleControlDectivated(*pActiveControl);
@@ -939,7 +912,6 @@ void ModuleUI::buttonClicked(juce::Button *LE_RESTRICT const pButton)
 /// \note Was a `polymorphicDowncast` of `getParentComponent()`, with an assertion
 /// that there was one. See the note on the constructor: the region is written to
 /// before it is parented, so the editor cannot be recovered that way.
-///                                           (02.08.2026.) (SW port)
 SpectrumWorxEditor &ModuleUI::editor() { return editor_; }
 
 SpectrumWorxEditor const &ModuleUI::editor() const { return editor_; }

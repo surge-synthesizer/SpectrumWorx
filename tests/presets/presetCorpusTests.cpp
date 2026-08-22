@@ -21,8 +21,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \note **The digests are over `data/fixtures`, not over the shipping banks.**
-/// Until 14.08.2026 there was a committed row per shipped preset -- 288 of them
-/// in `presetCorpus.txt` -- and it worked exactly as long as nobody touched the
+/// Until 14.08.2026 there was a committed row per shipped preset in
+/// `presetCorpus.txt`, and it worked exactly as long as nobody touched the
 /// content. Adding a preset was a failure, deleting one was a failure, and
 /// re-voicing one was a failure, all three reported the same way as a parser
 /// regression. The banks are now edited as ordinary work, so a snapshot of them
@@ -44,7 +44,6 @@
 ///
 ///   They may be added to. They may not be edited: a fixture that is refreshed
 /// to make a test pass is a fixture that has stopped testing anything.
-///                                           (14.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -171,7 +170,7 @@ std::vector<std::string> bankDirectories()
     return {found.begin(), found.end()};
 }
 
-/// \note One engine per preset, not one reused across all 303. Loading a preset
+/// \note One engine per preset, never one reused across the sweep. Loading a preset
 /// *merges* into the current chain -- loadModuleChain() looks for a module
 /// already holding the same effect and moves it across rather than building a
 /// new one -- so a reused engine would make every row depend on the row before
@@ -378,7 +377,6 @@ TEST_CASE("Every frozen fixture loads and produces the committed state", "[prese
 /// the direct read and the re-read would move together and agree. That is what
 /// the frozen fixtures above are for, and it is why they are a separate case
 /// over files that never change rather than a floor on this one.
-///                                           (14.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -440,8 +438,8 @@ TEST_CASE("Every factory preset survives translation into the 3.0 format", "[pre
 ////////////////////////////////////////////////////////////////////////////////
 ///
 ///   Every shipped preset carries `Input_mode`, and until 18.08.2026 nothing read
-/// it: the 2016 parameter behind it was compiled out and then deleted, so 288
-/// files had been recording an intention the plugin had no way to act on. It is
+/// it: the 2016 parameter behind it was compiled out and then deleted, so every
+/// one of them had been recording an intention the plugin had no way to act on. It is
 /// not a parameter here and never will be again -- bus topology is not a setting
 /// -- but it is exactly enough to recover what those files *meant*, which is
 /// which of the three sources feeds their side channel. \see
@@ -511,8 +509,8 @@ TEST_CASE("An old preset's input mode becomes the source it always meant",
 /// and the objection to moving it was that a 2011 preset would then sound
 /// different. It does not, and the reason is the first half below: the 2.x
 /// writer emits **every** parameter an effect has, at its default or not --
-/// `Gain 0`, `Start frequency 0` and `Stop frequency 1` are written out in all
-/// 288 shipped files -- so a preset naming an Octaver names its cutoff too and
+/// `Gain 0`, `Start frequency 0` and `Stop frequency 1` are written out in every
+/// shipped file -- so a preset naming an Octaver names its cutoff too and
 /// the compiled default is never reached for.
 ///
 ///   Hand-built rather than taken from the corpus because **no factory preset
@@ -524,8 +522,8 @@ TEST_CASE("An old preset's input mode becomes the source it always meant",
 /// route by which moving a default can move an old preset: a parameter the file
 /// genuinely does not carry -- one the effect grew afterwards -- takes *today's*
 /// default rather than the one in force when the file was written. That is
-/// `PresetProblem::MissingParameter`, it is ordinary (104 of the shipped banks
-/// raise one; \see PresetLoadReport), and it is what a table of prior defaults
+/// `PresetProblem::MissingParameter`, it is ordinary (a good fraction of the
+/// shipped banks raise one; \see PresetLoadReport), and it is what a table of prior defaults
 /// would exist to change. Nothing needs one yet, so this records the behaviour
 /// rather than working around it.
 ///
@@ -617,12 +615,10 @@ TEST_CASE("The embedded factory banks are the committed files", "[preset-corpus]
     ///
     /// \note And the directories themselves, set against set. The count above
     /// cannot see this one: a bank that holds nothing but a sub-folder
-    /// contributes no presets to it, so all three of them could go missing from
-    /// the listing with the total still reading 303 -- which is exactly what
-    /// happened. 110 of these presets were in the binary, byte-for-byte correct,
-    /// and unreachable from the browser, because banks() named
-    /// `Martin Walker/Gamma Shift` and never `Martin Walker`.
-    ///                                       (10.08.2026.) (SW port)
+    /// contributes no presets to it, so every such bank could go missing from the
+    /// listing with the total unchanged -- leaving its presets in the binary,
+    /// byte-for-byte correct, and unreachable from the browser because banks()
+    /// named the sub-folder and never its parent.
     ///
     ////////////////////////////////////////////////////////////////////////////
     CHECK(FactoryPresets::banks() == bankDirectories());
@@ -651,7 +647,6 @@ TEST_CASE("The embedded factory banks are the committed files", "[preset-corpus]
         /// is the ordinary way to meet it: the resource library is built from a
         /// glob at configure time, so the file is on disk and not yet in the
         /// binary. The other nine sites in tests/ were the same shape.
-        ///                                   (14.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
         auto const embedded(FactoryPresets::load(bank, name));
@@ -663,7 +658,7 @@ TEST_CASE("The embedded factory banks are the committed files", "[preset-corpus]
                                  std::istreambuf_iterator<char>());
 
         /// \note The embedded copy is terminated by load(); the file may or may
-        /// not be -- 193 of the 303 end in a NUL and 110 do not -- so the
+        /// not be -- most committed files carry one and some do not -- so the
         /// comparison is over the file's own length.
         CHECK(std::string_view(embedded.get(), onDisk.size()) == onDisk);
     }

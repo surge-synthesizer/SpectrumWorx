@@ -47,7 +47,6 @@ DataRange resize(DataRange const &range, IndexRange const &workingRange)
 ///
 ///   The element counts still fit in 16 bits and the callers all sum into 32,
 /// so widening the byte count is the whole fix.
-///                                           (29.07.2026.) (SW port)
 std::uint32_t fftBufferSize(std::uint8_t const a, std::uint8_t const b, std::uint8_t const c,
                             std::uint8_t const sizeOfT, std::uint16_t const fftSize)
 {

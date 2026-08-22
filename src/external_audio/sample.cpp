@@ -125,11 +125,8 @@ bool Sample::isFactorySample(fs::path const &file)
 
 juce::String Sample::supportedFormats() { return formats().getWildcardForAllFormats(); }
 
-/// \note "Think of a cleaner solution where the Sample class knows nothing about
-/// critical sections and threading issues" stood here, dated 22.09.2010. This is
-/// it: the class knows nothing about them because there is nothing to know --
-/// what it loads into is private to the loader until it is published.
-///                                           (02.08.2026.) (SW port)
+/// \note This class knows nothing about threading because there is nothing to
+/// know: what it loads into is private to the loader until it is published.
 char const *Sample::load(fs::path const &sampleFile, unsigned int const desiredSampleRate)
 {
     DataHolder newData;
@@ -152,7 +149,6 @@ char const *Sample::load(fs::path const &sampleFile, unsigned int const desiredS
         /// signal, on every platform -- the 2010 comment blamed the Mac MP3
         /// path for what is a property of MP3. This is a "we decoded audio and
         /// not garbage" check, and it is only that.
-        ///                                   (01.08.2026.) (SW port)
         float const maximumAbsoluteValue(1.5f);
 
         LE_ASSERT(Math::max(channel1()) <= +maximumAbsoluteValue);
@@ -218,7 +214,6 @@ char const *Sample::doLoad(fs::path const &sampleFile, unsigned int const desire
     /// of them was bounded beyond "not zero". All three ways that ends are
     /// `std::bad_alloc` or a bad cast out of a `noexcept` `stateLoad`, which is
     /// `std::terminate` -- the host dying while opening a project.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 

@@ -31,13 +31,9 @@
 namespace LE::SW
 {
 
-/// \note `template <class Effect> class ModuleWidgets` stood here, and
-/// `Module::Impl<Effect>` inherited it -- so every module the factory allocated
-/// carried the JUCE widget storage for its effect inline, and `sw-dsp` needed
-/// `juce_gui_basics` to know how big that was. It is
-/// `GUI::WidgetsFor<Effect>` in gui/modules/moduleWidgets.cpp now, owned by the
-/// region that draws it and chosen by effect index rather than by type.
-///                                           (02.08.2026.) (SW port)
+/// \note A module carries no widget storage: `GUI::WidgetsFor<Effect>` lives in
+/// gui/modules/moduleWidgets.cpp, owned by the region that draws it and chosen by
+/// effect index, so `sw-dsp` needs nothing from `juce_gui_basics`.
 
 ////////////////////////////////////////////////////////////////////////////////
 ///

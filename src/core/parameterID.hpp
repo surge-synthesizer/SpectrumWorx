@@ -49,7 +49,6 @@ union ParameterID
     ///   Living with `In == 0x00000000` costs a moment's confusion at a debugger.
     /// The alternative costs an off-by-one in the one field that says what a
     /// packed ID *is*.
-    ///                                       (07.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 

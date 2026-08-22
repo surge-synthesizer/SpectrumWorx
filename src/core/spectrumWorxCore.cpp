@@ -25,11 +25,6 @@
 
 #include "le/utility/assert.hpp"
 
-/// \note `#include <windows.h> // CRITICAL_SECTION` stood here, for the cast
-/// currentThreadOwnsTheProcessLock() used to make. The mutex answers for itself
-/// now, so the one thing in this file that needed the platform header is gone.
-///                                           (02.08.2026.) (SW port)
-
 #include <cstdlib>
 #include <ctime>
 #include <string_view>
@@ -95,7 +90,6 @@ void SpectrumWorxCore::process /// \throws nothing
     /// audio callback; a dialog on this thread is the deadlock the whole
     /// threading redesign was about, and the function's own contract two lines
     /// above says it throws nothing.
-    ///                                       (05.08.2026.) (SW port)
     LE_ASSERT_MSG(samples <= buffers_.blockSize(), "Process called with a too large block size.");
     LE_ASSERT_MSG(!!buffers(), "Input buffers not initialised.");
 
@@ -170,10 +164,8 @@ void SpectrumWorxCore::setRandomSeed(std::uint64_t const seed) { fixedSeed_ = se
 ///   offline render is exactly where a host hands over a block far larger than
 ///   its realtime one, and 16384 is not an unusual choice.
 ///
-/// \note And the allocation is checked before anything is written, which it was:
-/// `storage_.resize()` failing already returned false. What is new is that it can
-/// no longer be asked for an absurd size by arithmetic rather than by the caller.
-///                                           (16.08.2026.)
+/// \note And the allocation is checked before anything is written, so an absurd
+/// size is refused rather than laid out over whatever storage there is.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -190,14 +182,6 @@ bool SpectrumWorxCore::InputBuffers::resize(std::uint32_t const blockSize,
         (numberOfSideChannels == this->numberOfSideChannels()))
         return true;
 
-    /// \note A `static_assert(std::is_pointer<float *LE_RESTRICT>::value, "")`
-    /// stood here, marked "typeTraits.hpp debugging" -- somebody's scratch check
-    /// on how the compiler of the day treated the restrict qualifier, with an
-    /// empty message, asserting nothing about this function. GCC fails it:
-    /// `__restrict__` is part of the type there and `std::is_pointer` does not
-    /// know to look through it. A leftover probe should not decide whether the
-    /// engine builds.
-    ///                                       (05.08.2026.) (SW port)
     using Utility::align;
     std::uint8_t const numberOfChannels(numberOfMainChannels + numberOfSideChannels);
     std::uint8_t const baseChannelStorage(sizeof(Channels::iterator));
@@ -248,20 +232,14 @@ bool SpectrumWorxCore::ModuleInitialiser::operator()(Module &module,
     ///                                       (19.04.2013.) (Domagoj Saric)
     bool const initialised(storageFactors.complete());
     /// \note A module accepted into the chain before the engine has been set up
-    /// is *not* set up here. It used to be, against whatever Setup happened to
-    /// exist -- which before activate() means no sample rate, no bins and no step
-    /// time. An effect asked to work that out lands anywhere from a harmless zero
-    /// to indexing off the end of an empty spectrum: Bandpass and Bandstop read
-    /// bin[0] of nothing, Denoiser divides an amplitude range it computed as
-    /// empty, and every knob whose range quantises to a step time has nothing to
-    /// quantise against.
+    /// is *not* set up here: before activate() there is no sample rate, no bins
+    /// and no step time, and an effect asked to work against that indexes off the
+    /// end of an empty spectrum.
     ///
-    ///   Deferring is safe because it is not a special case: the engine resizes
-    /// its whole chain whenever its setup changes, which is how a runtime FFT
-    /// size change already works, and activate() is just the first such change.
-    /// Returning true is still right -- the module belongs in the chain, it
-    /// simply has nothing to be configured against yet.
-    ///                                       (29.07.2026.) (SW port)
+    ///   Deferring is not a special case -- the engine resizes its whole chain
+    /// whenever its setup changes, and activate() is the first such change. True
+    /// is still the right answer: the module belongs in the chain, it simply has
+    /// nothing to be configured against yet.
     if (!initialised)
         return true;
 
@@ -359,15 +337,8 @@ void SpectrumWorxCore::setReportedNumberOfChannels(std::uint8_t const numberOfMa
     Engine::Processor::setNumberOfChannels(numberOfMainChannels, numberOfSideChannels);
 }
 
-/// \note Three answers over three stages, and this is the last of them. It was a
-/// `reinterpret_cast` of the mutex to a `CRITICAL_SECTION` under `_WIN32` --
-/// invalid for the MS STL's `std::mutex` when it was written and invalid for the
-/// `std::recursive_mutex` that replaced it -- and a hardcoded `true` everywhere
-/// else, so the six sites that assert this asserted nothing at all on any
-/// platform this port has built for. Stage 0 made the mutex answer for itself.
-/// Stage 6 deleted the mutex, and what is left is the invariant the mutex was
-/// standing in for.
-///                                           (02.08.2026.) (SW port)
+/// \note The invariant, with no lock behind it: the audio thread owns the engine
+/// while one exists, and the main thread owns it while one does not.
 bool SpectrumWorxCore::currentThreadMayMutateEngineState() const
 {
     return !engineIsRunning() || Threading::isAudioThread();
@@ -398,7 +369,6 @@ Engine::Setup const &SpectrumWorxCore::engineSetup() const
     /// and the setup still reads what the engine is running, and they are
     /// *supposed* to disagree. Making that legal is a change to this assertion's
     /// contract rather than to any of the call sites that reach it.
-    ///                                       (02.08.2026.) (SW port)
     LE_ASSERT(isEngineSetupUpToDate() || spectralSetupPending() ||
               !currentStorageFactors().complete());
     return uncheckedEngineSetup();
@@ -429,13 +399,9 @@ bool SpectrumWorxCore::updateEngineSetup()
 
     Parameters &parameters(this->parameters());
 
-    /// \note An assertion that the setup's window function still agrees with the
-    /// parameter stood here. It cannot: a window change is one of the three that
-    /// now waits for a restart, and applying it is this function's own job --
-    /// resize() passes the parameter down and calls changeWindowFunction() when
-    /// nothing else moved.
-    ///                                       (02.08.2026.) (SW port)
-
+    // no assertion that the setup's window function agrees with the parameter:
+    // a window change waits for a restart, and applying it is this function's
+    // own job -- resize() passes it down to changeWindowFunction()
     StorageFactors storageFactors(
         Processor::makeFactors(parameters.get<FFTSize>(), parameters.get<OverlapFactor>(),
                                setup.numberOfChannels(), setup.sampleRate<std::uint32_t>()));
@@ -508,20 +474,6 @@ void SpectrumWorxCore::resetChannelBuffers()
     LE_ASSERT(currentThreadMayMutateEngineState());
     Engine::Processor::resetChannelBuffers();
 }
-
-/// \note `SpectrumWorxCore::handleTimingInformationChange()` stood here. It hid
-/// `Processor`'s -- non-virtually -- to assert that the timing never changes,
-/// "because SpectrumWorxCore is used by protocols that do not provide tempo
-/// information" (02.02.2012.). The CLAP made that false the moment it started
-/// feeding the host's tempo, and the assumption was one of the nine `LE_ASSUME`s
-/// clang was dropping on the floor for containing a call -- so it never fired.
-///
-///   Nothing named it: `Processor::updatePosition()` and the two
-/// `updatePositionAndTimingInformation()`s call their own, statically, and it was
-/// private here. Deleted rather than turned into an assert, because reachable it
-/// would have been the wrong behaviour twice over -- an assert on a legitimate
-/// tempo change, and, in release, an LFO update swallowed.
-///                                           (02.08.2026.) (SW port)
 
 //namespace GUI { bool isThisTheGUIThread(); bool isGUIInitialised(); }
 SpectrumWorxCore const &SpectrumWorxCore::fromEngineSetup(Engine::Setup const &engineSetup)
@@ -603,7 +555,6 @@ bool SpectrumWorxCore::applyPendingSpectralSetup()
 /// may not run while a block might be in flight -- and there is no lock left to
 /// make it wait. Nothing is processing exactly when `engineIsRunning()` is false,
 /// which is when the main thread owns the engine and may simply do it.
-///                                           (02.08.2026.) (SW port)
 bool SpectrumWorxCore::deferOrApplySpectralSetup()
 {
     /// \note Release: the parameter this is recording was written immediately
@@ -625,13 +576,10 @@ bool SpectrumWorxCore::setGlobalParameter(OverlapFactor &parameter,
     return deferOrApplySpectralSetup();
 }
 
-/// \note Through the same deferral as the other two, where it used to recompute
-/// the window tables on the spot. It allocates nothing, so it looked harmless --
-/// but it rewrites the analysis and synthesis windows the WOLA path is reading,
-/// so a block spanning the write got half of each. `updateEngineSetup()` applies
-/// it: `resize()` takes the window function as an argument and calls
-/// `changeWindowFunction()` itself when nothing else moved.
-///                                           (02.08.2026.) (SW port)
+/// \note Through the same deferral as the other two, even though recomputing the
+/// window tables allocates nothing: it rewrites the analysis and synthesis
+/// windows the WOLA path is reading, so a block spanning the write would get half
+/// of each.
 bool SpectrumWorxCore::setGlobalParameter(WindowFunction &parameter,
                                           WindowFunction::param_type const newValue)
 {

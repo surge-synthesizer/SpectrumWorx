@@ -14,7 +14,6 @@
 /// mark had to be written down at two thirds of its intended size to land at
 /// the right one. The skin is its own coordinate system now and the division is
 /// gone -- a nine pixel head on the user is nine here and nine on screen.
-///                                       (19.08.2026.)
 ///
 /// \note Colour is the caller's, unlike every other painter here. A glyph in
 /// this row *is* its state -- white for off and the accent for on, which is

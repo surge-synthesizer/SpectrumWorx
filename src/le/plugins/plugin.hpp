@@ -93,7 +93,6 @@ enum PluginCapability
 // set -- queryImplementationCapability() below is the interface that would, and
 // the VST 2.4 layer that would have asked is gone -- so contains() exists to
 // make the declaration mean something rather than to serve a caller.
-//                                            (30.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <PluginCapability... capabilities> struct CapabilitySet
@@ -475,7 +474,6 @@ using AutomatedParameterValue = AutomatedParameter::value_type;
 /// text_to_value has nothing else to give it: a parsed value is a number, and
 /// constructing a parameter to hold it is exactly what the printer's own
 /// \todo in spectrumWorxCLAP.cpp warns against for a dynamic range.
-///                                           (07.08.2026.) (SW port)
 struct NormalisedAutomatedParameter : AutomatedParameter
 {
     static bool const normalised = true;

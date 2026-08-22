@@ -42,7 +42,6 @@ namespace LE::Utility::Detail
 /// \note Clang's alloca() returns unaligned pointers, which is why even the
 /// pointer-array call sites in processor.cpp take the aligned macro. So we
 /// over-allocate and align by hand rather than trust the allocation.
-///                                       (28.07.2026.) (SW port)
 inline void *alignToVector(void *const pStorage) noexcept
 {
     auto constexpr alignment{static_cast<std::uintptr_t>(Constants::vectorAlignment)};

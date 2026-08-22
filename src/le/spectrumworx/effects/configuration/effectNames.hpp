@@ -29,10 +29,9 @@ std::int8_t effectIndex(std::string_view effectName);
 /// \note Separate from the title for the same reason a parameter's streaming
 /// name is separate from its display name: a preset names its modules, so
 /// retitling an effect would orphan every file that used it. Defaults to the
-/// title -- which is what the 303 factory presets contain -- and is pinned by
+/// title -- which is what the shipped presets contain -- and is pinned by
 /// specialising `EffectStreamingName` (effectStreamingNames.hpp) when a title
 /// has to move. Pinned as a set by tests/parameters/streamingNameTests.cpp.
-///                                           (01.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

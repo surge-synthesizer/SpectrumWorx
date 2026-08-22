@@ -29,7 +29,6 @@
 /// \note span.hpp and <string> were included only #ifndef NDEBUG, but has()
 /// and verifyFPValues() are declared over Span unconditionally, so this header
 /// had never compiled in a release build.
-///                                           (28.07.2026.) (SW port)
 #include "le/utility/span.hpp"
 
 #include <cmath>
@@ -39,21 +38,6 @@
 #include <string>
 #include <type_traits>
 //------------------------------------------------------------------------------
-/// \note Two arms stood here putting isfinite() into namespace std: one for
-/// MSVC, whose <cmath> had no C++11 std::isfinite when this was written, and one
-/// for Android with STLport. Both answer standard libraries this project no
-/// longer builds against -- the floor is MSVC 19.29, and the MS STL has had
-/// std::isfinite since 2015 -- and the MSVC arm is what stopped clang-cl: that
-/// header declares ::isfinite and then pulls it into std with a
-/// using-declaration, and a second declaration of the name there conflicts with
-/// the target of it. MSVC accepts that, Clang does not, and adding names to
-/// namespace std was never ours to do.
-///
-///   All 33 call sites spell it std::isfinite and now reach the standard one,
-/// which returns bool where these returned int. Every one of them is a
-/// condition.
-///                                           (09.08.2026.) (SW port)
-
 namespace LE::Math
 {
 
@@ -216,7 +200,6 @@ inline bool isNormalisedValue(float const value) { return (value >= 0) && (value
 /// been drawing the same "random" numbers as every other. An unseeded generator
 /// must never be a shared constant. Deal over it whenever determinism is wanted;
 /// that is what `seed()` is for.
-///                                           (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -250,7 +233,6 @@ class Rng
     /// stream that restarted from the top on every transport stop would be a
     /// repeating noise pattern rather than a reset one. Seeding is the engine's
     /// job, at a moment it chooses.
-    ///                                       (17.08.2026.)
 
   private:
     std::uint64_t state_[2];
@@ -264,28 +246,10 @@ UnsignedInteger roundUpUnsignedIntegerDivision(UnsignedInteger const dividend,
     return (dividend + (divisor - 1)) / divisor;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note FPUDisableDenormalsGuard stood here and is deleted. Its x86 arm was
-/// keyed on BOOST_SIMD_HAS_SSE_SUPPORT, which nothing has defined since NT2
-/// went, so denormal flushing was off on every x86-64 target including an Intel
-/// Mac -- and the guard was not on the CLAP's audio path in the first place. It
-/// is replaced by sst::plugininfra::cpufeatures::FPUStateGuard, which handles
-/// both architectures and is taken once, at the top of
-/// SpectrumWorxCLAP::process(). One guard, at the outermost point of the
-/// callback, rather than four spellings of one at three sites where two of them
-/// were compiled out.
-///                                           (29.07.2026.) (SW port)
-///
-/// \note FPUExceptionsGuard, FPUExceptionsEnabler, FPUExceptionsDisabler and
-/// LE_LOCALLY_DISABLE_FPU_EXCEPTIONS followed it and are deleted too. The macro
-/// was gated on _DEBUG -- MSVC-only, and defined by nothing in this build --
-/// and every body of the guard itself was inside `#ifdef _MSC_VER`, so the ten
-/// call sites expanded to nothing on every configuration. Nothing named the
-/// Enabler at all. `<cfloat>` went with them: it was here for the EM_* masks.
-///                                           (07.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note There is no denormal or FPU-exception guard here. Denormal flushing is
+/// `sst::plugininfra::cpufeatures::FPUStateGuard`, taken once at the top of
+/// `SpectrumWorxCLAP::process()` -- one guard, at the outermost point of the
+/// callback, covering both architectures.
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -301,7 +265,6 @@ UnsignedInteger roundUpUnsignedIntegerDivision(UnsignedInteger const dividend,
 /// \note 100 dB is chosen to be far above anything a signal path produces and
 /// far below what garbage reads as. A host may legitimately hand a plugin
 /// something well over 0 dBFS; it will not hand it 1e5.
-///                                           (09.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -497,7 +460,6 @@ LE_FORCEINLINE float clamp(float const value, float const lowerBound, float cons
 #else
     /// \note Unqualified min/max here only ever found LE::Math's pointer-range
     /// overloads — this branch had never been compiled.
-    ///                                       (28.07.2026.) (SW port)
     return std::min(std::max(value, lowerBound), upperBound);
 #endif // BOOST_SIMD_HAS_SSE_SUPPORT
 }
@@ -610,7 +572,6 @@ LE_FORCEINLINE std::int32_t round(float const floatingPointValue)
     /// the assembly it replaces and the __builtin_lrintf arm below: fistp and
     /// lrintf alike follow the current mode, and nothing here changes it from the
     /// default nearest-even.
-    ///                                   (30.07.2026.) (SW port)
     return static_cast<std::int32_t>(std::lrintf(floatingPointValue));
 #endif
 #elif defined(BOOST_SIMD_ARCH_ARM) && defined(__GNUC__)
@@ -689,7 +650,6 @@ LE_FORCEINLINE int round(double const floatingPointValue)
     /// which carried an __asm cross-check of its own result, in a debug build, on
     /// an architecture where MSVC cannot assemble it. std::lrint is the same
     /// rounding under the same mode and needs neither.
-    ///                                   (30.07.2026.) (SW port)
     return static_cast<int>(std::lrint(floatingPointValue));
 #elif 1 //...mrmlj...was LE_LITTLE_ENDIAN; the union below is byte-order dependent
     double const magic((1ULL << 52) * 1.5);
@@ -720,7 +680,6 @@ LE_FORCEINLINE int truncate(float const floatingPointValue)
     /// says, and the compiler said so. Written as the constant the comparison
     /// was already made against. The lower bound stays a limits call because
     /// -2^31 is a power of two and converts exactly.
-    ///                                       (02.08.2026.) (SW port)
     LE_ASSERT_MSG(floatingPointValue < 2147483648.0f, "Float out of int range.");
     LE_ASSERT_MSG(floatingPointValue > std::numeric_limits<int>::min(), "Float out of int range.");
 #ifdef BOOST_SIMD_HAS_SSE_SUPPORT

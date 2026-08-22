@@ -64,14 +64,6 @@ using SWTest::dump;
 using SWTest::PresetConsumer;
 using SWTest::ScopedProblemCounter;
 
-/// \note `generousBuffer`, a 1 MiB `std::vector<char>` every save was handed,
-/// stood here. It was needed because `savePreset` wrote into a caller's span and
-/// the shipping caller's was 4096 bytes -- which five TuneWorx modules breach,
-/// as the 2016 sources record. `savePreset` returns a `std::string` now, so
-/// there is no size to be generous about and no path left where a preset is too
-/// large to save.
-///                                           (02.08.2026.) (SW port)
-
 /// \brief The first `<p n="…">` anywhere under \p element, or null.
 TiXmlElement const *findParameter(TiXmlElement const &element, std::string_view const parameterName)
 {

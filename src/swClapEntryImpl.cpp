@@ -58,7 +58,6 @@ clap_plugin const *create(clap_plugin_factory const *, clap_host const *const ho
 /// wrapper reads all four. A three-character code would leave the fourth byte
 /// whatever `strncpy` padded it with, which is why the length is asserted here
 /// rather than trusted to the literal.
-///                                           (01.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -88,7 +87,6 @@ bool auv2Info(clap_plugin_factory_as_auv2 const *, std::uint32_t const index,
 /// to be today. It becomes worth filling in the moment a VST3 is released:
 /// run the validator, read the `cid` back, and hand it over with COMPONENT_ID.
 /// That is the same shape surge-xt2 uses.
-///                                           (01.08.2026.) (SW port)
 clap_plugin_info_as_vst3 const *vst3Info(clap_plugin_factory_as_vst3 const *, std::uint32_t)
 {
     return nullptr;

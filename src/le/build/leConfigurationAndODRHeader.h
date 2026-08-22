@@ -45,7 +45,6 @@
 // because the guard that was *supposed* to do this job, $<COMPILE_LANGUAGE:CXX>,
 // is silently ignored for compile options by the Visual Studio generator, and a
 // header that is inert in C cannot be mis-applied by a generator.
-//                                        (30.07.2026.) (SW port)
 #ifdef __cplusplus
 //------------------------------------------------------------------------------
 
@@ -106,7 +105,6 @@
 //   Without the #undefs sdkddkver.h has already chosen, and it chooses the
 // newest the installed SDK supports. What remains is a floor for the case where
 // nothing has: Windows 10, which is what JUCE 8 requires.
-//                                        (30.07.2026.) (SW port)
 #ifndef _WIN32_WINNT
 #define WINVER _WIN32_WINNT_WIN10
 #define _WIN32_WINNT _WIN32_WINNT_WIN10
@@ -124,7 +122,6 @@
 //
 //   le/utility/windowsLite.hpp defines it for itself, which is where the request
 // belongs: in the header that then includes <windows.h>.
-//                                        (30.07.2026.) (SW port)
 
 // We use std::min/std::max(). Kept: NOMINMAX only suppresses two macros that
 // nothing wants, and the third-party code here defines it for itself anyway.
@@ -163,7 +160,6 @@
 // translation unit. A ceiling on a supported compiler version is a guess about
 // the future that ages into noise; only the floor is a fact, and the fact is now
 // C++20 rather than whatever VS 2005 could manage.
-//                                        (30.07.2026.) (SW port)
 #if _MSC_VER < 1929
 #pragma message(                                                                                   \
     "WARNING: SpectrumWorx needs an MSVC with C++20 support -- 19.29 (VS 2019 16.10) or newer.")
@@ -184,7 +180,6 @@
 // unit defines _CRT_SECURE_NO_WARNINGS itself and got a macro-redefinition
 // warning for its trouble. Defining a macro someone else also defines is only
 // silent when both spell it the same way, which is not a thing to rely on.
-//                                        (30.07.2026.) (SW port)
 #ifndef _ATL_SECURE_NO_WARNINGS
 #define _ATL_SECURE_NO_WARNINGS
 #endif
@@ -210,7 +205,6 @@
 //   Force-included, so this was done to every dependency in the build to save a
 // lock acquisition per stdio call in ours. It also silently makes stdio
 // non-thread-safe, which is a poor trade to impose on code that never asked.
-//                                        (30.07.2026.) (SW port)
 //
 //   And it came back without us. On MSVC 14.51 `std::fputc` still expands to
 // `std::_fputc_nolock` -- nothing in this tree or under libs/ defines
@@ -219,7 +213,6 @@
 // line is not. Our five one-character writes were all newlines, so they are
 // `std::fputs( "\n", stderr )` now -- one call, no macro to be caught by, and
 // nothing to re-diagnose the next time a compiler decides differently.
-//                                        (05.08.2026.) (SW port)
 
 // Implementation note:
 //   Five defines opting out of the secure CRT stood here, all of them
@@ -244,7 +237,6 @@
 // speed here to trade away, unlike the iterator debugging below. They also made
 // checked and release builds see different overload sets, which is its own way
 // to find out at release time that something does not compile.
-//                                        (07.08.2026.) (SW port)
 
 #ifndef _ITERATOR_DEBUG_LEVEL
 #define _SECURE_SCL LE_CHECKED_BUILD
@@ -289,7 +281,6 @@
 // Windows translation unit that reaches <string> stopped compiling -- which is
 // to say all of them. The define above went with it, and that is the fix; the
 // shim was never the thing holding this up, only the thing hiding it.
-//                                        (07.08.2026.) (SW port)
 
 //   As we use a lot of heavy template (meta)programing it is actually
 // useful to instruct the MSVC++ compiler to be maximally aggressive with
@@ -303,7 +294,6 @@
 /// which was true of the 2011 x86 iOS simulator and of nothing this builds for:
 /// on x86 both Clang and GCC define __MMX__ alongside __SSE__, and on ARM
 /// neither is defined at all.
-///                                           (07.08.2026.) (SW port)
 #if defined(__SSE__)
 #define LE_HAS_SSE1
 #endif
@@ -323,7 +313,6 @@
 /// somewhere to put it. Apple has been libc++ since well before that date, so
 /// the `!defined( _LIBCPP_VERSION )` half was already false; the include went
 /// with it, being the only thing in this header that was not a macro.
-///                                           (07.08.2026.) (SW port)
 
 /// \note A "3rd party library specifics" section stood here, and by the end it
 /// was three Boost macros -- BOOST_NO_IOSTREAM, BOOST_NO_TYPEID and
@@ -331,7 +320,6 @@
 /// three went with the parameter system, and scripts/check_boost_allowlist.sh
 /// now fails the build on a single Boost include anywhere in src/. So there is
 /// no library left for these to configure.
-///                                           (07.08.2026.) (SW port)
 
 //------------------------------------------------------------------------------
 #endif // __cplusplus

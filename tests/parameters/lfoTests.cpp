@@ -93,7 +93,7 @@ constexpr float twoSeconds{2.0f};
 /// are `static` -- process wide, which issue #11 records -- and
 /// `adjustValueForPreset()` converts a Free LFO's period to milliseconds
 /// through the bar duration. So a case that leaves 140 BPM behind changes what
-/// every later preset load in the binary converts to, and 303 digests go red in
+/// every later preset load in the binary converts to, and the digests go red in
 /// `presetCorpusTests.cpp`, which never mentions an LFO. That is exactly what
 /// the first version of this file did.
 ///
@@ -746,19 +746,13 @@ TEST_CASE("A brand new LFO's sync type does not depend on the transport", "[lfo]
 {
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note A parameter's *default* is a property of the parameter. This one
-    /// was `Timer::hasTempoInformation() ? Quarter : Free` from 2011 until
-    /// 06.08.2026 -- a property of the host's transport at the moment somebody
-    /// asked, on a process-global flag that `reset()` deliberately never
-    /// cleared.
-    ///
-    ///   `clap-cpp-validator`'s `state-reproducibility-flush` is what caught it,
-    /// and the reason it took a validator is that the two answers need two
-    /// *constructions at two moments* to be visible. The engine's module is
-    /// built inside `process()` when the slot event is handled; the main
-    /// thread's is built when the echo is drained; and `updateLFOTiming()` runs
-    /// between them. `stateSave` reads the main thread's, so a session stored
-    /// `sync="1"` for an LFO the audio thread was running as `Free`.
+    /// \note A parameter's *default* is a property of the parameter, not of the
+    /// host's transport at the moment somebody asked. The two need two
+    /// *constructions at two moments* to be told apart -- the engine's module is
+    /// built inside `process()` when the slot event is handled, the main
+    /// thread's when the echo is drained, and `updateLFOTiming()` runs between
+    /// them -- so a transport-dependent default has `stateSave` storing a `sync`
+    /// the audio thread is not running.
     ///
     ///   Deliberately **not** written with a `ScopedHostTiming`: the whole point
     /// is that establishing a transport must not change the answer, so this case

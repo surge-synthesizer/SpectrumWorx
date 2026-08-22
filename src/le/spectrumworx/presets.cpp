@@ -48,7 +48,6 @@
 /// whatever the caller happened to be holding. (A `setjmp`/`longjmp` pair stood
 /// beside it for the no-exceptions build, which this one is not.) TinyXML
 /// reports through `TiXmlDocument::Error()` and needs neither.
-///                                           (31.07.2026.) (SW port)
 
 namespace LE
 {
@@ -92,7 +91,6 @@ PresetHeader::PresetHeader(std::string_view const commentParam)
 /// sw-dsp -- the layer whose whole point is that it depends on nothing above it.
 /// Two ways to write a timestamp is also two ways to get it wrong; the standard
 /// one is the same on every platform this builds for.
-///                                           (05.08.2026.) (SW port)
 void PresetHeader::setCurrentTime()
 {
     std::time_t const currentUTCTime(std::time(nullptr));
@@ -112,7 +110,7 @@ char const sampleAttributeName_[] = "Sample";
 /// is what those are migrated from.
 char const sideChainSourceAttributeName_[] = "Side chain source";
 
-/// \note 2016's parameter, which every one of the 288 shipped presets carries
+/// \note 2016's parameter, which every shipped preset carries
 /// and which is no longer a parameter here. Read once, at load, and never
 /// written. \see doc/tech/sidechain-approach.md.
 char const legacyInputModeAttributeName_[] = "Input mode";
@@ -129,10 +127,6 @@ char const parameterNameAttributeName_[] = "n";
 char const parameterValueAttributeName_[] = "v";
 /// @}
 
-/// \note `parametersNodeName_ = "Parameters"` and `moduleIDAttributeName_ =
-/// "ID"` stood here, declared and referenced by nothing -- leftovers of a shape
-/// the format never took. `Module` was one of them and now means something.
-///                                           (02.08.2026.) (SW port)
 } // namespace
 
 char const Preset::formatAttributeName[] = "Format";
@@ -215,7 +209,7 @@ namespace
 /// through: `<1>` .. `<12>` (TuneWorx's semitones), `<Pitch_Shifter_(pvd)>` and
 /// its six siblings, and `<Center_(LFO_me!)>`. No conforming parser will read
 /// any of them. RapidXML's `parse_fastest` mode never checked a name, which is
-/// why it went unnoticed for fifteen years and why 25 of the 303 committed
+/// why it went unnoticed for fifteen years and why some of the committed
 /// presets need this. The writer mangles properly now (mangleName), so this is
 /// for files written before it did.
 ///
@@ -296,7 +290,6 @@ bool Preset::loadFrom(char const *const pBuffer)
     /// this plugin's id -- was a null dereference on the first thing to ask.
     /// Refusing it here covers every caller at once, and "not a preset" is
     /// exactly what LoadFailed already means.
-    ///                                       (02.08.2026.) (SW port)
     auto const parsedAsPreset([this] {
         return !document_.Error() && (document_.FirstChildElement(headerNodeName_) != nullptr);
     });
@@ -325,9 +318,9 @@ bool Preset::loadFrom(char const *const pBuffer)
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \note Tabs, and a trailing newline after the root: that is what the 2016
-/// writer emitted and what the 303 committed presets look like, so it is what
+/// writer emitted and what the committed presets look like, so it is what
 /// TiXmlPrinter is told to emit. The terminator is written too, because the
-/// 2016 writer put one on disk -- 193 of the 303 files end in a NUL byte.
+/// 2016 writer put one on disk, and most of the committed files carry it.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -338,7 +331,6 @@ std::string Preset::saveTo() const
     /// is the most vexing parse -- it declares a function -- so this check had
     /// never once run: the first build to compile this file is the one that
     /// rejected it.
-    ///                                       (31.07.2026.) (SW port)
 #ifndef NDEBUG
     PresetHeader dummyHeader{std::string_view()};
     getHeader(dummyHeader);
@@ -349,7 +341,7 @@ std::string Preset::saveTo() const
     document_.Accept(&printer);
 
     /// \note No terminator in the string. The 2016 writer put one on disk and
-    /// 193 of the 303 committed files end in a NUL byte, so `writePresetFile()`
+    /// Most committed files end in a NUL byte, so `writePresetFile()`
     /// still appends one -- but a `std::string` that carries its own NUL in
     /// `size()` is a trap for every caller that is not writing a file, and the
     /// state stream is now one of those.
@@ -405,9 +397,7 @@ void Preset::getHeader(PresetHeader &header) const
                          sizeof(header.comment));
 }
 
-/// \note "Expects the header parameter to live until after the last call to
-/// saveTo()" stood here, and does not any more: RapidXML stored the pointer it
-/// was handed, TinyXML copies the string.
+/// \note \p header need not outlive this call: TinyXML copies the strings.
 void Preset::setHeader(PresetHeader const &header)
 {
     auto &headerNode(root());
@@ -433,7 +423,7 @@ std::string_view Preset::getComment() const
 namespace
 {
 /// \note Not a dialog. See PresetLoadReport for the whole argument; the short
-/// version is that one of these per problem meant 722 of them for the factory
+/// version is that one of these per problem meant a wall of them for the factory
 /// banks, from a layer that has no business knowing what a dialog is, on whatever
 /// thread a host chose to restore a session on.
 PresetLoadReport report_;
@@ -495,11 +485,6 @@ void reportPresetProblem(PresetProblem const problem, std::string_view const det
 
 void Preset::reportPresetLoadingError() { reportPresetProblem(PresetProblem::LoadFailed); }
 
-/// \note The RapidXML allocation tracer that stood here is gone with the arena
-/// it traced. It printed a line per node on every debug preset load, which the
-/// corpus test turned into several hundred.
-///                                           (31.07.2026.) (SW port)
-
 std::string PresetHandler::mangleName(std::string_view const parameterName)
 {
     LE_ASSERT(!parameterName.empty());
@@ -522,7 +507,6 @@ template <> std::string PresetHandler::makeString<bool>(bool const binarySource)
 /// which spells the point whichever way the *host's* locale says. That put a
 /// comma in this file -- the one number in it that has to be read back by
 /// something other than the machine that wrote it. \see lexicalCast.cpp.
-///                                           (08.08.2026.) (SW port)
 template <> std::string PresetHandler::makeString<float>(float const binarySource)
 {
     std::ostringstream value;
@@ -556,7 +540,6 @@ ParametersLoader::ParametersLoader(Preset const &preset)
 /// state -- its analysis history, its LFO phase -- so loading a preset over one
 /// that happened to use the same effect started it mid-flight, and loading the
 /// same preset twice in a row did not give the same result as loading it once.
-///                                           (02.08.2026.) (SW port)
 void ParametersLoader::loadModuleChain(ModuleChain &newChain)
 {
     LE_ASSERT_MSG(!switchedToModuleParameters(), "Already switched to module parameters.");
@@ -602,7 +585,6 @@ void ParametersLoader::loadModuleChain(ModuleChain &newChain)
     /// a *later* version to have written, which is why it reads as a report about
     /// the file rather than a failure to load it: everything up to the fifth
     /// module loads and plays.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -671,7 +653,6 @@ bool ParametersLoader::switchedToModuleParameters() const
 /// effect today -- that is how the table was seeded -- and the point of asking
 /// for the streaming one is that a retitled effect keeps loading its presets
 /// rather than quietly becoming an effect this build does not have.
-///                                           (01.08.2026.) (SW port)
 std::int8_t ParametersLoader::effectIndexFromMangledName(std::string_view const mangledName)
 {
     for (std::uint8_t effect(0); effect < Effects::Constants::numberOfEffects; ++effect)
@@ -768,7 +749,6 @@ class LFODataLoader
     /// parameter goes to its default -- rather than clamped: there is no
     /// meaningful nearest waveform, and the two cases are the same statement
     /// about the file, which is that it does not say what this parameter is.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -901,10 +881,9 @@ char const *ParametersLoader::parameterValueText(TiXmlElement const &parameterNo
 ///
 /// \note An element the reader deliberately declines is still unread and is still
 /// reported. There is exactly one such case in the shipped format -- a `<Gate>`
-/// for a build compiled without it -- and none of the 303 factory banks has one,
+/// for a build compiled without it -- and no shipped bank has one,
 /// which is why this can be an error rather than a list of exemptions. If a build
 /// ever ships without it, this is where it will say so.
-///                                           (02.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1067,7 +1046,7 @@ class LFODataSaver
 ///
 ///   In 2.x the two overloads wrote two different things -- an attribute on the
 /// parent, or an element with the value as its text -- and the loader still has
-/// to look for both, because that is what the 303 committed files contain.
+/// to look for both, because that is what the committed files contain.
 void ParametersSaver::saveParameter(char const *const parameterName,
                                     std::string const &parameterValue, LFO const &parameterLFO)
 {
@@ -1108,13 +1087,11 @@ void ParametersSaver::setSideChainSource(SideChainSource const source)
 /// under a `JUCE_STRING_UTF_TYPE` switch with an `_alloca` in one arm. The
 /// conversion belongs at the interface's edge rather than in the format layer,
 /// and putting it there is what takes JUCE off `sw-dsp`.
-///                                           (02.08.2026.) (SW port)
 ///
 /// \note The path half of that conversion is gone rather than moved: everything
 /// above speaks `fs::path` now, and `presetStorage.hpp`'s `savePreset()` calls
 /// this with `u8string()`. Only the comment still arrives as a `juce::String`,
 /// and it is converted by the editor. \see tests/checkNoJuceFile.cmake.
-///                                           (09.08.2026.) (SW port)
 std::string savePreset(std::string_view const externalSampleFilePath,
                        SideChainSource const sideChainSource, std::string_view const comment,
                        Program const &program, DawExtraState const *const pDawExtraState)

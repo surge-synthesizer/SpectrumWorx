@@ -327,7 +327,6 @@ int renderPage(juce::String const &pageName, juce::File const &output)
 /// other than the plugin's normal one. Same shape as SW_SHOW_UI_SETTINGS_PAGE
 /// and SW_SHOW_UI_PRESET_BANK, and an unoffered percentage is ignored -- \see
 /// GUI::Preferences::zoomPercentages.
-///                                           (16.08.2026.) (SW port)
 ///
 /// \note `SW_SHOW_UI_PALETTE` likewise, by ColourMap::nameOf() -- so
 /// `SW_SHOW_UI_PALETTE=Reds` renders any page in that palette. Both the

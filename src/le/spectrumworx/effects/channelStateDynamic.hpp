@@ -62,7 +62,6 @@ namespace Effects
 // declarations, so writing them is not worse than writing them inside a macro
 // argument. The other three read the members off std::tie, which is the same
 // list said once more and the only thing the class still has to say.
-//                                            (31.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace Detail ///< \internal

@@ -55,15 +55,10 @@ void forgetMainThread();
 /// be answered is whether the host is currently inside a call it is entitled to
 /// make on the audio thread.
 ///
-/// \note ~~"whether this call is happening underneath process(), which is what
-/// every `[audio-thread]` rule actually means"~~ -- *what this said until
-/// 03.08.2026, and it is not what the rule means.* `plugin.h` puts four entry
-/// points in that set and only one of them is `process()`; `reset()` is
-/// `[audio-thread & active]` and runs between blocks, not under one. The
-/// narrower reading was not a simplification, it was a hole: `vst3-validator`
-/// walked straight into it the first time anything called `reset()` outside
-/// `process()`, and the engine's own mutation assert fired on a host that was
-/// behaving correctly. See ScopedAudioThreadEntry.
+/// \note **Not "underneath process()"**. `plugin.h` puts four entry points in the
+/// `[audio-thread]` set and only one of them is `process()`: `reset()` is
+/// `[audio-thread & active]` and runs between blocks, so the narrower reading is
+/// a hole a correct host walks straight into. \see ScopedAudioThreadEntry.
 bool isAudioThread();
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -76,10 +71,9 @@ bool isAudioThread();
 ///   - opens a RealtimeSanitizer realtime region, so that an allocation, a lock or
 ///     a syscall reached from anywhere underneath is reported with a stack.
 ///
-/// \note Named for the contract rather than for `process()`. It was
-/// `ScopedAudioCallback`, which is why for a year it was opened in exactly one
-/// place: "callback" reads as "the audio callback", and the other three entry
-/// points in `plugin.h`'s `[audio-thread]` set do not look like one.
+/// \note Named for the contract rather than for `process()`: "callback" reads as
+/// "the audio callback", and the other three entry points in `plugin.h`'s
+/// `[audio-thread]` set do not look like one.
 ///
 ///   What owes one, from `clap/plugin.h`:
 ///

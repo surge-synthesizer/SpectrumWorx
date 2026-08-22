@@ -42,7 +42,6 @@ namespace Detail
 {
 /// \note One member left: the struct is what remains of an Array-of-Structures
 /// layout that carried the transient/steady-state per-bin data alongside it.
-///                                       (07.08.2026.) (SW port)
 struct AnalysisBinStateData
 {
     Engine::real_t lastPhase;
@@ -214,7 +213,6 @@ namespace Detail
 /// same detection idiom out of SFINAE and a nested-type probe. A requires-clause
 /// says it in one line and does not need the macro to have been included by
 /// somebody else.
-///                                           (30.07.2026.) (SW port)
 template <class T> struct has_ChannelState : std::bool_constant < requires
 {
     typename T::ChannelState;

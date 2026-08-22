@@ -53,14 +53,10 @@ namespace LE::SW
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \note A `Detail::updateGUIForChangedModule()` stood here, calling the
-/// editor's `moduleAdded()`/`moduleRemoved()` when a slot changed. This runs on
-/// whichever thread the parameter arrived on -- for a host automation event, the
-/// audio thread -- so it repositioned JUCE components from inside `process()`.
-/// The interface follows the chain now: the plugin raises `ToUI::ChainChanged`
-/// and the editor recomputes its rack on the main thread. See
-/// doc/tech/threading_model.md §5.
-///                                           (02.08.2026.) (SW port)
+/// \note Nothing here touches the interface: this runs on whichever thread the
+/// parameter arrived on, which for a host automation event is the audio thread.
+/// The plugin raises `ToUI::ChainChanged` and the editor recomputes its rack on
+/// the main thread. \see doc/tech/threading_model.md §5.
 
 class ModuleChainParameter;
 
@@ -143,7 +139,6 @@ template <class Impl, class Protocol> class Host2PluginInteropImpl<Impl, Protoco
             /// other. The granted concession, and the only one left: every
             /// other route builds its module on the main thread and hands the
             /// engine a pointer. See issue #9.
-            ///                               (02.08.2026.) (SW port)
             typename Impl::Module *pDisplaced(nullptr);
             auto const result(moduleChain.setParameter(moduleIndex, effectIndex,
                                                        pImpl->moduleInitialiser(), &pDisplaced));
@@ -154,7 +149,6 @@ template <class Impl, class Protocol> class Host2PluginInteropImpl<Impl, Protoco
             /// free on the audio thread -- which is what the retire protocol
             /// exists to prevent, and which every other route into the chain
             /// already goes through. \see AutomatedModuleChain::setParameter.
-            ///                               (08.08.2026.) (SW port)
             if (pDisplaced)
                 pImpl->retireModule(*pDisplaced);
 

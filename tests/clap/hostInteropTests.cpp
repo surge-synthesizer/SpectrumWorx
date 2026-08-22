@@ -298,7 +298,6 @@ TEST_CASE("Driven the way a DAW drives it, nobody misbehaves", "[clap][host]")
     /// (plugin.hxx:2219, :2233), so `clap.log` cannot see them and neither could
     /// this case, which said "nobody misbehaves" while emitting one of them. It
     /// is asserted now, by capturing the stream.
-    ///                                       (09.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     Entry const entry;

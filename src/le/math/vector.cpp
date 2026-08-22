@@ -15,7 +15,6 @@
 /// message that had stopped being worth saying. What it is for -- telling you at
 /// build time which backend the vector primitives were compiled against -- is
 /// all that is left of it.
-///                                           (02.08.2026.) (SW port)
 #pragma message("LE.Math.Vector using the Accelerate framework.")
 #endif // __APPLE__
 //------------------------------------------------------------------------------
@@ -47,7 +46,6 @@
 /// \note These were reached transitively through the Accelerate headers. The
 /// portable arms below use std::memcpy / memmove / memset, std::log, exp,
 /// sqrt, sin, cos and std::{min,max}_element with it out of the include graph.
-///                                           (29.07.2026.) (SW port)
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -120,7 +118,6 @@ unsigned int alignIndex(unsigned int const index)
 ///
 ///   There is one backend now, so the macro was describing a choice nobody
 /// makes. It is gone, and with it the second body of every primitive it guarded.
-///                                           (08.08.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 void copy(InputRange const &input, OutputRange const &output)
@@ -142,7 +139,6 @@ void fill(InputOutputRange const data, float const value)
 /// \note vector.hpp declared this alongside the strided overload but nothing
 /// ever defined it. Nothing called it either; sw-tests is the first thing that
 /// tried.
-///                                       (28.07.2026.) (SW port)
 void negate(InputOutputRange const data) { negate(data, 1); }
 
 void negate(InputOutputRange data, unsigned int const stride)
@@ -614,7 +610,6 @@ float const &max(float const *const pArray, unsigned int const numberOfElements)
 /// reassociation, and the rounding is the scalar loop's. They used to sit in the
 /// iterator section; they are here because this is where the one implementation
 /// of each primitive lives.
-///                                           (29.07.2026, moved 08.08.2026.)
 
 void add(float const *const pInput, float *const pInputOutput, unsigned int const numberOfElements)
 {

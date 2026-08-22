@@ -45,7 +45,6 @@ template <class T> struct DummyStorage
     /// a const member left uninitialised by a constructor is ill-formed, and
     /// -fms-compatibility does not excuse it -- so the question is which
     /// compilers enforce the rule, and Clang does under every driver it has.
-    ///                                   (09.08.2026.) (SW port)
 #if defined(__GNUC__) || defined(__clang__)
     Storage storage_; // const on MSVC only: GCC/Clang reject an uninitialised const member
 #else
@@ -160,7 +159,6 @@ template <typename T, bool optionalMustBeInitialised = true> class OptionalFromI
         /// subtract the payload offset. libstdc++, libc++ and the MS STL all
         /// store std::optional's payload at offset zero and the flag after it,
         /// so the instance and its optional share an address.
-        ///                                       (28.07.2026.) (SW port)
         static_assert(sizeof(std::optional<T>) >= sizeof(T), "");
         auto &optionalInstance(
             *reinterpret_cast<std::optional<T> *>(reinterpret_cast<char *>(&instance)));

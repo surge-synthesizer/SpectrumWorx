@@ -183,7 +183,6 @@ void requireTransparent(std::span<SWTest::Slot const> const slots,
 /// and 1024 and 4096 keep passing -- which is the shape the wrap predicts.
 /// \see issue #67, where a large-render heap overrun is one of the candidate
 /// mechanisms.
-///                                           (16.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -206,7 +205,6 @@ TEST_CASE("The configured block size does not change the sound", "[chunking][blo
     ///
     ///   Pink noise against a sweep, so a channel that has quietly taken the
     /// other's data is not a subtle difference.
-    ///                                       (16.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     std::vector<std::vector<float>> perChannel(channels, std::vector<float>(renderedFrames));
@@ -298,7 +296,6 @@ TEST_CASE("The engine's own WOLA path does not care how the block was cut up", "
 /// anything renders it. A single whole-block render does it; this file is simply
 /// the first thing to render every effect in a checked build. \see issue #84,
 /// with which this exclusion should come off.
-///                                           (16.08.2026.)
 bool tripsTheEngineInDebug(std::uint8_t const effect)
 {
     return std::string_view(Effects::effectStreamingName(effect)) == "Smoother";
@@ -322,7 +319,6 @@ bool tripsTheEngineInDebug(std::uint8_t const effect)
 /// declared `seed()`, and every fixture passed regardless because an unseeded
 /// generator was then a shared constant. Two renders that must agree, on two
 /// engines, is the shape that has an opinion about it.
-///                                           (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -395,7 +391,6 @@ TEST_CASE("No effect can tell how the block was cut up", "[chunking]")
 ///
 /// \note Which is to say a fixture at default settings is blind here, and was.
 /// \see issue #86.
-///                                           (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

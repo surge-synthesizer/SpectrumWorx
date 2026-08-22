@@ -101,7 +101,6 @@ class DesktopEditor
     ///   So the question is put the way the cases put it -- grab, then look --
     /// and a no is a skip rather than a failure. The grab is not a side effect
     /// worth hiding from: every case here starts by taking focus anyway.
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool tookTheKeyboard() const
@@ -130,7 +129,6 @@ class DesktopEditor
 /// which is an NSView hit test, and a plain test binary is not an app whose
 /// views the window server will hit-test. See the second case for what that
 /// costs.
-///                                           (03.08.2026.) (SW port)
 juce::MouseEvent eventOver(juce::Component &component, juce::Point<float> const offset,
                            bool const dragged)
 {
@@ -490,7 +488,6 @@ TEST_CASE("A strip removed after its control was deactivated leaves nothing poin
 ///
 /// \note Two strips, and the *second* one removed: with one strip there is no
 /// other `ModuleUI` for the focus to land on and nothing re-enters.
-///                                           (21.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -650,7 +647,6 @@ TEST_CASE("One press on a module combo box selects it and opens its menu", "[gui
     /// asynchronous and there is no message loop in a test binary, but the
     /// component is made and entered into a modal state where the menu is shown,
     /// which is the half this case is about.
-    ///                                       (17.08.2026.) (SW port)
     ///
     /// \note It read `ComboBox::menuActive()` until 21.08.2026, and the flag is
     /// no longer set because the box no longer drops a bare list of values: both

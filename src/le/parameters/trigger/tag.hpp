@@ -35,7 +35,6 @@ struct TriggerParameterTag : BooleanParameterTag
 /// moment between the two, and that moment belongs to one thread. Streaming and
 /// the host-facing readback both ask it, and both are answered `false` here.
 /// \see ParametersSaver::valueToStream() in le/spectrumworx/presets.hpp.
-///                                           (16.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

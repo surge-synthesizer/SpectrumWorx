@@ -68,14 +68,11 @@ namespace
 ///
 /// \return whether \p path has any preset under it, at any depth.
 ///
-/// \note The second half of that is not a nicety. This listed only the
-/// directories that hold a `.swp` themselves, and `Martin Walker`,
-/// `CinningBao` and `Syndicate Synthetique` hold nothing but a sub-folder -- so
-/// the list named `Martin Walker/Gamma Shift` and never `Martin Walker`, and the
-/// browser shows a child only once its parent has been opened. There was no row
-/// to open: three of the fifteen banks, 110 of the 303 presets, were in the
-/// binary and unreachable from the interface.
-///                                           (10.08.2026.) (SW port)
+/// \note The second half of that is not a nicety. Listing only the directories
+/// that hold a `.swp` themselves names `<bank>/<sub-folder>` and never `<bank>`,
+/// and the browser shows a child only once its parent has been opened -- so a
+/// bank holding nothing but a sub-folder gets no row to open, and every preset
+/// under it is in the binary and unreachable from the interface.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -147,8 +144,8 @@ bool isBank(std::string_view const bank)
 /// first is sufficient: the parser is handed a C string and an embedded file is
 /// not terminated -- it is a span of the binary, with the next resource after
 /// it. The second is that a preset written by the 2016 plugin *does* end in a
-/// NUL, so 193 of these 303 have one and 110 do not, and depending on which is
-/// how a preset loads on some machines and not others.
+/// NUL, so some of the committed files carry one and some do not, and depending
+/// on which is how a preset loads on some machines and not others.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

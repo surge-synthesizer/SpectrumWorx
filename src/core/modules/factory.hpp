@@ -26,12 +26,9 @@ struct ModuleFactory
 
     /// \note create() malloc()s and placement-news the *derived*
     /// ModuleInterface::Impl<Effect>, so destruction has to run that type's
-    /// destructor and free() the same storage. The two
-    /// intrusive_ptr_release_deleter overloads used to say `delete &module`,
-    /// which is mismatched with malloc and, since ModuleInterface's destructor
-    /// is not virtual outside the SDK build, would not have run the derived
-    /// destructor either.
-    ///                                       (28.07.2026.) (SW port)
+    /// destructor and free() the same storage. `delete &module` would be
+    /// mismatched with malloc, and would not run the derived destructor either --
+    /// ModuleInterface's is not virtual outside the SDK build.
     template <class ModuleInterface> static void destroy(ModuleInterface const &);
 }; // struct ModuleFactory
 

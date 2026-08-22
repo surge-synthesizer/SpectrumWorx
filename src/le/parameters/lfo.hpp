@@ -146,7 +146,6 @@ class LFO
     /// a deleted copy. That is not cosmetic: user-provided versus defaulted
     /// decides triviality, and a declared-not-defined copy turns a compile error
     /// into a link error. VS2013 is long out of scope, so the branch is gone.
-    ///                                       (29.07.2026.) (SW port)
     LFO() = default;
     LFO(LFO const &) = delete;
     ~LFO() = default;

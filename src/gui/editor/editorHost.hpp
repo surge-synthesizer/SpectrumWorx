@@ -85,7 +85,6 @@ class SpectrumWorxEditor;
 /// folder is a path from a previous run that the user may have moved, and a bank
 /// is a name a later build need not still ship; PresetBrowser::restoreLastPlace()
 /// checks both and falls back to the top of the factory tree.
-///                                           (21.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -172,7 +171,6 @@ class EditorHost
     /// as an exponent far outside the six it has -- an assertion in a checked
     /// build and a meaningless size in a shipped one, on all three of the FFT
     /// size, the overlap factor and the window function.
-    ///                                       (08.08.2026.) (SW port)
     ///
     /// \note Not virtual, and defined once in terms of `editParameter()` above:
     /// the conversion is a property of the protocol, not of whoever is hosting
@@ -288,15 +286,12 @@ class EditorHost
     /// %; there is nothing else to give them, so the editor changes and this
     /// carries the consequence outwards.
     ///
-    /// \note And it must not stop at a refusal, which is what made zoom draw in
-    /// the wrong place. `clap-wrapper`'s macOS standalone resizes its window and
-    /// **returns false** from `request_resize` (AppDelegate.mm), so a refusal
-    /// does not even mean the window stayed put. Treating it as one left the
-    /// shim's own components at the old size while the window had the new one --
-    /// and a JUCE peer inside a foreign NSView is anchored at Cocoa's bottom
-    /// left, so the mismatch showed up as the editor sliding up or down the
-    /// window rather than as a wrong size. \see issue #55.
-    ///                                       (16.08.2026.) (SW port)
+    /// \note And it must not stop at a refusal: `clap-wrapper`'s macOS standalone
+    /// resizes its window and **returns false** from `request_resize`, so a
+    /// refusal does not even mean the window stayed put. Leaving the shim's
+    /// components at the old size while the window has the new one shows up as
+    /// the editor sliding up or down it, a JUCE peer inside a foreign NSView
+    /// being anchored at Cocoa's bottom left.
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual void editorSizeChanged(int width, int height) = 0;
@@ -305,19 +300,15 @@ class EditorHost
     // The side channel's sample: the external audio file that feeds it in place
     // of the host's side chain port.
     //
-    // \note The listener registration is the 2016 shape and the last three are
-    // vestigial while a load is synchronous -- isSampleLoadInProgress() is what
-    // the editor asks before it registers, and today it is always false. Kept
-    // whole because they are the interface a deferred load would come back
-    // through, and the note on SpectrumWorxCLAP::setNewSample says what such a
-    // load would need first.
+    // \note The last three are vestigial while a load is synchronous:
+    // isSampleLoadInProgress() is what the editor asks before it registers, and
+    // it is always false. Kept whole as the interface a deferred load would come
+    // back through.
     ////////////////////////////////////////////////////////////////////////////
 
-    /// \note `fs::path`, and an empty one is "no sample". `juce::File` stood here
-    /// and made this interface the reason `Sample` and the CLAP carried JUCE's
-    /// file type at all; the conversion to one now happens at the two file
-    /// choosers that genuinely need it. \see io/jucePath.hpp.
-    ///                                       (09.08.2026.) (SW port)
+    /// \note `fs::path`, and an empty one is "no sample". Naming `juce::File`
+    /// here is what would make `Sample` and the CLAP carry JUCE's file type; the
+    /// conversion belongs at the two file choosers. \see io/jucePath.hpp.
     virtual fs::path currentSampleFile() const = 0;
 
     ////////////////////////////////////////////////////////////////////////////
@@ -332,7 +323,6 @@ class EditorHost
     /// like every other thing wrong with a preset. This used to raise the dialog
     /// itself, so restoring a session -- which nobody asked for, possibly with no
     /// window yet -- stopped the host with a modal box.
-    ///                                       (08.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual char const *setNewSample(fs::path const &) = 0;
@@ -395,7 +385,6 @@ class EditorHost
     /// nothing ever read: the checkbox on the interface page stored it and no
     /// session was ever reloaded from it. Restoring what was open is the host's
     /// job and every one of them does it.
-    ///                                       (14.08.2026.) (SW port)
 
   protected:
     /// Not deleted through this.

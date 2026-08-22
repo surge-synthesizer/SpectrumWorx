@@ -17,7 +17,7 @@
 ///   **A file that is not a preset.** Four `[clap][state]` cases drive bad
 /// *streams* -- empty, truncated, wrong root, a format from the future -- and
 /// the file side had none of it. `readPresetFile` has four ways to answer "no"
-/// and nothing had asked it any of them. The corpus proves 303 happy paths and
+/// and nothing had asked it any of them. The corpus proves the happy paths and
 /// asserts `unknownEffect == 0` and `missing` against a committed number, so
 /// both counters were only ever checked in the direction that says nothing:
 /// neither had ever been driven above zero, and a reporter wired to a counter
@@ -132,7 +132,7 @@ class Fixture
 }; // class Fixture
 
 /// What \p file loads to in an engine that has never held anything else, which
-/// is the answer presetCorpus.txt committed.
+/// is the answer presetFixtures.txt commits.
 Loaded intoAFreshEngine(std::filesystem::path const &file)
 {
     Fixture fixture;
@@ -185,7 +185,7 @@ TEST_CASE("A preset loaded on top of another is the preset, not a blend", "[pres
     /// module already holding the right effect across rather than building a new
     /// one, so anything the previous preset left in that module and the new one
     /// does not mention is carried forward. A parameter the writer omits because
-    /// it is at its default is exactly such a thing, and 104 of these 303 files
+    /// it is at its default is exactly such a thing, and a good fraction of them
     /// omit at least one.
     ///
     ////////////////////////////////////////////////////////////////////////////
@@ -366,7 +366,7 @@ TEST_CASE("A preset naming an effect this build does not have loads the rest", "
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \note `unknownEffect` driven above zero for the first time. The corpus
-    /// asserts it is *zero* over 303 files, which is the right assertion there
+    /// asserts it is *zero* over every shipped file, which is the right assertion there
     /// -- an effect going missing is a build that dropped one -- but on its own
     /// it is equally consistent with a counter nothing ever increments and a
     /// reporter nothing ever calls.
@@ -448,7 +448,7 @@ TEST_CASE("A preset that omits a parameter reports it and uses the default", "[p
     /// the corpus only ever reads. It reports a committed *number* per preset --
     /// normal for a 2009-2011 file against a 2016 effect, and a number that must
     /// not grow -- so the count is pinned but the mechanism behind it is not:
-    /// a reporter that stopped firing would move 104 rows at once and read as
+    /// a reporter that stopped firing would move every one of those rows and read as
     /// one large diff rather than as a broken reporter.
     ///
     ///   Here the omission is deliberate and the expected count is exact.

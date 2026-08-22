@@ -36,7 +36,6 @@ namespace
 /// parameters, which is the three gain-shaped globals, pass through unchanged.
 /// That is why this was invisible: the three knobs were right and the three
 /// combo boxes on the settings page were not.
-///                                           (08.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

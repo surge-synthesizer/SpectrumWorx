@@ -139,7 +139,6 @@ std::uint16_t Setup::frequencyPercentageToBin(std::uint8_t const percentage) con
 /// can sit above Nyquist without anybody having done anything wrong. Every caller
 /// already clamped the result into its working range; the assertion was the only
 /// thing that minded.
-///                                           (19.08.2026.) (SW port)
 std::uint16_t Setup::frequencyInHzToBin(std::uint32_t const frequency) const
 {
     auto const maximumFrequency(sampleRate<unsigned int>() / 2);

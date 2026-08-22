@@ -108,7 +108,6 @@ class ModuleDSP : public LE::SW::Engine::ModuleParameters
     /// depend on the host's block size was one generator shared by both channels,
     /// advanced in whatever order the engine happened to visit them in. \see
     /// issue #86 and Math::Rng.
-    ///                                       (17.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     void seedRandomState(Math::Rng &source);

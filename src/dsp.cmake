@@ -226,14 +226,9 @@ target_link_libraries(sw-dsp PRIVATE sw::assets)
 # sw-dsp is the layer that must not be, and here rather than in sw-gui because it
 # draws nothing: the plugin reads a session's sample without an editor open.
 #
-# \note **This was "the two things that open a file"**, the other being
-# le/spectrumworx/presetFile.cpp -- the preset reader and writer with a
-# `juce::File` on them, and the point at which the format's `std::string_view`
-# interface met the editor's `juce::String`. Both halves are gone: presetStorage
-# in sw-dsp opens preset files over std::filesystem and `fs::path` goes all the
-# way up to the browser, so there was no conversion left for that file to
-# perform. What is left here needs JUCE for the *decoder*, not for the path.
-#                                         (09.08.2026.) (SW port)
+#   Preset files are not up here: presetStorage in sw-dsp opens them over
+# std::filesystem, and `fs::path` goes all the way up to the browser. What is in
+# sw-io needs JUCE for the *decoder*, not for the path.
 ################################################################################
 
 add_library(sw-io STATIC
@@ -263,11 +258,9 @@ target_link_libraries(sw-io PUBLIC sw-juce)
 # juce::juce_gui_basics directly and built juce_core with JUCE's defaults.
 # They are on the modules themselves now; see libs/CMakeLists.txt.
 #
-#   The MP3 one was not yet broken -- nothing reaches juce_audio_formats except
-# through sw-io -- and is moved with the others because that is one link away
-# from being the same bug, silently: a target that linked the module directly
-# would compile a decoder-less copy of it into the binary beside ours.
-#                                         (05.08.2026.) (SW port)
+#   The MP3 one is on the module with the others, rather than here, because a
+# target that linked juce_audio_formats directly would otherwise compile a
+# decoder-less copy of it into the binary beside ours.
 
 # \note LE_NO_PRESETS stood here. It compiled out ModuleParameters::{load,save}
 # PresetParameters -- the whole preset serialisation -- because presets.cpp read

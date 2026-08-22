@@ -48,7 +48,6 @@ namespace Detail ///< \internal
 // this replaces would have emitted two identical get() overloads and failed to
 // compile -- so the index is not there to disambiguate, it is there to make the
 // cast in get() writable.
-//                                            (31.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <std::size_t index, class Parameter> struct ParameterSlot
@@ -102,7 +101,6 @@ template <class Parameter, class... Parameters> constexpr std::uint8_t indexOf()
 // run of bytes. A recursively nested holder -- struct { P first; Holder rest; }
 // -- would instead align every level to the widest parameter still to come and
 // give each of those booleans three bytes of padding.
-//                                            (31.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <class... Params>

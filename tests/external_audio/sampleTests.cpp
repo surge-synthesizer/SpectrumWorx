@@ -100,7 +100,6 @@ TEST_CASE("Every factory sample decodes to two equal channels", "[external-audio
         // resampled: the two decoders disagree about whether LAME's encoder
         // delay is theirs to strip. `> rate / 2` sat between the two answers,
         // so what it tested was a padding policy.
-        //                                    (05.08.2026.) (SW port)
         CHECK(sample.channel1().size() > (rate / 4));
         CHECK(sample.channel1().size() == sample.channel2().size());
         CHECK(sample.channel(0).begin() == sample.channel1().begin());

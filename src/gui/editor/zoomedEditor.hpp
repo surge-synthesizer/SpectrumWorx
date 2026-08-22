@@ -63,23 +63,10 @@ class ZoomedEditor final : public juce::Component
     ///
     /// \brief The transform a user-facing 100 % means, which is none.
     ///
-    /// \note A `scaleAtOneHundredPercent` of 1.5 stood here until 19.08.2026.
-    /// The skin was a 563 x 376 bitmap laid out for a 2010 screen, the plugin
-    /// had always drawn it at 1.5x, and that 1.5 was therefore what "normal
-    /// size" meant -- so 100 % was defined as it rather than as one.
-    ///
-    ///   What that cost was every edge in the skin. A whole-pixel coordinate
-    /// through a 1.5 transform lands on a half, so on a monitor without a
-    /// HiDPI scale of its own each rule was laid down as one solid column of
-    /// pixels and one at half strength: a soft grey seam rather than a line. It
-    /// looked correct only on a display that was quietly scaling by two
-    /// underneath.
-    ///
-    ///   So the constants moved instead of the transform. The skin is 845 x 564
-    /// now -- the old numbers at the size they were always drawn at -- and 100 %
-    /// is one. The window is the same size it has always been; what changed is
-    /// that nothing resamples it to get there.
-    ///                                       (19.08.2026.)
+    /// \note 100 % is one, and the skin's constants are the size it is drawn at
+    /// -- 845 x 564. A fractional scale at rest would put every whole-pixel
+    /// coordinate on a half, laying each rule down as one solid column of pixels
+    /// and one at half strength.
     ///
     ////////////////////////////////////////////////////////////////////////////
     static constexpr float scaleForZoom(unsigned int const zoomPercent)

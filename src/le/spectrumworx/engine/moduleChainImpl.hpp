@@ -70,7 +70,6 @@ struct module_node_traits
 /// \note And so only the algorithms were ever taken -- which is why stage 7
 /// could reimplement them in eighty lines rather than keep a Boost dependency
 /// for them. le/utility/circularListAlgorithms.hpp.
-///                                       (30.07.2026.) (SW port)
 //struct module_node_value_traits
 //{
 //    typedef module_node_traits                     node_traits;
@@ -114,7 +113,6 @@ class ModuleChainBase :
         /// std::int8_t>` was a second base and is deprecated in C++17. The five
         /// typedefs it supplied are spelt out instead, the way chain_iterator
         /// below already spells its three.
-        ///                                   (02.08.2026.) (SW port)
         using iterator_category = std::bidirectional_iterator_tag;
         using difference_type = ModuleChainBase::difference_type;
         using value_type = Node;
@@ -154,7 +152,6 @@ class ModuleChainBase :
         /// reached the right node only because the node it had just moved to
         /// points back at the one it came from. The copy costs one reference
         /// count round trip on a pointer the caller already holds.
-        ///                                   (05.08.2026.) (SW port)
         chain_const_iterator operator++(int)
         {
             chain_const_iterator const previousPosition(*this);
@@ -227,7 +224,6 @@ class ModuleChainBase :
         /// strict aliasing violation GCC 15 reports at -O3, and it went with
         /// this. What is stored is a pointer either way; the constness of the
         /// pointee is what chain_iterator adds back, in get() and operator*().
-        ///                                   (05.08.2026.) (SW port)
         chain_iterator &operator=(pointer const pOther)
         {
             static_cast<chain_const_iterator::smart_ptr_t &>(*this) = pOther;
@@ -311,7 +307,6 @@ class ModuleChainBase :
     /// and no ownership change at all: the caller hands over a chain holding the
     /// new modules and gets the same object back holding the old ones, to
     /// destroy wherever it likes.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     void swap(ModuleChainBase &);

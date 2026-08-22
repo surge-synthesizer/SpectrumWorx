@@ -24,7 +24,6 @@
 /// sst-plugininfra answered" true by construction -- a tautology dressed as
 /// coverage. What is left of that hazard is io/jucePath.hpp, and the byte
 /// sequence and the character count went with it.
-///                                       (09.08.2026.) (SW port)
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later
@@ -69,7 +68,6 @@ TEST_CASE("The user preset paths answer without an initialisation step", "[paths
     /// everywhere it was written and failed the first time CI ran it. The dot is
     /// the intended answer on that branch -- it is the assertion that was wrong,
     /// not the path.
-    ///                                       (05.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     auto const rootName(root.filename());

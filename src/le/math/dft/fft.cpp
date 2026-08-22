@@ -146,7 +146,6 @@ void FFT_float_real_1D::resize(SW::Engine::StorageFactors const &factors,
     /// \note Order matters: requiredStorage() below promises the sum of the two
     /// buffers, and SharedStorageBuffer::resize() carves them out of the span
     /// in call order.
-    ///                                       (29.07.2026.) (SW port)
     scratch_.resize(factors, storage);
 
     if (size != size_)
@@ -228,7 +227,6 @@ void FFT_float_real_1D::transform(float *LE_RESTRICT const data /*in time, out D
     /// and output and several callers hand us interior pointers — and pffft
     /// documents input and output as allowed to alias, so the copy in is the
     /// only one needed.
-    ///                                       (29.07.2026.) (SW port)
     LE_ASSERT_MSG(size == this->size(), "A pffft setup is per FFT size.");
     LE_ASSUME(fftSetup_);
     auto *const LE_RESTRICT packed(workBuffer_.begin());
@@ -275,7 +273,6 @@ void FFT_float_real_1D::inverseTransform(float *LE_RESTRICT const data /*in DFT 
     /// 1/sqrt(size) on the way in turns the X/sqrt(size) the forward produced
     /// back into x — the same place, and the same order, the Accelerate branch
     /// applies its scale.
-    ///                                       (29.07.2026.) (SW port)
     LE_ASSERT_MSG(size == this->size(), "A pffft setup is per FFT size.");
     LE_ASSUME(fftSetup_);
     std::uint16_t const halfSize(size / 2);
@@ -299,7 +296,6 @@ void FFT_float_real_1D::inverseTransform(float *LE_RESTRICT const data /*in DFT 
 /// `#pragma warning( disable : 4389 )` used to bracket these two functions for
 /// MSVC and which GCC reports as -Wsign-compare. Saying which type the bin
 /// count is counted in removes the mismatch, and with it the pragma.
-///                                           (05.08.2026.) (SW port)
 void FFT_float_real_1D::transform(float *const timeDomainData, DataRange const &imaginarySubRange,
                                   bool const doFFTShift) const
 {
@@ -330,7 +326,6 @@ void FFT_float_real_1D::inverseTransform(float *const dftData,
 /// rather than filled in with pffft, because an untested complex path is worse
 /// than an absent one — and note that in a release build the assert is gone and
 /// these silently do nothing, which was already true on macOS.
-///                                           (29.07.2026.) (SW port)
 void FFT_float_real_1D::transform([[maybe_unused]] float *LE_RESTRICT const pReals,
                                   [[maybe_unused]] float *LE_RESTRICT const pImags) const
 {

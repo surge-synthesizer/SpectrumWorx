@@ -379,11 +379,8 @@ template <class Protocol> class ParameterInfoGetter : public Plugins::ParameterI
         /// \note The + 1 is the Bypass parameter an LFO ID skips: an LFO
         /// parameter with moduleParameterIndex k modulates module parameter
         /// k + 1, which is how ParameterNameGetter builds the module ID it
-        /// delegates to. This getter used to test k, so the last module
-        /// parameter's LFO reported a real range while the name and the printer
-        /// both said "N/A" -- harmless while the exported list was dynamic and
-        /// the ID was simply absent from it, wrong now that the list is fixed and
-        /// a host walks all of it.
+        /// delegates to. Testing k instead would let the last module parameter's
+        /// LFO report a real range while the name and the printer both say "N/A".
         if (pProgram && (!pModule || (id.moduleParameterIndex + 1U /*Bypass*/ >=
                                       pModule->numberOfParameters())))
         { // Dynamic parameter list:
@@ -559,7 +556,6 @@ bool Plugin2HostActiveInteropImpl<Impl, Protocol, Base>::latencyChanged()
     /// 2.4 host proxy that had them.
     ///
     ///   Windows-only, so nothing has compiled it since the port began.
-    ///                                       (30.07.2026.) (SW port)
     auto const newLatency(impl().engineSetup().latencyInSamples());
     return impl().host().reportNewLatencyInSamples(newLatency);
 }

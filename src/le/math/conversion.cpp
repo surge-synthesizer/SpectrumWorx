@@ -31,7 +31,6 @@ bool makeBool(unsigned int const boolean)
     LE_ASSERT_MSG(boolean == 0 || boolean == 1, "Boolean value not exactly 0 or 1");
     /// \note Was #if LE_LITTLE_ENDIAN / #elif LE_BIG_ENDIAN, which left the
     /// result uninitialised on a hypothetical third answer.
-    ///                                   (28.07.2026.) (SW port)
     using Bytes = unsigned char[sizeof(boolean)];
     auto const &bytes(reinterpret_cast<Bytes const &>(boolean));
     bool const &result(reinterpret_cast<bool const &>(

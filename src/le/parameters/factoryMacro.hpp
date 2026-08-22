@@ -49,7 +49,6 @@ namespace LE::Parameters
 //   Parameters remains a class of its own rather than an alias for the
 // ParameterList it is: presets.hpp forward declares GlobalParameters::Parameters,
 // and two effects declaring the same parameters would otherwise share one type.
-//                                            (31.07.2026.) (SW port)
 ////////////////////////////////////////////////////////////////////////////////
 
 #define LE_DEFINE_PARAMETERS(...)                                                                  \

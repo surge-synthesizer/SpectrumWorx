@@ -65,7 +65,6 @@ using Parameters::TriggerParameter;
 // the trait sequence prefixing every element with LE::Parameters::Traits::, and
 // a variadic macro forwards its arguments rather than visiting them. They are
 // imported rather than named at each of the ~870 declarations that use them.
-//                                            (31.07.2026.) (SW port)
 
 using Parameters::Traits::Default;
 using Parameters::Traits::Maximum;

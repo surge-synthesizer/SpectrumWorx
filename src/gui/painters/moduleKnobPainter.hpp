@@ -53,11 +53,8 @@ namespace LE::SW::GUI
 /// scales with them.
 namespace ModuleKnobStyle
 {
-/// \note The five colours stood here and are ColourMap's now -- three of its
-/// ModuleKnob* entries, plus Accent for the wedge and FocusHalo for the ring. The
-/// wedge's was 0xFF13B7EA against Theme's 0xFF13B5EA, which is the sort of
-/// two-parts-in-255 drift a central palette exists to stop.
-///                                       (18.08.2026.)
+/// \note Geometry only. The colours are ColourMap's -- three ModuleKnob* entries,
+/// plus Accent for the wedge and FocusHalo for the ring.
 float constexpr innerGradientRadius{0.26f}; ///< the dome holds its centre colour in to here
 float constexpr wedgeRadius{0.717f};
 float constexpr capRadiusClosed{0.22f}; ///< with the wedge shut
@@ -113,7 +110,7 @@ void paintTriggerButton(juce::Graphics &, juce::Rectangle<float> bounds, bool on
 /// \param normalisedValue where the value sits in its range, 0 to 1; for a
 /// \p bipolar knob 0.5 is the centre the wedge opens from.
 /// \param drawWedge false while an LFO drives the parameter, when the knob's own
-/// value says nothing -- what the ModuleKnobLFOed bitmap used to be.
+/// value says nothing.
 /// \param selected whether it has the keyboard focus.
 void paintModuleKnob(juce::Graphics &, juce::Rectangle<float> bounds, float normalisedValue,
                      bool bipolar, bool drawWedge, bool selected);

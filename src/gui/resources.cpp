@@ -121,17 +121,11 @@ Artwork loadVector(char const *const data, std::size_t const size)
 /// debug-only check that a redrawn file had kept its bitmap's canvas, and a
 /// glob that had nothing to pick up. Restoring the bitmap path is a dozen lines
 /// if the skin ever wants a photograph.
-///                                       (18.08.2026.)
 ///
-/// \note Two things went with it that are worth not having to rediscover. The
-/// 2016 loader ran an in-place `pow( x, 2.2 / 1.8 )` over every byte of every
-/// bitmap on macOS, to convert artwork authored for a PC's gamma to the Mac's
-/// -- a correction Apple made wrong in 2009 and which walked the buffer with no
-/// regard for pixel stride, so it gamma-corrected the alpha channel too. And
-/// the canvas check was not hypothetical: a vector that comes back a different
-/// size from the bitmap it replaced moves controls around the editor silently.
-/// What guards that now is the size assertion in loadVector() and the case in
-/// skinTests.cpp that walks the whole numbering.
+/// \note A drawing that comes back a different size from the one it replaced
+/// moves controls around the editor silently. What guards that is the size
+/// assertion in loadVector() and the case in skinTests.cpp that walks the whole
+/// numbering.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -139,11 +133,9 @@ Artwork loadVector(char const *const data, std::size_t const size)
 ///
 /// \brief The eleven LFO waveforms, which are drawn rather than read.
 ///
-/// \note They keep their file numbers -- 43 to 53 -- so that
-/// `resourceArtwork<LFOSine>()` and the waveform menu did not have to change
-/// when the files went. What a number means here is "the mark that used to be
-/// in that file", and this is the only place that knows the difference.
-///                                       (19.08.2026.)
+/// \note They keep the skin's numbering -- 43 to 53 -- so a number means "the
+/// mark that belongs at that index", and this is the only place that knows there
+/// is no file behind it.
 ///
 /// \note ColourMap::LFOWaveform, which is the white every one of those files
 /// stroked in. It is neutral by design and has to stay so -- \see the note on

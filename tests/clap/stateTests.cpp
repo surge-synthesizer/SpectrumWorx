@@ -362,10 +362,9 @@ LE::SW::ParameterID globalParameterID(std::uint8_t const index)
 /// "A session's parameters come back through a second plugin instance", passed
 /// while comparing one set of defaults against another.
 ///
-///   The same shape as the 303-preset case: a harness
+///   The same shape as the preset-corpus case: a harness
 /// writing through one path and reading through the other, which a green result
 /// hides for as long as both ends agree about nothing.
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -593,7 +592,6 @@ TEST_CASE("Where the user was in the panel column rides in the dawExtraState blo
 /// after the press `v="1"`, and after the release `v="1"` still. \see
 /// LE::Parameters::isAnEvent, ParametersSaver::valueToStream() and
 /// AutomatedModuleImpl::getEffectSpecificAutomatedParameter(). Issue #65.
-///                                           (16.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -615,7 +613,6 @@ TEST_CASE("A fired event is saved at rest and reads at rest", "[clap][state]")
     /// trigger is something a user fires while audio is running, so the state
     /// this case is about is a state a *running* plugin gets into. It was
     /// inactive only because most of this file is.
-    ///                                       (17.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     Plugin const plugin{nullHost(), true /*active*/};
@@ -956,7 +953,6 @@ TEST_CASE("A state stream is read whatever size the pieces arrive in", "[clap][s
 ///
 ///   `paramsFlush()` already makes this argument for an inactive plugin and
 /// drains its own echo; `stateSave()` is the active half of it.
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1021,7 +1017,6 @@ TEST_CASE("A parameter written during process() is in a state saved before the c
 /// omitted at its default -- so a wrong default shows up on all of them at once.
 /// And an in-tree harness that *looked* equivalent passed 200 random seeds
 /// without reproducing it, because it drove both instances the same way.
-///                                           (06.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

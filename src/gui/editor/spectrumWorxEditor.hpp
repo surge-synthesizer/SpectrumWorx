@@ -32,10 +32,6 @@
 #include <utility>
 #include <optional>
 //------------------------------------------------------------------------------
-/// \note A global-namespace forward declaration of Carbon's `WindowRef` and of
-/// Win32's `HWND` stood here, for the three `attachToHostWindow` overloads
-/// stage 6.4 deleted. Nothing else in the tree named either.
-///                                           (01.08.2026.) (SW port)
 namespace boost
 {
 template <class T> class intrusive_ptr;
@@ -62,8 +58,8 @@ class EditorHost;
 ///
 /// \class SpectrumWorxEditor
 ///
-/// \brief Non-template/non-plugin platform dependent part of the
-/// SpectrumWorxEditor.
+/// \brief The editor: the skin, the module rack, and the two panels that share
+/// the column beside them.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -91,25 +87,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     static constexpr unsigned short estimatedHeight{artworkHeight};
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note The zoom is not here, and that is deliberate.
-    ///
-    ///   A `zoomFactor` and a `setTransform()` at the end of this constructor
-    /// went in and came straight back out: the scale came out applied twice (a
-    /// factor of 1.5 needed `sqrt(1.5)` written down to look right). Setting the
-    /// transform on the editor *and* handing out pre-scaled bounds does it once
-    /// each -- the shim's holder divides the size back down by the child's
-    /// transform in its resized() (clap_juce_shim_impl.cpp) and then the
-    /// transform is applied again at paint time.
-    ///
-    ///   What that says is the editor is the wrong component to carry it. So it
-    /// does not: the editor keeps its skin-pixel bounds and ZoomedEditor holds
-    /// the transform and reports the scaled size to the host. Exactly one
-    /// component scales and exactly one reports size.
-    ///                                       (06.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // the zoom is deliberately not here: the editor keeps its skin-pixel bounds
+    // and ZoomedEditor holds the transform and reports the scaled size, so
+    // exactly one component scales and exactly one answers for size
 
   public: //...mrmlj...VST 2.4 editor dummy implementation...
     static bool setKnobMode(int) { return false; }
@@ -133,19 +113,16 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// column for it, and this says which. Only one panel is ever open either
     /// way: there is one panel-sized rectangle, wherever it is. \see overlayX and
     /// panelColumnX below for the two places it can be.
-    ///                                       (06.08.2026.) (SW port)
     ///
     /// \note The column is on the **left** and the skin moves right to make room
     /// for it. \see MainArea, which is what moves.
-    ///                                       (14.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
     enum class PanelPlacement : std::uint8_t
     {
-        /// Over the module strips, in an editor that never changes size. Stage
-        /// 6.4's shape: what every host can do, and what a live rack vanishes
-        /// behind.
+        /// Over the module strips, in an editor that never changes size. What
+        /// every host can do, and what a live rack vanishes behind.
         overlay,
 
         /// The editor asks its host for a wider window while a panel is up and
@@ -207,9 +184,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
   private:
     using Module = SW::Module;
 
-    /// \note The 2016 header carried this as a commented-out alternative to
-    /// `using Host = SpectrumWorx`. It is the whole of what the editor ever
-    /// wanted from the plugin in this direction, so it is the declaration now.
+    /// \note The whole of what the editor wants from the plugin in this
+    /// direction.
     using Host = Plugin2HostInteropControler;
     Host &host();
     Host const &host() const;
@@ -242,23 +218,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
     void mainKnobDragStarted(std::uint8_t parameterIndex) const;
     void mainKnobDragStopped(std::uint8_t parameterIndex) const;
 
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note Queued, and applied by the engine where every other parameter
+    /// change is: the FFT size and the overlap factor reallocate the whole
+    /// spectral working set, which is not the message thread's to do.
     ///
-    /// \note This called `SpectrumWorxCore::setGlobalParameter` -- which for the
-    /// FFT size and the overlap factor takes the processing lock, *blocking*, on
-    /// the message thread and then reallocates the entire spectral working set
-    /// under it. That is the single worst path in the old model and the one most
-    /// likely to be half of the deadlock. It queues now, and the engine applies it
-    /// where every other parameter change is applied.
-    ///
-    /// \note The old form returned whether the engine accepted the value, and one
-    /// caller used it. Nothing can answer that synchronously any more; the answer
-    /// comes back as a `ToUI::BaseParameterChanged` when the engine has one, which
-    /// is stage 5. Until then the interface believes itself, which is what it did
-    /// for every value the engine did accept.
-    ///                                       (02.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note The `bool` is not the engine's answer -- nothing can give one
+    /// synchronously. It comes back as a `ToUI::BaseParameterChanged`, and until
+    /// then the interface believes itself.
 
     template <class Parameter>
     bool globalParameterChanged(typename Parameter::value_type const value,
@@ -308,9 +274,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \brief A parameter that something other than this editor moved -- host
     /// automation, or a preset. `[main-thread]`
     ///
-    /// \note This arrives as a `ToUI::BaseParameterChanged` off the ring. The
-    /// engine used to do it by writing the widget from inside the setter, on
-    /// whichever thread the change came in on.
+    /// \note Arrives as a `ToUI::BaseParameterChanged` off the ring, so that no
+    /// widget is written from the thread the change came in on.
     ///
     ////////////////////////////////////////////////////////////////////////////
     void parameterChangedElsewhere(ParameterID, float value);
@@ -326,13 +291,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \brief Which module strip is selected, and which of its controls the mouse
     /// or the keyboard is on. One of each, per editor.
     ///
-    /// \note Both were file-scope statics -- `ModuleUI::pSelectedModule_` and
-    /// `ModuleControlBase::pActiveControl` -- which every instance of the plugin
-    /// in a host shared. Selecting a module in one window deselected the other's,
-    /// and closing a window left the survivor holding a pointer into freed
-    /// storage. The 2011 note on the second one argued a static was safe because
-    /// only one window can have focus; that is true and is not the question.
-    ///                                       (02.08.2026.) (SW port)
+    /// \note Per editor rather than per process: two instances of the plugin in
+    /// one host each have a window, and a static would let one deselect the
+    /// other's module and outlive the other's storage.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -372,18 +333,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ///
     /// \brief The module strips, which this editor owns.
     ///
-    ///   A module used to own its own strip -- a `std::optional<GUI::ModuleUI>`
-    /// member -- which is why the engine's module class was a JUCE component
-    /// container and why destroying a module had to be able to happen on the
-    /// message thread. The ownership is the other way round now: a strip holds a
-    /// counted reference to its module, so the module cannot be destroyed while
-    /// it is on screen, and no thread but this one ever touches a widget.
+    ///   A strip holds a counted reference to its module, so the module cannot be
+    /// destroyed while it is on screen and no thread but this one ever touches a
+    /// widget.
     ///
-    /// \note Found by module rather than by slot. There are at most five, the
-    /// search is a pointer comparison, and the alternative -- an array indexed by
-    /// slot -- has to be reordered every time a module is dragged or removed,
-    /// which is exactly the bookkeeping that used to go wrong.
-    ///                                       (02.08.2026.) (SW port)
+    /// \note Found by module rather than by slot: there are at most five and the
+    /// search is a pointer comparison, where an array indexed by slot would have
+    /// to be reordered every time a module is dragged or removed.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -413,37 +369,24 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ///
     /// \brief How many times refreshModuleRackAsync() has been called.
     ///
-    /// \note For tests, and it is the only seam that will do. What the counter
-    /// pins is that something *told* the rack to follow the chain -- which is a
-    /// different question from what resyncModuleRack() then does with it, and the
-    /// only one a headless run can ask: the refresh travels as a
-    /// `juce::MessageManager::MessageBase`, and there is no message loop here to
-    /// deliver it. Every case below therefore runs the resync by hand, which
-    /// means none of them can tell "asked and not delivered" from "never asked".
-    /// That distinction is exactly the bug this exists for.
-    ///                                       (06.08.2026.) (SW port)
+    /// \note For tests, and the only seam that will do: the refresh travels as a
+    /// `juce::MessageManager::MessageBase` and a headless run has no message loop
+    /// to deliver it, so a test that runs the resync by hand cannot otherwise
+    /// tell "asked and not delivered" from "never asked".
     ///
     ////////////////////////////////////////////////////////////////////////////
     std::uint32_t rackResyncRequests() const { return rackResyncRequests_; }
 
     /// \brief Draws whatever the LFOs have done since the last sweep.
     ///
-    /// \note What `timerCallback()` is, at `modulationRefreshHz`. Public so a
-    /// test can be the clock: a headless run has no message loop to turn, and
-    /// this is where a stale mailbox entry meets a rack that has changed under
-    /// it.
+    /// \note What `timerCallback()` does, at `modulationRefreshHz`. Public so a
+    /// headless test can be the clock.
     void pumpModulatedValues();
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief Takes the palette again if it has moved, and repaints everything.
     ///
-    /// \note Public for the same reason pumpModulatedValues() is: this is what
-    /// `timerCallback()` does, and a headless test has no message loop to turn,
-    /// so a test that changes the palette has to be the clock. \see the
-    /// definition.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note Public for the same reason pumpModulatedValues() is: a headless test
+    /// has to be the clock.
     void applyPaletteIfChanged();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -451,14 +394,11 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \brief Redraws the settings panel's engine information if the engine has
     /// caught up with what the user asked for.
     ///
-    /// \returns whether it repainted, which is the seam a test has -- for the
-    /// reason rackResyncRequests() gives about a different one. What the bug was
-    /// is that nothing *asked* for a repaint; a headless render repaints
-    /// everything it is given whether or not anything marked it dirty, so a
-    /// picture cannot tell "asked" from "never asked" and this can.
+    /// \returns whether it repainted, which is the seam a test has: a headless
+    /// render repaints everything it is given whether or not anything marked it
+    /// dirty, so a picture cannot tell "asked" from "never asked" and this can.
     ///
-    /// \note Public for the same reason applyPaletteIfChanged() is: it is what
-    /// `timerCallback()` does, and a headless test has to be the clock.
+    /// \note Public for the same reason applyPaletteIfChanged() is.
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool updateEngineInformationIfChanged();
@@ -533,11 +473,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// two things in it go: the panel against the left edge, the skin to the
     /// right of it, each with the margin the strips already have.
     ///
-    /// \note The column used to be on the right, which cost nothing to lay out --
-    /// every offset in the skin is measured from an origin that did not move --
-    /// and put the panel a user opens the plugin for at the far edge of the
-    /// window. It is on the left now and the skin is what moves. \see mainArea().
-    ///                                       (14.08.2026.) (SW port)
+    /// \note The column is on the left and the skin is what moves, so the panel a
+    /// user opens the plugin for is not at the far edge of the window.
+    /// \see mainArea().
     ///
     ////////////////////////////////////////////////////////////////////////////
     static constexpr unsigned short panelColumnX{panelMargin};
@@ -612,9 +550,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// one fiftieth of the rate the audio thread produces those values at. The
     /// mailbox coalesces, so a slow sweep costs nothing but smoothness.
     ///
-    /// \note This is what replaced an LFO writing `juce::Slider::setValue()` from
-    /// inside `preProcess()`. Same picture on screen; the thread that draws it is
-    /// now the one that is allowed to.
+    /// \note The audio thread writes the mailbox and this reads it, so the thread
+    /// that draws a knob is the one allowed to.
     ///
     ////////////////////////////////////////////////////////////////////////////
     void timerCallback() override;
@@ -624,22 +561,16 @@ class SpectrumWorxEditor final : private SkinLifetime,
   public:
     /// \brief What the add-module menu calls when an entry is chosen.
     ///
-    /// \note Public so that sw-show-ui can drive it. Adding a module is not one
-    /// step but five -- create, build the region, take focus, select, notify --
-    /// and only the first two are reachable through the module chain. Everything
-    /// that has gone wrong here has gone wrong in the other three, so a harness
-    /// that stops short of them is not testing the thing that breaks.
-    ///                                       (29.07.2026.) (SW port)
+    /// \note Public so that sw-show-ui can drive it: adding a module is five
+    /// steps -- create, build the region, take focus, select, notify -- and only
+    /// the first two are reachable through the module chain.
     void addUserAddedModule(std::uint8_t effectIndex);
 
     /// \brief togglePresetBrowser() with the button taken out of it.
     ///
-    /// \note Public for the same reason as addUserAddedModule() above: the
-    /// presets button is private and its handler recovers the editor *from* the
-    /// button, neither of which a headless render has. `tools/show-ui`'s
-    /// "editor-presets" page is the caller, and it exists because this button
-    /// asserted on its first real press with nothing headless covering it.
-    ///                                       (31.07.2026.) (SW port)
+    /// \note Public for the same reason as addUserAddedModule(): the presets
+    /// button is private and its handler recovers the editor *from* the button,
+    /// neither of which a headless render has.
     void showPresetBrowser(bool show);
 
     /// \brief Opens the browser on a factory bank, as double-clicking into one
@@ -665,21 +596,17 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// asked for a window that matches.
     ///
     /// \note This editor, not every open one. The preference is process-wide and
-    /// a second instance picks it up when its editor is next built -- the same
-    /// as the other three, and for the same reason: an editor reads them once,
-    /// when it is made.
+    /// a second instance picks it up when its editor is next built, an editor
+    /// reading these once, when it is made.
     ///
-    /// \note A bare editor -- what the tests and `tools/show-ui`'s 1:1 render
-    /// build -- has no ZoomedEditor over it, so there is nothing to transform;
-    /// the preference is still written. \see zoomedEditor.hpp on why the zoom
-    /// lives in the wrapper.
+    /// \note A bare editor -- what the tests and a 1:1 render build -- has no
+    /// ZoomedEditor over it, so there is nothing to transform; the preference is
+    /// still written.
     ///
     /// \note A host that refuses the resize leaves its window at the old size
-    /// with the editor drawn at the new scale until the editor is next opened,
-    /// at which point `guiGetSize` reports the zoomed size and it comes right.
-    /// The alternative -- refusing to zoom because the window did not move --
-    /// would leave the user with a control that silently does nothing.
-    ///                                       (16.08.2026.) (SW port)
+    /// with the editor drawn at the new scale until it is next opened, at which
+    /// point `guiGetSize` reports the zoomed size and it comes right. Refusing to
+    /// zoom instead would leave the user a control that silently does nothing.
     ///
     ////////////////////////////////////////////////////////////////////////////
     void setZoom(unsigned int zoomPercent);
@@ -689,16 +616,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ///
     /// \brief Asks for \p effectIndex in \p slotIndex.
     ///
-    /// \note It *was* the change: it built the module, linked it into the live
-    /// chain and built the strip, all from the message thread, and returned what
-    /// it had made. None of that can stay -- the chain belongs to the audio
-    /// thread -- so it now builds the module here and hands it over, and the
-    /// strip follows when the engine reports the chain changed.
+    /// \note An ask rather than the change itself: the chain belongs to the audio
+    /// thread, so this builds the module here and hands it over, and the strip
+    /// follows when the engine reports the chain changed.
     ///
-    ///   Which is why nothing is returned. A caller that needs to do something
-    /// to the module it asked for -- addUserAddedModule() takes focus on it --
-    /// says so through slotAwaitingFocus_ and is answered by resyncModuleRack().
-    ///                                       (02.08.2026.) (SW port)
+    /// \note Which is why no module comes back. A caller that needs to do
+    /// something to the one it asked for -- addUserAddedModule() takes focus on
+    /// it -- says so through slotAwaitingFocus_, and resyncModuleRack() answers.
     ///
     ////////////////////////////////////////////////////////////////////////////
     /// \return whether the module could be built at all -- an effect this build
@@ -738,9 +662,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// addUserAddedModule() is: removing a module is five steps -- shuffle the
     /// strips left, decrement the slot marker, empty the slot, tell the host, drop
     /// the strip -- and only the middle one is reachable through the chain.
-    /// Everything that has gone wrong here has gone wrong in the other four, and
-    /// the assertion this note was written for came from the first.
-    ///                                       (02.08.2026.) (SW port)
     void removeModule(ModuleUI &);
 
   private:
@@ -755,16 +676,10 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ///
     /// \brief The skin, and every widget laid out in its pixels.
     ///
-    ///   Everything but a panel is parented here rather than to the editor, and
-    /// that is the whole of what moving the panel column to the left cost: the
-    /// skin's 845 x 564 coordinate system is this component's, so no offset in it
-    /// moved and none of them has to know whether there is a column. The editor
-    /// slides this right by mainAreaX when there is one and paints what is left of
-    /// itself -- the column's chrome and the build-stamp bar.
-    ///
-    /// \note It is also the component the zoom note above wants: one content child
-    /// carrying everything, which is where a transform would go.
-    ///                                       (14.08.2026.) (SW port)
+    ///   Everything but a panel is parented here rather than to the editor, so
+    /// the skin's 845 x 564 coordinate system is this component's and no offset in
+    /// it has to know whether there is a column. The editor slides this right by
+    /// mainAreaX when there is one and paints the column's chrome itself.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -779,15 +694,12 @@ class SpectrumWorxEditor final : private SkinLifetime,
         /// are the skin's.
         ///
         /// \note Named rather than a literal inside `mouseDown()` because
-        /// overlayPanelTests.cpp has to click it, and a test carrying its own
-        /// copy of the numbers is a second place to update when the logo moves
-        /// in the artwork. It clicks the centre of *this*, so redrawing the skin
-        /// costs one edit here instead of two.
+        /// overlayPanelTests.cpp clicks the centre of it, so redrawing the skin
+        /// costs one edit here rather than two.
         ///
         /// \note A function rather than a constant because juce::Rectangle's
         /// constructor is not constexpr, and a namespace-scope object would be
         /// runtime-initialised for no reason.
-        ///                                   (14.08.2026.) (SW port)
         ///
         ////////////////////////////////////////////////////////////////////////
 
@@ -838,10 +750,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// and because the two are answers to the same question -- which is asked
     /// once, by moduleDropAt(), and drawn here.
     ///
-    /// \note What replaced a `Gradient`: a 68 px block of transparent-to-grey
-    /// straddling a slot boundary, which was the only drop this editor had and
-    /// so did not have to say which of two it was.
-    ///                                       (14.08.2026.) (SW port)
     ////////////////////////////////////////////////////////////////////////////
 
     class DropIndicator final : public WidgetBase<>
@@ -876,14 +784,10 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ///
     /// \brief What letting go of a dragged strip somewhere would do.
     ///
-    /// \note A value rather than a state the drag keeps, so that the question is
-    /// asked the same way twice: moduleDrag() asks it to draw the indicator and
+    /// \note A value rather than a state the drag keeps, so the question is asked
+    /// the same way twice: moduleDrag() asks it to draw the indicator and
     /// moduleDragEnd() asks it again to act. What the user is shown and what
-    /// happens are then the same function of the same point, rather than a
-    /// drawing and an interpretation of that drawing -- which is what the code
-    /// this replaced did, recovering the target slot from where it had put a
-    /// gradient block.
-    ///                                       (14.08.2026.) (SW port)
+    /// happens are then the same function of the same point.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -917,8 +821,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// pointer. \see the definition.
     ///
     /// \note Public and static so that a test can compose it with moduleDropAt():
-    /// what went wrong here is that the two disagreed, and that is a question
-    /// about the pair rather than about either.
+    /// the two agreeing is a question about the pair rather than about either.
     ///
     ////////////////////////////////////////////////////////////////////////////
     static juce::Point<int> draggedStripCentre(juce::Point<int> pointer,
@@ -930,10 +833,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// the skin's coordinates, which are mainArea()'s -- would do to the strip in
     /// \p sourceSlot. \see draggedStripCentre() for what \p position is.
     ///
-    /// \note Public so that a test can ask it. Driving this by mouse needs a real
+    /// \note Public so that a test can ask it: driving this by mouse needs a real
     /// drag, which needs a window and a `MouseInputSource` that a synthesised
-    /// event does not touch (see tests/gui/moduleControlFocusTests.cpp), and the
-    /// geometry is the half of a drop that can be wrong in a way nobody notices.
+    /// event does not touch.
     ///
     ////////////////////////////////////////////////////////////////////////////
     ModuleDrop moduleDropAt(std::uint8_t sourceSlot, juce::Point<int> position) const;
@@ -942,8 +844,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// line in a gap for an insert -- or takes the indication away.
     ///
     /// \note Public for the same reason as moduleDropAt(): the only other way to
-    /// this is a live JUCE drag, and what a drag *draws* is the half of it a user
-    /// reads before committing to anything.
+    /// this is a live JUCE drag.
     void showModuleDrop(ModuleDrop drop);
 
     /// \brief Carries \p drop out on the strip in \p sourceSlot: the rack first,
@@ -1080,8 +981,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
           private: // JUCE component overrides.
             friend class LFODisplay;
-            /// \note JUCE 8 passes a DragMode where 2016 passed a bool. The
-            /// implementation ignored it either way.
             double snapValue(double attemptedValue, DragMode) override;
 
           private:
@@ -1134,18 +1033,11 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
         /// \brief One LFO parameter, queued rather than written.
         ///
-        /// \note `lfo().parameters().set<LFOParameter>()` stood in the middle of
-        /// this for every parameter: the message thread writing an LFO the audio
-        /// thread reads every block, unsynchronised.
-        ///
         /// \note The two past `lfoExportedParameters` -- Waveform and SyncTypes
         /// -- have no ParameterID and so no route through the parameter queue.
         /// They take `ToEngine::SetUnexportedLFOParameter` instead, addressed by
-        /// index. **Everything that edits an LFO has to come through here**: the
-        /// N/T/D buttons wrote `LFO::addSyncType()` directly until 06.08.2026 and
-        /// were therefore inaudible for as long as the editor has been bound to
-        /// `programMain_`.
-        ///                                   (02.08.2026, amended 06.08.2026.) (SW port)
+        /// index. **Everything that edits an LFO has to come through here**, or
+        /// the edit reaches the main thread's copy and never the engine.
         template <class LFOParameter, typename T>
         void updateParameterAndNotifyHost(T const widgetValue)
         {
@@ -1158,10 +1050,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
             //...mrmlj...fmod/separated DSP-GUI...
             if (parameterIndex >= ParameterCounts::lfoExportedParameters)
             {
-                /// \note Both copies, as everywhere else -- `lfo()` is the main
-                /// thread's own module now. The queue leg is what stops this
-                /// being a change the user makes and never hears; the host is
-                /// told nothing because there is no ParameterID to tell it about.
+                // both copies, as everywhere else: lfo() is the main thread's
+                // own module, and the queue leg is what the engine hears. The
+                // host is told nothing, there being no ParameterID for it
                 lfo().parameters().set<LFOParameter>(parameterValue);
                 queueUnexportedLFOParameter(parameterIndex, internalValue);
                 return;
@@ -1239,12 +1130,10 @@ class SpectrumWorxEditor final : private SkinLifetime,
         /// \brief Redraws the four engine information lines if what they say has
         /// moved.
         ///
-        /// \note Polled rather than pushed, for the reason
-        /// SpectrumWorxEditor::applyPaletteIfChanged() is: the numbers come out
-        /// of `Engine::Setup`, the setup is rebuilt on whichever thread owns the
-        /// engine some time after the user picks an FFT size, and nothing marks
-        /// a pixel of this page dirty when it happens. \see issue #142.
-        ///                                   (21.08.2026.)
+        /// \note Polled rather than pushed: the numbers come out of
+        /// `Engine::Setup`, which is rebuilt on whichever thread owns the engine
+        /// some time after the user picks an FFT size, and nothing marks a pixel
+        /// of this page dirty when it happens.
         ///
         ////////////////////////////////////////////////////////////////////////
 
@@ -1277,7 +1166,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
         /// puts the bar flush against the top left, which is a pixel in from an
         /// edge nothing else on either panel measures from. \see issue #134.
         ///
-        /// \note And in front of the page, which it now overlaps: `changeCallback`
+        /// \note And in front of the page, which it overlaps: `changeCallback`
         /// brings the page forward every time a tab is pressed, so this is the
         /// only place the order can be settled.
         ///
@@ -1299,8 +1188,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
         /// \note Every route to a tab goes through here -- a press on the bar,
         /// and setCurrentTabIndex() whether or not it was asked to send the
-        /// change message -- so it is the one place the session's answer has to
-        /// be written. \see EditorHost::settingsPage().
+        /// change message -- so it is the one place the session's answer can be
+        /// written.
         void currentTabChanged(int newCurrentTabIndex, juce::String const &newTabName) override;
 
       private: // JUCE ButtonListener overrides.
@@ -1344,24 +1233,15 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
           private:
             friend class Settings;
-            /// \note Zoom first and the colour scheme under it: those are the
-            /// two a user reaches for, and the two below them are set once and
-            /// forgotten. Nothing is baked into the page bitmap -- each control
-            /// draws its own title -- so the order is a layout decision rather
-            /// than an artwork one.
+            /// \note Zoom first and the colour scheme under it, those being the
+            /// two a user reaches for. Each control draws its own title, so the
+            /// order is a layout decision rather than an artwork one.
             TitledComboBox zoom_;
             TitledComboBox palette_;
             TitledComboBox moduleUIMouseOverReaction_;
             TitledComboBox lfoUpdateBehaviour_;
             LEDTextButton hideCursorOnKnobDrag_;
         }; // class InterfacePage
-
-        /// \note The About tab used to be a third nested class here, of the same
-        /// shape as the two above: a baked bitmap with a version string drawn
-        /// over it. It is GUI::AboutPage now -- \see gui/about.hpp -- because
-        /// unlike these two it holds no editor state at all, so nothing was
-        /// keeping it inside a nested class of a 3,500-line file.
-        ///                                   (15.08.2026.) (SW port)
 
         EnginePage enginePage_;
         InterfacePage interfacePage_;
@@ -1389,8 +1269,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
   private:
     friend class ModuleControlBase;
     /// \note Written by ModuleUI::activate()/deactivate() and by
-    /// ModuleControlBase::report{Active,Inactive}Control(), which are the four
-    /// places that used to write the statics these replace.
+    /// ModuleControlBase::report{Active,Inactive}Control(), and nowhere else.
     ModuleUI *pSelectedModule_{nullptr};
     ModuleControlBase *pActiveControl_{nullptr};
 
@@ -1419,9 +1298,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
     ModuleMenuButton moduleMenuButton_;
     DropIndicator dropIndicator_;
 
-    /// \note Was public, for the 2016 loader thread's completion callback to
-    /// reach. There is no loader thread now, so it is nobody's but the editor's
-    /// and its own nested class's.
     SampleArea sampleArea_;
 
     PaintedButton preset_;
@@ -1432,12 +1308,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \brief "Ignore external audio": whether a preset gets to bring an audio
     /// file with it, in either direction.
     ///
-    /// \note The preset browser's, as a captioned LED, until issue #44 wanted
-    /// that row for preset navigation. It says something about the sidechain
-    /// source, so it sits beside the sidechain source -- and it outlives the
-    /// browser here, which the browser being built and destroyed with the
-    /// overlay means it did not before.
-    ///                                       (19.08.2026.)
+    /// \note It says something about the sidechain source, so it sits beside the
+    /// sidechain source -- and here it outlives the preset browser, which is
+    /// built and destroyed with the panel. \see issue #44.
     ///
     ////////////////////////////////////////////////////////////////////////////
 

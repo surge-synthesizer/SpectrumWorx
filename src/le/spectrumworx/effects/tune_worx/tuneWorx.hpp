@@ -38,7 +38,6 @@ namespace Detail
 /// build stopped including, the arm it selected was then deleted as dead, and
 /// the extra parameters reached a release. Do not restore them without the
 /// implementation to match.
-///                                           (11.08.2026.) (SW port)
 struct TuneWorxBase ///<
 {
     LE_ENUMERATED_PARAMETER(Key, A, Ais, B, C, Cis, D, Dis, E, F, Fis, G, Gis);
@@ -161,7 +160,6 @@ EFFECT_PARAMETER_NAME(Detail::TuneWorxBase::Semi12, "12")
 /// and what the DSP adds to a note offset off a 27.5 Hz A
 /// (musicalScales.cpp:109), so A stays zero. What starts at C is the menu, which
 /// is what the MENU_ORDER list below says. \see Parameters::MenuOrder.
-///                                           (17.08.2026.)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -104,9 +104,8 @@ add_executable(sw-plugin-tests
 #
 # sw-gui by name, because sw-impl links it PRIVATE: the editor cases include its
 # headers, and a LINK_ONLY dependency carries the library without them. Every
-# target that wants a JUCE header now says which one it wants, which is what
-# stops the bundles compiling JUCE a second time -- see src/CMakeLists.txt.
-#                                       (09.08.2026.) (SW port)
+# target that wants a JUCE header says which one it wants, which is what stops
+# the bundles compiling JUCE a second time -- see src/CMakeLists.txt.
 target_link_libraries(sw-plugin-tests PRIVATE sw-impl sw-gui Catch2::Catch2WithMain)
 
 # clapwrapper/{auv2,vst3}.h, for the two sub-factories identityTests.cpp pins.

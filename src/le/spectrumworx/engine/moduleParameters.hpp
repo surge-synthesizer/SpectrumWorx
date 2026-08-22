@@ -96,7 +96,6 @@ class ModuleParameters : public ModuleNode
     /// deleted `LE_SW_GUI` flag used to decide, "which in a release build decided
     /// the layout of every module object, so the engine had two ABIs and only the
     /// debug ones matched".
-    ///                                       (02.08.2026.) (SW port)
     float getBaseParameter(std::uint8_t baseParameterIndex) const;
     float setBaseParameter(std::uint8_t baseParameterIndex, float value);
 
@@ -128,7 +127,6 @@ class ModuleParameters : public ModuleNode
     /// \note Indexed as `lfo()` is: `numberOfLFOBaseParameters` entries for the
     /// LFO-able shared parameters (Bypass excluded, hence the -1), then one per
     /// effect parameter.
-    ///                                       (02.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -212,7 +210,6 @@ class ModuleParameters : public ModuleNode
         /// survived a macOS build; GCC on aarch64 does not declare it at all and
         /// the typedef simply failed to parse. Gone, along with the
         /// `-Wignored-attribute` suppression that existed only to silence it.
-        ///                               (29.07.2026.) (SW port)
         typedef char const *(GetParameterValueString)(std::uint8_t index,
                                                       ParameterPrinter const &)/*noexcept*/;
 
@@ -235,7 +232,6 @@ class ModuleParameters : public ModuleNode
         /// MakeEffectMetaData initialises this as an aggregate. The const and
         /// reference members already make it non-assignable, and the only
         /// instances are the per-effect statics, handed out by reference.
-        ///                               (28.07.2026.) (SW port)
     }; // struct EffectMetaData
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -267,14 +263,9 @@ class ModuleParameters : public ModuleNode
     parameter_value_t setEffectParameterFromLFOAux(std::uint8_t parameterIndex, LFO::value_type);
 
   private:
-    /// \note `virtual void set{Base,Effect}ParameterFromLFO()` stood here, and
-    /// `SW::Module` overrode both to push the new value into a `juce::Slider` --
-    /// from the audio thread, once per block, per enabled LFO. That is the stack
-    /// in doc/tech/threading_model.md §1, and these two virtuals were the
-    /// whole of why it existed. The engine no longer tells anyone anything; the
-    /// plugin publishes what the LFOs did into the ValueMailbox after the block.
-    ///                                       (02.08.2026.) (SW port)
-
+    /// \note Nothing here is virtual for an interface's benefit: the engine tells
+    /// no one anything, and the plugin publishes what the LFOs did into the
+    /// ValueMailbox after the block. \see doc/tech/threading_model.md §1.
     LFO *constructLFOs(LFOPlaceholder *) const;
 
   private:

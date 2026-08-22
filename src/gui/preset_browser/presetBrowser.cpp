@@ -35,8 +35,7 @@ namespace
 {
 typedef juce::String::CharPointerType::CharType char_t;
 
-/// \note The length went with the byte arithmetic in refreshUserDirectory();
-/// `fs::path::extension()` compares the whole thing.
+/// \note Compared whole, by `fs::path::extension()`.
 static char_t const presetExtension[] = _T( ".swp" );
 } // namespace
 
@@ -45,10 +44,8 @@ static char_t const presetExtension[] = _T( ".swp" );
 
 PresetBrowser::PresetBrowser()
     : PanelBackground(Browser),
-      /// \note 54 x 22 where the artwork was 48 x 16: the extra six is the room
-      /// a lit button's halo needs, and the pills land where they always did
-      /// because the three positions below moved in by the same three pixels.
-      ///                                       (18.08.2026.)
+      // the widget is six pixels larger than the pill each way, which is the
+      // room a lit button's halo needs; the positions below allow for it
       save_(*this, "Save", 81, 33, false), saveAs_(*this, "Save as", 81, 33, false),
       delete_(*this, "Delete", 81, 33, false),
       browseArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
@@ -63,11 +60,8 @@ PresetBrowser::PresetBrowser()
 
     setSizeFromPanel();
 
-    /// \note All three start disabled and refresh() decides Save-As from there.
-    /// It used to be settled once, here, before the browser had ever listed
-    /// anything, and nothing re-enabled it: Save-As was unclickable for the
-    /// life of the plugin.
-    ///                                       (01.08.2026.) (SW port)
+    // all three start disabled and refresh() decides from there, this running
+    // before the browser has listed anything
     save_.setEnabled(false);
     saveAs_.setEnabled(false);
     delete_.setEnabled(false);
@@ -82,14 +76,12 @@ PresetBrowser::PresetBrowser()
     jogPrevious_.addListener(this);
     jogNext_.addListener(this);
 
-    /// \note Here rather than at the first save: an empty browser with no way
-    /// to make a folder is not a usable answer to "you have no presets yet".
+    // here rather than at the first save: an empty browser with no way to make
+    // a folder is not a usable answer to "you have no presets yet"
     GUI::createUserPresetsFolder();
 
-    /// \note Where it was last left, and the list of factory banks the first
-    /// time, rather than the user's folder. A new installation's user folder is
-    /// empty, and a browser that opens on nothing while 303 presets sit in the
-    /// binary is the state this was reported in.
+    // where it was last left, and the factory banks the first time rather than
+    // the user's folder, which on a new installation is empty
     restoreLastPlace();
 
     browseArrow_.setTopLeftPosition(261, 15);
@@ -97,10 +89,9 @@ PresetBrowser::PresetBrowser()
     saveAs_.setTopLeftPosition(21 + 83, 45);
     delete_.setTopLeftPosition(21 + 83 + 83, 45);
 
-    /// \note The navigation row, in the gap the panel already had between the
-    /// Save buttons and the list. The four x positions are issue #44's mock-up
-    /// measured off it: up against the list's left frame, the user centred on
-    /// the panel, and the jog's two halves abutting against its right frame.
+    // the navigation row, in the gap the panel already had between the Save
+    // buttons and the list: up against the list's left frame, the user centred
+    // on the panel, and the jog's two halves abutting its right frame
     upFolder_.setTopLeftPosition(10, GlyphStyle::rowTop);
     userPresets_.setTopLeftPosition(131, GlyphStyle::rowTop);
     jogPrevious_.setTopLeftPosition(233, GlyphStyle::rowTop);
@@ -116,11 +107,8 @@ PresetBrowser::PresetBrowser()
 
     listBox_.setOpaque(false);
     listBox_.setRowHeight(24);
-    /// \note `getViewport()->setScrollBarThickness( 12 )` stood here. The width
-    /// is Theme's now, so the list and the comment box below it get the same one
-    /// -- this was the only bar that had been told, and the comment box's was
-    /// JUCE's eighteen. \see Theme::getDefaultScrollbarWidth(), issue #90.
-    ///                                       (17.08.2026.)
+    // the scroll bar width is Theme's, so the list and the comment box below it
+    // get the same one. \see Theme::getDefaultScrollbarWidth()
 
     comment().setMultiLine(true);
     comment().setReturnKeyStartsNewLine(true);
@@ -153,11 +141,6 @@ PresetBrowser::PresetBrowser()
 
     addToParentAndShow(*this, comment());
     addToParentAndShow(*this, listBox_);
-
-    /// \note `OwnedWindow<PresetBrowser>::attach()` stood here and made this a
-    /// desktop window owned by the editor's. The editor parents and positions it
-    /// now -- see SpectrumWorxEditor::openOverlay().
-    ///                                       (01.08.2026.) (SW port)
 }
 
 #pragma warning(pop)
@@ -205,8 +188,7 @@ PresetBrowser::~PresetBrowser()
     //this->fadeOutComponent( 600, 0, 0, 0.2f );
     //juce::Point<int> const centre( this->getBounds().getCentre() );
     //juce::Desktop::getInstance().getAnimator().animateComponent( this, juce::Rectangle<int>( centre, centre ), 0, 600, true, 0, 0 );
-    /// \note Into the session's state, which outlives both this browser and the
-    /// window it was in. \see the note on place().
+    // into the session's state, which outlives both this browser and the window
     auto &state(place());
     state.presetLocation = (location_ == Location::User) ? PanelState::PresetLocation::user
                                                          : PanelState::PresetLocation::factory;
@@ -218,18 +200,9 @@ PresetBrowser::~PresetBrowser()
 /// into, rename or delete there.
 bool PresetBrowser::enablePresetSaving() const { return location_ == Location::User; }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::selectedPresetData()
-// -----------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note The one place the two sources meet. Both hand back the same thing --
-/// a writable, NUL-terminated buffer -- so everything downstream of here is the
-/// same code for a factory preset and for the user's own.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note The one place the two sources meet. Both hand back the same thing -- a
+/// writable, NUL-terminated buffer -- so everything downstream is the same code
+/// for a factory preset and for the user's own.
 
 Preset::InMemoryPreset PresetBrowser::selectedPresetData() const
 {
@@ -280,10 +253,8 @@ unsigned int PresetBrowser::selectedIndex() const
 PresetBrowser::Item const &PresetBrowser::item(unsigned int const index) const
 {
     Item const &item(files_.getReference(index));
-    /// \note Hoisted, and ignored in a shipping build: LE_ASSERT does not
-    /// evaluate its argument under NDEBUG, so the code this fills in is unread
-    /// there. The `std::error_code` overload all the same -- the throwing one
-    /// would be reachable from a paint.
+    // the std::error_code overload, the throwing one being reachable from a
+    // paint. Hoisted, and unread under NDEBUG, where LE_ASSERT drops its argument
     std::error_code error;
     LE::Utility::ignoreUnused(error);
     LE_ASSERT((location_ != Location::User) || item.isDirectory() ||
@@ -298,14 +269,11 @@ PresetBrowser::Item const &PresetBrowser::selectedItem() const { return item(sel
 /// \brief The row's file, or an empty path when the row does not have one. See
 /// selectedPresetData(), which is what the load path uses.
 ///
-/// \note The two conditions were `LE_ASSERT`s, which a shipped build does not
-/// compile -- so what stood between a factory bank and a delete or an overwrite
-/// was that the buttons were disabled. Enablement is a statement about the
-/// interface and this is a statement about the file system, and the two are only
-/// as equal as every path that sets one of them. Now they cannot disagree:
-/// anywhere but `User` there is no file to return, and every caller of this
-/// treats an empty one as nothing to do.
-///                                           (08.08.2026.) (SW port)
+/// \note Checks rather than assertions, so that a shipped build has the same
+/// answer: enablement is a statement about the interface and this is one about
+/// the file system, and the two are only as equal as every path that sets one.
+/// Anywhere but `User` there is no file to return, and every caller treats an
+/// empty one as nothing to do.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -341,8 +309,8 @@ void PresetBrowser::listBoxItemDoubleClicked(int const row, juce::MouseEvent con
         return setNewFolder(currentDirectory_ / LE::IO::juceStringToPath(item.name));
 
     case Item::Kind::Preset:
-        /// \note Renaming is the double-click action on a preset, and a factory
-        /// bank is in the binary.
+        // renaming is the double-click action on a preset, and a factory bank
+        // is in the binary
         if (!inFactory())
             showFilenameEditBox(item.name, listBox_.getLastRowSelected());
         return;
@@ -352,20 +320,10 @@ void PresetBrowser::listBoxItemDoubleClicked(int const row, juce::MouseEvent con
 void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphics, int const width,
                                      int const height, bool const rowIsSelected)
 {
-    /// \note A row past the end of the listing is not something to assert on:
-    /// JUCE paints whatever row number the recycled RowComponent last held
-    /// (RowComponent::paint, juce_ListBox.cpp) and updateContents() stamps one
-    /// on every component it keeps, not just on the ones the model has rows for.
-    /// The extras sit below the viewed component and are normally clipped away
-    /// -- but the editor is drawn through a scale transform, and the software
-    /// renderer (which is what a juce::Image gets everywhere except macOS)
-    /// rounds a transformed clip outwards, leaving the first one past the end a
-    /// sliver to paint in. Drawing nothing for it is the whole job.
-    ///
-    /// This was an `#ifdef __APPLE__` guard for the other way the same thing
-    /// happens: double-clicking the last preset brings up the filename edit box
-    /// and adds the bogus row (addOneRow_) that then gets painted.
-    ///                                        (25.11.2011.) (Domagoj Saric)
+    // a row past the end is not something to assert on: JUCE stamps a row
+    // number on every recycled RowComponent it keeps, not only on the ones the
+    // model has rows for, and a transformed clip rounded outwards leaves the
+    // first one past the end a sliver to paint in
     if (rowNumber >= files_.size())
         return;
 
@@ -379,11 +337,8 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
 
     unsigned int const x(isDirectory ? 24 : 6);
 
-    /// \note Drawn rather than asked for. This was
-    /// `Theme::getDefaultFolderImage()`, which JUCE 8 answers with a Drawable,
-    /// may answer with nothing at all, and draws in its own look and feel's
-    /// colours rather than in this skin's -- so the one mark in the panel that
-    /// did not follow the palette was the folder. \see GlyphPainter.
+    // drawn rather than asked for: JUCE's own folder image may be nothing at
+    // all, and draws in its look and feel's colours rather than this skin's
     if (isDirectory)
         GlyphPainter::paintFolder(graphics,
                                   juce::Rectangle<float>(3.0f, 0.0f, static_cast<float>(x) - 6.0f,
@@ -394,8 +349,7 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
         juce::DirectoryContentsDisplayComponent::textColourId));
     graphics.setFont(height * 0.7f);
 
-    // The 4 on the right is issue #76's margin: a name as wide as the list had
-    // its last glyph against the scrollbar.
+    // the right margin keeps a name as wide as the list off the scrollbar
     graphics.drawFittedText(item.name, x, 0, width - x - 6, height,
                             juce::Justification::centredLeft, 1);
 }
@@ -411,23 +365,10 @@ void PresetBrowser::textEditorTextChanged(juce::TextEditor &editor)
         dirtyCommentPresetIndex_ = listBox_.getLastRowSelected();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::textEditorReturnKeyPressed()
-// -------------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note This is the save path the plan calls out: it asked the user two
-/// questions -- "overwrite?" and "retry?" -- and read the answers as return
-/// values, one of them from inside a `while` condition. Neither dialog can
-/// answer in place under JUCE 8, so both are inverted into continuations.
-///
-///   Each one captures a `SafePointer` rather than `this`. The browser is an
-/// owned window and the user can shut it while a dialog is up, which under the
-/// old synchronous code was impossible and is now the normal way to dismiss one.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note The save path asks the user two questions -- "overwrite?" and "retry?"
+/// -- and neither dialog can answer in place under JUCE 8, so both are
+/// continuations. Each captures a `SafePointer` rather than `this`, the user
+/// being free to shut the browser while a dialog is up.
 
 void PresetBrowser::textEditorReturnKeyPressed(juce::TextEditor &editor)
 {
@@ -448,9 +389,8 @@ void PresetBrowser::textEditorReturnKeyPressed(juce::TextEditor &editor)
 
     juce::Component::SafePointer<PresetBrowser> const self(this);
 
-    /// \note One `error_code` for the two probes below rather than one each: both
-    /// ask the same question of the same path, neither reads the answer, and the
-    /// point of it is only that they cannot throw.
+    // one error_code for the two probes below: neither reads the answer, and
+    // the point of it is only that they cannot throw
     std::error_code error;
 
     if (newPresetPending_)
@@ -477,14 +417,12 @@ void PresetBrowser::textEditorReturnKeyPressed(juce::TextEditor &editor)
     }
 
     fs::path const sourceFile(selectedFile());
-    /// \note An empty source is a row with no file behind it -- a factory
-    /// preset, or the root's two section entries. Nothing to rename.
-    ///
-    /// \note `==` on two paths is a lexical compare where `juce::File`'s was
-    /// case-insensitive off Linux. Both of these are built from the same
-    /// `currentDirectory_` and a name the file system just reported, so the
-    /// comparison is between two spellings of the same origin -- which is the
-    /// case lexical equality answers correctly.
+    // an empty source is a row with no file behind it -- a factory preset, or
+    // the root's two section entries -- and there is nothing to rename
+    //
+    // `==` on two paths is a lexical compare, which is right here: both are
+    // built from the same currentDirectory_ and a name the file system just
+    // reported, so it compares two spellings of one origin
     if (sourceFile.empty() || (sourceFile == targetFile))
         return;
 
@@ -502,15 +440,13 @@ void PresetBrowser::textEditorReturnKeyPressed(juce::TextEditor &editor)
     });
 }
 
-/// \note Was the body of a `while` loop whose condition asked the user whether
-/// to retry. It calls itself from the dialog's callback instead -- one live
-/// attempt at a time, and the stack unwinds between them.
+/// \note Calls itself from the retry dialog's callback rather than looping: one
+/// live attempt at a time, with the stack unwinding between them.
 void PresetBrowser::renameTo(fs::path const &sourceFile, fs::path const &targetFile,
                              juce::String const &newName)
 {
-    /// \note `rename()`, which is what `juce::File::moveFileTo` came down to for
-    /// two paths on the same volume -- and both of these are children of
-    /// `currentDirectory_`, so they always are.
+    // rename() rather than a copy: both are children of currentDirectory_, so
+    // they are always on the same volume
     std::error_code error;
     std::filesystem::rename(sourceFile, targetFile, error);
     if (!error)
@@ -556,27 +492,12 @@ void PresetBrowser::textEditorFocusLost(juce::TextEditor &editor)
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::saveDirtyComment()
-// ---------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
 // Implementation note:
-//   Focus change monitoring and handling logic failed to work as desired
-// when a juce::TextEditor::Listener was used to 'listen' to the comment
-// 'TextEditor' because JUCE sends notifications through listeners
-// asynchronously so a focus lost notification was received after the
-// ListBoxModel::selectedRowsChanged() notification was received when all
-// the required information on the current preset and a possibly non-saved
-// comment are lost. For this reason a little utility class was used that simply
-// derives from juce::TextEditor and override its focusLost() method to handle
-// it directly (and synchronously). This approach however required RTTI on OSX
-// (because JUCE converts between TextEditorListener and Component instance
-// pointers with dynamic_cast) so the "dirty comment tracking" technique is
-// currently used.
+//   The comment box's edits are tracked by index rather than written on focus
+// loss: JUCE delivers a listener's focus-lost notification after
+// ListBoxModel::selectedRowsChanged(), by which point which preset the comment
+// belonged to has been lost.
 //                                            (16.12.2010.) (Domagoj Saric)
-////////////////////////////////////////////////////////////////////////////////
 
 void PresetBrowser::saveDirtyComment()
 {
@@ -599,11 +520,9 @@ void PresetBrowser::saveDirtyComment()
         juce::String const newComment(comment().getText());
 
         //...assert that the file/preset on disk is the same as the one in selectedPreset...
-        /// \note A read-modify-write of the header alone: the document that goes
-        /// back is the one that came off disk, so a 2.x preset stays 2.x and
-        /// only its Comment moves. Editing a comment is not a reason to rewrite
-        /// somebody's file into a grammar the plugin they had it from cannot
-        /// read.
+        // a read-modify-write of the header alone, so a 2.x preset stays 2.x
+        // and only its Comment moves: editing a comment is not a reason to
+        // rewrite somebody's file into a grammar their plugin cannot read
         std::string newPresetData;
         {
             auto const pPresetData(readPresetFile(dirtyPreset));
@@ -638,9 +557,8 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
 {
     if (pButton == &save_)
     {
-        /// \note Asked rather than assumed. These two used to run on the
-        /// strength of the button being enabled; `file()` says why that is not
-        /// the same thing.
+        // asked rather than assumed; \see file() for why an enabled button is
+        // not the same statement
         fs::path const target(selectedFile());
         if (!target.empty())
             saveCurrentPreset(selectedItem().name, target);
@@ -659,29 +577,10 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
     }
     else if (pButton == &saveAs_)
     {
-        ////////////////////////////////////////////////////////////////////////
-        ///
-        /// \note A name the user is *offered*, so it is allowed to be imperfect;
-        /// what it is not allowed to do is take forever, and it did.
-        ///
-        ///   The suffix used to be measured by hand -- `1 + 1 + 2 + counter/100
-        /// + 1` -- and written with `snprintf` straight into `juce::String`'s
-        /// buffer. The arithmetic is off by one number: at the round where
-        /// `counter` reads 99 the width is still computed for two digits, and
-        /// the three-digit " (100)" is truncated to " (100" with the closing
-        /// bracket dropped. The name that comes out is not the name the next
-        /// round makes either, so the search stops converging and spins -- with
-        /// the user's finger on Save As and a hundred presets of the same name,
-        /// which is a real state for a bank built by duplicating one preset.
-        ///
-        ///   Built as a string now, with a bound. Running out of numbers offers a
-        /// name that is already taken, which is the same thing this offered on
-        /// the very first round when nothing collided: the edit box is up and the
-        /// user types over it.
-        ///                                   (08.08.2026.) (SW port)
-        ///
-        ////////////////////////////////////////////////////////////////////////
-
+        // a name the user is *offered*, so it may be imperfect but may not take
+        // forever. Running out of numbers offers one that is already taken,
+        // which is what the first round offers anyway: the edit box is up and
+        // the user types over it
         constexpr unsigned int mostNamesToTry{1000};
 
         juce::String const baseName(editor().currentProgramName());
@@ -710,9 +609,8 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
     }
     else if (pButton == &userPresets_)
     {
-        /// \note The toggle state is already the new one -- juce::Button flips
-        /// it before it tells its listeners -- so this reads the answer rather
-        /// than deciding it, and updateNavigation() will agree with it.
+        // the toggle state is already the new one, juce::Button flipping it
+        // before it tells its listeners, so this reads the answer
         if (userPresets_.getToggleState())
             setNewFolder(GUI::presetsFolder());
         else
@@ -729,21 +627,14 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
     else
     {
         LE_ASSERT(pButton == &browseArrow_);
-        /// \note Asynchronous, and the chooser is a member: JUCE 8 has no
-        /// browseForDirectory(), and launchAsync() reports through a callback
-        /// that the chooser has to still be alive to make.
-        ///
-        /// \note Opened where the list is, and `currentDirectory_` is only that
-        /// at `User` -- from the root or a factory bank it is stale or empty,
-        /// which starts a native dialog wherever that resolves to.
-        ///                                   (08.08.2026.) (SW port)
-        ///
-        /// \note **One of the two places in `src/` that may name `juce::File`**,
-        /// the other being the editor's audio file chooser;
-        /// tests/checkNoJuceFile.cmake allowlists both. `juce::FileChooser` is
-        /// handed one and answers with one, so the conversion happens on the way
-        /// in and on the way out and the type reaches nothing else --
-        /// `setNewFolder()` takes an `fs::path`.
+        // asynchronous, and the chooser is a member: launchAsync() reports
+        // through a callback the chooser has to still be alive to make
+        //
+        // opened where the list is, and currentDirectory_ is only that at User
+        //
+        // one of the two places in src/ that may name juce::File, the other
+        // being the editor's audio file chooser; tests/checkNoJuceFile.cmake
+        // allowlists both, and the type reaches nothing past this expression
         std::error_code error;
         bool const haveCurrent((location_ == Location::User) &&
                                std::filesystem::is_directory(currentDirectory_, error));
@@ -756,11 +647,10 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
             [self = juce::Component::SafePointer<PresetBrowser>(this)](
                 juce::FileChooser const &chooser) {
                 auto const chosen(LE::IO::juceFileToPath(chooser.getResult()));
-                /// \note A cancelled chooser reports an
-                /// empty file, and a directory that has
-                /// gone away between the dialog opening
-                /// and closing reports one that is not
-                /// there.
+                // a cancelled chooser reports an empty
+                // file, and one that went away between
+                // opening and closing reports a missing
+                // directory
                 std::error_code ignored;
                 if (self && std::filesystem::is_directory(chosen, ignored))
                     self->setNewFolder(chosen);
@@ -846,26 +736,8 @@ void PresetBrowser::setFactoryBank(juce::String const &bank)
     background().repaint();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::goToParent()
-// ---------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note There was no way up before this. `setNewFolder` had a "does the path
-/// end in `..`" test, but `refresh()` skipped `..` when listing a directory, so
-/// no row ever carried that name and the test never fired -- the only way out of
-/// a folder was the browse arrow and a native file dialog.
-///                                           (31.07.2026.) (SW port)
-///
-/// \note Up out of the top of a tree is *nowhere*, where it used to be the
-/// root's two-word listing. That listing is gone (\see Location) and the
-/// button that reaches this is disabled there, so the guard below is what
-/// makes those two statements one.
-///                                           (19.08.2026.) issue #44
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note Up out of the top of a tree is *nowhere*: the button that reaches this
+/// is disabled there, and the guard below is what makes those two statements one.
 
 void PresetBrowser::goToParent()
 {
@@ -886,20 +758,11 @@ void PresetBrowser::goToParent()
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::atTopOfTree()
-// ----------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note The second `User` test is for the browse arrow, which can put
-/// `currentDirectory_` anywhere on the volume: from outside the preset root
-/// the walk up never reaches it, and without a second stop the user can climb
-/// out of their home directory a click at a time. `parent_path()` of a root is
-/// that root, which is what says there is no further to go.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// `currentDirectory_` anywhere on the volume: from outside the preset root the
+/// walk up never reaches it, and without a second stop the user climbs out of
+/// their home directory a click at a time. `parent_path()` of a root is that
+/// root, which is what says there is no further to go.
 
 bool PresetBrowser::atTopOfTree() const
 {
@@ -910,22 +773,12 @@ bool PresetBrowser::atTopOfTree() const
            (currentDirectory_.parent_path() == currentDirectory_);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::stepPreset()
-// ---------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
+/// \note The presets are the tail of the listing, and that is not an assumption:
+/// `Item::operator<` sorts by kind first and `Folder` sorts before `Preset`.
 ///
-/// \note The presets are the tail of the listing, and that is not an assumption
-/// -- `Item::operator<` sorts by kind first and `Folder` sorts before `Preset`,
-/// so one index says where the folders stop.
-///
-/// \note Selecting the row is the whole of the action: `selectedRowsChanged()`
-/// is what loads a preset, and going through it is what makes a jog step and a
-/// click the same thing as far as everything downstream is concerned.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note Selecting the row is the whole of the action -- `selectedRowsChanged()`
+/// is what loads a preset -- so a jog step and a click are the same thing to
+/// everything downstream.
 
 void PresetBrowser::stepPreset(int const direction)
 {
@@ -941,8 +794,8 @@ bool PresetBrowser::presetIsSelected() const
 {
     int const selected(listBox_.getLastRowSelected());
 
-    /// \note The upper bound is not paranoia: addOneRow_ puts a row in the list
-    /// that `files_` has no entry for while the filename edit box is up.
+    // the upper bound is not paranoia: addOneRow_ puts a row in the list that
+    // files_ has no entry for while the filename edit box is up
     return (selected >= 0) && (selected < files_.size()) &&
            !files_.getReference(selected).isDirectory();
 }
@@ -954,25 +807,15 @@ bool PresetBrowser::canStep(int const direction) const
 
     int const next(listBox_.getLastRowSelected() + direction);
 
-    /// \note Off the end of the listing, or onto a folder -- which, because the
-    /// folders sort first, is what stepping back past the first preset is.
+    // off the end of the listing, or onto a folder -- which, the folders
+    // sorting first, is what stepping back past the first preset is
     return (next >= 0) && (next < files_.size()) && !files_.getReference(next).isDirectory();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::updateNavigation()
-// ---------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note Reached from refresh(), which every move between folders comes through,
 /// and from selectedRowsChanged(), which every move within one does. The jog
-/// needs the second: where the browser is has not changed when a row is clicked,
-/// and whether the jog has anywhere to go has -- each half of it separately,
-/// because the first preset in a listing has a forward and no back.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// needs the second: clicking a row does not move the browser but does change
+/// whether the jog has anywhere to go, each half of it separately.
 
 void PresetBrowser::updateNavigation()
 {
@@ -998,10 +841,9 @@ void PresetBrowser::selectedRowsChanged(int const lastRowSelected)
 {
     saveDirtyComment();
 
-    /// \note Before the two early exits below, not after them: what the jog can
-    /// do depends on the selection whether or not this browser is the one that
-    /// asked for the change, and deselecting is exactly the case that turns it
-    /// off. \see updateNavigation().
+    // before the two early exits below: what the jog can do depends on the
+    // selection whether or not this browser asked for the change, and
+    // deselecting is exactly the case that turns it off
     updateNavigation();
 
     if (ignoreSelectionChange_ || (lastRowSelected == -1))
@@ -1014,17 +856,8 @@ void PresetBrowser::selectedRowsChanged(int const lastRowSelected)
 
 int PresetBrowser::getNumRows() noexcept { return files_.size() + addOneRow_; }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::refresh()
-// ------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note Two listings, because there are two things to list: a bank out of the
-/// binary, or a directory. Only the second is what this browser used to do.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// binary, or a directory.
 
 void PresetBrowser::refresh()
 {
@@ -1042,10 +875,9 @@ void PresetBrowser::refresh()
 
     std::sort(files_.begin(), files_.end());
 
-    /// \note Save-As is the one button that depends on *where* the browser is
-    /// rather than on what is selected in it, so this is where it belongs: the
-    /// two location setters both come through here, and so does
-    /// refreshAndSelectPreset(). save_ and delete_ stay with the selection.
+    // Save-As is the one button that depends on *where* the browser is rather
+    // than on what is selected in it, and everything that moves it comes through
+    // here. save_ and delete_ stay with the selection
     saveAs_.setEnabled(enablePresetSaving());
 
     updateNavigation();
@@ -1053,24 +885,14 @@ void PresetBrowser::refresh()
     listBox_.updateContent();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::refreshFactory()
-// -------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note FactoryPresets::banks() is every directory under the preset root, as a
 /// path relative to it, so the children of the current bank are the ones that
-/// start with it and have no further separator. Three of the fifteen banks have
-/// a sub-folder, which is why this is a filter rather than a lookup.
+/// start with it and have no further separator. A bank may hold a sub-folder,
+/// which is why this is a filter rather than a lookup.
 ///
-/// \note What this reads from banks() has to include the directories that lead
-/// to presets without holding any -- a grandchild is skipped here on the
-/// understanding that its parent is a row the user can open, and for those three
-/// banks there was no such row. See collectBanks() in factoryPresets.cpp.
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note banks() has to include the directories that lead to presets without
+/// holding any: a grandchild is skipped here on the understanding that its
+/// parent is a row the user can open. \see collectBanks() in factoryPresets.cpp.
 
 void PresetBrowser::refreshFactory()
 {
@@ -1094,32 +916,14 @@ void PresetBrowser::refreshFactory()
             files_.add(Item{preset.c_str(), Item::Kind::Preset});
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// PresetBrowser::refreshUserDirectory()
-// -------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
+/// \note `currentDirectory_` goes into `directory_iterator` as itself. Handing
+/// over a narrow `char const *` would have it decoded with the active code page
+/// on Windows rather than as UTF-8.
 ///
-/// \note **The `juce::File` hop is gone from the front of this**, and it was a
-/// bug on Windows: `currentDirectory_.getFullPathName().getCharPointer()` handed
-/// `directory_iterator` a narrow `char const *`, which `fs::path` decodes with
-/// the active code page there rather than as UTF-8. `currentDirectory_` is an
-/// `fs::path` now and goes in as itself.
-///
-/// \note What comes back still needs `pathToJuceString()`, for the reason the
-/// long note in gui.cpp gives: `juce::String( char const *, size_t )` reads bytes
-/// through `CharPointer_ASCII` and widens each one into its own code point, so a
-/// preset named in anything but ASCII would list under a mangled name and then
-/// fail to be found again by it. `.u8string()` is what the bytes are; the
-/// conversion is io/jucePath.hpp's.
-///
-/// \note `stem()` and `extension()` in place of the byte arithmetic and the
-/// `std::_tcscmp` that stood here. `stem()` on `a.b.swp` is `a.b`, which is what
-/// subtracting four bytes did.
-///                                       (09.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note What comes back needs `pathToJuceString()` for the reason the note in
+/// gui.cpp gives: `juce::String( char const *, size_t )` widens each byte into
+/// its own code point, so a preset named in anything but ASCII would list under a
+/// mangled name and then fail to be found again by it.
 
 void PresetBrowser::refreshUserDirectory()
 {
@@ -1142,22 +946,10 @@ void PresetBrowser::refreshAndSelectPreset(juce::String const &presetName)
 {
     refresh();
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note Checked, where the check was an assertion that a shipped build does
-    /// not compile. `findPreset()` answers `end()` when the name is not in the
-    /// list, and `end() - begin()` is the size -- one past the last row -- so
-    /// what followed was a `juce::Array` read past its end and a selection of a
-    /// row that does not exist.
-    ///
-    ///   The name not matching is not hypothetical: this is called with the name
-    /// a preset was just saved under, and what comes back from `refresh()` is
-    /// what the *file system* reports. A decomposed accent on macOS, or a
-    /// character Windows will not put in a file name, and the two spellings
-    /// differ.
-    ///                                       (08.08.2026.) (SW port)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // checked rather than asserted: this is called with the name a preset was
+    // just saved under, and refresh() reports what the *file system* has -- a
+    // decomposed accent on macOS, or a character Windows will not accept, and
+    // the two spellings differ
     Item const *const pItem(findPreset(presetName));
     if (pItem == files_.end())
         return;
@@ -1191,16 +983,8 @@ void PresetBrowser::deselectAllRows()
     save_.setEnabled(false);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \note `currentDirectory_`, unconditionally. That member
-/// only means anything at `User`: at `Root` it is whatever the last visited
-/// folder was -- empty on a fresh browser -- and at `Factory` it names a
-/// directory the list is not showing, so the strip described somewhere the user
-/// was not.
-///                                           (08.08.2026.) (SW port)
-///
-////////////////////////////////////////////////////////////////////////////////
+/// \note Not `currentDirectory_` unconditionally: that member only means
+/// anything at `User`, naming somewhere the list is not showing otherwise.
 
 juce::String PresetBrowser::locationLabel() const
 {
@@ -1212,27 +996,23 @@ juce::String PresetBrowser::locationLabel() const
 
     case Location::User:
     {
-        ///   "User", and then whatever is under it: the same shape the Factory
-        /// arm has, and for the reason issue #134 gives. The strip is 250 px of
-        /// room and an absolute path spends all of it on a home directory, a
-        /// vendor folder and a Presets folder -- so the one part that says where
-        /// the user actually is fell off the right-hand end.
-        ///
-        /// \note `lexically_relative()`, which touches no disk: this is asked
-        /// from paint(). It answers "." for the root itself, and an empty path
-        /// or one starting in ".." for somewhere with no route down from it --
-        /// which the browse button can reach, and which is the one case with
-        /// nothing shorter to say than the path.
+        // "User", and then whatever is under it: the strip is 250 px of room
+        // and an absolute path spends all of it on a home directory, a vendor
+        // folder and a Presets folder
+        //
+        // lexically_relative() touches no disk, this being asked from paint().
+        // It answers "." for the root itself, and an empty path or one starting
+        // ".." for somewhere with no route down -- which the browse button can
+        // reach, and which has nothing shorter to say than the path
         auto const under(currentDirectory_.lexically_relative(GUI::presetsFolder()));
         if (under.empty() || (*under.begin() == _T( ".." )))
             return LE::IO::pathToJuceString(currentDirectory_);
         if (under == _T( "." ))
             return _T( "User" );
 
-        /// \note Joined as a path rather than with a literal "User/", so that
-        /// the separator between the folders is the one the platform names them
-        /// with. Factory's is a slash because a bank is a name in the binary
-        /// rather than a directory on disk.
+        // joined as a path rather than with a literal "User/", so the separator
+        // is the one the platform names folders with. Factory's is a slash
+        // because a bank is a name in the binary rather than a directory
         return LE::IO::pathToJuceString(fs::path(_T( "User" )) / under);
     }
     }
@@ -1263,8 +1043,8 @@ void PresetBrowser::paint(juce::Graphics &graphics)
 
 bool PresetBrowser::Item::operator==(Item const &other) const { return name == other.name; }
 
-/// \note By kind first, so ".." is always the top row and folders always precede
-/// presets, and by name within a kind.
+/// \note By kind first, so folders always precede presets, and by name within a
+/// kind.
 bool PresetBrowser::Item::operator<(Item const &other) const
 {
     if (this->kind != other.kind)

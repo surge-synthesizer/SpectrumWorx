@@ -110,7 +110,6 @@ Digest Digest::of(std::span<float const> const interleaved, std::uint8_t const c
     ///
     ///   At a hop of half a window Hann satisfies COLA: every sample is covered
     /// with a total weight of 1, and a transient cannot hide between windows.
-    ///                                       (17.08.2026.)
     ///
     ////////////////////////////////////////////////////////////////////////////
     constexpr std::size_t window{1024};
@@ -282,7 +281,6 @@ namespace
 /// fixtures of macOS/Accelerate against Linux/pffft actually fit inside, with the
 /// nine amplifying effects held separately. See the table under
 /// "The cross-platform contract, measured" in the plan.
-///                                       (29.07.2026.) (SW port)
 constexpr float audibilityFloor{-60.0f}; // dB, on Digest::of's own scale
 
 float relative(float const expected, float const got)
@@ -352,7 +350,6 @@ Deltas deltas(Digest const &golden, Digest const &actual)
         /// a loosening; nothing that can be heard changes hands. Both sides have
         /// to be below it, so an effect that goes quiet where the golden is loud
         /// still fails.
-        ///                                   (29.07.2026.) (SW port)
         if ((golden.bands[band] < audibilityFloor) && (actual.bands[band] < audibilityFloor))
         {
             ++measured.bandsSkipped;

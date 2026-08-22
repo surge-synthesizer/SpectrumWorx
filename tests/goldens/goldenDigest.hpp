@@ -97,7 +97,6 @@ bool goldenUpdateRequested();
 /// sufficient condition for the hashes to agree -- but keying on the compiler
 /// version too would mean the hash was effectively never checked, and its whole
 /// value is catching a same-machine regression.
-///                                           (29.07.2026.) (SW port)
 std::string provenance();
 
 /// The measured distance between two digests, before any verdict is passed on
@@ -136,7 +135,6 @@ Deltas deltas(Digest const &golden, Digest const &actual);
 /// statistic — one sample landing the other side of a rounding step moves it —
 /// whereas RMS is an average over the whole render and is the robust one. Nine
 /// fixtures sat at 1.1e-4 on peak with their RMS at 4e-7.
-///                                           (29.07.2026.) (SW port)
 struct Tolerances
 {
     float peak;
@@ -173,7 +171,6 @@ struct Tolerances
     /// the bit-exact hash on the machine that minted them, which is where their
     /// regression cover actually lives. What the effects *do* belongs in a
     /// behavioural case, the way amplifyingEffectsTests.cpp answered the nine.
-    ///                                       (06.08.2026.) (SW port)
     ///
     ////////////////////////////////////////////////////////////////////////////
     static Tolerances sameBuildOnly();

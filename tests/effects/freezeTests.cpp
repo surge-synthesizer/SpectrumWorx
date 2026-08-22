@@ -131,7 +131,6 @@ SWTest::Slot freezeFiring(double const freezeAt, double const meltAt,
                         /// by a zero frame counter to get NaN. A checked build
                         /// trips `LE_ASSUME( blendFactor >= 0 )` on it; a
                         /// shipping one mixes the NaN into the spectrum.
-                        ///                   (16.08.2026.) (SW port)
                         ///
                         ////////////////////////////////////////////////////////
                         [transition](Engine::ModuleParameters &parameters) {
@@ -236,7 +235,6 @@ TEST_CASE("Freezing stops the spectrum and melting lets it move again", "[effect
 /// of two and owes the FFT nothing. 374 against a 2048 hop means the arm usually
 /// lands mid-frame with several frameless blocks either side, which is the shape
 /// that failed.
-///                                           (16.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -284,7 +282,6 @@ TEST_CASE("A press is not swallowed by a block that produces no frame", "[effect
 /// shorter than `1000 * hop / sampleRate` milliseconds rounds to zero steps --
 /// about 10 ms at a 512-sample hop and 48 kHz, and 43 ms at 2048. The second
 /// section is that case, reached with a perfectly ordinary-looking 5 ms.
-///                                           (16.08.2026.) (SW port)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

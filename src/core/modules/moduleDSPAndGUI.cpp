@@ -29,17 +29,9 @@ namespace LE::SW
 //                                            (13.12.2011.) (Domagoj Saric)
 LE_NOINLINE Module::~Module() {}
 
-/// \note `createGUI()` and `destroyGUI()` stood here, ~100 lines of building a
-/// module's editor region into a member of the module and taking it down again.
-/// Both had to cope with being called from the wrong thread -- `createGUI` posted
-/// itself to the message thread when it was not on it, and `destroyGUI` took the
-/// *processing lock* on the message thread so that the audio thread could not be
-/// halfway through the module while its widgets were freed.
-///
-///   Neither is needed. The editor owns the region and builds it in the region's
-/// own constructor, on the thread that owns widgets, and the region holds a
-/// counted reference to the module so the module cannot go while it is drawn.
-///                                           (02.08.2026.) (SW port)
+/// \note A module builds and owns no widgets: the editor owns the region, builds
+/// it in the region's own constructor on the thread that owns widgets, and the
+/// region holds a counted reference so the module cannot go while it is drawn.
 
 float Module::setParameterValueFromUI(std::uint8_t const parameterIndex, float const value)
 {
@@ -52,17 +44,11 @@ float Module::setParameterValueFromUI(std::uint8_t const parameterIndex, float c
 
 namespace Engine
 {
-/// \note This used to ask the module whether it still had an editor region, and
-/// destroy it first -- which, when the reference that reached zero was the *audio
-/// thread's*, meant `destroyGUI()` allocating a message and posting it to the
-/// message queue from inside the audio callback. The chain deliberately holds a
-/// reference per node while it walks it (moduleChainImpl.hpp), so that is not a
-/// hypothetical: removing a module mid-block is exactly when it happened.
-///
-///   A region holds a counted reference of its own now, so a module with one
-/// drawn simply does not reach zero, and by the time it does there is nothing to
-/// take down.
-///                                           (02.08.2026.) (SW port)
+/// \note Nothing here touches an editor region, and nothing may: the reference
+/// that reaches zero can be the *audio thread's* -- the chain holds one per node
+/// while it walks it -- so taking a widget down here would post a message from
+/// inside the audio callback. A region holds a counted reference of its own, so a
+/// module that is drawn does not reach zero.
 void LE_NOINLINE intrusive_ptr_release_deleter(ModuleNode const *LE_RESTRICT const pModuleNode)
 {
     auto const &module(actualModule<Module>(*pModuleNode));

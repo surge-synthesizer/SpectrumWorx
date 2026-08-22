@@ -52,7 +52,6 @@ typedef float SIMDVector __attribute__((vector_size(16)));
 /// that is neither. It cannot be written in standard C++ either -- alignas may
 /// not be applied to a typedef -- which is what makes an #error the honest arm
 /// rather than a fallback nothing has ever compiled.
-///                                       (07.08.2026.) (SW port)
 #error SpectrumWorx has no SIMDVector for this compiler
 #endif
 
