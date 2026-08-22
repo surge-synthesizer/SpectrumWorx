@@ -256,7 +256,18 @@ Host2PluginInteropImpl<Impl, Protocol>::setParameter(ParameterID const parameter
     // http://www.kvraudio.com/forum/viewtopic.php?t=230479
     //                                        (07.07.2010.) (Domagoj Saric)
 
-    impl().markCurrentProgramAsModified();
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note `impl().markCurrentProgramAsModified()` stood here, and it is the
+    /// caller's question rather than this one's. Two routes reach this: a host's
+    /// parameter event, which *is* an edit, and `drainCommands()` applying an
+    /// edit the interface queued -- which the interface has already reported, and
+    /// which for a preset load is not an edit at all. Marking here called a
+    /// preset load an edit, one per parameter it carried, and did it on the audio
+    /// thread a block after the browser had recorded the load as clean.
+    ///                                       (22.08.2026.) \see issue #177.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
 
     ParameterSetter const setter = {value};
     return invokeFunctorOnIdentifiedParameter(parameterID,

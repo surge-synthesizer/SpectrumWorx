@@ -831,6 +831,11 @@ bool SpectrumWorxCLAP::handleEvent(clap_event_header const *const header)
     auto const value(CLAPEdge::fromHost(parameterID, ranges, event->value));
     auto const applied(setParameter(parameterID, value));
 
+    // the host moving a parameter is an edit, and this is where that is said:
+    // setParameter used to say it for both of its callers, and the other is
+    // drainCommands() applying what the interface has already reported
+    markCurrentProgramAsModified();
+
     // the main thread's copy of the same state, and not gated on there being an
     // editor: paramsValue and stateSave read programMain_ with the window shut
     //
@@ -885,7 +890,7 @@ void SpectrumWorxCLAP::paramsFlush(clap_input_events const *const in,
         effectChanged |= handleEvent(in->get(in, event));
 
     if (effectChanged)
-        chainChanged();
+        chainChanged(ChainChange::userEdited);
 
     // on an inactive plugin nothing else is coming: no audio thread, no
     // process(), and for a host that restores a session without ever opening a
@@ -992,7 +997,7 @@ clap_process_status SpectrumWorxCLAP::process(clap_process const *const process)
     // not, so this never needs the CLAP_PARAM_RESCAN_ALL an active plugin may
     // not send
     if (effectChanged)
-        chainChanged();
+        chainChanged(ChainChange::userEdited);
 
     if (process->out_events)
         flushUIEdits(process->out_events);
@@ -1300,13 +1305,13 @@ void SpectrumWorxCLAP::drainCommands()
                 command.setSlot.slot, static_cast<Module *>(command.setSlot.pModule)));
             if (pOutgoing)
                 retire(Threading::ToUI::Retired::Module, pOutgoing);
-            chainChanged();
+            chainChanged(ChainChange::userEdited);
             break;
         }
 
         case Threading::ToEngine::Kind::MoveModule:
             moveModule(command.moveModule.from, command.moveModule.to);
-            chainChanged();
+            chainChanged(ChainChange::userEdited);
             break;
 
         case Threading::ToEngine::Kind::SwapChain:
@@ -1315,7 +1320,7 @@ void SpectrumWorxCLAP::drainCommands()
             swapModuleChain(*pIncoming);
             // the same object back, now holding what used to be live
             retire(Threading::ToUI::Retired::Chain, pIncoming);
-            chainChanged();
+            chainChanged(ChainChange::presetArrived);
             break;
         }
 
@@ -1384,16 +1389,31 @@ void SpectrumWorxCLAP::retire(Threading::ToUI::Retired const what, void *const p
     LE_ASSERT_MSG(false, "The retire queue is full; something will be leaked.");
 }
 
-/// \note And marks the state dirty: every route that gets here is a structural
-/// change a session has to remember -- a preset, a slot, a move.
-void SpectrumWorxCLAP::chainChanged()
+/// \note And says the session needs saving. Whether it is an *edit* is what the
+/// argument answers: a whole chain arriving is a preset, and only a slot filled,
+/// emptied or moved is somebody changing the sound.
+void SpectrumWorxCLAP::chainChanged(ChainChange const what)
 {
     // dropping this leaves the rack drawing the chain that was there before,
     // with no second announcement coming: the drain is edge-triggered on it
     pushed(toUI_.push(Threading::chainChanged()),
            "The echo queue is full; the module rack will not be resynchronised.");
     requestRescan(CLAP_PARAM_RESCAN_INFO | CLAP_PARAM_RESCAN_TEXT | CLAP_PARAM_RESCAN_VALUES);
-    markCurrentProgramAsModified();
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note A whole chain arriving is not an edit, and this is where saying
+    /// otherwise showed: with audio running the chain a preset load publishes is
+    /// *queued*, and the audio thread installs it a block later -- after the
+    /// browser has recorded the load and called it unedited. So every preset load
+    /// lit Save As a few milliseconds after it finished.
+    ///                                       (22.08.2026.) \see issue #177.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    if (what == ChainChange::userEdited)
+        markCurrentProgramAsModified();
+    else
+        markSessionAsUnsaved();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1703,7 +1723,9 @@ void SpectrumWorxCLAP::HostProxy::presetChangeEnd() const
         // deferred, and coalescing, for the reason stateLoad() gives
         plugin.requestRescan(CLAP_PARAM_RESCAN_INFO | CLAP_PARAM_RESCAN_VALUES |
                              CLAP_PARAM_RESCAN_TEXT);
-        plugin_.markCurrentProgramAsModified();
+        /// \note The host, and not the loaded preset's edited flag: this is the
+        /// end of a *load*. \see chainChanged() and issue #177.
+        plugin_.markSessionAsUnsaved();
     }
 
     // a preset that changes the FFT size sets the parameter on this thread and
@@ -1743,12 +1765,18 @@ bool SpectrumWorxCLAP::HostProxy::reportNewLatencyInSamples(unsigned int const l
 /// host that cannot say gets the deferral, which is correct from either thread.
 void SpectrumWorxCLAP::markCurrentProgramAsModified() const
 {
-    auto &plugin(const_cast<SpectrumWorxCLAP &>(*this));
-
     /// \note Before the host question and not behind it: the browser's two Save
     /// buttons read this, and whether a host offers `clap.state` has nothing to
     /// do with whether the user has edited the preset. \see issue #177.
-    plugin.loadedPreset_.modified.store(true, std::memory_order_relaxed);
+    const_cast<SpectrumWorxCLAP &>(*this).loadedPreset_.modified.store(true,
+                                                                       std::memory_order_relaxed);
+
+    markSessionAsUnsaved();
+}
+
+void SpectrumWorxCLAP::markSessionAsUnsaved() const
+{
+    auto &plugin(const_cast<SpectrumWorxCLAP &>(*this));
 
     if (!_host.canUseState())
         return;

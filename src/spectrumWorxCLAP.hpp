@@ -179,9 +179,28 @@ class SpectrumWorxCLAP final
     // is the DSP half alone -- building a JUCE component on the audio thread,
     // which is where a host parameter event arrives, is what that avoids
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Tells the host its session needs saving again, and nothing else.
+    ///
     /// \note The VST program model prefixed a modified program's name with '*'.
     /// CLAP has a host call for it instead, and it is the host's business
     /// whether that means anything.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void markSessionAsUnsaved() const;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The same, and: somebody has **edited** the preset that is loaded.
+    ///
+    ///   Two different questions, and they came apart the moment the browser's
+    /// Save buttons started reading the second one. A preset *arriving* changes
+    /// the session -- the host must save it again -- without anybody having
+    /// edited anything, and calling that an edit lit Save As on every load.
+    /// \see LoadedPreset::modified and issue #177.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
     void markCurrentProgramAsModified() const;
 
   public:
@@ -397,10 +416,27 @@ class SpectrumWorxCLAP final
     /// its `Impl` can be given a module it has taken out of the chain.
     void retireModule(Module &module) { retire(Threading::ToUI::Retired::Module, &module); }
 
+  public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Which of the two things a chain change is.
+    ///
+    /// \note Exactly the message kind it arrived as. `Threading::publishChain()`
+    /// has one caller -- the preset loader -- so a whole chain is always a preset
+    /// or a session; a slot filled, emptied or moved is always somebody changing
+    /// the sound. \see drainCommands() and issue #177.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    enum struct ChainChange : bool
+    {
+        presetArrived, ///< a whole chain, from a preset or a session load
+        userEdited     ///< a slot filled, emptied or moved
+    };
+
   private:
     /// \brief Says the chain changed shape, and asks the host to re-read the
     /// parameters that describe it. `[audio-thread]`
-    void chainChanged();
+    void chainChanged(ChainChange);
 
     /// \brief Says the host's tempo or meter moved, so that the LFO panel can
     /// redraw a period that now means something else. `[audio-thread]`

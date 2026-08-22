@@ -30,6 +30,7 @@
 /// \note Before anything that names SW::Module, as elsewhere. The editor header
 /// below is here for the one case that reads what a knob is showing. \see #91.
 #include "core/modules/moduleDSPAndGUI.hpp"
+#include "gui/editor/presetLoading.hpp"
 #include "gui/editor/spectrumWorxEditor.hpp"
 
 #include "core/parameterID.hpp"
@@ -1510,4 +1511,114 @@ TEST_CASE("A session written with nothing edited comes back unedited", "[clap][s
         CHECK(loaded.bank == "Voices");
         CHECK_FALSE(loaded.modified.load());
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Loading a preset is not editing it. Issue #177.
+///
+///   Reported against the shipped build: Save As lit up the moment a preset
+/// loaded, with nothing touched. Two things were calling a load an edit, and
+/// both of them arrive *after* the browser has recorded the load as clean, which
+/// is why nothing here caught it:
+///
+///   - `Host2PluginInteropImpl::setParameter` marked the program modified for
+///     both of its callers, and one of them is `drainCommands()` applying the
+///     edits the load queued -- on the audio thread, a block later. With the
+///     transport parked in this case that is `paramsFlush`; in a host it is the
+///     next `process()`.
+///   - `chainChanged()` did the same for the chain the load published, which is
+///     queued for exactly as long.
+///
+///   Both still tell the *host* its session needs saving, which is true and is
+/// what `clap_host_state::mark_dirty` is for. Neither calls it a user edit.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A preset load does not count as editing the preset", "[clap][state][presets]")
+{
+    Entry const entry;
+    juce::ScopedJuceInitialiser_GUI const juceIsUp;
+
+    SWTest::TestHost host{{.gui = true}};
+    SWTest::ActivePlugin plugin(sampleRate, blockSize, host);
+
+    auto const *const gui(
+        static_cast<clap_plugin_gui const *>(plugin->get_extension(&*plugin, CLAP_EXT_GUI)));
+    REQUIRE(gui != nullptr);
+    REQUIRE(gui->create(&*plugin, CLAP_WINDOW_API_COCOA, false));
+
+    auto &editorHost(SWTest::editorHostOf(*plugin));
+    auto *const pEditor(static_cast<LE::SW::SpectrumWorxCLAP &>(editorHost).gui());
+    REQUIRE(pEditor != nullptr);
+    auto &loaded(editorHost.loadedPreset());
+
+    std::filesystem::path const presetFile(std::filesystem::path(SW_PRESET_FIXTURE_DIR) / "Voices" /
+                                           "Robokid.swp");
+    REQUIRE(std::filesystem::is_regular_file(presetFile));
+    auto presetData(LE::SW::readPresetFile(presetFile));
+    REQUIRE(static_cast<bool>(presetData));
+
+    SWTest::ScopedProblemCounter const problems;
+
+    juce::String comment;
+    REQUIRE(
+        LE::SW::GUI::loadPreset(editorHost, pEditor, presetData.get(), true, &comment, "Robokid"));
+
+    /// \note What PresetBrowser::rememberLoadedPreset() does the moment the load
+    /// returns: this is the preset now, and nobody has edited it.
+    loaded.loaded("Robokid", LE::SW::GUI::PanelState::PresetLocation::factory);
+    REQUIRE_FALSE(loaded.modified.load());
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note The deferred halves, which is the whole case. The rack resync is
+    /// what a host's message loop would run; the flush is what its audio thread
+    /// would do with the commands the load queued. Both were marking.
+    ////////////////////////////////////////////////////////////////////////////
+    pEditor->resyncModuleRack();
+    CHECK_FALSE(loaded.modified.load());
+
+    plugin.flush();
+    CHECK_FALSE(loaded.modified.load());
+
+    // ...and again, because a host calls process() rather more than once.
+    plugin.flush();
+    CHECK_FALSE(loaded.modified.load());
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note And the other half of the claim: a real edit still lights it, or
+    /// the case above passes by never marking anything at all.
+    ////////////////////////////////////////////////////////////////////////////
+    REQUIRE(pEditor->globalParameterChanged<LE::SW::GlobalParameters::MixPercentage>(0.25f, false));
+    CHECK(loaded.modified.load());
+
+    gui->destroy(&*plugin);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \note The host's own writes are edits, which is what moving the mark out of
+/// `setParameter` had to preserve. \see handleEvent().
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A parameter the host writes is an edit", "[clap][state][presets]")
+{
+    Entry const entry;
+
+    SWTest::TestHost host{{}};
+    SWTest::ActivePlugin plugin(sampleRate, blockSize, host);
+
+    auto &loaded(SWTest::editorHostOf(*plugin).loadedPreset());
+    loaded.loaded("Robokid", LE::SW::GUI::PanelState::PresetLocation::factory);
+    REQUIRE_FALSE(loaded.modified.load());
+
+    /// \note Through `paramsFlush`, the way a host with the transport parked
+    /// writes one. The parameter is the mix, whose id is its global index.
+    /// \note A global's index is the second argument, not the third: it sits
+    /// where a module index does in the packed ID. \see parameterTextTests.cpp.
+    constexpr auto mix(LE::Parameters::IndexOf<LE::SW::GlobalParameters::Parameters,
+                                               LE::SW::GlobalParameters::MixPercentage>::value);
+    SWTest::OneParameterEvent const write(SWTest::parameterID(SWTest::globalType, mix), 0.25);
+    plugin.flush(&*write, nullptr);
+
+    CHECK(loaded.modified.load());
 }
