@@ -218,6 +218,17 @@ class SpectrumWorxEditor final : private SkinLifetime,
     void mainKnobDragStarted(std::uint8_t parameterIndex) const;
     void mainKnobDragStopped(std::uint8_t parameterIndex) const;
 
+    /// \name The three knobs above the rack
+    ///
+    /// \note Read-only, and public so a headless run can read what they are
+    /// *showing*, which is not the same question as what the program holds.
+    /// \see issue #91.
+    ///@{
+    EditorKnob const &inKnob() const { return in_; }
+    EditorKnob const &outKnob() const { return out_; }
+    EditorKnob const &mixKnob() const { return mix_; }
+    ///@}
+
     /// \note Queued, and applied by the engine where every other parameter
     /// change is: the FFT size and the overlap factor reallocate the whole
     /// spectral working set, which is not the message thread's to do.

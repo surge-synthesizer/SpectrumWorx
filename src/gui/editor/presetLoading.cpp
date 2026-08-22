@@ -488,6 +488,27 @@ bool loadPreset(EditorHost &host, SpectrumWorxEditor *const pEditor, char *const
     if (pEditor)
         pEditor->refreshModuleRackAsync();
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And the six global widgets follow the six global parameters, which
+    /// nothing here did: the rack was the only thing a preset load told the
+    /// editor about, so In, Out, Mix and the settings page's three engine
+    /// controls went on showing the program from before the load. A host moving
+    /// one of them gets this through `parameterChangedElsewhere`; a preset makes
+    /// no per-parameter notification by design, so it is said once, here.
+    ///
+    ///   Reported against the standalone's Reset state, which is a state load
+    /// with the editor open. \see issue #91.
+    ///
+    /// \note Synchronous, unlike the rack: this sets three knob values with
+    /// `dontSendNotification` and repaints a settings page. Nothing is destroyed
+    /// and no focus moves, which is what made the rack's resync have to wait.
+    ///                                       (22.08.2026.)
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    if (pEditor)
+        pEditor->updateForGlobalParameterChange();
+
     /// \note Only with a window open. With none this is a session being restored,
     /// which nobody asked for and which may not even have a message thread yet.
     if (pEditor)

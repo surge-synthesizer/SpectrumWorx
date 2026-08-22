@@ -26,6 +26,12 @@
 #include "swClapEntryImpl.hpp"
 
 #include "core/automatedModuleChain.hpp"
+
+/// \note Before anything that names SW::Module, as elsewhere. The editor header
+/// below is here for the one case that reads what a knob is showing. \see #91.
+#include "core/modules/moduleDSPAndGUI.hpp"
+#include "gui/editor/spectrumWorxEditor.hpp"
+
 #include "core/parameterID.hpp"
 #include "le/parameters/parametersUtilities.hpp"
 #include "goldens/engineHarness.hpp"
@@ -47,6 +53,7 @@
 #include <clap/clap.h>
 
 #include <juce_core/juce_core.h>
+#include <juce_gui_basics/juce_gui_basics.h>
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -1275,4 +1282,105 @@ TEST_CASE("An exception inside stateLoad is answered rather than fatal", "[clap]
               .parameters()
               .get<LE::SW::GlobalParameters::InputGain>()
               .getValue() == Catch::Approx(0.25f));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The three knobs above the rack follow a state load.
+///
+///   Reported against the standalone, whose Reset state menu item loads
+/// `defaults.clapwrapper` back through `clap_plugin_state::load` -- so what
+/// "resetting state" is, is a state load with the editor open, and In, Out and
+/// Mix stayed where the user had dragged them.
+///
+///   `GUI::loadPreset()` told the editor to follow the *chain* and nothing else.
+/// Every global parameter -- the three knobs and the settings page's three
+/// engine controls -- was left showing the program before the load. A knob moved
+/// by the host got there through `parameterChangedElsewhere`, which does refresh
+/// them; a preset makes no per-parameter notification by design, so nothing did.
+///
+/// \note Through the real `clap_plugin_state`, not `GUI::loadPreset` directly:
+/// the reported gesture is a host loading state, and the editor being the
+/// plugin's own rather than one the case built is half of what was wrong.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A state load moves the In, Out and Mix knobs", "[clap][state][gui]")
+{
+    using namespace LE::SW::GlobalParameters;
+
+    Entry const entry;
+    juce::ScopedJuceInitialiser_GUI const juceIsUp;
+
+    SWTest::TestHost host{{.gui = true}};
+    SWTest::ActivePlugin plugin(sampleRate, blockSize, host);
+
+    auto const *const gui(
+        static_cast<clap_plugin_gui const *>(plugin->get_extension(&*plugin, CLAP_EXT_GUI)));
+    REQUIRE(gui != nullptr);
+    REQUIRE(gui->create(&*plugin, CLAP_WINDOW_API_COCOA, false));
+
+    auto &editorHost(SWTest::editorHostOf(*plugin));
+    auto *const pEditor(static_cast<LE::SW::SpectrumWorxCLAP &>(editorHost).gui());
+    REQUIRE(pEditor != nullptr);
+
+    auto const &state(stateOf(*plugin));
+
+    /// \brief What the widgets are showing, against what the program holds.
+    auto const knobsAgreeWithTheProgram([&]() {
+        /// \note The main thread's Program, which is the copy the editor is bound
+        /// to. \see SpectrumWorxCLAP::programMain().
+        auto const &parameters(editorHost.programMain().parameters());
+        CHECK(pEditor->inKnob().getValue() == Catch::Approx(parameters.get<InputGain>()));
+        CHECK(pEditor->outKnob().getValue() == Catch::Approx(parameters.get<OutputGain>()));
+        CHECK(pEditor->mixKnob().getValue() == Catch::Approx(parameters.get<MixPercentage>()));
+    });
+
+    // What "Reset state" will put back.
+    OutStream defaults;
+    REQUIRE(state.save(&*plugin, &defaults));
+    knobsAgreeWithTheProgram();
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note Values no default is, and each one different from the others, so
+    /// that a knob left behind cannot pass by accident and a knob given the
+    /// wrong parameter's value cannot either.
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note The two gains are linear factors over 0.001 .. 2 and the mix is a
+    /// fraction of one; all three default to 1. \see engine/parameters.hpp.
+    constexpr float inputGain{0.5f}, outputGain{1.5f}, mix{0.25f};
+    REQUIRE(pEditor->globalParameterChanged<InputGain>(inputGain, false));
+    REQUIRE(pEditor->globalParameterChanged<OutputGain>(outputGain, false));
+    REQUIRE(pEditor->globalParameterChanged<MixPercentage>(mix, false));
+
+    OutStream modified;
+    REQUIRE(state.save(&*plugin, &modified));
+
+    SECTION("a load moves them to what was saved")
+    {
+        InStream stream(modified.data());
+        REQUIRE(state.load(&*plugin, &stream));
+
+        CHECK(pEditor->inKnob().getValue() == Catch::Approx(inputGain));
+        CHECK(pEditor->outKnob().getValue() == Catch::Approx(outputGain));
+        CHECK(pEditor->mixKnob().getValue() == Catch::Approx(mix));
+        knobsAgreeWithTheProgram();
+    }
+
+    SECTION("and reset puts them back")
+    {
+        {
+            InStream stream(modified.data());
+            REQUIRE(state.load(&*plugin, &stream));
+        }
+        {
+            InStream stream(defaults.data());
+            REQUIRE(state.load(&*plugin, &stream));
+        }
+
+        CHECK(pEditor->inKnob().getValue() != Catch::Approx(inputGain));
+        knobsAgreeWithTheProgram();
+    }
+
+    gui->destroy(&*plugin);
 }
