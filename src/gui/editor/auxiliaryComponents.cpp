@@ -246,6 +246,11 @@ void SharedModuleControls::FrequencyRange::updateForEngineSetupChanges(
     this->setSkewFactorFromMidPoint(4000.0f / nyquist);
 }
 
+ModuleControlBase &SharedModuleControls::FrequencyRange::selectedControl()
+{
+    return (selectedThumb_ == Constants::startFrequencyThumbIndex) ? startControl() : stopControl();
+}
+
 ModuleControlBase &SharedModuleControls::FrequencyRange::startControl()
 {
     parameterIndexForInternalWriteAccess_ = Constants::startFrequencyIndex;
@@ -282,8 +287,14 @@ void SharedModuleControls::FrequencyRange::mouseExit(juce::MouseEvent const &eve
 void SharedModuleControls::FrequencyRange::mouseDown(juce::MouseEvent const &event) noexcept
 {
     //...mrmlj...LE_ASSERT( hasFocus() == this->isActive() );
+    /// \note The selection first, so that the menu is about the thumb the press
+    /// was nearest rather than the one a hover last left selected.
     updateSliderSelection(event);
     verifyThumbAndParameterIndicies();
+
+    if (event.mods.isPopupMenu())
+        return showParameterMenu(event);
+
     fine_.begin(event.position.x);
     juce::Slider::mouseDown(linkThumbsOnAlt(event));
     verifyThumbAndParameterIndicies();
@@ -293,6 +304,8 @@ void SharedModuleControls::FrequencyRange::mouseDown(juce::MouseEvent const &eve
 /// would make JUCE deactivate it. \see ModuleKnob::mouseDown().
 void SharedModuleControls::FrequencyRange::mouseDrag(juce::MouseEvent const &event) noexcept
 {
+    if (event.mods.isPopupMenu())
+        return;
     if ((selectedThumb_ != Constants::noThumb) && lfo().enabled())
         return;
     juce::Slider::mouseDrag(refinedDrag(fine_, event));

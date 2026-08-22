@@ -669,9 +669,11 @@ class SpectrumWorxEditor final : private SkinLifetime,
     void moduleDrag(ModuleUI &, juce::MouseEvent const &);
     void moduleDragEnd(ModuleUI &, juce::MouseEvent const &);
 
+  public:
+    /// \note Public for the same reason regionInSlot() is: a headless run
+    /// presses what is on it. \see issue #93.
     SharedModuleControls &sharedModuleControls() { return *sharedModuleControls_; }
 
-  public:
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \brief The skin, and every widget laid out in its pixels.
@@ -970,10 +972,80 @@ class SpectrumWorxEditor final : private SkinLifetime,
         using AsyncSlider = HorizontalSlider;
         using LFO = LE::Parameters::LFOImpl;
 
-        class Period : public AsyncSlider
+        ////////////////////////////////////////////////////////////////////////
+        /// \class ParameterSlider
+        ///
+        /// \brief One of the LFO's own parameters, with the right button's menu
+        /// on it -- the same four sections a knob raises. \see issue #93.
+        ////////////////////////////////////////////////////////////////////////
+
+        class ParameterSlider : public AsyncSlider, public ParameterMenu
         {
           public:
-            Period() : lastSyncType_(LFO::Free) {}
+            ParameterSlider(LFODisplay &parent, std::uint8_t lfoParameterIndex);
+
+            ////////////////////////////////////////////////////////////////////
+            ///
+            /// \name What this slider stands for
+            ///
+            ///   Public for the reason ModuleControlBase's own four are: which
+            /// parameter a widget is currently speaking for, what it reads as and
+            /// what typing into it means are questions about the widget rather
+            /// than about the menu that happens to ask them.
+            ///
+            ////////////////////////////////////////////////////////////////////
+            ///@{
+            /// \brief The range slider carries two and answers with the thumb the
+            /// press was nearest.
+            virtual std::uint8_t lfoParameterIndex() const { return lfoParameterIndex_; }
+
+            /// \brief Where a press lands the menu, without raising one: the
+            /// step mouseDown() takes before it does. Public for the same reason
+            /// effectMenuTargetAt() is -- which of two parameters a point in the
+            /// widget means is geometry, and a headless run can ask it.
+            void notePressAt(float const position) { pressPosition_ = position; }
+
+            juce::String parameterName() const override;
+            juce::String parameterValueText() const override;
+            ParameterID parameterID() const override;
+            bool setParameterFromText(juce::String const &) override;
+            void setParameterToDefault() override;
+            ///@}
+
+          protected:
+            LFODisplay &parent() { return parent_; }
+            LFODisplay const &parent() const { return parent_; }
+
+            /// Where the last press landed, which is what that thumb is chosen by.
+            float pressPosition() const { return pressPosition_; }
+
+          private: // JUCE component overrides.
+            void mouseDown(juce::MouseEvent const &) override;
+            void mouseDrag(juce::MouseEvent const &) override;
+
+          private: // ParameterMenu
+            juce::Component &menuOwner() override { return *this; }
+
+          private:
+            LFODisplay &parent_;
+            std::uint8_t const lfoParameterIndex_;
+            float pressPosition_{0};
+        }; // class ParameterSlider
+
+        /// The LFO's two bounds on one slider.
+        class RangeSlider final : public ParameterSlider
+        {
+          public:
+            explicit RangeSlider(LFODisplay &parent);
+
+          public:
+            std::uint8_t lfoParameterIndex() const override;
+        }; // class RangeSlider
+
+        class Period final : public ParameterSlider
+        {
+          public:
+            explicit Period(LFODisplay &parent);
 
             double milliseconds() const;
 
@@ -982,9 +1054,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
           private: // JUCE component overrides.
             friend class LFODisplay;
             double snapValue(double attemptedValue, DragMode) override;
-
-          private:
-            LFODisplay const &parent() const;
 
           private:
             LFO::SyncType lastSyncType_;
@@ -1014,6 +1083,11 @@ class SpectrumWorxEditor final : private SkinLifetime,
             return const_cast<LFODisplay &>(*this).control();
         }
         Period const &period() const { return period_; }
+
+        /// The three sliders, for a case that presses one. \see issue #93.
+        Period &period() { return period_; }
+        ParameterSlider &phase() { return phase_; }
+        RangeSlider &range() { return range_; }
 
       private: // JUCE component overrides.
         void paint(juce::Graphics &) override;
@@ -1099,8 +1173,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
         TextButton dotted_;
         ArrowButton typeArrow_;
         Period period_;
-        AsyncSlider phase_;
-        AsyncSlider range_;
+        ParameterSlider phase_;
+        RangeSlider range_;
 
         PopupMenuWithSelection type_;
 
@@ -1111,6 +1185,11 @@ class SpectrumWorxEditor final : private SkinLifetime,
         typedef juce::Component LFODisplay::*ComponentPtr;
         static ComponentPtr const componentsToDisableKeyboardGrabingFor[];
     }; // class LFODisplay
+
+  public:
+    /// \brief The LFO strip, or nothing when no control is selected. Public for
+    /// the same reason regionInSlot() is: a headless run can press what is on it.
+    LFODisplay *lfoDisplay() { return lfoDisplay_ ? &*lfoDisplay_ : nullptr; }
 
     ////////////////////////////////////////////////////////////////////////////
     /// \internal

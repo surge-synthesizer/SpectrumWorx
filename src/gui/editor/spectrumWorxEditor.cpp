@@ -2212,7 +2212,8 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
       dotted_(*this, 93 + 27 * 2 - 3, 8, " D "),
       typeArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
                  ColourMap::MouseOverGlow),
-      pModuleControl_(nullptr)
+      period_(*this), phase_(*this, LE::Parameters::IndexOf<LFO::Parameters, LFO::Phase>::value),
+      range_(*this), pModuleControl_(nullptr)
 {
     for (auto const pComponent : componentsToDisableKeyboardGrabingFor)
     {
@@ -2741,6 +2742,205 @@ SpectrumWorxEditor const &SpectrumWorxEditor::LFODisplay::editor() const
     return const_cast<SpectrumWorxEditor::LFODisplay &>(*this).editor();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// SpectrumWorxEditor::LFODisplay::ParameterSlider
+// ----------------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+struct LFONameGetter
+{
+    using result_type = char const *;
+    template <class Parameter> result_type operator()() const
+    {
+        return LE::Parameters::Name<Parameter>::string_;
+    }
+};
+
+/// The LFO parameter's own name: "Period", "Phase", "Range Min", "Range Max".
+char const *lfoParameterName(std::uint8_t const index)
+{
+    return LE::Parameters::invokeFunctorOnIndexedParameter<LFO::Parameters>(index, LFONameGetter());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \note The host's own string for the period, not the two lines the panel draws
+/// beside the slider: this one is what LFOImpl::parsePeriodScale() reads back, so
+/// what the field offers is what may be typed into it.
+////////////////////////////////////////////////////////////////////////////////
+
+juce::String periodString(SpectrumWorxEditor::LFODisplay const &parent)
+{
+    std::array<char, 64> buffer;
+    auto const written(LFO::printPeriodScale(static_cast<float>(parent.period().getValue()),
+                                             parent.lfo().syncTypes(), buffer));
+    return juce::String(&buffer[0], written);
+}
+
+/// The degrees phaseString() prints, read back. \see issue #168.
+std::optional<double> parseDegrees(juce::String const &text)
+{
+    auto const number(text.upToFirstOccurrenceOf("\xc2\xb0", false, false).trim());
+    if (number.isEmpty() || !number.containsOnly("0123456789.,+-eE"))
+        return {};
+    return number.getDoubleValue();
+}
+} // anonymous namespace
+
+SpectrumWorxEditor::LFODisplay::ParameterSlider::ParameterSlider(
+    LFODisplay &parent, std::uint8_t const lfoParameterIndex)
+    : parent_(parent), lfoParameterIndex_(lfoParameterIndex)
+{
+}
+
+void SpectrumWorxEditor::LFODisplay::ParameterSlider::mouseDown(juce::MouseEvent const &event)
+{
+    notePressAt(event.position.x);
+    if (event.mods.isPopupMenu())
+        return showParameterMenu(event);
+    HorizontalSlider::mouseDown(event);
+}
+
+void SpectrumWorxEditor::LFODisplay::ParameterSlider::mouseDrag(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return;
+    HorizontalSlider::mouseDrag(event);
+}
+
+juce::String SpectrumWorxEditor::LFODisplay::ParameterSlider::parameterName() const
+{
+    return juce::String(parent().control().name()) + " - LFO " +
+           lfoParameterName(lfoParameterIndex());
+}
+
+juce::String SpectrumWorxEditor::LFODisplay::ParameterSlider::parameterValueText() const
+{
+    using LE::Parameters::IndexOf;
+    switch (lfoParameterIndex())
+    {
+    case IndexOf<LFO::Parameters, LFO::PeriodScale>::value:
+        return periodString(parent());
+    case IndexOf<LFO::Parameters, LFO::Phase>::value:
+        return phaseString(parent(), getValue());
+    /// \note The module control's own formatter rather than rangeValueString(),
+    /// which is the panel's and asserts that the control is the active one --
+    /// true while it paints, and not a question the menu has any business asking.
+    case IndexOf<LFO::Parameters, LFO::LowerBound>::value:
+        return parent().control().getTextFromValue(static_cast<float>(getMinValue()));
+    case IndexOf<LFO::Parameters, LFO::UpperBound>::value:
+        return parent().control().getTextFromValue(static_cast<float>(getMaxValue()));
+        LE_DEFAULT_CASE_UNREACHABLE();
+    }
+}
+
+ParameterID SpectrumWorxEditor::LFODisplay::ParameterSlider::parameterID() const
+{
+    ParameterID parameterID;
+    parameterID.value.type = ParameterID::LFOParameter;
+    parameterID.value._.lfo = {lfoParameterIndex(), parent().control().moduleParameterIndex(),
+                               parent().moduleIndex()};
+    return parameterID;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Through the widget rather than around it: setting the slider with
+/// sendNotificationSync puts the typed value through the very path a drag takes,
+/// so the engine, the host and the panel hear about it exactly once each.
+///
+/// \note The two bounds are read in the units of the parameter they modulate,
+/// which is what the panel prints them in. \see ParameterParser's LFO arm, which
+/// reads a host's text back the same way round.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+bool SpectrumWorxEditor::LFODisplay::ParameterSlider::setParameterFromText(juce::String const &text)
+{
+    using LE::Parameters::IndexOf;
+    switch (lfoParameterIndex())
+    {
+    case IndexOf<LFO::Parameters, LFO::PeriodScale>::value:
+    {
+        auto const periodScale(LFO::parsePeriodScale(text.toRawUTF8(), parent().lfo().syncTypes()));
+        if (!periodScale)
+            return false;
+        setValue(*periodScale, juce::sendNotificationSync);
+        return true;
+    }
+
+    case IndexOf<LFO::Parameters, LFO::Phase>::value:
+    {
+        auto const degrees(parseDegrees(text));
+        if (!degrees)
+            return false;
+        setValue(*degrees / 360, juce::sendNotificationSync);
+        return true;
+    }
+
+    case IndexOf<LFO::Parameters, LFO::LowerBound>::value:
+    case IndexOf<LFO::Parameters, LFO::UpperBound>::value:
+    {
+        auto const value(parent().control().parseValueString(text));
+        if (!value)
+            return false;
+        if (lfoParameterIndex() == IndexOf<LFO::Parameters, LFO::LowerBound>::value)
+            setMinValue(*value, juce::sendNotificationSync, true);
+        else
+            setMaxValue(*value, juce::sendNotificationSync, true);
+        return true;
+    }
+        LE_DEFAULT_CASE_UNREACHABLE();
+    }
+}
+
+void SpectrumWorxEditor::LFODisplay::ParameterSlider::setParameterToDefault()
+{
+    using LE::Parameters::IndexOf;
+    switch (lfoParameterIndex())
+    {
+    case IndexOf<LFO::Parameters, LFO::LowerBound>::value:
+        setMinValue(getMinimum(), juce::sendNotificationSync, true);
+        return;
+    case IndexOf<LFO::Parameters, LFO::UpperBound>::value:
+        setMaxValue(getMaximum(), juce::sendNotificationSync, true);
+        return;
+    default:
+        /// \note What the double click already returns to, so that the two ways
+        /// back to a default cannot disagree.
+        setValue(getDoubleClickReturnValue(), juce::sendNotificationSync);
+    }
+}
+
+SpectrumWorxEditor::LFODisplay::RangeSlider::RangeSlider(LFODisplay &parent)
+    : ParameterSlider(parent, LE::Parameters::IndexOf<LFO::Parameters, LFO::LowerBound>::value)
+{
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \note Whichever thumb the press was nearest, which answers all three of the
+/// cases the issue names: below the lower bound and above the upper one, the
+/// nearest thumb is the one on that side. \see issue #93.
+////////////////////////////////////////////////////////////////////////////////
+
+std::uint8_t SpectrumWorxEditor::LFODisplay::RangeSlider::lfoParameterIndex() const
+{
+    using LE::Parameters::IndexOf;
+    auto const toLower(Math::abs(getPositionOfValue(getMinValue()) - pressPosition()));
+    auto const toUpper(Math::abs(getPositionOfValue(getMaxValue()) - pressPosition()));
+    return (toLower <= toUpper) ? IndexOf<LFO::Parameters, LFO::LowerBound>::value
+                                : IndexOf<LFO::Parameters, LFO::UpperBound>::value;
+}
+
+SpectrumWorxEditor::LFODisplay::Period::Period(LFODisplay &parent)
+    : ParameterSlider(parent, LE::Parameters::IndexOf<LFO::Parameters, LFO::PeriodScale>::value),
+      lastSyncType_(LFO::Free)
+{
+}
+
 double SpectrumWorxEditor::LFODisplay::Period::snapValue(double const attemptedValue,
                                                          DragMode /*dragMode*/)
 {
@@ -2759,11 +2959,6 @@ double SpectrumWorxEditor::LFODisplay::Period::milliseconds() const
                         ? LFO::Timer::referenceBarDuration
                         : parent().editor().effect().lfoTimer().basePeriod());
     return this->getValue() * bar * 1000;
-}
-
-SpectrumWorxEditor::LFODisplay const &SpectrumWorxEditor::LFODisplay::Period::parent() const
-{
-    return Utility::ParentFromMember<LFODisplay, Period, &LFODisplay::period_>()(*this);
 }
 
 SpectrumWorxEditor::SampleArea::SampleArea()
