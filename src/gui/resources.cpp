@@ -186,6 +186,7 @@ juce::Typeface::Ptr regularTypefaceCache;
 juce::Typeface::Ptr boldTypefaceCache;
 
 Artwork logoCache;
+Artwork logoFullCache;
 } // anonymous namespace
 
 Artwork::Artwork() = default;
@@ -328,12 +329,24 @@ Artwork const &logoArtwork()
 {
     if (!logoCache.isValid())
     {
-        auto const [data, size](embeddedFile("LOGO.svg"));
+        auto const [data, size](embeddedFile("spectrumworx_logo.svg"));
         LE_ASSERT_MSG(data, "The logo is not embedded.");
         if (data)
             logoCache = loadVector(data, size);
     }
     return logoCache;
+}
+
+Artwork const &logoFullArtwork()
+{
+    if (!logoFullCache.isValid())
+    {
+        auto const [data, size](embeddedFile("spectrumworx_logo_full.svg"));
+        LE_ASSERT_MSG(data, "The logo is not embedded.");
+        if (data)
+            logoFullCache = loadVector(data, size);
+    }
+    return logoFullCache;
 }
 
 juce::Typeface::Ptr regularTypeface() { return loadTypeface("Vera.ttf", regularTypefaceCache); }

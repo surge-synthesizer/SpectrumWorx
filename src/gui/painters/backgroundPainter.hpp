@@ -20,7 +20,7 @@
 /// way of saying "this is raised". They are a rule now, which is the same thing
 /// the boxes inside them already said with one line.
 ///
-///   The mark is assets/LOGO.svg, drawn in place rather than traced into this
+///   The mark is assets/spectrumworx_logo.svg, drawn in place rather than traced into this
 /// file, and the trademark sign beside it is gone. \see logoArtwork().
 ///
 /// \note What has *not* changed is a single coordinate. Every rectangle here is

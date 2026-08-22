@@ -14,15 +14,6 @@
 # and the skin and the presets are wanted by the same binary in every
 # configuration that has either.
 #
-# **Not everything under assets/ is an asset in that sense.** `LOGO.svg`,
-# `LOGO.png` and `installer/` are the packaging side -- the mark itself, the
-# icons cut from it, the wizard banner, the licence the installers show -- and
-# belong in the .pkg and the .exe rather than in the binary. Nothing below
-# reaches them, because every glob here names the subdirectory it wants; a
-# `GLOB_RECURSE *.svg` added later would put a 1024px application icon in the
-# plugin, which is the kind of thing that is only ever noticed as an
-# unexplained megabyte.
-#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 include(CmakeRC)
@@ -44,7 +35,8 @@ file(GLOB SW_SKIN_FILES CONFIGURE_DEPENDS
 # installers cut their icons from *and* the mark the editor draws down its left
 # edge. Named here so there is one of it -- a copy in skin/ would be a second
 # logo free to drift from this one.
-list(APPEND SW_SKIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/LOGO.svg")
+list(APPEND SW_SKIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/spectrumworx_logo.svg")
+list(APPEND SW_SKIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/spectrumworx_logo_full.svg")
 
 file(GLOB_RECURSE SW_PRESET_FILES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/presets/*.swp"
@@ -90,7 +82,6 @@ cmrc_add_resource_library(sw-assets
         ${SW_PRESET_FILES}
         ${SW_SAMPLE_FILES}
 )
-
 # cmrc_add_resource_library makes a static library of generated .cpp files; they
 # are not ours and have nothing to say about our warnings.
 set_target_properties(sw-assets PROPERTIES

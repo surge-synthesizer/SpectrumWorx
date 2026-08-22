@@ -256,11 +256,12 @@ template <unsigned int bitmapID> juce::Image const &resourceBitmap()
 
 /// \brief The SpectrumWorx mark, which the editor draws down its left edge.
 ///
-/// \note assets/LOGO.svg, embedded in place rather than copied into skin/ under
+/// \note assets/spectrumworx_logo.svg, embedded in place rather than copied into skin/ under
 /// a number. It is also what scripts/make_icons.sh cuts the packaged icons from,
 /// and a mark that is two files is a mark that is eventually two marks.
 /// \see painters/backgroundPainter.hpp.
 Artwork const &logoArtwork();
+Artwork const &logoFullArtwork();
 
 /// Bitstream Vera, the skin's font, loaded straight from the embedded bytes.
 ///

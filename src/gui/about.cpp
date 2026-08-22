@@ -97,7 +97,8 @@ int constexpr margin{32};
 /// One line of body text, ascent to next ascent.
 int constexpr lineHeight{21};
 
-int constexpr titleY{27};
+int constexpr titleY{30};
+int constexpr titleWidth{165};
 int constexpr titleHeight{30};
 
 int constexpr versionY{titleY + titleHeight + 3};
@@ -111,7 +112,7 @@ int constexpr linkGap{18};
 int constexpr copyrightY{linksY + linksHeight + lineHeight - 9};
 int constexpr copyrightLineCount{static_cast<int>(std::size(Content::copyright))};
 
-int constexpr authorsHeadingY{copyrightY + copyrightLineCount * lineHeight + 116};
+int constexpr authorsHeadingY{copyrightY + copyrightLineCount * lineHeight + 113};
 int constexpr authorsY{authorsHeadingY + lineHeight + 6};
 } // namespace Layout
 
@@ -356,10 +357,10 @@ void AboutPage::paint(juce::Graphics &graphics)
     auto const width(getWidth());
 
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
+    using namespace Layout;
     graphics.setFont(titleFont());
-    graphics.drawFittedText(asText(Content::title), Layout::margin, Layout::titleY,
-                            width - 2 * Layout::margin, Layout::titleHeight,
-                            juce::Justification::centredLeft, 1);
+
+    logoFullArtwork().drawWithin(graphics, {margin, titleY, titleWidth, titleHeight});
 
     {
         auto y(Layout::versionY);
