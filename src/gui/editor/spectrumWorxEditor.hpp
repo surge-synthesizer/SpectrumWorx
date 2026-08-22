@@ -220,9 +220,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     /// \name The three knobs above the rack
     ///
-    /// \note Read-only, and public so a headless run can read what they are
-    /// *showing*, which is not the same question as what the program holds.
-    /// \see issue #91.
+    /// \note Public so a headless run can read what they are *showing*, which is
+    /// not the same question as what the program holds.
     ///@{
     EditorKnob const &inKnob() const { return in_; }
     EditorKnob const &outKnob() const { return out_; }
@@ -584,14 +583,14 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// neither of which a headless render has.
     void showPresetBrowser(bool show);
 
-    /// \brief The browser, or nothing when the panel is not showing one. Public
-    /// for the same reason showPresetBrowser() is. \see issue #177.
+    /// \brief The browser, or nothing when the panel is not showing one.
     PresetBrowser *presetBrowser() { return presetBrowser_ ? &*presetBrowser_ : nullptr; }
 
     /// \brief One of the timer's steps: the Save buttons follow a flag any
-    /// parameter write can set. Public for the same reason
-    /// updateEngineInformationIfChanged() is -- juce::Timer is a private base, so
-    /// this is how a headless run drives a tick. \see issue #177.
+    /// parameter write can set.
+    ///
+    /// \note Public because juce::Timer is a private base, so this is how a
+    /// headless run drives a tick.
     void updateSaveButtonsIfShowing();
 
     /// \brief Opens the browser on a factory bank, as double-clicking into one
@@ -692,7 +691,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
   public:
     /// \note Public for the same reason regionInSlot() is: a headless run
-    /// presses what is on it. \see issue #93.
+    /// presses what is on it.
     SharedModuleControls &sharedModuleControls() { return *sharedModuleControls_; }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -993,37 +992,26 @@ class SpectrumWorxEditor final : private SkinLifetime,
         using AsyncSlider = HorizontalSlider;
         using LFO = LE::Parameters::LFOImpl;
 
-        ////////////////////////////////////////////////////////////////////////
-        /// \class ParameterSlider
-        ///
         /// \brief One of the LFO's own parameters, with the right button's menu
         /// on it -- the same four sections a knob raises. \see issue #93.
-        ////////////////////////////////////////////////////////////////////////
-
         class ParameterSlider : public AsyncSlider, public ParameterMenu
         {
           public:
             ParameterSlider(LFODisplay &parent, std::uint8_t lfoParameterIndex);
 
-            ////////////////////////////////////////////////////////////////////
-            ///
             /// \name What this slider stands for
             ///
-            ///   Public for the reason ModuleControlBase's own four are: which
-            /// parameter a widget is currently speaking for, what it reads as and
-            /// what typing into it means are questions about the widget rather
-            /// than about the menu that happens to ask them.
-            ///
-            ////////////////////////////////////////////////////////////////////
+            /// \note Public for the reason ModuleControlBase's own four are:
+            /// which parameter a widget speaks for, what it reads as and what
+            /// typing into it means are questions about the widget rather than
+            /// about the menu that asks them.
             ///@{
-            /// \brief The range slider carries two and answers with the thumb the
-            /// press was nearest.
+            /// The range slider carries two, and answers with the nearest thumb.
             virtual std::uint8_t lfoParameterIndex() const { return lfoParameterIndex_; }
 
-            /// \brief Where a press lands the menu, without raising one: the
-            /// step mouseDown() takes before it does. Public for the same reason
-            /// effectMenuTargetAt() is -- which of two parameters a point in the
-            /// widget means is geometry, and a headless run can ask it.
+            /// \brief Where a press lands the menu, without raising one: the step
+            /// mouseDown() takes before it does. Public because which of two
+            /// parameters a point means is geometry, and a headless run can ask.
             void notePressAt(float const position) { pressPosition_ = position; }
 
             juce::String parameterName() const override;
@@ -1037,7 +1025,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
             LFODisplay &parent() { return parent_; }
             LFODisplay const &parent() const { return parent_; }
 
-            /// Where the last press landed, which is what that thumb is chosen by.
+            /// Where the last press landed: what that thumb is chosen by.
             float pressPosition() const { return pressPosition_; }
 
           private: // JUCE component overrides.
@@ -1105,7 +1093,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
         }
         Period const &period() const { return period_; }
 
-        /// The three sliders, for a case that presses one. \see issue #93.
+        /// The three sliders, for a case that presses one.
         Period &period() { return period_; }
         ParameterSlider &phase() { return phase_; }
         RangeSlider &range() { return range_; }
@@ -1195,8 +1183,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
     }; // class LFODisplay
 
   public:
-    /// \brief The LFO strip, or nothing when no control is selected. Public for
-    /// the same reason regionInSlot() is: a headless run can press what is on it.
+    /// \brief The LFO strip, or nothing when no control is selected.
     LFODisplay *lfoDisplay() { return lfoDisplay_ ? &*lfoDisplay_ : nullptr; }
 
     ////////////////////////////////////////////////////////////////////////////

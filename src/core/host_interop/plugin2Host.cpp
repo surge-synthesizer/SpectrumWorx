@@ -557,19 +557,12 @@ char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::ope
         return printer.printer.buffer.begin();
     }
 
-        ////////////////////////////////////////////////////////////////////////////
-        ///
-        /// \note The sync mask reads as the choice it stands for -- "Free", "Note",
-        /// "Triplet", "Dotted" -- rather than as the number it is.
-        ///
-        /// \note A *mask* either way: a host is handed the choice's ordinal, but
-        /// `paramsValueToText` puts a supplied value back through `CLAPEdge::fromHost`
-        /// before it gets here, so what arrives is the natural value like everywhere
-        /// else in this switch. \see CLAPEdge::choiceCount() and issue #159.
-        ///                                       (22.08.2026.)
-        ///
-        ////////////////////////////////////////////////////////////////////////////
-
+    /// \note The sync mask reads as the choice it stands for rather than as the
+    /// number it is.
+    ///
+    /// \note A *mask* either way: a host is handed the ordinal, but
+    /// `paramsValueToText` puts a supplied value back through `fromHost` before
+    /// it gets here. \see CLAPEdge::choiceCount()
     case syncTypesIndex:
     {
         auto const mask(printer.forValue ? static_cast<std::uint8_t>(*printer.forValue + 0.5f)

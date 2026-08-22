@@ -65,11 +65,6 @@ struct ToEngine
         SwapSample
     };
 
-    /// \note `SetUnexportedLFOParameter` stood here, for the two LFO
-    /// sub-parameters that had no `ParameterID` to be addressed by. Issue #159
-    /// exported them, so every edit the interface makes is a `SetBaseParameter`
-    /// again and the exception has no cases left.
-
     Kind kind{Kind::None};
 
     union

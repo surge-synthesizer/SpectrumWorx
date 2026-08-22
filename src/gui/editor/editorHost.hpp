@@ -117,68 +117,50 @@ struct PanelState
     fs::path presetFolder;   ///< when presetLocation is user
 }; // struct PanelState
 
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \struct LoadedPreset
 ///
 /// \brief Which preset the plugin is playing, and whether it has been edited
-/// since it arrived.
+/// since it arrived. What the two Save buttons key on. \see issue #177.
 ///
-///   What the two Save buttons key on. Save As offers to write the edit
-/// somewhere new; Save offers to write it back where the sound came from, which
-/// is why the file is here rather than taken from whichever row the browser
-/// happens to have selected -- a user may well have gone looking elsewhere
-/// between loading a preset and deciding to keep their changes.
+/// \note The file is here rather than taken from the selected row because Save
+/// writes back where the sound came from, and the browser may have gone looking
+/// elsewhere since.
 ///
-/// \note The plugin's rather than the browser's, for two reasons: the browser is
-/// built and destroyed every time the panels are swapped, and this goes into the
-/// session so that reopening a project finds the same preset name over the list
-/// and the same buttons lit. \see issue #177.
+/// \note The plugin's rather than the browser's: the browser is destroyed every
+/// time the panels are swapped, and this goes into the session.
 ///
 /// \note `modified` is atomic because a host writing a parameter from its audio
-/// thread sets it -- the same path that reaches `clap_host_state::mark_dirty`,
-/// and the same reason that one defers. Nothing reads it but the message thread.
-///                                           (22.08.2026.)
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// thread sets it. Nothing reads it but the message thread.
 struct LoadedPreset
 {
     LoadedPreset() = default;
     LoadedPreset(LoadedPreset const &) = delete; // holds an atomic
     LoadedPreset &operator=(LoadedPreset const &) = delete;
 
-    /// \brief Empty when nothing has been loaded: a fresh instance, or a session
-    /// whose preset was renamed out from under it.
+    /// Empty when nothing has been loaded.
     juce::String name;
 
     PanelState::PresetLocation location{PanelState::PresetLocation::factory};
     juce::String bank; ///< when location is factory
     fs::path file;     ///< when location is user: what Save overwrites
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief What the browser's comment box holds.
     ///
-    ///   Here rather than only in the file so that a comment typed against a
-    /// *factory* preset is not lost: there is nothing in the binary to write it
-    /// to, and it is still a note the user made about the sound they are
-    /// playing. It goes into the session with everything else. \see issue #180.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note Here and not only in the file, so that a comment typed against a
+    /// *factory* preset -- which has nothing in the binary to write it to -- goes
+    /// into the session instead of being lost. \see issue #180.
     juce::String comment;
 
     std::atomic<bool> modified{false};
 
     /// \brief Whether Save has somewhere to write, which a factory preset and a
-    /// fresh instance both do not.
+    /// fresh instance do not.
     bool canBeOverwritten() const
     {
         return (location == PanelState::PresetLocation::user) && !file.empty();
     }
 
-    /// \brief Points this at \p presetName, wherever it came from, and calls it
-    /// unedited. \see PresetBrowser::presetSelectionChanged().
+    /// \brief Points this at \p presetName and calls it unedited.
     void loaded(juce::String const &presetName, PanelState::PresetLocation const from)
     {
         name = presetName;
@@ -259,11 +241,6 @@ class EditorHost
 
     /// \brief Moves the module in \p from to \p to, in both copies. `[main-thread]`
     virtual void editModuleMove(std::uint8_t from, std::uint8_t to) = 0;
-
-    /// \note `publishUnexportedLFOParameter()` stood here, the engine's half of
-    /// an edit to one of the two LFO sub-parameters that had no `ParameterID`.
-    /// Issue #159 gave them one, so `editParameter` carries them like everything
-    /// else.
 
     /// The other direction: telling the host that the user moved something.
     /// Gestures, automation notifications and module chain changes.
@@ -440,20 +417,14 @@ class EditorHost
     virtual PanelState &panelState() = 0;
     PanelState const &panelState() const { return const_cast<EditorHost &>(*this).panelState(); }
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief Says the session has changed in a way that is not a parameter.
     ///
-    /// \note The preset comment is the one that needs this. Everything else the
-    /// editor can change goes out through `editParameter`, which tells the host
-    /// on the way past; a comment reaches no parameter and no engine and would
-    /// otherwise be a change a host never hears about -- so a project closed
-    /// after typing one would be offered as unmodified. \see issue #180.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note The preset comment is the one that needs it: everything else goes
+    /// out through `editParameter`, which tells the host on the way past, so a
+    /// project closed after typing a comment would be offered as unmodified.
     virtual void markStateModified() const = 0;
 
-    /// \brief The preset the plugin is playing. \see LoadedPreset and issue #177.
+    /// \brief The preset the plugin is playing. \see LoadedPreset
     virtual LoadedPreset &loadedPreset() = 0;
     LoadedPreset const &loadedPreset() const
     {

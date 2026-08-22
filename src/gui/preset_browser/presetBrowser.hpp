@@ -235,39 +235,32 @@ class PresetBrowser final : public PanelBackground,
 
     bool enablePresetSaving() const;
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief Lights the two Save buttons for what has been edited.
     ///
-    /// \note Public because the editor's timer calls it: what they read is set
-    /// by any parameter write, host automation included, and nothing about that
-    /// marks a pixel of this panel dirty. \see issue #142, which is the same
-    /// argument about the engine information lines, and issue #177.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note Polled by the editor's timer: what they read is set by any
+    /// parameter write, host automation included, and nothing about that marks a
+    /// pixel of this panel dirty. \see issue #142, the same argument about the
+    /// engine information lines.
   public:
     void updateSaveButtons();
 
-    /// \brief Whether each Save button is offering to do anything. Public so
-    /// that a headless run can read what the user would see. \see issue #177.
+    /// \brief Whether each Save button is offering to do anything. Public so a
+    /// headless run can read what the user would see.
     bool saveIsOffered() const { return save_.isEnabled(); }
     bool saveAsIsOffered() const { return saveAs_.isEnabled(); }
 
-    /// \brief The highlighted row's name, or nothing when no preset is selected.
-    /// Public for the same reason: it is what the user can see.
+    /// \brief The highlighted row's name, or nothing when none is a preset.
     juce::String selectedPresetName() const;
 
   private:
     /// \brief Records what has just been loaded, and calls it unedited.
-    /// \see LoadedPreset.
     void rememberLoadedPreset(juce::String const &presetName, fs::path const &file);
 
     /// \brief Moves the list into the user's own presets, for a Save As pressed
-    /// while a factory bank is showing. \see issue #177.
+    /// while a factory bank is showing.
     void goToUserPresets();
 
-    /// \brief Puts the highlight on the preset the plugin is playing, when the
-    /// listing it is in is the one on screen. \see the definition.
+    /// \brief Highlights the preset the plugin is playing. \see the definition.
     void highlightLoadedPreset();
 
     unsigned int selectedIndex() const;
@@ -282,14 +275,12 @@ class PresetBrowser final : public PanelBackground,
     PanelBackground &background() { return *this; }
 
   public:
-    /// \brief The comment area. Public since issue #180: it is a control a user
-    /// types into, so a headless run has to be able to type into it.
+    /// \brief The comment area. Public so a headless run can type into it.
     juce::TextEditor &comment() { return commentBox_; }
 
-    /// \brief What the comment box's listener does, which is where the whole of
-    /// the edit is. Public because juce::TextEditor *posts* that callback -- a
-    /// test binary has no message loop to deliver it, so a headless run says so
-    /// itself. \see textEditorTextChanged() and issue #180.
+    /// \brief What the comment box's listener does. Public because
+    /// juce::TextEditor *posts* that callback and a test binary has no message
+    /// loop to deliver it.
     void commentChanged();
 
   private:

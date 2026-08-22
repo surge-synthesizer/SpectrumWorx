@@ -31,12 +31,9 @@ class SharedModuleControls : public WidgetBase<>
     typedef ModuleControlImpl<ModuleKnob> Knob; //...mrmlj...are these logically "module knobs"?
 
   public:
-    ////////////////////////////////////////////////////////////////////////////
     /// \note A ParameterMenu like every other module control, and the one that
     /// had to say which of its two parameters the menu is about: whichever thumb
     /// the press was nearest. \see issue #93.
-    ////////////////////////////////////////////////////////////////////////////
-
     class FrequencyRange final : public ModuleControlBase,
                                  public WidgetBase<juce::Slider>,
                                  public SliderWithSelectedThumb,
@@ -86,9 +83,8 @@ class SharedModuleControls : public WidgetBase<>
         float getValue() const override;
 
       private: // ParameterMenu
-        /// \note Every one of these is the module control's own answer, for the
-        /// thumb selectedThumb_ names. \see ModuleControl<>, which is the same
-        /// forwarding for a widget that stands for one parameter rather than two.
+        /// \note Every one is the module control's own answer, for the thumb
+        /// selectedThumb_ names. \see ModuleControl<>
         juce::Component &menuOwner() override { return *this; }
 
         juce::String parameterName() const override { return name(); }
@@ -104,8 +100,8 @@ class SharedModuleControls : public WidgetBase<>
         void setParameterToDefault() override { selectedControl().setValueToDefault(); }
         void addParameterMenuEntries(juce::PopupMenu &menu) override { addLFOMenuEntry(menu); }
 
-        /// \brief This control pointed at the thumb's parameter, which is what an
-        /// edit needs. \see parameterIndexForInternalWriteAccess_.
+        /// \brief This control pointed at the thumb's parameter, which is what
+        /// an edit needs. \see parameterIndexForInternalWriteAccess_
         ModuleControlBase &selectedControl();
 
       private:
@@ -175,7 +171,7 @@ class SharedModuleControls : public WidgetBase<>
         /// the moment a drag ends, whereas this must survive a hover. Ours.
         int selectedThumb_;
 
-        /// Shift-drag, as on every other slider. \see HorizontalSlider.
+        /// Shift-drag, as on every other slider. \see HorizontalSlider
         FineDrag fine_;
     }; // class FrequencyRange
 
@@ -188,7 +184,7 @@ class SharedModuleControls : public WidgetBase<>
 
     ModuleControlBase &controlForParameter(std::uint8_t parameterIndex);
 
-    /// For a headless run that presses it. \see issue #93.
+    /// For a headless run that presses it.
     FrequencyRange &frequencyRange() { return frequencyRange_; }
 
     /// \brief Whether these controls are pointing into \p region.

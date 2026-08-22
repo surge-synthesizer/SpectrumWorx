@@ -256,19 +256,10 @@ Host2PluginInteropImpl<Impl, Protocol>::setParameter(ParameterID const parameter
     // http://www.kvraudio.com/forum/viewtopic.php?t=230479
     //                                        (07.07.2010.) (Domagoj Saric)
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note `impl().markCurrentProgramAsModified()` stood here, and it is the
-    /// caller's question rather than this one's. Two routes reach this: a host's
-    /// parameter event, which *is* an edit, and `drainCommands()` applying an
-    /// edit the interface queued -- which the interface has already reported, and
-    /// which for a preset load is not an edit at all. Marking here called a
-    /// preset load an edit, one per parameter it carried, and did it on the audio
-    /// thread a block after the browser had recorded the load as clean.
-    ///                                       (22.08.2026.) \see issue #177.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
+    // whether this is an *edit* is the caller's question, not this one's: a
+    // host's parameter event is one, and drainCommands() applying what the
+    // interface queued is not -- for a preset load, not at all. Marking here
+    // called every parameter a load carried an edit
     ParameterSetter const setter = {value};
     return invokeFunctorOnIdentifiedParameter(parameterID,
                                               std::forward<ParameterSetter const>(setter), &impl());

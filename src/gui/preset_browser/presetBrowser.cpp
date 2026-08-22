@@ -127,19 +127,9 @@ PresetBrowser::PresetBrowser()
     // the file list box.
     this->setWantsKeyboardFocus(true);
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note Always. It was enabled only while a *user* preset was selected --
-    /// "to create a new preset with a comment you first need to create a preset"
-    /// (27.05.2010.) -- so a note about a factory preset, or about a sound built
-    /// from nothing, could not be typed at all.
-    ///
-    ///   It is a note about what the plugin is playing rather than about a file,
-    /// so it does not need a file to exist. What has no file to be written to
-    /// travels in the session instead. \see LoadedPreset::comment and issue #180.
-    ///                                       (22.08.2026.)
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // always: a comment is a note about what the plugin is playing rather than
+    // about a file, so it does not need one to exist. What has no file to be
+    // written to travels in the session instead
     comment().setEnabled(true);
     comment().setInputRestrictions(PresetHeader::maxCommentLength - 1);
     comment().setText(editor().editorHost().loadedPreset().comment, false);
@@ -213,8 +203,8 @@ bool PresetBrowser::enablePresetSaving() const { return location_ == Location::U
 // sound came from. Both are dead until there *is* an edit, and Save is dead for a
 // factory preset, there being nothing in the binary to overwrite.
 //
-// Neither depends on the selected row: Save used to overwrite whichever preset
-// the list pointed at, which is not necessarily the one being played
+// Neither depends on the selected row: Save writes back where the sound came
+// from, and the list may be pointing at a preset nobody has heard
 void PresetBrowser::updateSaveButtons()
 {
     auto const &loaded(editor().editorHost().loadedPreset());
@@ -238,32 +228,18 @@ void PresetBrowser::rememberLoadedPreset(juce::String const &presetName, fs::pat
     updateSaveButtons();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \brief Puts the highlight on the preset the plugin is playing, when the
 /// listing on screen is the one it came from.
 ///
-///   A session restored opens the browser where it was left -- issue #129 --
-/// and said nothing about *which* preset was playing, so a project reopened
-/// showed the right folder with nothing in it selected. The session carries the
-/// loaded preset since issue #177, so the row can be found.
-///
-/// \note Without loading it. `ignoreSelectionChange_` is what stops
-/// `selectedRowsChanged()` treating this as the user picking a row, and
-/// reloading would be wrong twice over: the sound is already here, and a session
+/// \note Highlighted, not loaded: the sound is already here, and a session
 /// carrying edits nobody has saved would lose them to the file on disk.
+/// `ignoreSelectionChange_` is what stops this reading as the user picking a row.
 ///
-/// \note And without the keyboard, which `refreshAndSelectPreset()` takes for the
-/// comment box. That one runs when the user has just saved a preset and is
-/// looking at it; nobody asked for this one.
+/// \note And without the keyboard, which refreshAndSelectPreset() takes -- that
+/// one runs when the user has just saved and is looking at it.
 ///
-/// \note Only when the *tree* matches too, and not merely the name: a user who
-/// loaded a preset and then went browsing elsewhere is looking at somewhere they
-/// chose, and a preset of the same name in another bank is a different preset.
-///                                           (22.08.2026.) \see issue #177.
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note The tree has to match too: a preset of the same name in another bank is
+/// a different preset.
 void PresetBrowser::highlightLoadedPreset()
 {
     auto const &loaded(editor().editorHost().loadedPreset());
@@ -477,20 +453,13 @@ void PresetBrowser::textEditorTextChanged(juce::TextEditor &editor)
         commentChanged();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note An edit like any other. A comment reaches no parameter and no engine,
-/// so nothing else would tell the host its session had changed -- a project
-/// closed after typing one would be offered as unmodified -- and nothing would
-/// light the Save buttons that are the way to keep it.
+/// so nothing else would tell the host its session had changed, and nothing
+/// would light the Save buttons that are the way to keep it.
 ///
-/// \note Guarded on the text having actually moved, because
-/// `juce::TextEditor::setText` notifies for every call this makes itself:
-/// filling the box from a preset would otherwise count as editing it.
-///                                           (22.08.2026.) \see issues #177, #180.
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note Guarded on the text having actually moved: `juce::TextEditor::setText`
+/// notifies for every call this makes itself, so filling the box from a preset
+/// would otherwise count as editing it.
 void PresetBrowser::commentChanged()
 {
     dirtyCommentPresetIndex_ = listBox_.getLastRowSelected();

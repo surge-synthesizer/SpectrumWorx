@@ -179,48 +179,33 @@ class SpectrumWorxCLAP final
     // is the DSP half alone -- building a JUCE component on the audio thread,
     // which is where a host parameter event arrives, is what that avoids
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief Tells the host its session needs saving again, and nothing else.
     ///
     /// \note The VST program model prefixed a modified program's name with '*'.
     /// CLAP has a host call for it instead, and it is the host's business
     /// whether that means anything.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
     void markSessionAsUnsaved() const;
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief The same, and: somebody has **edited** the preset that is loaded.
     ///
-    ///   Two different questions, and they came apart the moment the browser's
-    /// Save buttons started reading the second one. A preset *arriving* changes
-    /// the session -- the host must save it again -- without anybody having
-    /// edited anything, and calling that an edit lit Save As on every load.
-    /// \see LoadedPreset::modified and issue #177.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note Two questions, and they came apart the moment the Save buttons
+    /// started reading the second: a preset *arriving* changes the session
+    /// without anybody having edited anything. \see LoadedPreset::modified
     void markCurrentProgramAsModified() const;
 
   public:
     explicit SpectrumWorxCLAP(clap_host const *);
+    ~SpectrumWorxCLAP() override;
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief The plugin's own extensions, which is one: the order an AUv2 host
-    /// is to lay the parameters out in.
+    /// lays the parameters out in.
     ///
-    /// \note Not a CLAP extension -- clap-wrapper defines it, and only its AUv2
-    /// side asks for it. \see CLAP_PLUGIN_AUV2_PARAM_ORDERING and issue #159.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note clap-wrapper's rather than CLAP's, and only its AUv2 side asks.
+    /// \see CLAP_PLUGIN_AUV2_PARAM_ORDERING
     void const *extension(char const *id) noexcept override;
 
     /// \brief `order[auv2Position] = clapIndex`, by release and then by id.
-    /// \see CLAPEdge::parameterVersion().
     bool auv2ParameterOrder(std::size_t *order, std::size_t parameterCount) const noexcept;
-    ~SpectrumWorxCLAP() override;
 
     /// Called by the editor, on the UI thread, to drive a slot swap by hand.
     void cycleModuleFromUI(std::uint8_t moduleIndex);
@@ -417,16 +402,10 @@ class SpectrumWorxCLAP final
     void retireModule(Module &module) { retire(Threading::ToUI::Retired::Module, &module); }
 
   public:
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \brief Which of the two things a chain change is.
     ///
-    /// \note Exactly the message kind it arrived as. `Threading::publishChain()`
-    /// has one caller -- the preset loader -- so a whole chain is always a preset
-    /// or a session; a slot filled, emptied or moved is always somebody changing
-    /// the sound. \see drainCommands() and issue #177.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// \note Exactly the message kind it arrived as: `Threading::publishChain()`
+    /// has one caller and it is the preset loader.
     enum struct ChainChange : bool
     {
         presetArrived, ///< a whole chain, from a preset or a session load
@@ -687,8 +666,7 @@ class SpectrumWorxCLAP final
     GUI::PanelState panelState_;
     GUI::LoadedPreset loadedPreset_;
 
-    /// \brief What the session said about `loadedPreset_.modified`, held between
-    /// the block being read and the load finishing. \see stateLoad().
+    /// What the session said about `loadedPreset_.modified`, until the load ends.
     bool restoredPresetModified_{false};
 
     /// \note Owned by the shim, which destroys it before this. Cleared on the

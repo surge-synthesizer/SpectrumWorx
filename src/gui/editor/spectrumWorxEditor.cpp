@@ -2354,12 +2354,8 @@ juce::String periodMillisecondsString(SpectrumWorxEditor::LFODisplay const &pare
     return juce::String(&buffer[0]);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-/// \note Through the transformer the host prints with, rather than beside it:
-/// the panel drew degrees and a DAW's lane read percent for a day because these
-/// were two separate pieces of arithmetic. \see issue #181.
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note Through the transformer the host prints with rather than beside it:
+/// these were two separate pieces of arithmetic, and said different things.
 juce::String phaseString(SpectrumWorxEditor::LFODisplay const &parent, double const &phase)
 {
     using Display = LE::Parameters::DisplayValueTransformer<LFO::Phase>;
@@ -2753,13 +2749,6 @@ SpectrumWorxEditor const &SpectrumWorxEditor::LFODisplay::editor() const
     return const_cast<SpectrumWorxEditor::LFODisplay &>(*this).editor();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxEditor::LFODisplay::ParameterSlider
-// ----------------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
 namespace
 {
 struct LFONameGetter
@@ -2777,12 +2766,9 @@ char const *lfoParameterName(std::uint8_t const index)
     return LE::Parameters::invokeFunctorOnIndexedParameter<LFO::Parameters>(index, LFONameGetter());
 }
 
-////////////////////////////////////////////////////////////////////////////////
-/// \note The host's own string for the period, not the two lines the panel draws
-/// beside the slider: this one is what LFOImpl::parsePeriodScale() reads back, so
-/// what the field offers is what may be typed into it.
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note The host's own string, not the two lines the panel draws beside the
+/// slider: this is what parsePeriodScale() reads back, so what the field offers
+/// is what may be typed into it.
 juce::String periodString(SpectrumWorxEditor::LFODisplay const &parent)
 {
     std::array<char, 64> buffer;
@@ -2791,8 +2777,7 @@ juce::String periodString(SpectrumWorxEditor::LFODisplay const &parent)
     return juce::String(&buffer[0], written);
 }
 
-/// \brief What phaseString() prints, read back -- the unit stripped and the
-/// transformer's own inverse applied. \see issue #181.
+/// \brief What phaseString() prints, read back.
 std::optional<double> parsePhase(SpectrumWorxEditor::LFODisplay const &parent,
                                  juce::String const &text)
 {
@@ -2840,9 +2825,9 @@ juce::String SpectrumWorxEditor::LFODisplay::ParameterSlider::parameterValueText
         return periodString(parent());
     case IndexOf<LFO::Parameters, LFO::Phase>::value:
         return phaseString(parent(), getValue());
-    /// \note The module control's own formatter rather than rangeValueString(),
-    /// which is the panel's and asserts that the control is the active one --
-    /// true while it paints, and not a question the menu has any business asking.
+    // the module control's own formatter rather than rangeValueString(), which
+    // asserts the control is the active one -- true while it paints, and not a
+    // question the menu has any business asking
     case IndexOf<LFO::Parameters, LFO::LowerBound>::value:
         return parent().control().getTextFromValue(static_cast<float>(getMinValue()));
     case IndexOf<LFO::Parameters, LFO::UpperBound>::value:
@@ -2860,18 +2845,12 @@ ParameterID SpectrumWorxEditor::LFODisplay::ParameterSlider::parameterID() const
     return parameterID;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/// \note Through the widget rather than around it: sendNotificationSync puts the
+/// typed value through the path a drag takes, so the engine, the host and the
+/// panel hear about it once each.
 ///
-/// \note Through the widget rather than around it: setting the slider with
-/// sendNotificationSync puts the typed value through the very path a drag takes,
-/// so the engine, the host and the panel hear about it exactly once each.
-///
-/// \note The two bounds are read in the units of the parameter they modulate,
-/// which is what the panel prints them in. \see ParameterParser's LFO arm, which
-/// reads a host's text back the same way round.
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note The two bounds read in the units of the parameter they modulate, which
+/// is what the panel prints them in.
 bool SpectrumWorxEditor::LFODisplay::ParameterSlider::setParameterFromText(juce::String const &text)
 {
     using LE::Parameters::IndexOf;
@@ -2934,12 +2913,8 @@ SpectrumWorxEditor::LFODisplay::RangeSlider::RangeSlider(LFODisplay &parent)
 {
 }
 
-////////////////////////////////////////////////////////////////////////////////
-/// \note Whichever thumb the press was nearest, which answers all three of the
-/// cases the issue names: below the lower bound and above the upper one, the
-/// nearest thumb is the one on that side. \see issue #93.
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note Whichever thumb the press was nearest, which answers all three cases
+/// the issue names: outside the band, the nearest thumb is the one on that side.
 std::uint8_t SpectrumWorxEditor::LFODisplay::RangeSlider::lfoParameterIndex() const
 {
     using LE::Parameters::IndexOf;

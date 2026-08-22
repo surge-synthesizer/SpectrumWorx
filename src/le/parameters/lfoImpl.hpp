@@ -386,23 +386,15 @@ class LFOImpl : public LFO
     //...mrmlj...cleanup with a new 'logarithmic' parameter/control...
     static void snapPeriodScaleFromAutomation(PeriodScale &);
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
     /// \name The four sync choices a host is offered
     ///
-    ///   `SyncTypes` is a bit mask internally -- Quarter|Triplet|Dotted, `Free`
-    /// being none of them -- and a host handed that raw can write 3, 5 or 6:
-    /// combinations the panel stopped being able to make in issue #111, and
-    /// which read as a bare number in a DAW's lane. So it crosses as one of four
-    /// choices and is converted here.
+    /// \note A host handed the raw mask can write 3, 5 or 6 -- combinations the
+    /// panel stopped making in issue #111, and a bare number in a DAW's lane.
     ///
     /// \note A mask with more than one bit set answers with its lowest, which is
-    /// lossy and cannot not be: only two shipped presets carry one (`sync="5"`,
-    /// `sync="7"`), they still load and snap exactly as they did, and the panel
-    /// has imposed the same narrowing on any of them the user touches since #111.
-    ///                                       (22.08.2026.) \see issue #159.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    /// lossy and cannot not be: two shipped presets carry one, they still load
+    /// and snap as they did, and the panel imposes the same narrowing on any of
+    /// them the user touches.
     ///@{
     static constexpr std::uint8_t syncChoices{4};
 
@@ -415,8 +407,7 @@ class LFOImpl : public LFO
     /// \brief What the choice is called: "Free", "Note", "Triplet", "Dotted".
     static char const *syncChoiceName(std::uint8_t choice);
 
-    /// \brief syncChoiceName() run backwards, or nothing for text no choice
-    /// reads as.
+    /// \brief syncChoiceName() backwards, or nothing for text no choice reads as.
     static std::optional<std::uint8_t> parseSyncChoice(char const *text);
     ///@}
 

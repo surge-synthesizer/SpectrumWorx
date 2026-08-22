@@ -59,14 +59,6 @@ constexpr clap_id mainInputPort{0};
 constexpr clap_id sideChainInputPort{1};
 constexpr clap_id mainOutputPort{2};
 
-/// \note `stateMagic`, the four bytes `SWX1`, stood here in front of a
-/// `(uint32 id, double value)` array. Dropped with the blob it introduced rather
-/// than kept as a fallback: nothing has shipped, so the only sessions holding
-/// one are development sessions in this tree, and a permanent second reader for
-/// a format no user has is dead weight from the day it is written. A stream that
-/// does not begin with `<` fails the parse, which is how one is refused.
-///                                           (02.08.2026.) (SW port)
-
 bool writeFully(clap_ostream const *const stream, void const *const data, std::size_t size)
 {
     auto const *cursor(static_cast<char const *>(data));
@@ -512,19 +504,9 @@ bool SpectrumWorxCLAP::isValidParamId(clap_id const id) const noexcept
     return false;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxCLAP::extension()
-// -----------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \note One, and it is clap-wrapper's rather than CLAP's: an AUv2 host keys
-/// automation on where a parameter *sits* in the list, so the order has to be
-/// stated rather than left to fall out of the ids. \see auv2ParameterOrder().
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// automation on where a parameter *sits*, so the order is stated rather than
+/// left to fall out of the ids. \see auv2ParameterOrder()
 namespace
 {
 clap_plugin_auv2_param_ordering_t const auv2ParameterOrdering{
@@ -542,35 +524,15 @@ void const *SpectrumWorxCLAP::extension(char const *const id) noexcept
     return nullptr;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// SpectrumWorxCLAP::auv2ParameterOrder()
-// --------------------------------------
-//
-////////////////////////////////////////////////////////////////////////////////
+/// \brief The AUv2 parameter order: what shipped first, in the order it shipped
+/// in, and what was added since after it.
 ///
-/// \brief The AUv2 parameter order: everything that shipped first, in the order
-/// it shipped in, and everything added since after it.
+/// \note `order[auv2Position] = clapIndex`, which is how clap-wrapper reads it.
 ///
-///   `order[auv2Position] = clapIndex`, which is how clap-wrapper reads it
-/// (`clapIndex = ordering[i]`, wrapasauv2.cpp) and how its own header writes it.
-///
-/// \note The wrapper's default without this is the id order, and that is what
-/// this reproduces for a single-release plugin: `parameterIDs_` is already built
-/// in id order, so with every version zero the sort is a no-op and the AUv2
-/// layout is byte for byte what it was. What it buys is the *next* release --
-/// #159 exported two LFO sub-parameters whose ids sit in the middle of each
-/// LFO's seven, and without this every parameter after the first LFO would have
-/// moved two places in Logic.
-///
-/// \note By id within a release, and not by whatever order `parameterIDs_`
-/// happens to be in: the wrapper's default without this extension is the id
-/// order, so saying it explicitly is what makes the version-zero block provably
-/// the layout that shipped rather than one that merely looks like it.
-///                                           (22.08.2026.) \see issue #159.
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note By id within a release rather than by whatever order `parameterIDs_`
+/// is in: the wrapper's default without this extension *is* the id order, so
+/// saying it explicitly is what makes the version-zero block provably the layout
+/// that shipped rather than one that merely looks like it.
 bool SpectrumWorxCLAP::auv2ParameterOrder(std::size_t *const order,
                                           std::size_t const parameterCount) const noexcept
 {
@@ -618,9 +580,8 @@ bool SpectrumWorxCLAP::paramsInfo(std::uint32_t const index,
     std::memset(info, 0, sizeof(*info));
     info->id = id.value;
     info->cookie = nullptr;
-    /// \note All but the three that rebuild the spectral setup, each of which
-    /// ends a change made while active in a `request_restart`. \see
-    /// CLAPEdge::isAutomatable() and issue #171.
+    // all but the three that rebuild the spectral setup, each of which ends a
+    // change made while active in a request_restart
     info->flags = CLAPEdge::isAutomatable(parameterID) ? CLAP_PARAM_IS_AUTOMATABLE : 0;
 
     // nothing here is ever CLAP_PARAM_IS_HIDDEN. clap-wrapper maps flags once
@@ -633,10 +594,9 @@ bool SpectrumWorxCLAP::paramsInfo(std::uint32_t const index,
     // change most needs, and paramsFlush() applies one just as process() does
     if (auto const choices = CLAPEdge::choiceCount(parameterID); choices != 0)
     {
-        // a real stepped range where every other module and LFO parameter has to
-        // hide behind 0..1: these two are the plugin's own choices rather than
-        // the slot effect's, so the count never moves and CLAP_PARAM_IS_STEPPED
-        // is legal for the life of the binary. \see CLAPEdge::choiceCount()
+        // a real stepped range where every other module and LFO parameter hides
+        // behind 0..1: these two are the plugin's own choices rather than the
+        // slot effect's, so the count never moves
         info->min_value = 0;
         info->max_value = choices - 1;
         info->default_value = CLAPEdge::defaultToHost(parameterID, fixed);
@@ -842,9 +802,8 @@ bool SpectrumWorxCLAP::handleEvent(clap_event_header const *const header)
     auto const value(CLAPEdge::fromHost(parameterID, ranges, event->value));
     auto const applied(setParameter(parameterID, value));
 
-    // the host moving a parameter is an edit, and this is where that is said:
-    // setParameter used to say it for both of its callers, and the other is
-    // drainCommands() applying what the interface has already reported
+    // the host moving a parameter is an edit; drainCommands() applying what the
+    // interface queued is not, the interface having already reported it
     markCurrentProgramAsModified();
 
     // the main thread's copy of the same state, and not gated on there being an
@@ -1411,16 +1370,9 @@ void SpectrumWorxCLAP::chainChanged(ChainChange const what)
            "The echo queue is full; the module rack will not be resynchronised.");
     requestRescan(CLAP_PARAM_RESCAN_INFO | CLAP_PARAM_RESCAN_TEXT | CLAP_PARAM_RESCAN_VALUES);
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note A whole chain arriving is not an edit, and this is where saying
-    /// otherwise showed: with audio running the chain a preset load publishes is
-    /// *queued*, and the audio thread installs it a block later -- after the
-    /// browser has recorded the load and called it unedited. So every preset load
-    /// lit Save As a few milliseconds after it finished.
-    ///                                       (22.08.2026.) \see issue #177.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
+    // a whole chain arriving is not an edit: with audio running the chain a
+    // preset load publishes is queued, and the audio thread installs it a block
+    // after the browser has recorded the load and called it unedited
     if (what == ChainChange::userEdited)
         markCurrentProgramAsModified();
     else
@@ -1605,13 +1557,6 @@ void SpectrumWorxCLAP::editModuleMove(std::uint8_t const from, std::uint8_t cons
     pushed(Threading::publishModuleMove(*this, toEngine_, from, to),
            "The command queue is full; a module move reached the interface and not the engine.");
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// On their way to the host
-////////////////////////////////////////////////////////////////////////////////
-
-/// \note The push/pop pair that stood here is `Threading::SPSCQueue` now, which
-/// was generalised from it. Same ordering, same drop-on-full policy, one
 
 void SpectrumWorxCLAP::flushUIEdits(clap_output_events const *const out)
 {

@@ -493,13 +493,6 @@ LFOImpl::PeriodScale::value_type LFOImpl::adjustValueFromPreset<LFOImpl::PeriodS
         return snapSyncedPeriod(periodScale, syncTypes()).first;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// The four sync choices
-// ---------------------
-//
-////////////////////////////////////////////////////////////////////////////////
-
 namespace
 {
 /// \note In choice order, which is the order a host lists them in and therefore

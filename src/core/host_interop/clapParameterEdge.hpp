@@ -64,30 +64,17 @@ inline bool isNormalised(ParameterID::Type const type)
     return (type == ParameterID::ModuleParameter) || (type == ParameterID::LFOParameter);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \brief How many choices this parameter offers a host, or zero when it is not
-/// one at all.
+/// one.
 ///
-///   The two LFO sub-parameters that are *choices* rather than quantities. They
-/// are the only module or LFO parameters whose range is the plugin's rather than
-/// the slot's effect's -- an LFO is an LFO whatever it modulates, so four sync
-/// choices and nine waveforms are four and nine for the life of the binary.
+/// \note The only module or LFO parameters whose range is the plugin's rather
+/// than the slot effect's -- an LFO is an LFO whatever it modulates -- so their
+/// counts never move, and they can carry the real stepped range every other one
+/// has to hide behind 0..1: CLAP_PARAM_IS_STEPPED wants integer bounds, and
+/// bounds are in the RESCAN_ALL list a plugin may not use while active.
 ///
-///   That is what lets them carry a real stepped range where every other one has
-/// to hide behind 0..1: `CLAP_PARAM_IS_STEPPED` needs `min_value` and
-/// `max_value` to be the integers it steps between, and all three of those sit in
-/// the RESCAN_ALL list a plugin may not use while active. A count that cannot
-/// move may be stated once and left.
-///
-/// \note Sync is the one that needed it. It is a bit *mask* internally, so a
-/// host handed the natural value could write 3, 5 or 6 -- combinations the panel
-/// stopped making in issue #111 -- and a lane read `4` rather than `Dotted`.
-/// \see LFOImpl::syncChoiceOf() and issue #159.
-///                                           (22.08.2026.)
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note Sync is a bit *mask*, so a host handed the natural value could write 3,
+/// 5 or 6 -- combinations the panel stopped making in issue #111.
 inline unsigned choiceCount(ParameterID const parameterID)
 {
     if (parameterID.type() != ParameterID::LFOParameter)
@@ -107,8 +94,7 @@ inline unsigned choiceCount(ParameterID const parameterID)
     }
 }
 
-/// \brief A choice's natural stored value -> its ordinal, which is what a host
-/// is given. \see choiceCount().
+/// \brief A choice's stored value -> the ordinal a host is given.
 inline double choiceToHost(ParameterID const parameterID, Value const natural)
 {
     using LFO = LE::Parameters::LFOImpl;
@@ -121,8 +107,8 @@ inline double choiceToHost(ParameterID const parameterID, Value const natural)
     return natural; // a waveform is already its ordinal
 }
 
-/// \brief The ordinal a host wrote -> the natural stored value, rounded and
-/// clamped because a host may write anything.
+/// \brief The ordinal a host wrote -> the stored value, rounded and clamped
+/// because a host may write anything.
 inline Value choiceFromHost(ParameterID const parameterID, unsigned const choices,
                             double const host)
 {
@@ -205,53 +191,28 @@ inline double defaultToHost(ParameterID const parameterID, Info const &info)
     return toHost(parameterID, info, static_cast<Value>(info.default_()));
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
 /// \brief May a host put automation or modulation on this parameter?
 ///
-/// \note No for the three that rebuild the spectral setup. Each defers through
-/// `deferOrApplySpectralSetup()` and is applied only with the engine stopped, so
-/// a change made while active ends in `clap_host::request_restart` -- a
-/// deactivate and reactivate mid-playback, on the host's own schedule. The FFT
-/// size is the reported latency as well (\see doc/tech/latency.md), and
-/// clap/ext/latency.h says outright that the latency may change only during
-/// `activate`. A promise the plugin cannot keep is worse than a missing lane.
+/// \note No for the three that rebuild the spectral setup: each is applied only
+/// with the engine stopped, so a change made while active ends in a
+/// `request_restart`. The FFT size is the reported latency as well, and
+/// clap/ext/latency.h allows that to change only during `activate`.
 ///
-/// \note The parameter is not unreachable: it is still in the list, still holds
-/// and reports its value, still round-trips through state, and a host's generic
-/// panel can still set it. CLAP_PARAM_IS_AUTOMATABLE governs automation and
-/// modulation, not parameter events.
+/// \note Still readable, writable, saved and settable from a generic panel --
+/// the flag governs automation and modulation, not parameter events.
 ///
-/// \note Deliberately not `ParameterInformation::isAutomatable()`, which exists
-/// and means something else -- "has a non-empty range", i.e. some effect owns
-/// this slot's parameter. Conflating the two would mark every parameter of an
-/// empty slot non-automatable, which is what the note over `paramsInfo` rejects
-/// for CLAP_PARAM_IS_HIDDEN. \see issue #171.
-///
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-///
+/// \note Not `ParameterInformation::isAutomatable()`, which means "some effect
+/// owns this slot's parameter". \see issue #171.
 /// \brief Which release of the plugin first exported this parameter.
 ///
-///   AUv2 hosts key automation on a parameter's *position* in the list rather
-/// than on its id, and the wrapper's default order is the id order -- so a
-/// parameter whose id lands in the middle of the existing ones pushes every
-/// parameter after it along, and every automation lane a user has drawn in Logic
-/// moves with it. Ordering by release first and by id within a release keeps
-/// what shipped where it was and appends what is new.
+/// \note AUv2 hosts key automation on a parameter's *position*, and the
+/// wrapper's default order is the id order -- so an id landing in the middle
+/// pushes every parameter after it along, taking a Logic user's lanes with it.
+/// Ordering by release first keeps what shipped where it was.
 ///
-/// \note Zero is everything this plugin has ever shipped. One is the two LFO
-/// sub-parameters issue #159 exported: their ids are 5 and 6 of each LFO's
-/// seven, which is the middle of every LFO block in the id order.
-///
-/// \note A number rather than a bool, because the next addition is a two and
-/// wants the same treatment. \see CLAP_PLUGIN_AUV2_PARAM_ORDERING, whose header
-/// carries the six-sines implementation this follows.
-///                                           (22.08.2026.)
-///
-////////////////////////////////////////////////////////////////////////////////
-
+/// \note One is the two LFO sub-parameters issue #159 exported, whose ids are 5
+/// and 6 of each LFO's seven. A number rather than a bool because the next
+/// addition is a two.
 inline unsigned parameterVersion(ParameterID const parameterID)
 {
     if (parameterID.type() != ParameterID::LFOParameter)

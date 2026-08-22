@@ -1077,14 +1077,9 @@ class ParameterMenu
     class ValueTypein;
 }; // class ParameterMenu
 
-////////////////////////////////////////////////////////////////////////////////
-/// \class FineDrag
-///
 /// \brief Shift-refines a drag by feeding juce::Slider a position rather than a
 /// new sensitivity -- rescaling mid-drag would rescale the travel already made
 /// and jump the value.
-////////////////////////////////////////////////////////////////////////////////
-
 class FineDrag
 {
   public:
@@ -1116,17 +1111,11 @@ class FineDrag
 /// two-value slider's thumbs", and shift cleared so it only ever means fine.
 juce::MouseEvent linkThumbsOnAlt(juce::MouseEvent const &);
 
-/// The above, plus the horizontal position \p drag has earned so far: what a
-/// slider hands juce::Slider from mouseDrag().
+/// The above, plus the horizontal position \p drag has earned so far.
 juce::MouseEvent refinedDrag(FineDrag &drag, juce::MouseEvent const &);
 
-////////////////////////////////////////////////////////////////////////////////
-/// \class HorizontalSlider
-///
 /// \brief A slider that drags like a knob: shift refines, alt links a two-value
 /// slider's thumbs, and no modifier means velocity. \see issue #167.
-////////////////////////////////////////////////////////////////////////////////
-
 class HorizontalSlider : public juce::Slider
 {
   public:
