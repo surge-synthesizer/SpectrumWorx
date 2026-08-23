@@ -1332,7 +1332,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
       public:
         static std::uint16_t const xMargin = 30;
         static std::uint16_t const yMargin = 30;
-        static std::uint16_t const yStep = 68;
+        static std::uint16_t const yOffset = 7;
+        static std::uint16_t const yStep = 60;
     }; // class Settings
 
     /// Tab indices into Settings, in addTab() order.

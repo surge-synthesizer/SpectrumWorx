@@ -3061,9 +3061,11 @@ SpectrumWorxEditor &SpectrumWorxEditor::SampleArea::editor()
 SpectrumWorxEditor::Settings::Settings() /// \throws std::bad_alloc Out of memory
     : juce::TabbedComponent(juce::TabbedButtonBar::TabsAtTop),
 
-      fftSize_(enginePage_, xMargin, yMargin + yStep * 0, (Engine ::FFTSize *)(0)),
-      overlapFactor_(enginePage_, xMargin, yMargin + yStep * 1, (Engine ::OverlapFactor *)(0)),
-      windowFunction_(enginePage_, xMargin, yMargin + yStep * 2, (Engine ::WindowFunction *)(0))
+      fftSize_(enginePage_, xMargin, yMargin + yStep * 0 + yOffset, (Engine ::FFTSize *)(0)),
+      overlapFactor_(enginePage_, xMargin, yMargin + yStep * 1 + yOffset,
+                     (Engine ::OverlapFactor *)(0)),
+      windowFunction_(enginePage_, xMargin, yMargin + yStep * 2 + yOffset,
+                      (Engine ::WindowFunction *)(0))
 {
     // the sum of what it draws -- a 16 px tab bar over a 347 px page bitmap --
     // rather than the editor's height, so an overlay leaves no empty band
@@ -3248,8 +3250,6 @@ bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setu
            (timeResolution_ != previousStep) || (latency_ != previousLatency);
 }
 
-/// \note Four strings and nothing computed; setEngineInformation() is what fills
-/// them and what decides when this page is repainted.
 void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 {
     PanelBackground::paint(g);
@@ -3257,22 +3257,27 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
     g.setFont(DrawableText::defaultFont());
 
     auto const line([&g](juce::String const &text, unsigned int const verticalOffset) {
-        g.drawFittedText(text, xMargin + 6, static_cast<int>(verticalOffset), 213, 18,
-                         juce::Justification::centred, 1);
+        g.drawFittedText(text, xMargin + 2, static_cast<int>(verticalOffset), 213, 18,
+                         juce::Justification::centredLeft, 1);
     });
 
-    line(engineQuality_, yMargin + yStep * 5);
-    line(frequencyResolution_, yMargin + yStep * 5 + 30);
-    line(timeResolution_, yMargin + yStep * 5 + 60);
-    line(latency_, yMargin + yStep * 5 + 90);
+    const auto infoTextY = yMargin + yStep * 5 + 67;
+    const auto lineHeight = 21;
+
+    line(engineQuality_, infoTextY + (lineHeight * 0));
+    line(frequencyResolution_, infoTextY + (lineHeight * 1));
+    line(timeResolution_, infoTextY + (lineHeight * 2));
+    line(latency_, infoTextY + (lineHeight * 3));
 }
 
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
-    : PanelBackground(SettingsPage), zoom_(*this, xMargin, yMargin + 0 * yStep, "Zoom"),
-      palette_(*this, xMargin, yMargin + 1 * yStep, "Color Scheme"),
-      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 2 * yStep, "Mouse Over Reaction"),
-      lfoUpdateBehaviour_(*this, xMargin, yMargin + 3 * yStep, "LFO Update Behaviour"),
-      hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 4 * yStep, "Hide cursor on knob drag")
+    : PanelBackground(SettingsPage), zoom_(*this, xMargin, yMargin + 0 * yStep + yOffset, "Zoom"),
+      palette_(*this, xMargin, yMargin + 1 * yStep + yOffset, "Color Scheme"),
+      moduleUIMouseOverReaction_(*this, xMargin, yMargin + 2 * yStep + yOffset,
+                                 "Mouse Over Reaction"),
+      lfoUpdateBehaviour_(*this, xMargin, yMargin + 3 * yStep + yOffset, "LFO Update Behaviour"),
+      hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 4 * yStep + yOffset,
+                            "Hide cursor on knob drag")
 {
     Settings &parent(
         Utility::ParentFromMember<Settings, InterfacePage, &Settings::interfacePage_>()(*this));

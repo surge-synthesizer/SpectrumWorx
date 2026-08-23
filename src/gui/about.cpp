@@ -57,16 +57,6 @@ char const *const originalAuthors[]{
     "Direction: Danijel Domazet",   //
 };
 
-/// \note The first line is kept from the bitmap deliberately: the port is
-/// GPL-3.0-or-later over Little Endian's 2016 release, and a notice that was on
-/// screen for ten years is not something to drop as a side effect of retyping
-/// the panel. The second is the port's own, and says the same thing the source
-/// headers do -- who holds it is a question the log answers, not this page.
-char const *const copyright[]{
-    "©2006-2024 Little Endian",    //
-    "©2026-20xx Surge Synth Team", //
-};
-
 /// The manual is in the repository rather than on a documentation site; this is
 /// the folder it lives in. Point it somewhere better the moment there is one.
 char const *const manualURL{
@@ -97,7 +87,7 @@ int constexpr margin{32};
 /// One line of body text, ascent to next ascent.
 int constexpr lineHeight{21};
 
-int constexpr titleY{30};
+int constexpr titleY{41};
 int constexpr titleWidth{165};
 int constexpr titleHeight{30};
 
@@ -107,12 +97,9 @@ int constexpr versionLineCount{3};
 
 int constexpr linksY{versionY + versionLineCount * lineHeight + 12};
 int constexpr linksHeight{21};
-int constexpr linkGap{18};
+int constexpr linkGap{21};
 
-int constexpr copyrightY{linksY + linksHeight + lineHeight - 9};
-int constexpr copyrightLineCount{static_cast<int>(std::size(Content::copyright))};
-
-int constexpr authorsHeadingY{copyrightY + copyrightLineCount * lineHeight + 113};
+int constexpr authorsHeadingY{linksY + 177};
 int constexpr authorsY{authorsHeadingY + lineHeight + 6};
 } // namespace Layout
 
@@ -125,12 +112,6 @@ juce::Font headingFont() { return Theme::singleton().headingFont(); }
 juce::Font bodyFont() { return DrawableText::defaultFont(); }
 
 /// \brief One line of Content, as a juce::String.
-///
-/// \note And this is the only way any of it may become one. `juce::String(char
-/// const *)` is *ASCII*: it asserts on any byte over 127 and takes the rest as
-/// Latin-1, so four of the six credits and the copyright sign came out mangled
-/// and noisy. The literals above stay readable UTF-8 -- with `/utf-8` on MSVC
-/// keeping them that way through the compiler -- and this says so to JUCE.
 juce::String asText(char const *const utf8) { return juce::String(juce::CharPointer_UTF8(utf8)); }
 
 /// \brief Draws one line at \p y, shrinking it to fit rather than clipping it.
@@ -368,16 +349,6 @@ void AboutPage::paint(juce::Graphics &graphics)
         {
             drawLine(graphics, line, y, bodyFont(), ColourMap::getColour(ColourMap::TextDimmed),
                      width);
-            y += Layout::lineHeight;
-        }
-    }
-
-    {
-        auto y(Layout::copyrightY);
-        for (auto const *const line : Content::copyright)
-        {
-            drawLine(graphics, asText(line), y, bodyFont(),
-                     ColourMap::getColour(ColourMap::TextFaint), width + 8);
             y += Layout::lineHeight;
         }
     }
