@@ -382,15 +382,18 @@ LFOImpl::value_type LFOImpl::getValue(Timer const &timer) const
     value_type const currentTime(freeRunning ? timer.currentTimeInReferenceBars()
                                              : timer.currentTimeInBars());
 
-    //...mrmlj...
-#ifndef NDEBUG
-    value_type const periodOffset(Math::abs(periodScale * phase()));
-#else
+    // took Math::abs under #ifndef NDEBUG, so only the build with no assertions
+    // left could reach a negative phase. \see issue #190
     value_type const periodOffset(periodScale * phase());
-#endif // _DEBUG
 
-    auto const [periodIndex, currentPeriodNormalisedPosition](
+    auto [periodIndex, currentPeriodNormalisedPosition](
         Math::splitFloat((periodOffset + currentTime) / periodScale));
+    // a position is a place inside a period; the waveforms LE_ASSUME it
+    if (currentPeriodNormalisedPosition < 0)
+    {
+        currentPeriodNormalisedPosition += 1;
+        --periodIndex;
+    }
     LE_ASSERT(currentPeriodNormalisedPosition >= 0);
     LE_ASSERT(currentPeriodNormalisedPosition <= 1);
 

@@ -510,6 +510,36 @@ TEST_CASE("Every LFO waveform stays inside the unit interval", "[lfo]")
     }
 }
 
+TEST_CASE("Every LFO waveform stays inside the unit interval at any phase", "[lfo]")
+{
+    ScopedHostTiming const timing;
+
+    // the case above sweeps at the default phase, and zero is the one value of
+    // it that cannot put the position inside a period below zero
+    //
+    // green in a checked build and red in a release one until issue #190: the
+    // offset took Math::abs under #ifndef NDEBUG, so the assertions in
+    // getValue() were measuring arithmetic the shipped build does not do
+
+    for (float const phase : {-0.5f, -0.25f, -0.05f, 0.25f, 0.5f})
+    {
+        for (std::uint8_t waveform(0); waveform < LFO::NumberOfWaveforms; ++waveform)
+        {
+            LFOImpl lfo;
+            lfo.seed(0x5A5Au + waveform);
+            withWaveform(lfo, static_cast<LFO::Waveform>(waveform));
+            lfo.parameters().set<LFOImpl::Phase>(phase);
+
+            INFO(waveformNames[waveform] << " at phase " << phase);
+            for (auto const value : overTwoPeriods(lfo, 256))
+            {
+                CHECK(value >= 0.0f);
+                CHECK(value <= 1.0f);
+            }
+        }
+    }
+}
+
 TEST_CASE("A held random waveform holds and a sliding one slides", "[lfo]")
 {
     ScopedHostTiming const timing;

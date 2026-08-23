@@ -251,6 +251,29 @@ TEST_CASE("movingAverage slides a window", "[math][vector]")
         CHECK(data[index] == Approx(1.0f));
 }
 
+TEST_CASE("symmetricMovingAverage survives a window wider than the data", "[math][vector]")
+{
+    // a working range is as narrow as Start and Stop make it -- one bin, at the
+    // smallest FFT -- and the window is a parameter in bins that knows neither,
+    // so this was a precondition no caller could establish \see issue #190
+    for (unsigned int size(1); size <= 8; ++size)
+    {
+        AlignedFloats const input(size);
+        AlignedFloats const output(size);
+        input.fill(1);
+        output.fill(0);
+
+        for (unsigned int window(1); window <= 16; ++window)
+        {
+            INFO("size " << size << ", window " << window);
+            Math::symmetricMovingAverage(input, output, window);
+            // A constant signal averages to itself, whatever the window does.
+            for (unsigned int index(0); index < size; ++index)
+                CHECK(output[index] == Approx(1.0f));
+        }
+    }
+}
+
 TEST_CASE("interleave and deinterleave are inverses", "[math][vector]")
 {
     constexpr std::uint16_t frames{32};

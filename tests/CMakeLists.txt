@@ -29,6 +29,7 @@ add_executable(sw-dsp-tests
         effects/amplifyingEffectsTests.cpp
         effects/effectsListTests.cpp
         effects/freezeTests.cpp
+        effects/parameterFuzzTests.cpp
         effects/sideChainTests.cpp
         effects/silentDefaultsTests.cpp
         goldens/engineHarness.cpp

@@ -107,7 +107,8 @@ void FreezeImpl::process(ChannelState &cs, Engine::ChannelData_AmPh data,
     cs.previousFreezeFlag = freeze_;
     cs.previousMeltFlag = melt_;
 
-    LE_ASSERT_MSG(!(freeze && melt), "Freezing and melting at the same time?");
+    // a host may send both in one block; freezing clears freezeDone, which is
+    // what the melt below is gated on, so the freeze wins \see issue #190
     //LE_ASSERT_MSG( cs.frameCounter <= 1 / inverseTransitionTime_, "Frame counter overflow."                ); //...mrmlj...
 
     if (freeze)

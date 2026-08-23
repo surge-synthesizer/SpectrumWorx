@@ -276,14 +276,20 @@ void movingAverage(InputOutputRange const &data, unsigned int const windowWidth)
     }
 }
 
+/// \note The window is narrowed here rather than by the caller: it is counted in
+/// bins and the working range is not, so no parameter range establishes the fit.
+/// Sharper never clamped at all. \see issue #190
 void symmetricMovingAverage(InputRange const &input, OutputRange const output,
                             unsigned int const windowWidth)
 {
-    LE_ASSERT_MSG(windowWidth, "Wrong parameters.");
     LE_ASSERT_MSG(input.size() == output.size(), "Input/output buffer sizes mismatched.");
-    LE_ASSERT_MSG(unsigned(input.size()) > windowWidth, "Window larger than data.");
 
-    unsigned int const halfWindowWidth(windowWidth / 2);
+    auto const dataSize(unsigned(input.size()));
+    if (!dataSize)
+        return;
+
+    // half a window either side of a centre sample; zero is the identity
+    unsigned int const halfWindowWidth(std::min(windowWidth / 2, (dataSize - 1) / 2));
     unsigned int const fullWindowWidth(halfWindowWidth + 1 + halfWindowWidth);
     InputRange window(&input[0], &input[halfWindowWidth + 1 - 1] + 1);
     float *pOutputSample(output.begin());
