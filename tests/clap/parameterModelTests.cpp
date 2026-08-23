@@ -147,6 +147,32 @@ class Fixture
     SWTest::Engine engine_;
 }; // class Fixture
 
+/// \note No fixture: a null program is what selects the arms that answer for a
+/// slot nothing is loaded in, and handing one over takes the other branch.
+std::string nameWithoutProgram(ParameterID const parameterID)
+{
+    std::array<char, 256> buffer{};
+    Controller::getParameterName(parameterID, {buffer.data(), buffer.size()}, nullptr);
+    return std::string(buffer.data());
+}
+
+ParameterID moduleParameterID(std::uint8_t const slot, std::uint8_t const parameter)
+{
+    ParameterID parameterID;
+    parameterID.value.type = ParameterID::ModuleParameter;
+    parameterID.value._.module = {ParameterID::Zero, parameter, slot};
+    return parameterID;
+}
+
+ParameterID lfoParameterID(std::uint8_t const slot, std::uint8_t const parameter,
+                           std::uint8_t const lfoParameter)
+{
+    ParameterID parameterID;
+    parameterID.value.type = ParameterID::LFOParameter;
+    parameterID.value._.lfo = {lfoParameter, parameter, slot};
+    return parameterID;
+}
+
 //------------------------------------------------------------------------------
 } // anonymous namespace
 //------------------------------------------------------------------------------
@@ -273,4 +299,26 @@ TEST_CASE("Clearing a slot returns the parameter list to its empty size", "[para
 
     REQUIRE(fixture.insert(0, noModule) == noModule);
     CHECK(fixture.parameterCount() == emptyCount);
+}
+
+TEST_CASE("An LFO with no program to ask is named after the parameter it drives", "[parameters]")
+{
+    // Two arms answer this, and they have to agree on which parameter an LFO
+    // belongs to: one composes onto the module parameter's own name, the other
+    // -- reached only with no program -- prints the position itself. The second
+    // said "the base block is five" in terms of the exported LFO parameter
+    // count, which stopped being five with issue #159.
+    for (std::uint8_t slot(0); slot < Constants::maxNumberOfModules; ++slot)
+    {
+        for (std::uint8_t parameter(0); parameter < Constants::maxNumberOfParametersPerModule - 1u;
+             ++parameter)
+        {
+            auto const driven(nameWithoutProgram(moduleParameterID(slot, parameter + 1u)));
+            auto const expected(driven + " - LFO ");
+            auto const composed(nameWithoutProgram(lfoParameterID(slot, parameter, 0)));
+
+            INFO("got \"" << composed << "\", expected it to start \"" << expected << '"');
+            CHECK(composed.compare(0, expected.size(), expected) == 0);
+        }
+    }
 }

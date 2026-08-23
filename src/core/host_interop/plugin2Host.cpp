@@ -708,11 +708,18 @@ void Plugin2HostPassiveInteropController::ParameterNameGetter::operator()(
     if (!pModule &&
         (parameterID.moduleParameterIndex + 1 >= Effects::BaseParameters::Parameters::static_size))
     {
-        LE_VERIFY(
-            unsigned(std::snprintf(
-                buffer_.begin(), buffer_.size(), "M%u P%u - LFO %s", parameterID.moduleIndex + 1,
-                parameterID.moduleParameterIndex - (lfoExportedParameters - 1) + 1,
-                lfoParameterName)) < buffer_.size());
+        /// \note An LFO's moduleParameterIndex is one below the parameter it
+        /// drives, Bypass having none -- so the position printed here is the
+        /// one the module arm above prints for that parameter, and the two are
+        /// read side by side in a host's list. It was written in terms of
+        /// `lfoExportedParameters` instead, which was the same five as the base
+        /// block until issue #159 made it seven.
+        using Module = Plugin2HostInteropControler::Module;
+        auto const drivenParameter(
+            Module::effectSpecificParameterIndex(parameterID.moduleParameterIndex + 1U) + 1U);
+        LE_VERIFY(unsigned(std::snprintf(buffer_.begin(), buffer_.size(), "M%u P%u - LFO %s",
+                                         parameterID.moduleIndex + 1, drivenParameter,
+                                         lfoParameterName)) < buffer_.size());
         return;
     }
 
