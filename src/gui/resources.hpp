@@ -64,6 +64,7 @@ class Artwork
   public:
     Artwork();
     Artwork(std::unique_ptr<juce::Drawable>, int width, int height);
+    Artwork(std::unique_ptr<juce::Drawable>);
     Artwork(Artwork &&) noexcept;
     Artwork &operator=(Artwork &&) noexcept;
     ~Artwork();
@@ -76,6 +77,8 @@ class Artwork
 
     int getWidth() const { return width_; }
     int getHeight() const { return height_; }
+
+    juce::Drawable &getDrawable() { return *drawable_; };
 
     /// \brief Paints at (x, y) at the artwork's own size.
     ///
@@ -262,6 +265,7 @@ template <unsigned int bitmapID> juce::Image const &resourceBitmap()
 /// \see painters/backgroundPainter.hpp.
 Artwork const &logoArtwork();
 Artwork const &logoFullArtwork();
+Artwork const &aboutIconsArtwork(bool isAccented = false, bool forceReload = true);
 
 /// Bitstream Vera, the skin's font, loaded straight from the embedded bytes.
 ///

@@ -187,6 +187,8 @@ juce::Typeface::Ptr boldTypefaceCache;
 
 Artwork logoCache;
 Artwork logoFullCache;
+Artwork aboutIconsCache;
+Artwork aboutIconsAccentedCache;
 } // anonymous namespace
 
 Artwork::Artwork() = default;
@@ -197,6 +199,12 @@ Artwork::~Artwork() = default;
 Artwork::Artwork(std::unique_ptr<juce::Drawable> drawable, int const width, int const height)
     : drawable_(std::move(drawable)), width_(width), height_(height)
 {
+}
+
+Artwork::Artwork(std::unique_ptr<juce::Drawable> drawable) : drawable_(std::move(drawable))
+{
+    width_ = drawable_.get()->getWidth();
+    height_ = drawable_.get()->getHeight();
 }
 
 bool Artwork::isValid() const { return (drawable_ != nullptr) || image_.isValid(); }
@@ -347,6 +355,44 @@ Artwork const &logoFullArtwork()
             logoFullCache = loadVector(data, size);
     }
     return logoFullCache;
+}
+
+Artwork const &aboutIconsArtwork(bool isAccented, bool forceReload)
+{
+    if (forceReload)
+    {
+        aboutIconsCache = Artwork();
+        aboutIconsAccentedCache = Artwork();
+    }
+
+    if (isAccented)
+    {
+        if (!aboutIconsAccentedCache.isValid())
+        {
+            auto const [data, size](embeddedFile("icon_links.svg"));
+            LE_ASSERT_MSG(data, "The logo is not embedded.");
+            if (data)
+            {
+                aboutIconsAccentedCache = loadVector(data, size);
+                aboutIconsAccentedCache.getDrawable().replaceColour(
+                    ColourMap::getColour(ColourMap::AboutIconDefault),
+                    ColourMap::getColour(ColourMap::Accent));
+            }
+        }
+
+        return aboutIconsAccentedCache;
+    }
+    else
+    {
+        if (!aboutIconsCache.isValid())
+        {
+            auto const [data, size](embeddedFile("icon_links.svg"));
+            LE_ASSERT_MSG(data, "The logo is not embedded.");
+            if (data)
+                aboutIconsCache = loadVector(data, size);
+        }
+        return aboutIconsCache;
+    }
 }
 
 juce::Typeface::Ptr regularTypeface() { return loadTypeface("Vera.ttf", regularTypefaceCache); }

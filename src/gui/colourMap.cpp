@@ -248,6 +248,10 @@ juce::Colour ColourMap::classic(Name const name)
     case Transparent:
         return juce::Colour(0x00000000u);
 
+    // NEVER change this one!!! It's only used for recoloring icon_links.svg!
+    case AboutIconDefault:
+        return juce::Colour(0xFFFFFFFFu);
+
     /// \note No `default:`, deliberately: -Wswitch is then what says a new
     /// enumerator has been added without a colour to answer it with, at compile
     /// time and in this file, rather than a black widget at run time.

@@ -35,6 +35,7 @@ file(GLOB SW_SKIN_FILES CONFIGURE_DEPENDS
 # installers cut their icons from *and* the mark the editor draws down its left
 # edge. Named here so there is one of it -- a copy in skin/ would be a second
 # logo free to drift from this one.
+list(APPEND SW_SKIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/icon_links.svg")
 list(APPEND SW_SKIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/spectrumworx_logo.svg")
 list(APPEND SW_SKIN_FILES "${CMAKE_CURRENT_SOURCE_DIR}/spectrumworx_logo_full.svg")
 

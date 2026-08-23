@@ -2010,6 +2010,8 @@ void SpectrumWorxEditor::applyPaletteIfChanged()
     // takes the colours and the rest find them taken
     Theme::singleton().reloadColours();
 
+    aboutIconsArtwork(false, true);
+
     // the wrapper rather than this, where there is one: ZoomedEditor paints
     // ColourMap::Ground behind the transform and is this editor's parent, so a
     // repaint from here would not reach it

@@ -261,6 +261,8 @@ class ColourMap
         /// cast on its way out.
         Transparent,
 
+        AboutIconDefault,
+
         numberOfColours
     }; // enum Name
 
