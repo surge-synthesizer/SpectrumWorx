@@ -183,3 +183,21 @@ TEST_CASE("The magnitude bound catches what the finiteness guards cannot", "[mat
     // 100 dB over unity, stated as the conversion rather than as a literal.
     CHECK(normalisedLinear2dB(hundredDecibels) == Approx(100.0f));
 }
+
+TEST_CASE("An empty random range is answered rather than divided by", "[math][scalar]")
+{
+    // an empty interval has one answer; it was a plain modulo, silent on arm64
+    // and SIGFPE on x86, and Burrito's Target Range is Minimum<0> \see issue #190
+    LE::Math::Rng rng;
+    rng.seed(1u);
+
+    CHECK(rng.ranged(std::uint32_t(0)) == 0u);
+    CHECK(rng.ranged(std::uint16_t(0)) == 0u);
+
+    // and the non-empty case still lands inside the interval
+    for (unsigned int draw(0); draw < 64; ++draw)
+    {
+        CHECK(rng.ranged(std::uint32_t(7)) < 7u);
+        CHECK(rng.ranged(std::uint16_t(3)) < 3u);
+    }
+}

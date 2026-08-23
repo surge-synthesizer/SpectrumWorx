@@ -761,6 +761,10 @@ namespace
 ///                                       (05.10.2015.) (Domagoj Saric)
 template <typename T> T moduloOf(std::uint64_t const draw, T const maximum)
 {
+    // [0, 0) has one answer; Burrito's Target Range is Minimum<0>, so a knob
+    // reaches this, and a plain modulo is SIGFPE on x86 \see issue #190
+    if (!maximum)
+        return 0;
     return static_cast<T>(narrow(draw) % maximum);
 }
 } // anonymous namespace
