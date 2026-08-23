@@ -790,9 +790,9 @@ TEST_CASE("The AUv2 parameter order is by release and then by id", "[clap][auv2]
     // Releases in order, and never going back.
     CHECK(std::is_sorted(versions.begin(), versions.end()));
 
-    // Both releases are present, or the sort is not being tested at all.
+    // Every release is present, or the sort is not being tested at all.
     CHECK(versions.front() == 0);
-    CHECK(versions.back() == 1);
+    CHECK(versions.back() == 2);
 
     ////////////////////////////////////////////////////////////////////////////
     /// \note And within each release, the id order -- which for release zero is
@@ -804,10 +804,27 @@ TEST_CASE("The AUv2 parameter order is by release and then by id", "[clap][auv2]
         if (versions[index] == versions[index - 1])
             CHECK(ids[index] > ids[index - 1]);
 
-    // The two LFO sub-parameters #159 added, and nothing else, are release one.
-    auto const added(std::count(versions.begin(), versions.end(), 1u));
-    CHECK(added == 2 * (LE::SW::Constants::maxNumberOfParametersPerModule - 1) *
-                       LE::SW::Constants::maxNumberOfModules);
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note Both counts are stated against `parametersPerModuleBeforeIssue156`
+    /// rather than against the live ceiling, because both are history: a
+    /// release is how many parameters there *were*, and reading the ceiling
+    /// would make each of these rewrite itself the next time it moves and stop
+    /// testing anything.
+    ////////////////////////////////////////////////////////////////////////////
+    using LE::SW::CLAPEdge::parametersPerModuleBeforeIssue156;
+    using LE::SW::Constants::maxNumberOfModules;
+
+    // The two LFO sub-parameters #159 added, over the parameters a module had
+    // then, and nothing else.
+    auto const releaseOne(std::count(versions.begin(), versions.end(), 1u));
+    CHECK(releaseOne == 2 * (parametersPerModuleBeforeIssue156 - 1) * maxNumberOfModules);
+
+    // And #156's: the parameters past the old ceiling, each with the LFO that
+    // drives it, in every slot.
+    auto const releaseTwo(std::count(versions.begin(), versions.end(), 2u));
+    CHECK(releaseTwo ==
+          (LE::SW::Constants::maxNumberOfParametersPerModule - parametersPerModuleBeforeIssue156) *
+              maxNumberOfModules * (1 + LE::SW::ParameterCounts::lfoExportedParameters));
 }
 
 TEST_CASE("Only the parameters that restart the engine are not automatable", "[clap]")

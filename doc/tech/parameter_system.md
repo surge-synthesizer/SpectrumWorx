@@ -54,7 +54,7 @@ is real but does not do what it might appear to.
 
 ```cpp
 std::uint8_t const maxNumberOfModules            (  5 );
-std::uint8_t const maxNumberOfParametersPerModule( 10 );
+std::uint8_t const maxNumberOfParametersPerModule( 18 );
 std::uint8_t const maxNumberOfModuleParameters   ( maxNumberOfModules * maxNumberOfParametersPerModule );
 ```
 
@@ -76,9 +76,9 @@ In the default build configuration that is:
 |---|---:|---|
 | Globals | 6 | InputGain, OutputGain, MixPercentage, FFTSize, OverlapFactor, WindowFunction |
 | Module chain ("which effect is in slot N") | 5 | one per slot |
-| Module parameters | 50 | 5 slots × 10 |
-| LFO parameters | 315 | 7 exported LFO params × 9 non-Bypass module params × 5 slots |
-| **Total** | **376** | |
+| Module parameters | 90 | 5 slots × 18 |
+| LFO parameters | 595 | 7 exported LFO params × 17 non-Bypass module params × 5 slots |
+| **Total** | **696** | |
 
 Caveats on the numbers:
 
@@ -103,6 +103,19 @@ Caveats on the numbers:
   ID a host had been given still means what it meant. What did move is the
   *position* of everything after them in a list sorted by ID, which is what §6's
   AUv2 ordering is for.
+- `maxNumberOfParametersPerModule` is **18** — five base parameters and the
+  thirteen the widest effect declares — since 22.08.2026 (issue #156). It was 10
+  from 2011, which gave an effect five, and TuneWorx has declared thirteen all
+  along: `Semi05`…`Semi12` were eight parameters the engine ran, presets stored
+  and no automation lane could address. Raising it was additive in exactly the
+  sense the bullet above describes — an ID that existed still means what it
+  meant, in every format, because a module parameter's index is a byte with room
+  in it and the eight new values were unused. What it cost is 320 rows, and the
+  reason the ceiling is 18 rather than a round 20 is that **each module
+  parameter is 40 of them**: five slots, times itself plus the seven LFO
+  parameters that drive it. `factory.cpp`'s `static_assert` on
+  `largestEffectParameterCount` is what now makes an effect over the ceiling a
+  compile error instead of a silent truncation.
 
 This skeleton never changes at runtime. Everything below is about what the slots
 *mean*.
@@ -133,11 +146,16 @@ packed ID. What each row holds still is its type, range and default; the label,
 the unit and the enumerator strings sit right of ` ;; ` and are recorded rather
 than checked, so that relabelling the interface is not a test failure. The `id/`
 rows pin nothing but their keys — the identifier space *is* the claim there.
-Fewer than the 376 above rather than more, because the table is taken against an
-**empty** program: every slot's own effect parameters are absent, and what is
-listed is the globals, the five selectors and the base parameters every module
-has. **376 is the number a host sees**, and `pluginTests.cpp` asserts
-`params.count()` against the constant rather than against a literal.
+
+Fewer than the 696 above, and they are a different list rather than a subset of
+it: the `id/` section is taken against **one fixed program**, effects 0…4 one
+per slot, so it holds the parameters those five effects actually declare and
+nothing for the slots' unused capacity. That is also why raising the ceiling did
+not move a row of it — the parameters issue #156 made addressable were already
+listed there, which is the sense in which this file has been recording the bug
+rather than catching it. **696 is the number a host sees**, and
+`pluginTests.cpp` asserts `params.count()` against the constant rather than
+against a literal.
 
 `In == 0` is a legal `clap_id` — only `CLAP_INVALID_ID` is reserved — but it is
 indistinguishable from an uninitialised value in a log or a debugger, and on
@@ -298,6 +316,49 @@ no block to offer.
 > least held correct numbers, with generic names. That machinery is gone with the
 > backends. It is recorded here because it is the accumulated evidence about what
 > hosts actually do, and because it is what the format choice bought (§10).
+
+### The AUv2 ordering, which is how a parameter gets added at all
+
+Every format but one keys a saved automation lane on the parameter's **ID**: CLAP
+by definition, and VST3 because clap-wrapper's `ParamID` is
+`clap id & 0x7FFFFFFF` (`detail/vst3/parameter.cpp`), which for a discriminator
+of 0…3 is the same number. So a new ID is only ever additive there.
+
+AUv2 is the exception: the wrapper hands the host the CLAP id as the
+`AudioUnitParameterID` too, but a Logic project keys on where the parameter
+*sits* in the list — and the wrapper's default order is the id order, so an ID
+landing in the middle pushes every parameter after it along and takes somebody's
+lanes with it. And these additions do land in the middle: the slot index is the
+more significant byte, so slot 1's new parameters sort ahead of slot 2's first
+one, and everything from there to the end of the list moves.
+
+`CLAP_PLUGIN_AUV2_PARAM_ORDERING` is the way out, and
+`SpectrumWorxCLAP::auv2ParameterOrder` states the order rather than letting it
+fall out: **by release, then by ID within a release**. `CLAPEdge::parameterVersion`
+is what answers "which release":
+
+| Release | What | Count |
+|---:|---|---:|
+| 0 | everything that shipped before issue #159 | 286 |
+| 1 | an LFO's `SyncTypes` and `Waveform`, over the parameters a module had then | 90 |
+| 2 | the module parameters issue #156 put past the old ceiling, and their LFOs | 320 |
+
+Two rules make that hold up, and both are easy to get wrong:
+
+- **A boundary is a frozen number, never the live constant.**
+  `parametersPerModuleBeforeIssue156` is `10` written out, because a release says
+  how many parameters there *were*. Derive it from
+  `maxNumberOfParametersPerModule` and the next raise silently redates every
+  parameter between the two ceilings and reshuffles a layout somebody already has.
+  The same applies to the counts in the test that pins this.
+- **The newest question is asked first.** A parameter added by #156 did not have
+  its sync and waveform exported by #159 either, so the LFO arm tests the module
+  parameter index *before* the sub-parameter index. Reversed, a new parameter's
+  last two LFO controls sort into release one, in the middle of what shipped.
+
+`tests/clap/pluginTests.cpp`, "The AUv2 parameter order is by release and then by
+id", holds all of it: releases non-decreasing, IDs ascending within each, and
+each block's size.
 
 ---
 
@@ -587,11 +648,20 @@ spotted; the 13-parameter set is unconditional as of 11.08.2026, and
 `tuneWorx.hpp` says why beside the declaration.
 
 Two properties of the parameter system made a header-only mistake visible in a
-DAW, and both are worth keeping in mind when adding parameters anywhere:
-the module strip renders however many an effect declares, over the module's own
-name if there are too many; and a host addresses at most the first ten
-(`maxNumberOfParametersPerModule`), so a parameter inserted in the middle pushes
-a later one out of reach — `Direction` at index 6 cost `Semi04` its automation.
+DAW, and both are worth keeping in mind when adding parameters anywhere: the
+module strip renders however many an effect declares, over the module's own name
+if there are too many; and a host addresses at most the first
+`maxNumberOfParametersPerModule` of them, so a parameter inserted in the middle
+pushes a later one out of reach — `Direction` at index 6 cost `Semi04` its
+automation.
+
+The second half of that is now a compile error rather than a thing to keep in
+mind. The ceiling was 10 at the time, which is why the twenty-one extra
+parameters cost the semitones their lanes — but note the order of events: the
+extras were reverted on 11.08.2026 and `Semi05`…`Semi12` stayed unreachable
+anyway, because thirteen parameters never fitted under ten in the first place.
+Issue #156 raised the ceiling to 18 and `factory.cpp`'s `static_assert` on
+`largestEffectParameterCount` stops the build if an effect outgrows it again.
 
 ---
 
@@ -648,6 +718,13 @@ For anyone touching this:
   parameters now, so nothing is written straight into the engine from the message
   thread, and the automation bindings a host had are held by the AUv2 ordering
   in §6 rather than by the count staying still.
+- **`maxNumberOfParametersPerModule` 10 vs 18.** Settled: 18, on 22.08.2026
+  (issue #156), so that the whole of TuneWorx is automatable. The same release
+  argument as the bullet above, at four times the size: 320 new IDs, all of them
+  values a byte already had room for, so nothing a host had saved moved. What it
+  settles for good is the *method* — a ceiling is raised to fit the widest effect
+  and no further, and `factory.cpp`'s `static_assert` is what says which effect
+  that is rather than leaving it to be discovered from a bug report.
 - **Preset compatibility.** Decided before the Boost.Fusion refactor, per
   `old/initial_scan.md` §8.3 — §7 above says the format is name-keyed, which
   gives more freedom than the index-based reading might suggest.

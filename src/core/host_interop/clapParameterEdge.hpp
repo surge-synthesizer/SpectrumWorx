@@ -211,18 +211,42 @@ inline double defaultToHost(ParameterID const parameterID, Info const &info)
 /// Ordering by release first keeps what shipped where it was.
 ///
 /// \note One is the two LFO sub-parameters issue #159 exported, whose ids are 5
-/// and 6 of each LFO's seven. A number rather than a bool because the next
-/// addition is a two.
+/// and 6 of each LFO's seven. Two is the parameters issue #156 gave a module
+/// past the ten it used to have, and the LFOs that drive them.
+///
+/// \note Both boundaries are frozen numbers rather than the constants they were
+/// once equal to. A release says how many parameters there *were*, so reading
+/// the live ceiling would move the boundary every time the ceiling does and
+/// reshuffle a layout somebody's project already keys on.
+inline constexpr std::uint8_t parametersPerModuleBeforeIssue156{10};
+
 inline unsigned parameterVersion(ParameterID const parameterID)
 {
-    if (parameterID.type() != ParameterID::LFOParameter)
-        return 0;
-
     using LE::Parameters::IndexOf;
     constexpr auto firstAddedByIssue159(
         IndexOf<LE::Parameters::LFOImpl::Parameters, LE::Parameters::LFOImpl::SyncTypes>::value);
 
-    return (parameterID.value._.lfo.lfoParameterIndex >= firstAddedByIssue159) ? 1 : 0;
+    switch (parameterID.type())
+    {
+    case ParameterID::ModuleParameter:
+        return (parameterID.value._.module.moduleParameterIndex >=
+                parametersPerModuleBeforeIssue156)
+                   ? 2u
+                   : 0u;
+
+    case ParameterID::LFOParameter:
+        // an LFO's moduleParameterIndex is one below the parameter it drives,
+        // Bypass having none -- and this is asked before #159's question
+        // because a parameter that did not exist then did not have its sync and
+        // waveform exported then either
+        if (parameterID.value._.lfo.moduleParameterIndex >=
+            (parametersPerModuleBeforeIssue156 - 1u))
+            return 2u;
+        return (parameterID.value._.lfo.lfoParameterIndex >= firstAddedByIssue159) ? 1u : 0u;
+
+    default:
+        return 0u;
+    }
 }
 
 inline bool isAutomatable(ParameterID const parameterID)

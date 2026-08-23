@@ -10,6 +10,7 @@
 //------------------------------------------------------------------------------
 #include "factory.hpp"
 
+#include "configuration/constants.hpp"
 #include "configuration/versionConfiguration.hpp"
 
 #include "core/modules/moduleDSPAndGUI.hpp"
@@ -33,11 +34,40 @@
 #include "le/utility/assert.hpp"
 #include "le/utility/intrusivePtr.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <utility>
+
 namespace LE::SW
 {
 
 namespace
 {
+
+/// \brief The widest effect in the build, counted in parameters of its own.
+template <std::size_t... indices>
+consteval std::uint8_t largestEffectParameterCount(std::index_sequence<indices...>)
+{
+    return std::max(
+        {std::uint8_t(Effects::ImplForIndex<indices>::type::Parameters::static_size)...});
+}
+
+////////////////////////////////////////////////////////////////////////////
+/// \note A module's parameters are the base block plus the effect's own, and
+/// `maxNumberOfParametersPerModule` is the whole of what a host can address --
+/// so an effect over the ceiling keeps every parameter and loses the automation
+/// on the ones past it. Nothing said so: TuneWorx spent from 2011 to issue #156
+/// with eight semitones the engine ran and no DAW could reach, and the way that
+/// was found was a user reporting it.
+///
+///   Raise the ceiling to admit a wider effect rather than deleting this, and
+/// read `constants.hpp` on what each raise costs first.
+////////////////////////////////////////////////////////////////////////////
+static_assert(
+    largestEffectParameterCount(std::make_index_sequence<Effects::Constants::numberOfEffects>()) +
+            Engine::ModuleParameters::numberOfBaseParameters <=
+        Constants::maxNumberOfParametersPerModule,
+    "an effect declares more parameters than a host can address");
 
 ////////////////////////////////////////////////////////////////////////////
 /// \internal

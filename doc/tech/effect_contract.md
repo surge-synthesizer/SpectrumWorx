@@ -284,17 +284,25 @@ the parameter's values and a compile error says so if it is not.
 
 ### How many parameters you get
 
-Five. `maxNumberOfParametersPerModule` is 10 (`src/configuration/constants.hpp:22`)
-and `numberOfParameters()` is `effectSpecific + numberOfBaseParameters`
-(`moduleParameters.hpp:59-62`), where the base block is the five below. Past
-index 10 the host never hears about the parameter:
-`Plugin2HostInteropControler::automatedParameterChanged` returns early
-(`plugin2Host.cpp:89-90`), under a `\todo` from 2012 saying the check is
-"currently needed only for TuneWorx". TuneWorx declares 13 and is still the only
-effect past the ceiling: `Semi05`…`Semi12` are the eight the engine runs and
-automation does not reach.
+Thirteen, as of 22.08.2026 (issue #156). `maxNumberOfParametersPerModule` is 18
+(`src/configuration/constants.hpp`) and `numberOfParameters()` is
+`effectSpecific + numberOfBaseParameters` (`moduleParameters.hpp:59-62`), where
+the base block is the five below. Of the 57 shipped effects the largest is
+TuneWorx at thirteen; the next is Octaver at five.
 
-Of the 57 shipped effects the largest is Octaver at five.
+**Do not read that as headroom.** Thirteen is what the widest effect declares
+and the ceiling is set to fit it exactly, because a module parameter costs far
+more than one row: `maxNumberOfModules` of them, each with the seven LFO
+parameters that drive it, so one more is forty more in a host's automation list.
+
+Past the ceiling a parameter still runs and still reaches a preset, and only its
+automation goes: it has no `ParameterID`, so no lane can address it and
+`automatedParameterChanged` drops the change (`plugin2Host.cpp`). That failure is
+silent, which is how TuneWorx shipped from 2011 to 2026 with `Semi05`…`Semi12`
+the engine ran and no DAW could see — found in the field, not by a test. The
+`static_assert` on `largestEffectParameterCount` in `factory.cpp` is what makes
+it a compile error now, so an effect wider than the ceiling stops the build and
+the ceiling is raised deliberately.
 
 ### What every effect gets for free
 

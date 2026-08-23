@@ -26,6 +26,7 @@
 #include "core/modules/finalImplementations.hpp"
 #include "core/parameterID.hpp"
 
+#include "le/spectrumworx/effects/configuration/effectNames.hpp"
 #include "le/spectrumworx/effects/configuration/effectsList.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -33,6 +34,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -127,6 +129,19 @@ class Fixture
         std::array<char, 256> buffer{};
         Controller::getParameterLabel(ParameterID(id), {buffer.data(), buffer.size()}, program());
         return std::string(buffer.data());
+    }
+
+    /// How many parameters the effect in \p slot declares, base block included.
+    std::uint8_t parametersInSlot(std::uint8_t const slot) const
+    {
+        std::uint8_t found{0};
+        std::uint8_t index{0};
+        program()->moduleChain().forEach<Engine::ModuleParameters>(
+            [&](Engine::ModuleParameters const &module) {
+                if (index++ == slot)
+                    found = module.numberOfParameters();
+            });
+        return found;
     }
 
     /// The names of every parameter belonging to one module slot.
@@ -319,6 +334,67 @@ TEST_CASE("An LFO with no program to ask is named after the parameter it drives"
 
             INFO("got \"" << composed << "\", expected it to start \"" << expected << '"');
             CHECK(composed.compare(0, expected.size(), expected) == 0);
+        }
+    }
+}
+
+TEST_CASE("Every parameter of every effect has an id a host is given", "[parameters]")
+{
+    // The list a host reads is the fixed one, taken with no program. A
+    // parameter an effect declares past the end of it is one the engine runs
+    // and no automation lane can reach -- which TuneWorx's semitones were,
+    // eight of them, from 2011. \see issue #156.
+    std::vector<Plugins::ParameterID> fixed(Controller::numberOfParameters(nullptr));
+    Controller::getParameterIDs({fixed.data(), fixed.size()}, nullptr);
+
+    std::set<ParameterID::BinaryValue> advertised;
+    for (auto const id : fixed)
+        advertised.insert(ParameterID(id).binaryValue);
+
+    Fixture fixture;
+    for (std::int8_t effect(0);
+         effect < static_cast<std::int8_t>(Effects::Constants::numberOfEffects); ++effect)
+    {
+        REQUIRE(fixture.insert(0, effect) == effect);
+
+        auto const parameters(fixture.parametersInSlot(0));
+        for (std::uint8_t parameter(0); parameter < parameters; ++parameter)
+        {
+            INFO(Effects::effectName(static_cast<std::uint8_t>(effect))
+                 << " declares " << static_cast<int>(parameters) << " parameters; number "
+                 << static_cast<int>(parameter) << " has no id");
+            CHECK(advertised.count(moduleParameterID(0, parameter).binaryValue) == 1);
+        }
+    }
+}
+
+TEST_CASE("No two parameters an effect can have share a value mailbox slot", "[parameters]")
+{
+    // parameterIndexFromBinaryID lays the module parameters out in blocks of
+    // maxNumberOfParametersPerModule, so a slot holding more than that many
+    // runs into the next slot's block: publishModulatedValues walks
+    // numberOfParameters(), and TuneWorx's parameter seventeen and the second
+    // slot's parameter seven were the same mailbox entry.
+    Fixture fixture;
+    for (std::int8_t effect(0);
+         effect < static_cast<std::int8_t>(Effects::Constants::numberOfEffects); ++effect)
+    {
+        REQUIRE(fixture.insert(0, effect) == effect);
+
+        std::set<Plugins::ParameterIndex::value_type> indices;
+        for (std::uint8_t slot(0); slot < Constants::maxNumberOfModules; ++slot)
+        {
+            for (std::uint8_t parameter(0); parameter < fixture.parametersInSlot(0); ++parameter)
+            {
+                auto const index(
+                    parameterIndexFromBinaryID(moduleParameterID(slot, parameter).binaryValue));
+
+                INFO(Effects::effectName(static_cast<std::uint8_t>(effect))
+                     << ", slot " << static_cast<int>(slot) << " parameter "
+                     << static_cast<int>(parameter) << " lands on index " << index.value);
+                CHECK(index.value < ParameterCounts::maxNumberOfParameters);
+                CHECK(indices.insert(index.value).second);
+            }
         }
     }
 }
