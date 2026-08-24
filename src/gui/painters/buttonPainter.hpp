@@ -61,9 +61,9 @@ namespace ButtonStyle
 /// \note Which is what made 08.svg a 57x24 canvas holding a 50x17 pill. A
 /// button that fills its own bounds has nowhere to put a glow, so this is the
 /// difference between the size a caller asks for and the size that gets drawn.
-float constexpr glowReach{5.25f};
+float constexpr glowReach{5.f};
 
-float constexpr rectangularRadius{7.5f};
+float constexpr rectangularRadius{8.f};
 float constexpr rimThickness{RuleStyle::thickness}; ///< the blue line on a lit button's edge
 
 /// \brief The halo: \p glowRings rounded rectangles, each a pixel further out
@@ -74,8 +74,8 @@ float constexpr rimThickness{RuleStyle::thickness}; ///< the blue line on a lit 
 /// The outermost ring falls outside the widget and is clipped, in the artwork
 /// as here.
 unsigned int constexpr glowRings{6};
-float constexpr glowInnerAlpha{0.0747f}; ///< at the ring against the pill
-float constexpr glowOuterAlpha{0.0134f}; ///< and at the last one
+float constexpr glowInnerAlpha{0.5f}; ///< at the ring against the pill
+float constexpr glowOuterAlpha{0.f};  ///< and at the last one
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -87,9 +87,9 @@ float constexpr glowOuterAlpha{0.0134f}; ///< and at the last one
 /// off PanelPainter::fieldInset when it places the bar, so that the leftmost
 /// pill's edge and the frame below it stand on one line. \see
 /// SpectrumWorxEditor::Settings::resized().
-float constexpr tabSideInset{1.125f};
-float constexpr tabTopInset{1.125f};
-float constexpr tabRadius{6.75f};
+float constexpr tabSideInset{1.f};
+float constexpr tabTopInset{1.f};
+float constexpr tabRadius{8.f};
 
 /// \brief The depth of the settings panel's tab bar.
 ///

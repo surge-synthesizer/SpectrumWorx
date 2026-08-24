@@ -627,30 +627,30 @@ class PopupMenuWithSelection : public PopupMenu
 ///@{
 /// The widget each is drawn in, which was its artwork's size.
 int constexpr moduleComboWidth{90};
-int constexpr moduleComboHeight{27};
+int constexpr moduleComboHeight{28};
 int constexpr settingsComboWidth{225};
 int constexpr settingsComboHeight{32};
 
 FrameStyle constexpr moduleComboFrame{
-    /* insets */ 2.595f,
-    3.345f,
-    2.175f,
-    /* corner */ 8.46f,
+    /* insets */ 2.f,
+    3.f,
+    2.f,
+    /* corner */ 10.f,
     /* rim    */ RuleStyle::thickness,
     /* halo   */ 5u,
-    0.0242f,
-    0.0120f,
+    0.025f,
+    0.f,
 };
 
 FrameStyle constexpr settingsComboFrame{
     /* insets */ 3.0f,
-    4.41f,
-    5.16f,
-    /* corner */ 10.395f,
+    4.f,
+    4.f,
+    /* corner */ 10.f,
     /* rim    */ RuleStyle::thickness,
     /* halo   */ 5u,
-    0.0197f,
-    0.0147f,
+    0.025f,
+    0.f,
 };
 ///@}
 

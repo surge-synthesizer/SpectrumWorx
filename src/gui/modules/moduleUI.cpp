@@ -37,7 +37,7 @@ ModuleLEDTextButton::ModuleLEDTextButton(juce::Component &parent, unsigned int c
 {
     setName(control().name());
     //...mrmlj...for temporary test selection...
-    setSize(moduleComboWidth, getHeight() + 2);
+    setSize(moduleComboWidth, getHeight() + 4);
 }
 
 void ModuleLEDTextButton::clicked() { moduleParameterChanged(); }

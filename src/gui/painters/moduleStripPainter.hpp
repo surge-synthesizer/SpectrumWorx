@@ -37,14 +37,14 @@ namespace LE::SW::GUI
 ////////////////////////////////////////////////////////////////////////////////
 
 FrameStyle constexpr moduleStripFrame{
-    /* insets */ 2.595f,
-    4.815f,
-    3.285f,
-    /* corner */ 12.6f,
+    /* insets */ 4.f,
+    4.f,
+    3.f,
+    /* corner */ 12.f,
     /* rim    */ RuleStyle::thickness,
     /* halo   */ 5u,
-    0.1709f,
-    0.0235f,
+    0.5f,
+    0.f,
 };
 
 /// \brief Draws the frame a module's controls sit in, into \p bounds.

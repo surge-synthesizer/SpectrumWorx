@@ -87,7 +87,7 @@ void Theme::takeColours()
 
     setColour(juce::PopupMenu::textColourId, colour(ColourMap::Text));
     setColour(juce::PopupMenu::headerTextColourId, colour(ColourMap::Text));
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, colour(ColourMap::Transparent));
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, colour(ColourMap::ListHighlight));
     setColour(juce::PopupMenu::highlightedTextColourId, colour(ColourMap::Text));
     setColour(juce::PopupMenu::backgroundColourId,
               colour(ColourMap::MenuBackground).withAlpha(0.8f));

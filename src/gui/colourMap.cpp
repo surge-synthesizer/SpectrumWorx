@@ -235,7 +235,7 @@ juce::Colour ColourMap::classic(Name const name)
     case ListOutline:
         return juce::Colour(0xAA000000u);
     case ListHighlight:
-        return juce::Colour(0x88FFFFFFu);
+        return juce::Colour(0x40FFFFFFu);
     case SliderTrack:
         return juce::Colour(0xFFFFFFFFu);
     case ScrollBarThumb:
