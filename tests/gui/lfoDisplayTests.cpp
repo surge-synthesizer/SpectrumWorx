@@ -64,6 +64,8 @@ using LE::SW::Threading::ToEngine;
 
 constexpr std::uint8_t
     syncTypesIndex(LE::Parameters::IndexOf<LFOImpl::Parameters, LFOImpl::SyncTypes>::value);
+constexpr std::uint8_t
+    waveformIndex(LE::Parameters::IndexOf<LFOImpl::Parameters, LFOImpl::Waveform>::value);
 
 /// \brief The first module control in \p component's subtree, which is a knob on
 /// the module strip and therefore something an LFO can be attached to.
@@ -196,6 +198,36 @@ class PanelUnderTest
     }
 
     bool lit(juce::StringRef const name) const { return button(name).getToggleState(); }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief One LFO sub-parameter moved the way a host's automation moves it:
+    /// the main thread's copy written first, then the editor told.
+    ///
+    /// \note Which is `SpectrumWorxCLAP::drainEngineEvents()` with the ring
+    /// taken out of it -- the two calls it makes for a `BaseParameterChanged`,
+    /// in that order, and there is no other way into the panel from outside.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    void automate(std::uint8_t const lfoParameterIndex, float const value) const
+    {
+        LE::SW::ParameterID parameterID;
+        parameterID.value.type = LE::SW::ParameterID::LFOParameter;
+        parameterID.value._.lfo = {lfoParameterIndex, pControl_->moduleParameterIndex(),
+                                   /*moduleIndex*/ 0};
+        LE::SW::setParameterIn<LE::Plugins::Protocol::CLAP>(instance_.mutableProgram(), parameterID,
+                                                            value);
+        instance_.editor().parameterChangedElsewhere(parameterID, value);
+    }
+
+    /// What the waveform well is showing.
+    unsigned int waveform() const
+    {
+        auto *const pPanel(instance_.editor().lfoDisplay());
+        REQUIRE(pPanel != nullptr);
+        return pPanel->waveformMenu().getSelectedID();
+    }
 
   private:
     SWTest::Instance &instance_;
@@ -426,12 +458,51 @@ TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
     }
 }
 
-/// \note The waveform, which takes the same route, is deliberately **not**
-/// covered here. Its only entry point is the popup -- `type_.showCenteredAtRight`
-/// with a callback -- and a menu is one of the things a headless editor cannot
-/// drive. What guards it is that both go through the one
-/// `updateParameterAndNotifyHost<>`, which the two cases above exercise; a
-/// waveform case would need a real menu and would be measuring JUCE.
+/// \note The waveform *edit* is deliberately **not** covered here. Its only entry
+/// point is the popup -- `type_.showCenteredAtRight` with a callback -- and a
+/// menu is one of the things a headless editor cannot drive. What guards it is
+/// that both go through the one `updateParameterAndNotifyHost<>`, which the two
+/// cases above exercise; a waveform case would need a real menu and would be
+/// measuring JUCE. The other direction -- the well following a parameter moved
+/// from outside -- needs no menu and is the case below.
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Issue #209, and the shape of it is which widgets were on the list.
+/// `updateAutomatableControls()` is where a parameter moved anywhere but on this
+/// panel arrives, and it moved five of the LFO's seven sub-parameters: the sync
+/// mask and the waveform were left out and travelled only by a press on the
+/// panel itself. So a host automating the mask wrote the parameter and moved the
+/// period slider that reads it, while N, T and D went on showing the mask before
+/// last.
+///
+/// \note Both directions are already one route -- issue #159 gave these two
+/// their `ParameterID`s -- so what this is about is the *display*, not the edit.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Host automation moves the sync buttons and the waveform", "[gui][lfo]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    PanelUnderTest const panel(instance);
+
+    REQUIRE(panel.lit(" N ")); // Quarter is the default.
+    REQUIRE(panel.waveform() == unsigned(LFO::Sine));
+
+    panel.automate(syncTypesIndex, static_cast<float>(LFO::Dotted));
+
+    CHECK(panel.lfo().syncTypes() == LFO::Dotted); // ...the half that worked
+    CHECK_FALSE(panel.lit(" N "));                 // ...and the half that did not
+    CHECK_FALSE(panel.lit(" T "));
+    CHECK(panel.lit(" D "));
+
+    panel.automate(waveformIndex, static_cast<float>(LFO::Square));
+
+    CHECK(panel.lfo().waveForm() == LFO::Square);
+    CHECK(panel.waveform() == unsigned(LFO::Square));
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 ///

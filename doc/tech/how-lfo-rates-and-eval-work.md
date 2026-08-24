@@ -397,6 +397,13 @@ until 06.08.2026, and since the editor is bound to `programMain_` that meant a
 sync-mode change moved the display and the saved state and nothing the audio
 thread could hear. `tests/gui/lfoDisplayTests.cpp` is what stops that returning.
 
+The other direction has the same shape: **everything the panel *shows* has to be
+on `updateAutomatableControls()`'s list**, which is where a parameter moved
+anywhere but on the panel arrives. The sync mask and the waveform were not on it
+until 24.08.2026 (issue #209), so a host automating either wrote the parameter,
+moved the period slider that reads the mask, and left N, T, D and the waveform
+well showing what was there before.
+
 ## 6. A parameter's default is a property of the parameter
 
 `SyncTypes` defaults to `Quarter`, full stop.

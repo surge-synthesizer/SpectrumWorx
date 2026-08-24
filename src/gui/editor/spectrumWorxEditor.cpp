@@ -2741,18 +2741,22 @@ void SpectrumWorxEditor::LFODisplay::updateForChangedParameters(
 void SpectrumWorxEditor::LFODisplay::updateAllControls()
 {
     updateAutomatableControls();
-    updateSnapControls();
-    type_.setSelectedID(lfo().waveForm());
     verifyGUIAndLFOConsistency();
 }
 
+/// \note All seven of them, which is what "automatable" has meant since issue
+/// #159: the sync mask and the waveform were left out of this and moved only
+/// when a widget on the panel was pressed, so a host automating either of them
+/// wrote the parameter and drew nothing. \see issue #209.
 void SpectrumWorxEditor::LFODisplay::updateAutomatableControls()
 {
     updatePeriodControl();
     updateRangeControl();
+    updateSnapControls();
     auto &lfo(this->lfo());
     switch_.setToggleState(lfo.enabled(), juce::dontSendNotification);
     phase_.setValue(lfo.phase(), juce::dontSendNotification);
+    type_.setSelectedID(lfo.waveForm());
 }
 
 void SpectrumWorxEditor::LFODisplay::updatePeriodControl()
