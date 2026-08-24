@@ -419,7 +419,6 @@ class SpectrumWorxCLAP final
 
     /// \brief Says the host's tempo or meter moved, so that the LFO panel can
     /// redraw a period that now means something else. `[audio-thread]`
-    /// \see the definition, which is where the coalescing is.
     void timingChanged();
 
     /// \brief Installs \p pNewSample (owned, null clears) as the side channel's
@@ -732,21 +731,23 @@ class SpectrumWorxCLAP final
 
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \brief A `ToUI::TimingChanged` already in the ring and not yet drained.
+    /// \brief The host's tempo or meter moved and the LFO panel has not redrawn.
+    /// \see drainEngineEvents().
     ///
-    /// \note The one message this plugin coalesces *before* it is sent, and the
-    /// reason is the rate: a host ramping the tempo reports a different bar
-    /// duration on every block, which at 64 samples is some hundreds a second.
-    /// The ring holds a thousand and also carries the retirements, where a drop
-    /// is a leak -- so the news that the tempo moved would be paid for by
-    /// something that matters more. One outstanding message says the same thing.
+    /// \note A flag rather than a ring message for the reason the chain change
+    /// is one, and more so: it carries nothing, and the rate is unlike anything
+    /// on the ring -- a host ramping the tempo reports a different bar duration
+    /// on every block, some hundreds a second. A message coalesced by the sender
+    /// still spends a ring slot and still gives up on a full ring, which left
+    /// the panel showing a period in the wrong number of seconds until the tempo
+    /// moved again. At a fixed tempo that is never.
     ///
     /// \note Raised on the audio thread and cleared by the drain, so it is an
     /// atomic for the same reason `restartRequested_` is.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
-    std::atomic<bool> timingChangeQueued_{false};
+    std::atomic<bool> timingChangedPending_{false};
 
     ////////////////////////////////////////////////////////////////////////////
     ///

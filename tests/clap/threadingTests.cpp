@@ -819,15 +819,14 @@ TEST_CASE("An LFO parameter the host can see reaches the engine too", "[clap][th
 /// \note The LFO panel following the host's tempo. `updateForNewTimingInfo()` has
 /// been correct and unreachable since the port began: its 2016 caller was in a
 /// host class that is in no target, and the CLAP's equivalent runs on the audio
-/// thread, where reaching a widget is the one thing the model forbids. So it is a
-/// `ToUI` message now.
+/// thread, where reaching a widget is the one thing the model forbids. So the
+/// engine raises a flag and asks for the callback that reads it.
 ///
 ///   With no window there is nothing to look at, so what these assert is the two
-/// properties the message has to have to be usable at all: it is raised when the
+/// properties the news has to have to be usable at all: it is raised when the
 /// timing moves and not when it does not, and a tempo *ramp* -- which moves it on
-/// every block -- costs one outstanding message rather than one per block. The
-/// second is not tidiness: the same ring carries the retirements, where a drop is
-/// a leak.
+/// every block -- costs no ring traffic at all. The second is not tidiness: the
+/// ring carries the retirements, where a drop is a leak.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -895,8 +894,7 @@ TEST_CASE("A tempo ramp does not flood the echo ring", "[clap][threading][lfo]")
     // A host ramping the tempo reports a different bar duration on every block,
     // and nothing here pumps the main thread -- a host slow to run the callback
     // it was asked for, which is the arrangement publishProtocolTests.cpp fills
-    // the rings with. More blocks than the ring holds, and it must still be
-    // possible to retire a module through it afterwards.
+    // the rings with. More blocks than the ring holds, and nothing may be lost.
     ////////////////////////////////////////////////////////////////////////////
     Entry const entry;
 
@@ -915,7 +913,42 @@ TEST_CASE("A tempo ramp does not flood the echo ring", "[clap][threading][lfo]")
 
     CHECK(implementationOfPlugin(*plugin).droppedMessages() == 0);
 
-    // ...and the one message that was outstanding is still the one message.
+    // ...and the flag that was standing cost the ring nothing to carry.
     plugin.pumpMainThread();
     CHECK(implementationOfPlugin(*plugin).droppedMessages() == 0);
+}
+
+TEST_CASE("A tempo change survives a full echo ring", "[clap][threading][lfo]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    // What the flag buys over the message it replaced. As a message it took a
+    // ring slot, and a push that failed cleared its own coalescing flag and gave
+    // up -- so with a host automating hard enough to fill the ring the panel
+    // went on showing a period in the wrong number of seconds until the tempo
+    // moved again, which at a fixed tempo is never.
+    ////////////////////////////////////////////////////////////////////////////
+    Entry const entry;
+
+    TestHost host(TestHost::everything());
+    ActivePlugin plugin(sampleRate, blockSize, host);
+
+    std::vector<float> leftIn(blockSize, 0.0f), rightIn(blockSize, 0.0f);
+    std::vector<float> leftOut(blockSize), rightOut(blockSize);
+
+    // no transport at all, so nothing in here is a timing change: the engine
+    // assumes the 120 BPM 4/4 it starts on
+    auto const id(parameterID(globalType, 0));
+    for (unsigned block(0); block < LE::SW::Threading::ToUIQueue::capacity + 1; ++block)
+    {
+        OneParameterEvent const event(id, 0.25 + (0.5 * block) / 1024);
+        plugin.process(leftIn, rightIn, leftOut, rightOut, nullptr, &*event);
+    }
+    REQUIRE(implementationOfPlugin(*plugin).droppedMessages() > 0);
+
+    auto const settled(host.mainThreadCallbacks.load());
+
+    auto const transport(transportAt(90, 4, 0));
+    plugin.process(leftIn, rightIn, leftOut, rightOut, &transport);
+
+    CHECK(host.mainThreadCallbacks.load() > settled);
 }

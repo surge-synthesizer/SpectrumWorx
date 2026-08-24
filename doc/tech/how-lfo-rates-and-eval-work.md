@@ -36,10 +36,10 @@ neither for a free one.
 What it does move is what the LFO panel should be *showing*: the same period is a
 different length of time at the new tempo, and it snaps to a different grid. The
 audio thread is where a tempo change is seen and a widget is the one thing it may
-not touch, so that arrives on the main thread as `ToUI::TimingChanged` and lands
-in `SpectrumWorxEditor::updateForNewTimingInfo()`. See
-[`threading_model.md`](threading_model.md) §3, which is also where the reason
-that one message is coalesced by its sender is.
+not touch, so that arrives on the main thread as a flag the engine raises and the
+drain clears, and lands in `SpectrumWorxEditor::updateForNewTimingInfo()`. See
+[`threading_model.md`](threading_model.md) §3, which is where the reason the news
+travels on a flag rather than on the ring is.
 
 `Timer::referenceBarDuration` and `Timer::referenceMeasureNumerator`
 (`le/parameters/lfoImpl.hpp`) are that constant bar. It is the same 120 BPM 4/4

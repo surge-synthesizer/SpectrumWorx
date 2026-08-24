@@ -143,17 +143,6 @@ struct ToUI
         /// A base value the engine settled on, after snapping or after a host
         /// automation event. Latchable: the model takes it and the host is told.
         BaseParameterChanged,
-        /// The host's bar duration or meter moved, so a synced LFO's period is a
-        /// different number of seconds and its snap grid a different grid. The
-        /// interface redraws the LFO panel; see
-        /// SpectrumWorxEditor::updateForNewTimingInfo().
-        ///
-        /// \note Carries nothing: what changed is engine state the main thread
-        /// can read for itself, and the message is only the news that it did.
-        /// **Coalesced by the sender**, unlike everything else here -- a host
-        /// ramping the tempo moves it on every block, and a ring that fills has
-        /// dropped somebody's echo. \see SpectrumWorxCLAP::timingChanged().
-        TimingChanged,
         /// Something the audio thread unlinked and the main thread must delete.
         /// Dropping one of these is a leak, which is why it is a ring and not a
         /// mailbox -- and its own ring, so that echo traffic cannot fill it.
@@ -272,13 +261,6 @@ inline ToUI baseParameterChanged(std::uint32_t const parameterID, float const va
     ToUI message{};
     message.kind = ToUI::Kind::BaseParameterChanged;
     message.baseParameterChanged = {parameterID, value};
-    return message;
-}
-
-inline ToUI timingChanged()
-{
-    ToUI message{};
-    message.kind = ToUI::Kind::TimingChanged;
     return message;
 }
 

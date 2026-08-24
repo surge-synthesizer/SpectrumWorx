@@ -1393,34 +1393,22 @@ void SpectrumWorxCLAP::chainChanged(ChainChange const what)
 ///
 /// \note A synced LFO's period is a fraction of the *host's* bar, so a tempo or
 /// meter change moves both the length the panel's number means and the grid the
-/// period snaps to. It arrives as a message because the change is noticed on the
-/// audio thread, where touching a widget is what the model forbids, and nothing
-/// travels with it -- what changed is engine state the main thread may read.
+/// period snaps to. The change is noticed on the audio thread, where touching a
+/// widget is what the model forbids, and nothing travels with it -- what changed
+/// is engine state the main thread may read.
 ///
 /// \note Not gated on there being an editor: the gate is on the drain, where
 /// `pEditor_` may be read at all. Asking here would read a main-thread member
-/// from the audio thread to save a ring slot.
-///
-/// \note The coalescing is this message's alone -- \see `timingChangeQueued_`.
-/// A push that fails clears it again, so a full ring costs one missed redraw
-/// rather than every future one.
+/// from the audio thread.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 void SpectrumWorxCLAP::timingChanged()
 {
-    if (timingChangeQueued_.exchange(true, std::memory_order_relaxed))
-        return;
+    timingChangedPending_.store(true, std::memory_order_release);
 
-    if (!pushed(toUI_.push(Threading::timingChanged()),
-                "The echo queue is full; the LFO panel will not follow the tempo."))
-    {
-        timingChangeQueued_.store(false, std::memory_order_relaxed);
-        return;
-    }
-
-    // request_callback is [thread-safe], and without it the message would wait
-    // for whatever asks next -- a tempo change on its own asks for nothing
+    // request_callback is [thread-safe], and without it the flag would wait for
+    // whatever asks next -- a tempo change on its own asks for nothing
     _host.requestCallback();
 }
 
@@ -1461,8 +1449,6 @@ void SpectrumWorxCLAP::drainEngineEvents()
 {
     LE_ASSERT(Threading::isMainThread() || !Threading::isAudioThread());
 
-    bool timingChangedPending(false);
-
     Threading::ToUI event;
     while (toUI_.pop(event))
     {
@@ -1483,13 +1469,6 @@ void SpectrumWorxCLAP::drainEngineEvents()
                 pEditor_->parameterChangedElsewhere(parameterID, event.baseParameterChanged.value);
             break;
         }
-
-        // cleared here rather than after the redraw, so a tempo that moves
-        // again during the drain is announced rather than swallowed
-        case Threading::ToUI::Kind::TimingChanged:
-            timingChangeQueued_.store(false, std::memory_order_relaxed);
-            timingChangedPending = true;
-            break;
 
         // the only place any of this is destroyed. A Module is one *reference*
         // rather than an object: the interface may still hold a strip pointing
@@ -1527,8 +1506,9 @@ void SpectrumWorxCLAP::drainEngineEvents()
     }
 
     // after the rack, and only with a window: this is a redraw, and nothing
-    // behind the interface depends on it
-    if (timingChangedPending && pEditor_)
+    // behind the interface depends on it. Cleared before it, so a tempo that
+    // moves again while it happens is announced rather than swallowed
+    if (timingChangedPending_.exchange(false, std::memory_order_acquire) && pEditor_)
         pEditor_->updateForNewTimingInfo();
 }
 

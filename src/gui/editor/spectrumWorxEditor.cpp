@@ -1791,7 +1791,7 @@ void SpectrumWorxEditor::updateForEngineSetupChanges()
     });
 }
 
-/// \note Where a tempo change lands. It arrives as `ToUI::TimingChanged`, the
+/// \note Where a tempo change lands. It arrives on a flag the engine raises, the
 /// change being noticed on the audio thread where a widget may not be reached.
 ///
 /// \note Only a *synced* LFO moves: its period is a fraction of the host's bar,

@@ -123,8 +123,8 @@ engine the main thread owns.
   editor ──┬──▶  MainThreadModel  ──▶ ToEngine ring ──▶   drained at the top of
            │     (full copy)          (commands)          process(), then the engine runs
            │
-           ├──◀  MainThreadModel  ◀── ToUI ring    ◀──    base changed, chain changed,
-           │                          (events)            timing changed, retire this pointer
+           ├──◀  MainThreadModel  ◀── ToUI ring    ◀──    base changed, retire this pointer;
+           │                          (events)            chain and timing changed on flags
            │
            └──◀  ValueMailbox     ◀── atomics      ◀──    modulated values, per block,
                  (const & to editor)                      coalescing, painting only
@@ -133,7 +133,7 @@ engine the main thread owns.
 | `core/threading/messages.hpp` | cases |
 |---|---|
 | `ToEngine` | `SetBaseParameter`, `SetSlot`, `MoveModule`, `SwapChain`, `SwapSample` |
-| `ToUI` | `BaseParameterChanged`, `TimingChanged` — `Retire` on a ring of its own, and a chain change on a flag |
+| `ToUI` | `BaseParameterChanged` — `Retire` on a ring of its own, and chain and timing changes on flags |
 
 Both are tagged unions, trivially copyable, owning nothing. Each case says which
 side is responsible for a pointer after it lands, and that is the entire
@@ -151,15 +151,16 @@ draws at 30 Hz. A FIFO would spend all its bandwidth on values nobody sees; a
 mailbox cannot overflow and coalesces by construction. Same message list, two
 transports.
 
-**And a chain change is a flag, not a message.** It carries nothing — the main
-thread recomputes the rack off the model, so a second of two says what the first
-did — which is the same test `TimingChanged` passes below. The difference is what
-happens on a full ring: a dropped chain change left the rack drawing the chain
-that was there before, with no second announcement coming. A flag the engine only
-sets and the main thread only clears cannot be dropped, and the callback that
-reads it is asked for by `requestRescan()` rather than by the push, so the
-wake-up never depended on the ring either. `TimingChanged` is the same shape and
-still a message; it caps itself at one outstanding rather than none.
+**And news is a flag, not a message.** A chain change and a timing change both
+carry nothing — the main thread recomputes the rack off the model and reads the
+new bar duration off the engine, so a second of two says what the first did — and
+on a full ring the first was simply lost, leaving the rack drawing a chain that
+was no longer there or the LFO panel showing a period in the wrong number of
+seconds. A flag the engine only sets and the main thread only clears cannot be
+dropped, and the callback that reads it is asked for by `requestRescan()` and
+`request_callback()` rather than by the push, so the wake-up never depended on
+the ring either. Both are cleared with `exchange(false)` *before* the redraw they
+ask for, so a change landing during it is announced rather than swallowed.
 
 **And the retirements have a ring of their own.** They rode the same one as the
 echoes until a fuzzer showed what that costs: a host writing every parameter
@@ -181,23 +182,20 @@ is the whole reason for having our own.
 value per dense parameter index plus a bitset of what moved, so a write landing
 mid-sweep is carried into the next sweep rather than lost.
 
-**One case is coalesced before it is sent, and it is the exception that shows
-where the line is.** `TimingChanged` says the host's bar duration or meter moved,
-so that the LFO panel can redraw a period which now means a different number of
-seconds. It is news rather than data — the main thread reads the new timing off
-the engine for itself — so a second copy of it says nothing a first did not. That
-matters because the *rate* is unlike anything else on this ring: a host ramping
-the tempo reports a new bar duration on every block, some hundreds a second,
-and a ring it fills has dropped somebody's echo, which leaves the main thread's
-Program behind the engine for that parameter. So `SpectrumWorxCLAP::timingChanged()` keeps
-one atomic flag, raises it with the message and lets the drain clear it, and at
-most one is ever outstanding. Nothing else here may do that: every other case
-carries a value or an ownership transfer, and the second of two is not the first.
+**The timing change is where that rule was learned.** A host ramping the tempo
+reports a new bar duration on every block, some hundreds a second, and a ring it
+fills has dropped somebody's echo, which leaves the main thread's Program behind
+the engine for that parameter. It rode the ring behind a sender-side flag that
+capped it at one outstanding *message* rather than at none — so it still spent a
+slot, and a push that failed cleared its own flag and gave up, which at a fixed
+tempo meant the panel never caught up. As a flag it costs nothing and cannot be
+dropped. `_host.requestCallback()` is what stays: a tempo change on its own asks
+the host for nothing, and without it the flag would wait for whatever asks next.
 
-That is also why a message exists at all. `updateForNewTimingInfo()` is the
-editor's redraw and it had no caller for the life of this port — its 2016 one was
-in a host class the port deleted, and the CLAP equivalent (`updateLFOTiming()`)
-runs on the audio thread, where touching a widget is exactly rule 1.
+`updateForNewTimingInfo()` is the editor's redraw and it had no caller for the
+life of this port — its 2016 one was in a host class the port deleted, and the
+CLAP equivalent (`updateLFOTiming()`) runs on the audio thread, where touching a
+widget is exactly rule 1.
 
 **Where they are drained.** `drainCommands()` at the top of `process()`, before
 the host's own events so a block's automation wins over anything queued before
@@ -434,6 +432,7 @@ The inventory the model is measured by.
 | An outstanding restart request | `restartRequested_`, `std::atomic`, test-and-set through `exchange` — both threads reach it | ✅ |
 | The `Sample` | `ToEngine::SwapSample` + `ToUI::Retire`; the main thread keeps the file name and the decoded rate | ✅ |
 | The module rack | recomputed from `programMain_`'s chain, by whatever changed it and by `chainChangedPending_` | ✅ |
+| The LFO panel's tempo | `timingChangedPending_` (`std::atomic`), raised by the engine and cleared by `drainEngineEvents()` before the redraw | ✅ |
 | Editor selection and active control | `SpectrumWorxEditor::{pSelectedModule_,pActiveControl_}`, per editor — and **not** what decides whether a widget is let go of; see §5 | ✅ |
 | The LFO display and the shared module controls | children of the editor holding a raw `ModuleUI *`; dropped by `detachFrom()` on their own pointer | ✅ |
 | `PopupMenu::menuActive_` | a member, per menu and therefore per editor; menus are dismissed before a strip, a chain or a program is replaced | ✅ |
