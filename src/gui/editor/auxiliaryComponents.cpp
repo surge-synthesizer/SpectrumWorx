@@ -133,25 +133,11 @@ ModuleControlBase &SharedModuleControls::controlForParameter(std::uint8_t const 
     }
 }
 
-/// \note Checked rather than asserted. Losing focus is something JUCE does to
-/// these controls on the way *out* -- a strip being dropped moves the focus, and
-/// the editor's record of what is selected is cleared before that -- so "there
-/// is a selected module" is exactly what does not hold here. In a shipped build
-/// the assertion was not there and the null was dereferenced.
-void SharedModuleControls::focusLost(FocusChangeType)
-{
-    /// \note Not while a menu is up. These two knobs each have a right button
-    /// menu with a type-in field in it, the field takes the keyboard, and
-    /// deactivating the module from here destroys *these controls* -- so the
-    /// knob the open menu belongs to would be freed under it.
-    /// \see the note on ModuleControlImpl::focusLost().
-    if (isCurrentlyBlockedByAnotherModalComponent())
-        return;
-
-    auto *const pModuleUI(editor().selectedModule());
-    if (pModuleUI && !pModuleUI->hasFocus())
-        pModuleUI->deactivate();
-}
+/// \note Deliberately nothing, and this is the reported case: Gain and Wet live
+/// on these controls, so learning one in a host's panel means clicking away from
+/// the plugin -- which used to deselect the module and destroy the very knob the
+/// user was reaching for. \see ModuleControlImpl::focusLost() and issue #139.
+void SharedModuleControls::focusLost(FocusChangeType) {}
 
 void SharedModuleControls::focusOfChildComponentChanged(FocusChangeType const type)
 {
@@ -278,10 +264,8 @@ void SharedModuleControls::FrequencyRange::focusGained(juce::Component::FocusCha
 {
     reportActiveControl();
 }
-void SharedModuleControls::FrequencyRange::focusLost(juce::Component::FocusChangeType)
-{
-    reportInactiveControl();
-}
+/// \note Nothing, for the reason the two knobs beside it give.
+void SharedModuleControls::FrequencyRange::focusLost(juce::Component::FocusChangeType) {}
 
 void SharedModuleControls::FrequencyRange::mouseEnter(juce::MouseEvent const &event) noexcept
 {
@@ -289,9 +273,11 @@ void SharedModuleControls::FrequencyRange::mouseEnter(juce::MouseEvent const &ev
     juce::Slider::mouseEnter(event);
 }
 
+/// \note Through mouseLeft(), for the reason its definition gives: a thumb the
+/// user clicked stays selected when the pointer wanders off it.
 void SharedModuleControls::FrequencyRange::mouseExit(juce::MouseEvent const &event) noexcept
 {
-    reportInactiveControl();
+    mouseLeft();
     juce::Slider::mouseExit(event);
 }
 

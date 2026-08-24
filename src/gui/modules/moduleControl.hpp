@@ -156,6 +156,12 @@ class ModuleControlBase
 
     virtual void lfoStateChanged() = 0;
 
+    /// \brief Tells this control it is no longer the selected one.
+    ///
+    /// \note Asked of the control that is *losing* the selection, by the one
+    /// taking it. Losing the keyboard no longer does it. \see issue #139.
+    virtual void deselect() = 0;
+
     virtual void updateForEngineSetupChanges(Engine::Setup const &) {}
 
     // Implementation note:
@@ -207,6 +213,9 @@ class ModuleControlBase
     /// moduleParameterChanged() without the assertions that say the user has
     /// this control under the mouse right now. \see the definition.
     void publishValue();
+
+    /// \brief What a control does when the pointer leaves it. \see the definition.
+    void mouseLeft();
 
     ////////////////////////////////////////////////////////////////////////////
     ///
@@ -388,6 +397,12 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
             ImplWidget::moduleControlDeactivated();
     }
 
+    /// \note The same thing asked from outside. `moduleControlDeactivated()` is
+    /// the widget's own and resolves in this template, so the editor cannot reach
+    /// it through a ModuleControlBase -- and it has to, now that the control
+    /// losing the selection is told by the one taking it. \see issue #139.
+    void deselect() override { reportInactiveControl(); }
+
     using ModuleControlBase::isActive;
 
   private:
@@ -399,48 +414,31 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
     }
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note `|| !isEnabled()`. JUCE spells getWantsKeyboardFocus() as
-    /// `wantsKeyboardFocusFlag && !isDisabledFlag`, and
-    /// `Component::setEnabled( false )` sets that flag *before* handing the
-    /// focus to the parent -- so a control disabled while it holds the focus
-    /// arrives here reading "does not want focus", having never stopped wanting
-    /// it. `ModuleKnob::mouseDown` does exactly that to a knob whose LFO is on,
-    /// which is why clicking one fired this.
+    /// \note **The halo, and nothing else.** Losing the keyboard is not losing
+    /// the selection: this used to retire the LFO strip, on the assumption that
+    /// the focus was on its way to another module control. It goes to a preset
+    /// row, a settings box, a host's automation panel or another application at
+    /// least as often, and each of those wiped the strip the user had just set
+    /// up. The selection is handed over by whoever takes it instead.
+    /// \see reportActiveControl() and issue #139.
     ///
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note **The focus a menu borrows is not a focus loss.** A knob's own
-    /// right button menu contains a type-in field, the field takes the keyboard
-    /// when it opens, and the editor reads every focus loss as "this control is
-    /// no longer the one the user is on" -- which retires the LFO strip out from
-    /// under the menu that is offering to switch it, and, one level up, deselects
-    /// the module and destroys the shared controls the knob may itself be one of.
-    /// So the widget under the open menu could be freed while its menu was still
-    /// on screen, and choosing an item then did nothing at all.
-    ///
-    ///   `isCurrentlyBlockedByAnotherModalComponent()` is the question, and it is
-    /// exactly the right one: a menu is a modal component, so this is true for
-    /// every widget in the editor for as long as one is up, and false the moment
-    /// it closes. Nothing is lost by waiting -- a mouseExit or the next focus
-    /// change re-asks -- and the other two tear-downs guard on the same thing.
-    /// \see ModuleUI::focusLost(), SharedModuleControls::focusLost().
-    ///
-    /// \note The skin's own menus never reach here: they are desktop windows
-    /// carrying `ComponentPeer::windowIgnoresKeyPresses` and take no keyboard, so
-    /// no focus is lost when one opens. \see Knob::showParameterMenu().
+    /// \note Which retires three guards with it. There is no longer a tear-down
+    /// to keep away from an open menu -- the knob's own right button menu takes
+    /// the keyboard for its type-in field, and used to deselect the module and
+    /// destroy the shared controls the knob might itself be one of. Nor is there
+    /// a disabled-control case to excuse: `getWantsKeyboardFocus()` reads
+    /// `wantsKeyboardFocusFlag && !isDisabledFlag`, so a control disabled while
+    /// focused arrived here reading "does not want focus", and nothing asks any
+    /// more.
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual void focusLost(juce::Component::FocusChangeType) noexcept override
     {
-        LE_ASSERT(this->getWantsKeyboardFocus() || !this->isEnabled());
-        if (this->isCurrentlyBlockedByAnotherModalComponent())
-            return;
-        reportInactiveControl();
         ImplWidget::focusChanged();
     }
 
     virtual void mouseEnter(juce::MouseEvent const &) override { reportActiveControl(); }
-    virtual void mouseExit(juce::MouseEvent const &) noexcept override { reportInactiveControl(); }
+    virtual void mouseExit(juce::MouseEvent const &) noexcept override { mouseLeft(); }
 }; // class ModuleControlImpl
 
 #pragma warning(pop)

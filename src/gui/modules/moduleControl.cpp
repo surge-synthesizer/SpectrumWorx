@@ -71,11 +71,25 @@ bool ModuleControlBase::tryActivateControl() const
         return false;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **The outgoing control is told here.** Losing the keyboard no longer
+/// deselects, so the only thing that knows a control has stopped being the
+/// selected one is whatever became it. Leaving that out is not merely untidy
+/// bookkeeping: `ModuleKnob::moduleControlDeactivated()` is what turns the
+/// scroll wheel off, and a knob that keeps its wheel moves its value as the user
+/// scrolls the rack past it -- issue #124, back again. \see issue #139.
+///
+////////////////////////////////////////////////////////////////////////////////
+
 bool ModuleControlBase::reportActiveControl(double const minimum, double const maximum,
                                             double const interval)
 {
     if (tryActivateControl())
     {
+        if (auto *const pOutgoing = editor().activeControl())
+            pOutgoing->deselect();
+
         /// \note The control is marked as activated only after the editor
         /// has been informed (and the LFO GUI created) to avoid race condition
         /// crashes when a user activates a control that is being automated (and
@@ -237,6 +251,31 @@ void ModuleControlBase::endGesture()
 bool ModuleControlBase::needsOwnGesture() const
 {
     return !gestureOpen_ || (gestureID_.binaryValue != parameterMenuID().binaryValue);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **Only where the mouse is what selects.** This was
+/// `reportInactiveControl()` outright, and it could not reach a control the user
+/// had *clicked*: the guard inside answers no while the control holds the
+/// keyboard, and holding the keyboard was the only way to be selected.
+///
+///   It is not any more -- a control stays selected after the focus has gone to
+/// the preset pane or to another application -- so an unguarded exit would drop
+/// the LFO strip on the next sweep of the mouse across the rack, which is the
+/// thing issue #139 is about. Under the default reaction the pointer never
+/// selects a control, so it has no business deselecting one.
+///
+/// \note `deselect()` rather than `reportInactiveControl()`: the widget's own
+/// `moduleControlDeactivated()` has to run, and it resolves in ModuleControlImpl.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void ModuleControlBase::mouseLeft()
+{
+    if (preferences().moduleUIMouseOverReaction() == Preferences::Never)
+        return;
+    deselect();
 }
 
 void ModuleControlBase::configureControl(bool const mouseClickCanGrabFocus)

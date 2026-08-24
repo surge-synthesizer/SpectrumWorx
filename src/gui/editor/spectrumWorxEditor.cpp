@@ -1603,11 +1603,13 @@ void SpectrumWorxEditor::detachFrom(ModuleUI &region)
     /// through destroying them. Taking the keyboard to the editor, which wants
     /// it, stops the walk there.
     ///
-    /// \note After the LFO display and not before: taking the focus out of the
-    /// shared controls deselects the module, and `moduleDeactivated()` asserts
-    /// that the module's *control* was deselected first. This path skips that
-    /// deliberately (see the note on `pActiveControl_` above), so the strip has
-    /// to be retired by hand before anything can deselect the module.
+    /// \note And the selection cleared here rather than left to the focus walk.
+    /// Moving the keyboard out used to deselect the module for us -- that is what
+    /// `SharedModuleControls::focusLost()` did -- so `pSelectedModule_` came back
+    /// null on its own. It no longer does, and a strip left recorded as selected
+    /// while its shared controls are freed reaches `~ModuleUI`, which takes its
+    /// `if ( selected() )` branch into `moduleDeactivated()` and dereferences the
+    /// empty optional. \see issue #139.
     ///
     ////////////////////////////////////////////////////////////////////////////
 
@@ -1617,6 +1619,26 @@ void SpectrumWorxEditor::detachFrom(ModuleUI &region)
             grabKeyboardFocus();
         sharedModuleControls_ = std::nullopt;
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And last, the keyboard out of the strip itself and the editor's
+    /// record of it cleared -- the two things the focus walk used to do on the
+    /// way past.
+    ///
+    ///   `~ModuleUI` asserts that a strip it is destroying *unselected* is not
+    /// still holding the keyboard, which was true for free while a focus loss
+    /// deselected: whichever of the two happened first, the other followed. Now
+    /// neither happens on its own, and a strip whose knob had the focus reaches
+    /// the destructor both unselected and focused. \see issue #139.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    if (region.hasFocus())
+        grabKeyboardFocus();
+
+    if (pSelectedModule_ == &region)
+        pSelectedModule_ = nullptr;
 }
 
 void SpectrumWorxEditor::mainKnobDragStarted(std::uint8_t const index) const

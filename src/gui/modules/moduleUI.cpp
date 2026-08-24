@@ -770,27 +770,13 @@ void ModuleUI::focusGained(FocusChangeType)
     LE_ASSERT(selected());
 }
 
-void ModuleUI::focusLost(FocusChangeType)
-{
-    // Implementation note:
-    //   If only transferring focus to a subcontrol or to the shared controls do
-    // not deactivate.
-    //                                        (14.11.2011.) (Domagoj Saric)
-    if (hasFocus() || editor().sharedModuleControlsActiveAndFocused())
-        return;
-
-    /// \note ...nor to a menu one of those subcontrols opened, which is a third
-    /// case of the same thing: deselecting the strip under an open menu destroys
-    /// the shared controls, and the menu may belong to one of them.
-    /// \see the note on ModuleControlImpl::focusLost().
-    if (isCurrentlyBlockedByAnotherModalComponent())
-        return;
-
-    //...mrmlj...rethink this focus changing logic and assumptions
-    //LE_ASSERT( selected() );
-    if (selected())
-        deactivate();
-}
+/// \note Deliberately nothing, for the reason ModuleControlImpl::focusLost()
+/// gives: a strip stops being the selected one when another is selected or when
+/// it is destroyed, and not because the keyboard went to the preset pane. The
+/// three guards this used to need -- focus moving to a subcontrol, to the shared
+/// controls, or to a menu one of those opened -- were all ways of saying "that is
+/// not really a loss", and there is no loss to qualify any more.
+void ModuleUI::focusLost(FocusChangeType) {}
 
 void ModuleUI::focusOfChildComponentChanged(FocusChangeType const changeType)
 {
@@ -805,6 +791,13 @@ void ModuleUI::activate()
     LE_ASSERT(hasFocus() || selectionTracksMouseMovements());
     if (this->selected())
         return;
+
+    /// \note A module change retires the control selection, where a control
+    /// change within one module does not. The LFO strip would otherwise name the
+    /// module the user has just left while the shared controls and the header
+    /// name the one they are on. \see issue #139.
+    if (auto *const pControl = editor().activeControl(); pControl && !pControl->pointsInto(*this))
+        pControl->deselect();
 
     // Implementation note:
     //   If the previously active module wasn't actually focused but the shared

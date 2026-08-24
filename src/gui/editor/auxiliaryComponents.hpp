@@ -79,6 +79,10 @@ class SharedModuleControls : public WidgetBase<>
       protected: // ModuleControlBase overrides
         void lfoStateChanged() override {}
 
+        /// \note This one is its own ModuleControlBase rather than a
+        /// ModuleControlImpl<>, so it answers for itself. \see issue #139.
+        void deselect() override { reportInactiveControl(); }
+
         void setValue(float value) override;
         float getValue() const override;
 

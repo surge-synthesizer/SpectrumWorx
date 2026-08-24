@@ -3,17 +3,18 @@
 /// moduleControlFocusTests.cpp
 /// ---------------------------
 ///
-///   What happens to a module control's keyboard focus when the control is
-/// disabled under it -- which is what clicking a knob whose LFO is on does.
+///   What the keyboard focus does to a module control: which one is selected,
+/// what an LFO takes away from the widget holding it, and what the host is told
+/// along the way.
 ///
-///   `ModuleKnob::mouseDown` calls `setEnabled( !isLFOEnabled() )` so that
-/// juce::Slider's own drag handling cannot move a value the LFO owns. JUCE's
-/// `Component::setEnabled( false )` sets the disabled flag *and then*, if the
-/// component has keyboard focus, hands that focus to the parent -- and
-/// `getWantsKeyboardFocus()` is `wantsKeyboardFocusFlag && !isDisabledFlag`
-/// (juce_Component.cpp), so by the time our `focusLost()` runs the answer is
-/// already false. There is no `--render` page for that: it needs a click, and a
-/// click needs focus, which needs a peer.
+///   None of it has a `--render` page. Selection needs a click, a click needs
+/// focus, and focus needs a peer -- so every case here puts the editor on the
+/// desktop and skips where the window server will not play along.
+///
+///   The rule the selection cases turn on: it moves when something *takes* it,
+/// or when the thing selected is destroyed, and never because the keyboard went
+/// somewhere else. \see issue #139, and issue #188 for the gestures that used to
+/// ride along with it.
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later
@@ -390,9 +391,16 @@ TEST_CASE("An LFO switches every gesture that would move the knob under it", "[g
 ///   The two are not the same the moment a control is deactivated: deactivation
 /// clears the editor's records and leaves the widgets alive, deliberately, so
 /// that moving between controls does not destroy and rebuild them. So a control
-/// that lost focus before its module was removed left both widgets behind,
-/// pointing into freed memory, still parented and still painted --
-/// `ModuleKnob::paint` reads `moduleUI().pModule_` straight through the hole.
+/// deselected before its module was removed left both widgets behind, pointing
+/// into freed memory, still parented and still painted -- `ModuleKnob::paint`
+/// reads `moduleUI().pModule_` straight through the hole.
+///
+/// \note **Selecting the other strip is what deselects here.** This read
+/// `editor.grabKeyboardFocus()` while a focus loss still deselected; it no longer
+/// does, and the state has to be reached the way a user reaches it. Selecting
+/// another *module* retires the LFO strip without re-pointing it -- the display
+/// is disabled and still holds the first strip's control -- which is exactly the
+/// mismatch this case is about. \see issue #139.
 ///
 ///   This is the 608f0773 bug class over again: a guard keyed on the wrong
 /// pointer. An `-fsanitize=address` build reports the paint below as a
@@ -434,14 +442,20 @@ TEST_CASE("A strip removed after its control was deactivated leaves nothing poin
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \note And then deselecting it, which is the step that made the old guards
-    /// answer no. The editor forgets which control was active and which module
-    /// was selected; the widgets pointing into the strip are only *disabled*,
-    /// their destruction deferred in case the user is on their way to another
-    /// control.
+    /// answer no. The editor forgets which control was active; the LFO display
+    /// pointing into this strip is only *disabled*, its destruction deferred in
+    /// case the user is on their way to another control.
     ///
     ////////////////////////////////////////////////////////////////////////////
-    editor.grabKeyboardFocus();
+    editor.regionInSlot(1)->grabKeyboardFocus();
     REQUIRE(editor.activeControl() == nullptr);
+    REQUIRE(editor.selectedModule() == editor.regionInSlot(1));
+
+    // ...and the state this case exists to test, asserted rather than assumed: a
+    // widget still pointing into the strip while the editor's records do not. It
+    // is what makes the removal below reach the guard at all.
+    REQUIRE(editor.lfoDisplay() != nullptr);
+    REQUIRE(editor.lfoDisplay()->pointsInto(*pFirstStrip));
 
     // The strip goes. detachFrom() runs from in here.
     editor.removeModule(*pFirstStrip);
@@ -982,4 +996,267 @@ TEST_CASE("A value typed into the menu is a whole gesture of its own",
     CHECK(instance.hostEdits()[2].kind == SWTest::HostEdit::Kind::GestureEnd);
     for (auto const &edit : instance.hostEdits())
         CHECK(edit.id == knobID);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Losing the keyboard is not losing the selection
+/// -----------------------------------------------
+///
+///   Selection moves when something *takes* it, or when the thing selected is
+/// destroyed. Nothing else. A focus loss used to retire the LFO strip on the
+/// assumption that the keyboard was on its way to another module control -- but
+/// the preset pane, a host's automation panel and another application are all
+/// places it goes instead, and each of them wiped the display the user had just
+/// set up. \see issue #139, and issue #188 for the half of this that reached the
+/// host.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+/// \brief Two strips of \p effectName, in slots 0 and 1.
+std::pair<GUI::ModuleUI *, GUI::ModuleUI *> twoStrips(GUI::SpectrumWorxEditor &editor,
+                                                      char const *const effectName)
+{
+    auto const effect(SWTest::effectByStreamingName(effectName));
+    editor.addUserAddedModule(static_cast<std::uint8_t>(effect));
+    editor.addUserAddedModule(static_cast<std::uint8_t>(effect));
+    editor.resyncModuleRack();
+    auto *const pFirst(editor.regionInSlot(0));
+    auto *const pSecond(editor.regionInSlot(1));
+    REQUIRE(pFirst != nullptr);
+    REQUIRE(pSecond != nullptr);
+    return {pFirst, pSecond};
+}
+
+/// \brief Whether the LFO strip is on screen for \p editor.
+///
+/// \note Enabled rather than present. Retiring one only disables it and posts a
+/// message to drop it, so that moving between controls does not destroy and
+/// rebuild -- and a test binary has no message loop to run that post. \see
+/// SpectrumWorxEditor::retireLFODisplay().
+bool lfoStripIsUp(GUI::SpectrumWorxEditor &editor)
+{
+    auto *const pDisplay(editor.lfoDisplay());
+    return (pDisplay != nullptr) && pDisplay->isEnabled();
+}
+
+TEST_CASE("A selected control keeps its LFO strip when the keyboard goes elsewhere",
+          "[gui][modules][lfo][selection]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    auto &moduleUI(stripFor(editor, "Freeze"));
+
+    auto *const pControl(firstKnob(moduleUI));
+    REQUIRE(pControl != nullptr);
+
+    pControl->widget().grabKeyboardFocus();
+    REQUIRE(editor.activeControl() == pControl);
+    REQUIRE(lfoStripIsUp(editor));
+
+    // Where the keyboard actually goes: the editor itself stands for every widget
+    // that is not a module control -- a preset row, a settings box, the window of
+    // another plugin entirely.
+    editor.grabKeyboardFocus();
+    REQUIRE(!pControl->widget().hasKeyboardFocus(false));
+
+    CHECK(editor.activeControl() == pControl);
+    CHECK(lfoStripIsUp(editor));
+}
+
+TEST_CASE("The shared controls survive the keyboard going elsewhere", "[gui][modules][selection]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    auto &moduleUI(stripFor(editor, "Freeze"));
+
+    moduleUI.grabKeyboardFocus();
+    REQUIRE(editor.selectedModule() == &moduleUI);
+    REQUIRE(editor.sharedModuleControlsActive());
+
+    // The reported case: Gain lives here, and learning it in a host's panel means
+    // clicking away from the plugin and back.
+    editor.grabKeyboardFocus();
+
+    CHECK(editor.selectedModule() == &moduleUI);
+    CHECK(editor.sharedModuleControlsActive());
+}
+
+TEST_CASE("Selecting a control in another module hands the selection over",
+          "[gui][modules][lfo][selection]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    auto const [pFirstStrip, pSecondStrip](twoStrips(editor, "Freeze"));
+
+    auto *const pFirst(firstKnob(*pFirstStrip));
+    auto *const pSecond(firstKnob(*pSecondStrip));
+    REQUIRE(pFirst != nullptr);
+    REQUIRE(pSecond != nullptr);
+    auto &firstKnobWidget(dynamic_cast<juce::Slider &>(pFirst->widget()));
+
+    pFirst->widget().grabKeyboardFocus();
+    REQUIRE(editor.activeControl() == pFirst);
+    REQUIRE(firstKnobWidget.isScrollWheelEnabled());
+
+    pSecond->widget().grabKeyboardFocus();
+
+    CHECK(editor.activeControl() == pSecond);
+    CHECK(lfoStripIsUp(editor));
+
+    // \note The half that is not bookkeeping. A control is told it was deselected
+    // so that it can turn its wheel off, and nothing else tells it any more --
+    // leave this out and scrolling the rack moves whatever it passes over, which
+    // is issue #124 back again.
+    CHECK(!firstKnobWidget.isScrollWheelEnabled());
+}
+
+TEST_CASE("Selecting another module retires the control selection",
+          "[gui][modules][lfo][selection]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    auto const [pFirstStrip, pSecondStrip](twoStrips(editor, "Freeze"));
+
+    auto *const pControl(firstKnob(*pFirstStrip));
+    REQUIRE(pControl != nullptr);
+
+    pControl->widget().grabKeyboardFocus();
+    REQUIRE(editor.activeControl() == pControl);
+
+    // \note The strip's own body rather than one of its controls. The LFO pane
+    // would otherwise name the first module while the shared controls and the
+    // header name the second.
+    pSecondStrip->grabKeyboardFocus();
+
+    CHECK(editor.selectedModule() == pSecondStrip);
+    CHECK(editor.activeControl() == nullptr);
+    CHECK(!lfoStripIsUp(editor));
+}
+
+/// \note What a preset load does to the rack, once per slot -- and the one path
+/// that still has to clear a selection, because the thing selected is going away.
+/// \see SpectrumWorxEditor::destroyChainGUIs().
+TEST_CASE("Dropping the selected module clears both selections", "[gui][modules][lfo][selection]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    auto &moduleUI(stripFor(editor, "Freeze"));
+
+    auto *const pControl(firstKnob(moduleUI));
+    REQUIRE(pControl != nullptr);
+
+    pControl->widget().grabKeyboardFocus();
+    REQUIRE(editor.activeControl() == pControl);
+    REQUIRE(editor.selectedModule() == &moduleUI);
+    REQUIRE(editor.sharedModuleControlsActive());
+
+    editor.destroyChainGUIs();
+
+    CHECK(editor.activeControl() == nullptr);
+    CHECK(editor.selectedModule() == nullptr);
+    CHECK(!editor.sharedModuleControlsActive());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The hole the change above opens if nothing is done about it. A control
+/// used to be selected only while it held the keyboard, so `mouseExit`'s
+/// `reportInactiveControl()` could not reach one the user had clicked -- the
+/// `hasDirectFocus()` guard inside answered no. Now a control stays selected
+/// after the keyboard has gone to the preset pane, and without a second guard the
+/// next sweep of the mouse across it would silently drop the LFO strip.
+///
+///   The preference is the right question: with the default reaction the mouse
+/// never *selects* a control, so it has no business deselecting one.
+/// \see Preferences::ModuleUIMouseOverReaction and issue #139.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The mouse passing over a clicked control does not deselect it",
+          "[gui][modules][lfo][selection]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    // \note A folder of this case's own, and the reaction set in it rather than
+    // read. The suite points every case at one shared folder, and something in it
+    // writes there -- so what this would otherwise see is whatever ran last.
+    fs::path const folder(fs::path(SW_TEST_OUTPUT_DIR) / "preferences" / "mouseOverKeepsClicked");
+    fs::remove_all(folder);
+    GUI::setPreferencesFolder(folder);
+    GUI::preferences().setModuleUIMouseOverReaction(GUI::Preferences::Never);
+    REQUIRE(GUI::preferences().moduleUIMouseOverReaction() == GUI::Preferences::Never);
+
+    auto &editor(window.editor());
+    auto &moduleUI(stripFor(editor, "Freeze"));
+
+    auto *const pControl(firstKnob(moduleUI));
+    REQUIRE(pControl != nullptr);
+    auto &knob(pControl->widget());
+
+    knob.grabKeyboardFocus();
+    REQUIRE(editor.activeControl() == pControl);
+
+    editor.grabKeyboardFocus(); // the preset pane, a host panel, another app
+    REQUIRE(editor.activeControl() == pControl);
+
+    // ...and the pointer wanders across the knob on its way somewhere else.
+    knob.mouseEnter(eventOver(knob, {}, false));
+    knob.mouseExit(eventOver(knob, {}, false));
+
+    CHECK(editor.activeControl() == pControl);
+    CHECK(lfoStripIsUp(editor));
 }
