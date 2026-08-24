@@ -1058,6 +1058,29 @@ class SpectrumWorxEditor final : private SkinLifetime,
             std::uint8_t lfoParameterIndex() const override;
         }; // class RangeSlider
 
+        ////////////////////////////////////////////////////////////////////////
+        ///
+        /// \brief The waveform well, the mark in it and the arrow beside it, as
+        /// one press.
+        ///
+        /// \note One component rather than two: the arrow was the only thing
+        /// that answered a click, and it is 11x17 of what reads as a single
+        /// 63x30 target. \see issue #202.
+        ///
+        ////////////////////////////////////////////////////////////////////////
+
+        class WaveformButton final : public ArrowButton
+        {
+          public:
+            explicit WaveformButton(LFODisplay &parent);
+
+          private: // juce::Component overrides
+            void paintButton(juce::Graphics &, bool isMouseOver, bool isButtonDown) override;
+
+          private:
+            LFODisplay &parent_;
+        }; // class WaveformButton
+
         class Period final : public ParameterSlider
         {
           public:
@@ -1178,7 +1201,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
         TextButton quarter_;
         TextButton triplet_;
         TextButton dotted_;
-        ArrowButton typeArrow_;
+        WaveformButton waveform_;
         Period period_;
         ParameterSlider phase_;
         RangeSlider range_;

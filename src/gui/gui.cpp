@@ -880,13 +880,18 @@ ArrowButton::ArrowButton(juce::Component &parent, int const width, int const hei
     addToParentAndShow(parent, *this);
 }
 
+void ArrowButton::paintArrow(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
+                             bool const isMouseOver)
+{
+    ArrowPainter::paint(graphics, bounds, fadeFromBase_);
+    withPointerTint(*this, graphics, isMouseOver, ColourMap::getColour(tintWhenOver_),
+                    [&](juce::Colour const tint) { ArrowPainter::tint(graphics, bounds, tint); });
+}
+
 void ArrowButton::paintButton(juce::Graphics &graphics, bool const isMouseOverButton,
                               bool const /*isButtonDown*/)
 {
-    auto const bounds(getLocalBounds().toFloat());
-    ArrowPainter::paint(graphics, bounds, fadeFromBase_);
-    withPointerTint(*this, graphics, isMouseOverButton, ColourMap::getColour(tintWhenOver_),
-                    [&](juce::Colour const tint) { ArrowPainter::tint(graphics, bounds, tint); });
+    paintArrow(graphics, getLocalBounds().toFloat(), isMouseOverButton);
 }
 
 EjectButton::EjectButton(juce::Component &parent)

@@ -39,6 +39,7 @@
 #include "core/threading/messages.hpp"
 #include "gui/modules/moduleControl.hpp"
 #include "gui/modules/moduleUI.hpp"
+#include "gui/painters/backgroundPainter.hpp"
 
 #include "le/parameters/lfoImpl.hpp"
 #include "le/parameters/parametersUtilities.hpp"
@@ -444,6 +445,44 @@ TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
 /// waveform did not help because every one of them was blank.
 ///
 ////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note What issue #202 asked for: the well, the mark in it and the arrow
+/// beside it are one press. The arrow was the only thing that answered a click
+/// and it is 11x17 of a target that reads as 63x30, so the obvious place to
+/// aim -- the mark naming the waveform -- did nothing.
+///
+///   Asked of the component tree rather than of a click, for the reason the note
+/// above gives: the press ends in a popup menu, and a menu is what a headless
+/// editor cannot drive. Where the press *lands* is the half that changed.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The whole waveform well answers a press, not just the arrow", "[gui][lfo]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    PanelUnderTest const panel(instance);
+
+    auto *const pDisplay(instance.editor().lfoDisplay());
+    REQUIRE(pDisplay != nullptr);
+
+    // the pill the artwork draws, in the strip's own coordinates
+    using namespace LE::SW::GUI::BackgroundStyle;
+    auto const well(juce::Rectangle<float>{lfoWaveformWell.x, lfoWaveformWell.y,
+                                           lfoWaveformWell.right - lfoWaveformWell.x,
+                                           lfoWaveformWell.bottom - lfoWaveformWell.y}
+                        .toNearestInt()
+                        .translated(-pDisplay->getX(), -pDisplay->getY()));
+
+    auto *const pPressed(dynamic_cast<juce::Button *>(pDisplay->getComponentAt(well.getCentre())));
+    REQUIRE(pPressed != nullptr);
+
+    // the whole pill, and the arrow that sits outside it to the right
+    CHECK(pPressed->getBounds().contains(well));
+    CHECK(pPressed->getRight() > well.getRight());
+}
 
 TEST_CASE("A second editor's LFO well has a mark in it", "[gui][lfo][skin]")
 {

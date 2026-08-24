@@ -843,6 +843,11 @@ class ArrowButton : public WidgetBase<juce::Button>
     ArrowButton(juce::Component &parent, int width, int height, bool fadeFromBase,
                 ColourMap::Name tintWhenOver);
 
+  protected:
+    /// \brief The triangle and its pointer tint in \p bounds rather than filling
+    /// the widget, for a button that is more than the arrow drawn on it.
+    void paintArrow(juce::Graphics &, juce::Rectangle<float> bounds, bool isMouseOver);
+
   private: // juce::Component overrides
     void paintButton(juce::Graphics &, bool isMouseOverButton, bool isButtonDown) override;
 

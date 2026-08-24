@@ -2261,6 +2261,33 @@ void fillLFOWaveformsMenu(PopupMenu &menu)
     for (auto const waveFormName : LE::Parameters::DiscreteValues<LFO::Waveform>::strings)
         menu.addItem(itemId++, waveFormName, *ppIcon++);
 }
+
+/// \brief Where the LFO strip sits in the chassis, which is the frame the
+/// artwork's own rectangles are measured in. \see BackgroundStyle.
+juce::Point<int> const lfoStripOrigin{107, 234};
+
+/// \name The waveform target, in the strip's own coordinates
+///@{
+juce::Rectangle<int> lfoWaveformWellBounds()
+{
+    using namespace BackgroundStyle;
+    return juce::Rectangle<float>{lfoWaveformWell.x, lfoWaveformWell.y,
+                                  lfoWaveformWell.right - lfoWaveformWell.x,
+                                  lfoWaveformWell.bottom - lfoWaveformWell.y}
+        .toNearestInt()
+        .translated(-lfoStripOrigin.x, -lfoStripOrigin.y);
+}
+
+juce::Point<int> const lfoWaveformMarkPosition{119, 144};
+juce::Rectangle<int> const lfoWaveformArrowBounds{164, 149, ArrowStyle::stepWidth,
+                                                  ArrowStyle::stepHeight};
+
+/// The two of them and the well between them, which is what a press lands on.
+juce::Rectangle<int> lfoWaveformTargetBounds()
+{
+    return lfoWaveformWellBounds().getUnion(lfoWaveformArrowBounds);
+}
+///@}
 } // namespace
 
 #define LE_COMP_PTR(member) reinterpret_cast<ComponentPtr>(&SpectrumWorxEditor::LFODisplay::member)
@@ -2278,11 +2305,9 @@ SpectrumWorxEditor::LFODisplay::ComponentPtr const
 SpectrumWorxEditor::LFODisplay::LFODisplay()
     : switch_(*this, ledCapsule, LEDTextButton::ledWidth, LEDTextButton::ledHeight),
       quarter_(*this, 93, 8, " N "), triplet_(*this, 93 + 27 * 1, 8, " T "),
-      dotted_(*this, 93 + 27 * 2 - 3, 8, " D "),
-      typeArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
-                 ColourMap::MouseOverGlow),
-      period_(*this), phase_(*this, LE::Parameters::IndexOf<LFO::Parameters, LFO::Phase>::value),
-      range_(*this), pModuleControl_(nullptr)
+      dotted_(*this, 93 + 27 * 2 - 3, 8, " D "), waveform_(*this), period_(*this),
+      phase_(*this, LE::Parameters::IndexOf<LFO::Parameters, LFO::Phase>::value), range_(*this),
+      pModuleControl_(nullptr)
 {
     for (auto const pComponent : componentsToDisableKeyboardGrabingFor)
     {
@@ -2310,15 +2335,14 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
     phase_.setDoubleClickReturnValue(true, 0);
     addToParentAndShow(*this, phase_);
 
-    typeArrow_.setTopLeftPosition(164, 149);
-    typeArrow_.addListener(this);
+    waveform_.addListener(this);
 
     range_.setBounds(11, 110, width - 11, 15);
     range_.setSliderStyle(juce::Slider::TwoValueHorizontal);
     range_.setTextBoxStyle(juce::Slider::NoTextBox, true, 135, 30);
     addToParentAndShow(*this, range_);
 
-    this->setBounds(107, 234, width, 192);
+    this->setBounds(lfoStripOrigin.x, lfoStripOrigin.y, width, 192);
 
     switch_.addListener(this);
     quarter_.addListener(this);
@@ -2510,15 +2534,6 @@ void SpectrumWorxEditor::LFODisplay::paint(juce::Graphics &graphics)
         graphics.drawText(text.getString(*this, text.value), text.x, text.y, text.width,
                           text.height, text.justification, false);
     }
-
-    // the well before the mark that goes in it, and both here rather than in
-    // the chassis: this strip is on screen only while a control is selected,
-    // and the chassis would leave a pill alone in an empty LFO box
-    BackgroundPainter::paintLFOWaveformWell(graphics, getPosition());
-
-    // Null for an item with no icon; every LFO waveform has one.
-    if (auto const *const icon(type_.getSelectedItemIcon()); icon != nullptr)
-        paintImage(graphics, *icon, 119, 144);
 }
 
 /// \note The parameter goes out through `editParameter()` and the host is told
@@ -2570,13 +2585,13 @@ void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
         // has already toggled itself, so the resync coming back is a no-op
         editor().setLFOEnabled(control(), enable);
     }
-    else if (pButton == &typeArrow_)
+    else if (pButton == &waveform_)
     {
         //...mrmlj...
         if (!type_.menuActive())
         {
             juce::Component::SafePointer<LFODisplay> pThis(this);
-            type_.showCenteredAtRight(typeArrow_, [pThis](bool const selectionChanged) {
+            type_.showCenteredAtRight(waveform_, [pThis](bool const selectionChanged) {
                 if (!pThis || !selectionChanged)
                     return;
                 pThis->updateParameterAndNotifyHost<LFO::Waveform>(pThis->type_.getSelectedID());
@@ -2844,6 +2859,34 @@ std::optional<double> parsePhase(SpectrumWorxEditor::LFODisplay const &parent,
     return Display::inverse(number.getFloatValue(), parent.control().editor().engineSetup());
 }
 } // anonymous namespace
+
+SpectrumWorxEditor::LFODisplay::WaveformButton::WaveformButton(LFODisplay &parent)
+    : ArrowButton(parent, lfoWaveformTargetBounds().getWidth(),
+                  lfoWaveformTargetBounds().getHeight(), false, ColourMap::MouseOverGlow),
+      parent_(parent)
+{
+    setTopLeftPosition(lfoWaveformTargetBounds().getPosition());
+}
+
+/// \note The well and the mark are drawn here rather than with the chassis: this
+/// strip is on screen only while a control is selected, and the chassis would
+/// leave a pill alone in an empty LFO box. \see issue #134.
+void SpectrumWorxEditor::LFODisplay::WaveformButton::paintButton(juce::Graphics &graphics,
+                                                                 bool const isMouseOver,
+                                                                 bool const /*isButtonDown*/)
+{
+    // in the chassis' own frame, which is where the artwork measured the well
+    BackgroundPainter::paintLFOWaveformWell(graphics, lfoStripOrigin + getPosition());
+
+    // Null for an item with no icon; every LFO waveform has one.
+    if (auto const *const icon(parent_.type_.getSelectedItemIcon()); icon != nullptr)
+    {
+        auto const mark(lfoWaveformMarkPosition - getPosition());
+        paintImage(graphics, *icon, mark.x, mark.y);
+    }
+
+    paintArrow(graphics, (lfoWaveformArrowBounds - getPosition()).toFloat(), isMouseOver);
+}
 
 SpectrumWorxEditor::LFODisplay::ParameterSlider::ParameterSlider(
     LFODisplay &parent, std::uint8_t const lfoParameterIndex)
