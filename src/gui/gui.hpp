@@ -1009,7 +1009,7 @@ class ParameterMenu
     /// \note Public because the widget that raises it is not always the class
     /// that answers for it: Knob::mouseDown() reaches whichever of its two
     /// subclasses carries the parameter.
-    void showParameterMenu(juce::MouseEvent const &);
+    void showParameterMenu(juce::MouseEvent const &, bool const skipSetToDefault = false);
 
     ////////////////////////////////////////////////////////////////////////////
     /// \brief Whether the widget's own value is worth editing at all.

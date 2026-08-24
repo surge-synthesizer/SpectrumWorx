@@ -1302,36 +1302,16 @@ class ParameterMenu::ValueTypein final : public juce::PopupMenu::CustomComponent
     juce::TextEditor editor_;
 }; // class ParameterMenu::ValueTypein
 
-void ParameterMenu::showParameterMenu(juce::MouseEvent const &event)
+void ParameterMenu::showParameterMenu(juce::MouseEvent const &event, bool const skipSetToDefault)
 {
     auto &widget(menuOwner());
 
     bool const editable(parameterEditable());
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note Four sections with a rule between them, and they are the same four
-    /// whatever the widget is:
-    ///
-    ///     the parameter's name
-    ///     ----------------------------------------------------
-    ///     what its value may be set to -- a field to type into
-    ///     for a knob, the list of choices for a discrete one
-    ///     ----------------------------------------------------
-    ///     Enable LFO, Reset to default value
-    ///     ----------------------------------------------------
-    ///     whatever the host adds
-    ///
-    ///   The middle section is the only one that differs, and it is empty for a
-    /// trigger and for an LED -- one is an event and the other is one press
-    /// away. juce::PopupMenu refuses a separator that would follow another, so
-    /// an empty section closes up rather than leaving a double rule.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-
     juce::PopupMenu menu;
 
     menu.addSectionHeader(parameterName());
+
     menu.addSeparator();
 
     if (editable && parameterAcceptsText())
@@ -1340,49 +1320,28 @@ void ParameterMenu::showParameterMenu(juce::MouseEvent const &event)
         // it may not be zero, which juce::PopupMenu reserves for "dismissed"
         menu.addCustomItem(1, std::make_unique<ValueTypein>(*this));
     }
+
     addParameterValueEntries(menu);
+
     menu.addSeparator();
 
     addParameterMenuEntries(menu);
-    menu.addItem("Reset to default value", editable, /*isTicked*/ false,
-                 [this, pWidget = juce::Component::SafePointer<juce::Component>(&widget)] {
-                     if (pWidget)
-                         setParameterToDefault();
-                 });
+
+    if (!skipSetToDefault)
+    {
+        menu.addItem("Reset to default value", editable, /*isTicked*/ false,
+                     [this, pWidget = juce::Component::SafePointer<juce::Component>(&widget)] {
+                         if (pWidget)
+                             setParameterToDefault();
+                     });
+    }
+
     menu.addSeparator();
 
     auto &editor(SpectrumWorxEditor::fromChild(widget));
+
     editor.editorHost().addHostParameterEntries(parameterID(), menu);
 
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note **Inside the editor, not on the desktop**, which the skin's own
-    /// menus are not -- and the reason is the type-in field. A menu with no
-    /// parent component gets a window of its own carrying
-    /// `ComponentPeer::windowIgnoresKeyPresses` (juce_PopupMenu.cpp:387), so
-    /// that window can never become the key one and a juce::TextEditor inside it
-    /// can never take the keyboard. A parented menu is an ordinary child of the
-    /// editor's own peer and the field simply works. It is what six-sines,
-    /// two-filters and ShortCircuit all do with theirs.
-    ///
-    ///   It settles the zoom for free as well: a child inherits the editor's
-    /// transform, where a menu with a window of its own has to be told to follow
-    /// the component that opened it. \see PopupMenu::showAt().
-    ///
-    /// \note withTargetComponent() all the same, and before
-    /// withTargetScreenArea() because it overwrites the area: it is what the
-    /// menu forwards key presses to and what it measures "the mouse went back
-    /// to whatever opened me" against.
-    ///
-    /// \note And the keyboard goes back to the widget when the menu closes,
-    /// because the type-in field borrowed it and JUCE does not return it: the
-    /// menu enters its modal state with `takeKeyboardFocus` false, so it never
-    /// recorded what had the focus to give it back. Without this the control is
-    /// left selected with nothing focused, which the editor recovers from on the
-    /// next mouse move rather than immediately.
-    /// \see ModuleControlImpl::focusLost().
-    ///
-    ////////////////////////////////////////////////////////////////////////////
     menu.showMenuAsync(juce::PopupMenu::Options()
                            .withParentComponent(&editor)
                            .withTargetComponent(&widget)

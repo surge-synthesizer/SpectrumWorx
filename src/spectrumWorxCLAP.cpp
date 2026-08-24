@@ -2029,6 +2029,51 @@ void SpectrumWorxCLAP::addHostParameterEntries(ParameterID const parameterID,
                                                juce::PopupMenu &menu) const
 {
     sst::clap_juce_shim::populateMenuForClapParam(menu, parameterID.binaryValue, _host.host());
+
+    auto const hostName = juce::String(_host.host()->name).toLowerCase();
+
+    // make things look a bit nicer for our friends from Image-Line
+    // TODO: see if this works on macOS
+    if (hostName.startsWith("fl"))
+    {
+        auto it = juce::PopupMenu::MenuItemIterator(menu);
+
+        while (it.next())
+        {
+            auto txt = it.getItem().text;
+
+            if (txt.startsWithChar('-'))
+            {
+                it.getItem().isSectionHeader = true;
+                it.getItem().text = txt.fromFirstOccurrenceOf("-", false, false);
+            }
+        }
+    }
+
+    // we really don't need that parameter name repeated in Reaper...
+    if (hostName.startsWith("reaper"))
+    {
+        auto newMenu = juce::PopupMenu();
+        auto it = juce::PopupMenu::MenuItemIterator(menu);
+
+        while (it.next())
+        {
+            auto txt = it.getItem().text;
+            bool include = true;
+
+            if (txt.startsWithChar('[') && txt.endsWithChar(']'))
+            {
+                include = it.next();
+            }
+
+            if (include)
+            {
+                newMenu.addItem(it.getItem());
+            }
+        }
+
+        menu = std::move(newMenu);
+    }
 }
 
 void SpectrumWorxCLAP::editorOpened(GUI::SpectrumWorxEditor &editor) { pEditor_ = &editor; }

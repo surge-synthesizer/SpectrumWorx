@@ -75,7 +75,7 @@ void ModuleLEDTextButton::mouseDown(juce::MouseEvent const &event)
     /// selection on the way, also as on a knob: nothing the menu offers needs
     /// this control to be the active one. \see issue #93.
     if (event.mods.isPopupMenu())
-        return showParameterMenu(event);
+        return showParameterMenu(event, true);
 
     if (!hasDirectFocus())
     {
@@ -162,7 +162,7 @@ void TriggerButton::mouseDown(juce::MouseEvent const &e)
     if (e.mods.isPopupMenu())
     {
         if (isOnFace(e.getPosition()))
-            showParameterMenu(e);
+            showParameterMenu(e, true);
         else
             passMousePressToParent(*this, e);
         return;
@@ -475,7 +475,7 @@ void DiscreteParameter::mouseDown(juce::MouseEvent const &event)
             return;
     }
 
-    showParameterMenu(event);
+    showParameterMenu(event, true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -896,7 +896,7 @@ ModuleUI::BypassButton::BypassButton(ModuleUI &parent)
 void ModuleUI::BypassButton::mouseDown(juce::MouseEvent const &event)
 {
     if (event.mods.isPopupMenu())
-        return showParameterMenu(event);
+        return showParameterMenu(event, true);
     CapsuleButton::mouseDown(event);
 }
 
@@ -910,18 +910,6 @@ juce::String ModuleUI::BypassButton::parameterName() const
 juce::String ModuleUI::BypassButton::parameterValueText() const
 {
     return getValue() ? "On" : "Off";
-}
-
-/// \note "Bypassed" rather than the parameter's own name, which the header above
-/// it already carries: a row beside a checkmark reads as a state.
-void ModuleUI::BypassButton::addParameterValueEntries(juce::PopupMenu &menu)
-{
-    menu.addItem("Bypassed", /*isEnabled*/ true, /*isTicked*/ getToggleState(),
-                 [pThis = juce::Component::SafePointer<BypassButton>(this)] {
-                     if (pThis)
-                         pThis->setToggleState(!pThis->getToggleState(),
-                                               juce::sendNotificationSync);
-                 });
 }
 
 ParameterID ModuleUI::BypassButton::parameterID() const

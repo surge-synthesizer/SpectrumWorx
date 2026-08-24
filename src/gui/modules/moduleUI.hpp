@@ -556,10 +556,6 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
         bool setParameterFromText(juce::String const &) override { return false; }
         void setParameterToDefault() override;
 
-        /// \note The pill's own state, where a knob has its field: one ticked
-        /// row, which is what a boolean's values are.
-        void addParameterValueEntries(juce::PopupMenu &) override;
-
       private:
         ModuleUI &parent_;
     }; // class BypassButton

@@ -2962,9 +2962,7 @@ SpectrumWorxEditor::LFODisplay::WaveformButton::WaveformButton(LFODisplay &paren
 
 void SpectrumWorxEditor::LFODisplay::WaveformButton::mouseDown(juce::MouseEvent const &event)
 {
-    if (event.mods.isPopupMenu())
-        return showParameterMenu(event);
-    ArrowButton::mouseDown(event);
+    return showParameterMenu(event, true);
 }
 
 /// \note The list the left button drops, as menu rows: what a right press used
@@ -3177,7 +3175,7 @@ SpectrumWorxEditor::LFODisplay::EnableSwitch::EnableSwitch(LFODisplay &parent)
 void SpectrumWorxEditor::LFODisplay::EnableSwitch::mouseDown(juce::MouseEvent const &event)
 {
     if (event.mods.isPopupMenu())
-        return showParameterMenu(event);
+        return showParameterMenu(event, true);
     CapsuleButton::mouseDown(event);
 }
 
@@ -3191,7 +3189,7 @@ SpectrumWorxEditor::LFODisplay::SyncButton::SyncButton(LFODisplay &parent, unsig
 void SpectrumWorxEditor::LFODisplay::SyncButton::mouseDown(juce::MouseEvent const &event)
 {
     if (event.mods.isPopupMenu())
-        return showParameterMenu(event);
+        return showParameterMenu(event, true);
     TextButton::mouseDown(event);
 }
 
@@ -3235,15 +3233,6 @@ void SpectrumWorxEditor::LFODisplay::ParameterButtonMenu::addParameterValueEntri
 {
     using LE::Parameters::IndexOf;
     juce::Component::SafePointer<LFODisplay> const pStrip(&parent_);
-
-    if (lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::Enabled>::value)
-    {
-        menu.addItem("Enabled", /*isEnabled*/ true, /*isTicked*/ parent_.lfo().enabled(), [pStrip] {
-            if (pStrip)
-                pStrip->editor().setLFOEnabled(pStrip->control(), !pStrip->lfo().enabled());
-        });
-        return;
-    }
 
     if (lfoParameterIndex_ != IndexOf<LFO::Parameters, LFO::SyncTypes>::value)
         return;
