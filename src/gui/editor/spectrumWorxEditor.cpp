@@ -1441,11 +1441,19 @@ void SpectrumWorxEditor::moduleDeactivated()
 
 ParameterID SpectrumWorxEditor::moduleControlID(ModuleControlBase const &control) const
 {
+    return moduleParameterID(control.module(),
+                             static_cast<std::uint8_t>(control.moduleParameterIndex() + 1));
+}
+
+/// \note The chain's index rather than the slot a strip is *drawn* in: the two
+/// differ while a slot change is in flight, and an ID is about the module.
+ParameterID SpectrumWorxEditor::moduleParameterID(Module const &module,
+                                                  std::uint8_t const moduleParameterIndex) const
+{
     ParameterID parameterID;
     parameterID.value.type = ParameterID::ModuleParameter;
-    parameterID.value._.module.moduleIndex = moduleChain().getIndexForModule(control.module());
-    parameterID.value._.module.moduleParameterIndex =
-        static_cast<std::uint8_t>(control.moduleParameterIndex() + 1 /*Bypass*/);
+    parameterID.value._.module.moduleIndex = moduleChain().getIndexForModule(module);
+    parameterID.value._.module.moduleParameterIndex = moduleParameterIndex;
     return parameterID;
 }
 
@@ -2326,9 +2334,8 @@ SpectrumWorxEditor::LFODisplay::ComponentPtr const
 #pragma warning(disable : 4355) // 'this' used in base member initializer list.
 
 SpectrumWorxEditor::LFODisplay::LFODisplay()
-    : switch_(*this, ledCapsule, LEDTextButton::ledWidth, LEDTextButton::ledHeight),
-      quarter_(*this, 93, 8, " N "), triplet_(*this, 93 + 27 * 1, 8, " T "),
-      dotted_(*this, 93 + 27 * 2 - 3, 8, " D "), waveform_(*this), period_(*this),
+    : switch_(*this), quarter_(*this, 93, " N "), triplet_(*this, 93 + 27 * 1, " T "),
+      dotted_(*this, 93 + 27 * 2 - 3, " D "), waveform_(*this), period_(*this),
       phase_(*this, LE::Parameters::IndexOf<LFO::Parameters, LFO::Phase>::value), range_(*this),
       pModuleControl_(nullptr)
 {
@@ -2621,8 +2628,7 @@ void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
             type_.showCenteredAtRight(waveform_, [pThis](bool const selectionChanged) {
                 if (!pThis || !selectionChanged)
                     return;
-                pThis->updateParameterAndNotifyHost<LFO::Waveform>(pThis->type_.getSelectedID());
-                pThis->repaint();
+                pThis->setWaveform(pThis->type_.getSelectedID());
             });
         }
     }
@@ -2660,15 +2666,30 @@ void SpectrumWorxEditor::LFODisplay::buttonClicked(juce::Button *const pButton)
         bool const selectSyncType(pButton->getToggleState());
         LE_ASSERT(selectSyncType != lfo().hasEnabledSync(syncType));
 
-        updateParameterAndNotifyHost<LFO::SyncTypes>(selectSyncType ? syncType : LFO::Free);
-
-        // ...which is what un-lights whichever of the three was lit before.
-        updateSnapControls();
-
-        updatePeriodControl();
-        updateLFOAndHostFromPeriodControl();
-        this->repaint();
+        setSyncTypes(selectSyncType ? syncType : LFO::Free);
     }
+}
+
+/// \see the declaration. The popup has already recorded its own selection when
+/// it calls this; the menu's value rows have not, hence the write either way.
+void SpectrumWorxEditor::LFODisplay::setWaveform(unsigned int const waveformID)
+{
+    type_.setSelectedID(waveformID);
+    updateParameterAndNotifyHost<LFO::Waveform>(waveformID);
+    repaint();
+}
+
+/// \see the declaration. Also what a sync button's menu resets to.
+void SpectrumWorxEditor::LFODisplay::setSyncTypes(LFO::SyncType const syncTypes)
+{
+    updateParameterAndNotifyHost<LFO::SyncTypes>(syncTypes);
+
+    // ...which is what un-lights whichever of the three was lit before.
+    updateSnapControls();
+
+    updatePeriodControl();
+    updateLFOAndHostFromPeriodControl();
+    this->repaint();
 }
 
 void SpectrumWorxEditor::LFODisplay::sliderValueChanged(juce::Slider *const pSlider) noexcept
@@ -2864,6 +2885,49 @@ char const *lfoParameterName(std::uint8_t const index)
     return LE::Parameters::invokeFunctorOnIndexedParameter<LFO::Parameters>(index, LFONameGetter());
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The four things the sync mask can be said to be, as a menu reads them.
+///
+/// \note Words rather than the strip's N, T and D, and in the order the buttons
+/// sit in. `Free` is the empty mask and is the one a menu can offer that the
+/// three buttons cannot: on the strip it is whichever of them was lit, pressed
+/// again.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+struct SyncTypeName
+{
+    LFO::SyncType type;
+    char const *name;
+};
+
+SyncTypeName const syncTypeNames[]{{LFO::Free, "Free"},
+                                   {LFO::Quarter, "Note"},
+                                   {LFO::Triplet, "Triplet"},
+                                   {LFO::Dotted, "Dotted"}};
+
+/// \brief The mask as words. Every grid it holds, or Free for none.
+juce::String syncTypesString(std::uint8_t const mask)
+{
+    if (mask == LFO::Free)
+        return syncTypeNames[0].name;
+
+    juce::String reading;
+    for (auto const &sync : syncTypeNames)
+        if (sync.type && (mask & sync.type))
+            reading += (reading.isEmpty() ? "" : " ") + juce::String(sync.name);
+    return reading;
+}
+
+/// \brief What the menu heads itself with: the modulated parameter, then which
+/// of the LFO's own this widget carries.
+juce::String lfoParameterMenuName(SpectrumWorxEditor::LFODisplay const &parent,
+                                  std::uint8_t const index)
+{
+    return juce::String(parent.control().name()) + " - LFO " + lfoParameterName(index);
+}
+
 /// \note The host's own string, not the two lines the panel draws beside the
 /// slider: this is what parsePeriodScale() reads back, so what the field offers
 /// is what may be typed into it.
@@ -2890,9 +2954,31 @@ std::optional<double> parsePhase(SpectrumWorxEditor::LFODisplay const &parent,
 SpectrumWorxEditor::LFODisplay::WaveformButton::WaveformButton(LFODisplay &parent)
     : ArrowButton(parent, lfoWaveformTargetBounds().getWidth(),
                   lfoWaveformTargetBounds().getHeight(), false, ColourMap::MouseOverGlow),
+      ParameterButtonMenu(parent, LE::Parameters::IndexOf<LFO::Parameters, LFO::Waveform>::value),
       parent_(parent)
 {
     setTopLeftPosition(lfoWaveformTargetBounds().getPosition());
+}
+
+void SpectrumWorxEditor::LFODisplay::WaveformButton::mouseDown(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return showParameterMenu(event);
+    ArrowButton::mouseDown(event);
+}
+
+/// \note The list the left button drops, as menu rows: what a right press used
+/// to give was that list and nothing else, so the host had no way in.
+void SpectrumWorxEditor::LFODisplay::WaveformButton::addParameterValueEntries(juce::PopupMenu &menu)
+{
+    auto const selected(parent_.type_.getSelectedIndex());
+    for (unsigned int row(0); row < parent_.type_.numberOfItems(); ++row)
+        menu.addItem(parent_.type_.getItemText(row), /*isEnabled*/ true,
+                     /*isTicked*/ row == selected,
+                     [pThis = juce::Component::SafePointer<WaveformButton>(this), row] {
+                         if (pThis)
+                             pThis->parent_.setWaveform(row);
+                     });
 }
 
 /// \note The well and the mark are drawn here rather than with the chassis: this
@@ -2938,8 +3024,7 @@ void SpectrumWorxEditor::LFODisplay::ParameterSlider::mouseDrag(juce::MouseEvent
 
 juce::String SpectrumWorxEditor::LFODisplay::ParameterSlider::parameterName() const
 {
-    return juce::String(parent().control().name()) + " - LFO " +
-           lfoParameterName(lfoParameterIndex());
+    return lfoParameterMenuName(parent(), lfoParameterIndex());
 }
 
 juce::String SpectrumWorxEditor::LFODisplay::ParameterSlider::parameterValueText() const
@@ -3074,6 +3159,149 @@ double SpectrumWorxEditor::LFODisplay::Period::milliseconds() const
                         ? LFO::Timer::referenceBarDuration
                         : parent().editor().effect().lfoTimer().basePeriod());
     return this->getValue() * bar * 1000;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// The LFO strip's own buttons, and what their menus answer
+// --------------------------------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+SpectrumWorxEditor::LFODisplay::EnableSwitch::EnableSwitch(LFODisplay &parent)
+    : CapsuleButton(parent, ledCapsule, LEDTextButton::ledWidth, LEDTextButton::ledHeight),
+      ParameterButtonMenu(parent, LE::Parameters::IndexOf<LFO::Parameters, LFO::Enabled>::value)
+{
+}
+
+void SpectrumWorxEditor::LFODisplay::EnableSwitch::mouseDown(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return showParameterMenu(event);
+    CapsuleButton::mouseDown(event);
+}
+
+SpectrumWorxEditor::LFODisplay::SyncButton::SyncButton(LFODisplay &parent, unsigned int const x,
+                                                       char const *const text)
+    : TextButton(parent, x, 8, text),
+      ParameterButtonMenu(parent, LE::Parameters::IndexOf<LFO::Parameters, LFO::SyncTypes>::value)
+{
+}
+
+void SpectrumWorxEditor::LFODisplay::SyncButton::mouseDown(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return showParameterMenu(event);
+    TextButton::mouseDown(event);
+}
+
+juce::String SpectrumWorxEditor::LFODisplay::ParameterButtonMenu::parameterName() const
+{
+    return lfoParameterMenuName(parent_, lfoParameterIndex_);
+}
+
+/// \note Never asked for -- `parameterAcceptsText()` is false and the type-in
+/// field is its only reader -- but a reading is what the question is for.
+juce::String SpectrumWorxEditor::LFODisplay::ParameterButtonMenu::parameterValueText() const
+{
+    using LE::Parameters::IndexOf;
+    if (lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::Enabled>::value)
+        return parent_.lfo().enabled() ? "On" : "Off";
+
+    if (lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::Waveform>::value)
+        return parent_.type_.getSelectedItemText();
+
+    LE_ASSERT((lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::SyncTypes>::value));
+    return syncTypesString(parent_.lfo().syncTypes());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note "Enabled" rather than the parameter's own name -- which is "Enable",
+/// and which the header above the row already carries: a row beside a checkmark
+/// reads as a state rather than as a command.
+///
+/// \note The sync mask gets its four values, which is one more than the strip
+/// offers: `Free` is on a button only as the lit one pressed again. Ticked per
+/// grid the mask holds, as the three buttons are lit, and choosing one *replaces*
+/// the mask rather than adding to it -- which is what pressing a button does.
+///
+/// \note The waveform answers this for itself. \see WaveformButton.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::LFODisplay::ParameterButtonMenu::addParameterValueEntries(
+    juce::PopupMenu &menu)
+{
+    using LE::Parameters::IndexOf;
+    juce::Component::SafePointer<LFODisplay> const pStrip(&parent_);
+
+    if (lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::Enabled>::value)
+    {
+        menu.addItem("Enabled", /*isEnabled*/ true, /*isTicked*/ parent_.lfo().enabled(), [pStrip] {
+            if (pStrip)
+                pStrip->editor().setLFOEnabled(pStrip->control(), !pStrip->lfo().enabled());
+        });
+        return;
+    }
+
+    if (lfoParameterIndex_ != IndexOf<LFO::Parameters, LFO::SyncTypes>::value)
+        return;
+
+    auto const mask(parent_.lfo().syncTypes());
+    for (auto const &sync : syncTypeNames)
+    {
+        bool const ticked(sync.type ? ((mask & sync.type) != 0) : (mask == LFO::Free));
+        menu.addItem(sync.name, /*isEnabled*/ true, ticked, [pStrip, type = sync.type] {
+            if (pStrip)
+                pStrip->setSyncTypes(type);
+        });
+    }
+}
+
+ParameterID SpectrumWorxEditor::LFODisplay::ParameterButtonMenu::parameterID() const
+{
+    ParameterID parameterID;
+    parameterID.value.type = ParameterID::LFOParameter;
+    parameterID.value._.lfo = {lfoParameterIndex_, parent_.control().moduleParameterIndex(),
+                               parent_.moduleIndex()};
+    return parameterID;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Through the paths a press takes rather than through the parameter:
+/// switching an LFO off is more than a write -- \see setLFOEnabled() -- and the
+/// three sync buttons are one choice, which `setSyncTypes()` is.
+///
+/// \note Both defaults are read off a default-constructed `LFO::Parameters`,
+/// which is what `getDefaultAutomatedLFOParameter()` answers a host from, rather
+/// than named here twice.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SpectrumWorxEditor::LFODisplay::ParameterButtonMenu::setParameterToDefault()
+{
+    using LE::Parameters::IndexOf;
+    LFO::Parameters const defaults;
+
+    if (lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::Enabled>::value)
+    {
+        bool const enable(defaults.get<LFO::Enabled>());
+        if (enable != parent_.lfo().enabled())
+            parent_.editor().setLFOEnabled(parent_.control(), enable);
+        return;
+    }
+
+    if (lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::Waveform>::value)
+    {
+        parent_.setWaveform(static_cast<unsigned int>(defaults.get<LFO::Waveform>()));
+        return;
+    }
+
+    LE_ASSERT((lfoParameterIndex_ == IndexOf<LFO::Parameters, LFO::SyncTypes>::value));
+    parent_.setSyncTypes(
+        static_cast<LFO::SyncType>(static_cast<std::uint8_t>(defaults.get<LFO::SyncTypes>())));
 }
 
 SpectrumWorxEditor::SampleArea::SampleArea()

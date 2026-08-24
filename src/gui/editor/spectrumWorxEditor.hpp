@@ -334,6 +334,10 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     ParameterID moduleControlID(ModuleControlBase const &) const;
 
+    /// \brief The same, for a parameter no widget on a strip stands for: the
+    /// module's Bypass. \p moduleParameterIndex counts it, as a ParameterID does.
+    ParameterID moduleParameterID(SW::Module const &, std::uint8_t moduleParameterIndex) const;
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \brief Turns \p control's LFO on or off. `[main-thread]`
@@ -1075,6 +1079,76 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
         ////////////////////////////////////////////////////////////////////////
         ///
+        /// \brief What the right button's menu asks about one of the LFO's own
+        /// parameters, for the buttons that carry one.
+        ///
+        /// \note A base rather than a repeat: the switch and the three sync
+        /// buttons are different shapes and the seven questions are about the
+        /// parameter. `ParameterSlider` above answers them for the sliders.
+        /// \see issue #93.
+        ///
+        ////////////////////////////////////////////////////////////////////////
+
+        class ParameterButtonMenu : public ParameterMenu
+        {
+          public:
+            ParameterButtonMenu(LFODisplay &parent, std::uint8_t const lfoParameterIndex)
+                : parent_(parent), lfoParameterIndex_(lfoParameterIndex)
+            {
+            }
+
+          protected:
+            ~ParameterButtonMenu() = default;
+
+          private: // ParameterMenu
+            juce::String parameterName() const override;
+            juce::String parameterValueText() const override;
+            ParameterID parameterID() const override;
+
+            /// \note \see TriggerButton::parameterAcceptsText(). These carry a
+            /// boolean, a mask of three and an enumeration, and for all three the
+            /// choice is on the widget or in the menu's own value section.
+            bool parameterAcceptsText() const override { return false; }
+
+            /// \note The switch's own state, where a knob has its field: one
+            /// ticked row, which is what a boolean's values are.
+            void addParameterValueEntries(juce::PopupMenu &) override;
+            bool setParameterFromText(juce::String const &) override { return false; }
+            void setParameterToDefault() override;
+
+          private:
+            LFODisplay &parent_;
+            std::uint8_t const lfoParameterIndex_;
+        }; // class ParameterButtonMenu
+
+        /// The LFO's own on/off, with that menu on it.
+        class EnableSwitch final : public CapsuleButton, public ParameterButtonMenu
+        {
+          public:
+            explicit EnableSwitch(LFODisplay &parent);
+
+          private: // juce::Component overrides
+            void mouseDown(juce::MouseEvent const &) override;
+
+          private: // ParameterMenu
+            juce::Component &menuOwner() override { return *this; }
+        }; // class EnableSwitch
+
+        /// One of N, T and D, all three of which are the one sync mask.
+        class SyncButton final : public TextButton, public ParameterButtonMenu
+        {
+          public:
+            SyncButton(LFODisplay &parent, unsigned int x, char const *text);
+
+          private: // juce::Component overrides
+            void mouseDown(juce::MouseEvent const &) override;
+
+          private: // ParameterMenu
+            juce::Component &menuOwner() override { return *this; }
+        }; // class SyncButton
+
+        ////////////////////////////////////////////////////////////////////////
+        ///
         /// \brief The waveform well, the mark in it and the arrow beside it, as
         /// one press.
         ///
@@ -1084,13 +1158,21 @@ class SpectrumWorxEditor final : private SkinLifetime,
         ///
         ////////////////////////////////////////////////////////////////////////
 
-        class WaveformButton final : public ArrowButton
+        class WaveformButton final : public ArrowButton, public ParameterButtonMenu
         {
           public:
             explicit WaveformButton(LFODisplay &parent);
 
           private: // juce::Component overrides
+            void mouseDown(juce::MouseEvent const &) override;
             void paintButton(juce::Graphics &, bool isMouseOver, bool isButtonDown) override;
+
+          private: // ParameterMenu
+            juce::Component &menuOwner() override { return *this; }
+            /// \note The eleven waveforms, which is what a right press used to
+            /// drop on its own. \see DiscreteParameter::addParameterValueEntries(),
+            /// where a combo box answers the same way.
+            void addParameterValueEntries(juce::PopupMenu &) override;
 
           private:
             LFODisplay &parent_;
@@ -1157,6 +1239,13 @@ class SpectrumWorxEditor final : private SkinLifetime,
         void updateSnapControls();
         void updateLFOAndHostFromPeriodControl();
 
+        /// \brief Writes the sync mask and puts the three buttons and the period
+        /// in step with it. \see buttonClicked(), which carries the reasons.
+        void setSyncTypes(LFO::SyncType);
+
+        /// \brief Writes the waveform and puts the mark in the well in step.
+        void setWaveform(unsigned int waveformID);
+
         void automatedParameterChanged(std::uint8_t lfoParameterIndex, float parameterValue) const;
 
         /// \brief One LFO parameter, queued rather than written.
@@ -1212,10 +1301,10 @@ class SpectrumWorxEditor final : private SkinLifetime,
         PopupMenuWithSelection const &waveformMenu() const { return type_; }
 
       private:
-        CapsuleButton switch_;
-        TextButton quarter_;
-        TextButton triplet_;
-        TextButton dotted_;
+        EnableSwitch switch_;
+        SyncButton quarter_;
+        SyncButton triplet_;
+        SyncButton dotted_;
         WaveformButton waveform_;
         Period period_;
         ParameterSlider phase_;

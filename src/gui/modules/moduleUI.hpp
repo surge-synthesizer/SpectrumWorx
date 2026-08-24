@@ -521,6 +521,49 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
   private: // JUCE ButtonListener overrides.
     void buttonClicked(juce::Button *) override;
 
+  public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The blue pill at the foot of a strip: the module's Bypass, with
+    /// the menu every other automatable parameter carries.
+    ///
+    /// \note Not a ModuleControl, which is how the rest of a strip's widgets get
+    /// the menu. Those stand for an LFO-able parameter and Bypass is the one
+    /// that is not -- it is the parameter the LFO-able index is counted *past*.
+    /// \see issue #93.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    class BypassButton final : public CapsuleButton, public ParameterMenu
+    {
+      public:
+        explicit BypassButton(ModuleUI &parent);
+
+      private: // juce::Component overrides
+        void mouseDown(juce::MouseEvent const &) override;
+
+      private: // ParameterMenu
+        juce::Component &menuOwner() override { return *this; }
+
+        juce::String parameterName() const override;
+        juce::String parameterValueText() const override;
+        ParameterID parameterID() const override;
+
+        /// \note \see TriggerButton::parameterAcceptsText(), which carries the
+        /// reason a boolean offers no field: the other of its two values is a
+        /// press away on the widget itself.
+        bool parameterAcceptsText() const override { return false; }
+        bool setParameterFromText(juce::String const &) override { return false; }
+        void setParameterToDefault() override;
+
+        /// \note The pill's own state, where a knob has its field: one ticked
+        /// row, which is what a boolean's values are.
+        void addParameterValueEntries(juce::PopupMenu &) override;
+
+      private:
+        ModuleUI &parent_;
+    }; // class BypassButton
+
   private:
     /// \note First, and a reference: the widgets below are built in the
     /// constructor body and reach through it.
@@ -529,7 +572,7 @@ class ModuleUI final : public WidgetBase<>, private juce::Button::Listener
     /// The module this strip is for, kept alive for as long as the strip is.
     LE::Utility::IntrusivePtr<SW::Module> pModule_;
 
-    CapsuleButton bypass_;
+    BypassButton bypass_;
     EjectButton eject_;
 
     /// \note After the two buttons: the effect's own controls are children added

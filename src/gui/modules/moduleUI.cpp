@@ -548,9 +548,7 @@ void DiscreteParameter::selectionScrolled() { moduleParameterChanged(); }
 
 ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Module> pModule,
                    std::uint8_t const slotIndex)
-    : editor_(editor), pModule_(std::move(pModule)),
-      bypass_(*this, bypassCapsule, bypassWidgetWidth, bypassWidgetHeight, false /*lit when on*/),
-      eject_(*this)
+    : editor_(editor), pModule_(std::move(pModule)), bypass_(*this), eject_(*this)
 {
     LE_ASSERT(isThisTheGUIThread() ||
               juce::MessageManager::getInstance()->currentThreadHasLockedMessageManager());
@@ -876,6 +874,64 @@ void ModuleUI::setParameter(std::uint8_t const parameterIndex, float const param
 }
 
 void ModuleUI::setBypass(bool const bypass) { bypass_.setValue(bypass); }
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ModuleUI::BypassButton
+// ----------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+
+ModuleUI::BypassButton::BypassButton(ModuleUI &parent)
+    : CapsuleButton(parent, bypassCapsule, bypassWidgetWidth, bypassWidgetHeight,
+                    false /*lit when on*/),
+      parent_(parent)
+{
+}
+
+void ModuleUI::BypassButton::mouseDown(juce::MouseEvent const &event)
+{
+    if (event.mods.isPopupMenu())
+        return showParameterMenu(event);
+    CapsuleButton::mouseDown(event);
+}
+
+juce::String ModuleUI::BypassButton::parameterName() const
+{
+    return parent_.module().parameterInfo(bypassIndex).name;
+}
+
+/// \note The two words a boolean reads as. Not the menu's -- the row below is,
+/// `parameterAcceptsText()` being false -- but this is what the question means.
+juce::String ModuleUI::BypassButton::parameterValueText() const
+{
+    return getValue() ? "On" : "Off";
+}
+
+/// \note "Bypassed" rather than the parameter's own name, which the header above
+/// it already carries: a row beside a checkmark reads as a state.
+void ModuleUI::BypassButton::addParameterValueEntries(juce::PopupMenu &menu)
+{
+    menu.addItem("Bypassed", /*isEnabled*/ true, /*isTicked*/ getToggleState(),
+                 [pThis = juce::Component::SafePointer<BypassButton>(this)] {
+                     if (pThis)
+                         pThis->setToggleState(!pThis->getToggleState(),
+                                               juce::sendNotificationSync);
+                 });
+}
+
+ParameterID ModuleUI::BypassButton::parameterID() const
+{
+    return parent_.editor().moduleParameterID(parent_.module(), bypassIndex);
+}
+
+/// \note Through the widget, which is the path a press takes: the notification
+/// is what tells the engine and the host.
+void ModuleUI::BypassButton::setParameterToDefault()
+{
+    setToggleState(parent_.module().parameterInfo(bypassIndex).default_ != 0,
+                   juce::sendNotificationSync);
+}
 
 void ModuleUI::updateForEngineSetupChanges(Engine::Setup const &engineSetup)
 {

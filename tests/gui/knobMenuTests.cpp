@@ -35,6 +35,7 @@
 #include "gui/modules/moduleControl.hpp"
 #include "gui/modules/moduleUI.hpp"
 
+#include "le/parameters/lfo.hpp"
 #include "le/parameters/lfoImpl.hpp"
 #include "le/parameters/parametersUtilities.hpp"
 #include "le/spectrumworx/effects/configuration/effectNames.hpp"
@@ -118,6 +119,29 @@ std::optional<ToEngine> lastEditOf(std::vector<ToEngine> const &messages,
             (message.setBaseParameter.parameterID == parameterID.binaryValue))
             found = message;
     return found;
+}
+
+/// \brief Every direct child of \p parent that is a button standing for a
+/// parameter, in the order they were added.
+std::vector<juce::Button *> parameterButtons(juce::Component &parent)
+{
+    std::vector<juce::Button *> found;
+    for (auto *const pChild : parent.getChildren())
+        if (auto *const pButton = dynamic_cast<juce::Button *>(pChild);
+            pButton && (dynamic_cast<LE::SW::GUI::ParameterMenu *>(pChild) != nullptr))
+            found.push_back(pButton);
+    return found;
+}
+
+/// \brief The blue pill at the foot of \p moduleUI, which is the one capsule on
+/// a strip -- the eject X beside it is a shape of its own.
+juce::Component &bypassPill(LE::SW::GUI::ModuleUI &moduleUI)
+{
+    for (auto *const pChild : moduleUI.getChildren())
+        if (auto *const pPill = dynamic_cast<LE::SW::GUI::CapsuleButton *>(pChild))
+            return *pPill;
+    FAIL("The strip has no bypass button.");
+    return moduleUI;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -484,6 +508,84 @@ TEST_CASE("Every module control raises its parameter's menu", "[gui][modules][me
     REQUIRE(freeze.size() == 3);
     CHECK(std::ranges::count(freeze, shared) == 2);
     CHECK(std::ranges::count(freeze, shared + rule + 1) == 1);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The three widgets issue #93 was reopened for, and the fourth that goes
+/// with them. Every control on a module strip got the menu by being a
+/// `ModuleControl`; these four are not, each for its own reason -- Bypass is the
+/// parameter a module control's index is counted *past*, and the LFO strip's
+/// buttons stand for the LFO's own sub-parameters rather than for a module's.
+/// So the one part of the plugin a user cannot MIDI-learn was the part that is
+/// nothing but switches.
+///
+/// \note The waveform well was not in the report, and is here because the answer
+/// it gave was the one a combo box gave before #93 closed the first time: a right
+/// press dropped the list of values and the host got no say. It raises the menu
+/// now, with those values in it.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A module's bypass and the LFO strip's switches raise their menus too",
+          "[gui][modules][lfo][menu]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    KnobUnderTest const knob(instance);
+    auto &editor(instance.editor());
+
+    auto *const pModuleUI(editor.regionInSlot(0));
+    REQUIRE(pModuleUI != nullptr);
+    auto *const pStrip(editor.lfoDisplay());
+    REQUIRE(pStrip != nullptr);
+
+    std::vector<juce::Component *> widgets{&bypassPill(*pModuleUI)};
+    for (auto *const pButton : parameterButtons(*pStrip))
+        widgets.push_back(pButton);
+
+    // the pill, the LFO's own switch, N, T, D and the waveform well
+    REQUIRE(widgets.size() == 6);
+
+    std::vector<int> items;
+    for (auto *const pWidget : widgets)
+    {
+        CAPTURE(pWidget->getName());
+        REQUIRE(juce::Component::getNumCurrentlyModalComponents() == 0);
+
+        pWidget->mouseDown(rightPressAt(*pWidget, pWidget->getLocalBounds().getCentre()));
+
+        /// \note And the *parameter's* menu rather than any menu, which for the
+        /// waveform is a real distinction: the list it used to drop is modal too.
+        /// This one names the editor as its parent, being where the type-in field
+        /// would have to take the keyboard from. \see the case above.
+        REQUIRE(juce::Component::getNumCurrentlyModalComponents() == 1);
+        auto *const pMenu(juce::Component::getCurrentlyModalComponent(0));
+        REQUIRE(pMenu != nullptr);
+        CHECK(static_cast<juce::Component const &>(editor).isParentOf(pMenu));
+
+        items.push_back(pMenu->getNumChildComponents());
+        juce::PopupMenu::dismissAllActiveMenus();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note Three items are shared: the parameter's name, the rule under it and
+    /// "Reset to default value". What a middle section adds is a rule of its own
+    /// plus its rows -- and every one of these six has one, where a knob has a
+    /// field to type into.
+    ///
+    ///   The two booleans -- the module's Bypass and the LFO's own switch --
+    /// carry their state as one ticked row. Each sync button carries the four
+    /// the mask can be, which is one more than the strip offers: Free is on a
+    /// button only as the lit one pressed again. The waveform carries its eleven
+    /// marks, which is the list a right press used to drop on its own.
+    ////////////////////////////////////////////////////////////////////////////
+    constexpr int shared{3};
+    constexpr int rule{1};
+    CHECK(std::ranges::count(items, shared + rule + 1) == 2);
+    CHECK(std::ranges::count(items, shared + rule + 4) == 3);
+    CHECK(std::ranges::count(items, shared + rule + LE::Parameters::LFO::NumberOfWaveforms) == 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
