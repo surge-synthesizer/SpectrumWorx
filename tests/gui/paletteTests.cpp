@@ -10,9 +10,9 @@
 /// \note Nothing here asserts what any palette *looks like*. A case that pinned
 /// a colour would be a case that has to be edited every time one is retuned, and
 /// a palette is a thing to look at rather than a thing to assert. What is pinned
-/// is the mechanism -- that Grays drains, that every scheme moves the accent,
+/// is the mechanism -- that ClassicGray drains, that every scheme moves the accent,
 /// that a change reaches the screen -- and the skin's own blue is asked for at
-/// run time rather than spelled, so retuning Classic moves the tests with it.
+/// run time rather than spelled, so retuning ClassicBlue moves the tests with it.
 ///
 /// \note The last of those is the point of the file, and it is measured in
 /// pixels. "Does getColour() answer differently" is a question the broken build
@@ -86,7 +86,7 @@ class PaletteRestored
 juce::Colour skinBlue()
 {
     PaletteRestored const restored;
-    ColourMap::setPalette(ColourMap::Classic);
+    ColourMap::setPalette(ColourMap::ClassicBlue);
     return ColourMap::getColour(ColourMap::Accent);
 }
 
@@ -144,10 +144,10 @@ fs::path caseFolder(char const *const name)
 // The map
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("Grays answers in greys")
+TEST_CASE("ClassicGray answers in greys")
 {
     PaletteRestored const restored;
-    ColourMap::setPalette(ColourMap::Grays);
+    ColourMap::setPalette(ColourMap::ClassicGray);
 
     forEachColour([](ColourMap::Name const name) {
         auto const colour(ColourMap::getColour(name));
@@ -164,7 +164,7 @@ TEST_CASE("Every palette moves the accent")
     auto const blue(skinBlue());
 
     forEachPalette([&](ColourMap::Palette const palette) {
-        if (palette == ColourMap::Classic)
+        if (palette == ColourMap::ClassicBlue)
             return;
 
         ColourMap::setPalette(palette);
@@ -176,16 +176,16 @@ TEST_CASE("Every palette moves the accent")
 TEST_CASE("Changing the palette moves the generation")
 {
     PaletteRestored const restored;
-    ColourMap::setPalette(ColourMap::Classic);
+    ColourMap::setPalette(ColourMap::ClassicBlue);
 
     auto const before(ColourMap::generation());
 
-    ColourMap::setPalette(ColourMap::Classic);
+    ColourMap::setPalette(ColourMap::ClassicBlue);
     CHECK(ColourMap::generation() == before); // nothing changed, nothing to tell
 
-    ColourMap::setPalette(ColourMap::Reds);
+    ColourMap::setPalette(ColourMap::ClassicRed);
     CHECK(ColourMap::generation() != before);
-    CHECK(ColourMap::palette() == ColourMap::Reds);
+    CHECK(ColourMap::palette() == ColourMap::ClassicRed);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -207,7 +207,7 @@ TEST_CASE("The palette survives the preferences file")
     });
 }
 
-TEST_CASE("A palette this build does not have reads as Classic")
+TEST_CASE("A palette this build does not have reads as ClassicBlue")
 {
     auto const folder(caseFolder("unknown"));
     fs::create_directories(folder);
@@ -225,7 +225,7 @@ TEST_CASE("A palette this build does not have reads as Classic")
     }
 
     GUI::Preferences const read(folder);
-    CHECK(read.palette() == ColourMap::Classic);
+    CHECK(read.palette() == ColourMap::ClassicBlue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -236,7 +236,7 @@ TEST_CASE("An editor opens in the palette the user chose")
 {
     PaletteRestored const restored;
     GUI::setPreferencesFolder(caseFolder("opens-in"));
-    GUI::preferences().setPalette(ColourMap::Reds);
+    GUI::preferences().setPalette(ColourMap::ClassicRed);
 
     SWTest::Instance instance;
     instance.openEditor();
@@ -262,7 +262,7 @@ TEST_CASE("Changing the palette reaches an editor that is already open")
     auto const wasInTheTheme(
         GUI::Theme::singleton().findColour(juce::CaretComponent::caretColourId));
 
-    instance.editor().setPalette(ColourMap::Greens);
+    instance.editor().setPalette(ColourMap::ClassicGreen);
 
     ////////////////////////////////////////////////////////////////////////////
     /// \note By hand, because this is what the editor's 30 Hz timer calls and
@@ -277,7 +277,7 @@ TEST_CASE("Changing the palette reaches an editor that is already open")
     /// are copied out of the map once and go stale in place.
     CHECK(GUI::Theme::singleton().findColour(juce::CaretComponent::caretColourId) != wasInTheTheme);
 
-    CHECK(GUI::preferences().palette() == ColourMap::Greens);
+    CHECK(GUI::preferences().palette() == ColourMap::ClassicGreen);
 }
 
 TEST_CASE("An editor left alone does not reload its colours")
@@ -321,7 +321,7 @@ TEST_CASE("A palette change reaches the widgets that hold their own colours")
     auto const before(pComment->findColour(juce::TextEditor::textColourId));
     REQUIRE(before == skinBlue()); // the comment box writes in the accent
 
-    instance.editor().setPalette(ColourMap::Reds);
+    instance.editor().setPalette(ColourMap::ClassicRed);
     instance.editor().applyPaletteIfChanged();
 
     CHECK(pComment->findColour(juce::TextEditor::textColourId) != before);

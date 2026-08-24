@@ -17,10 +17,10 @@
 /// without every call site learning about it. Five palettes need that now, and
 /// not one of the two hundred call sites changed to get them.
 ///
-///   Only Classic is written out. It is traced from artwork and every tint in
-/// it leans on the accent's hue, so Reds and Greens are that hue turned -- and
+///   Only ClassicBlue is written out. It is traced from artwork and every tint in
+/// it leans on the accent's hue, so ClassicRed and ClassicGreen are that hue turned -- and
 /// a colour the artwork left neutral has no hue to turn, which is what keeps
-/// the greys grey without a list of exceptions. Grays is the same trick with
+/// the greys grey without a list of exceptions. ClassicGray is the same trick with
 /// the colour taken out rather than moved. SST Dark is the one that is not a
 /// recolour: it inverts the chassis, so it names what it changes and turns the
 /// rest.
@@ -42,6 +42,13 @@
 
 namespace LE::SW::GUI
 {
+
+struct Rotation
+{
+    float hue{0.0f};        ///< turns of the colour wheel, added
+    float saturation{1.0f}; ///< multiplied
+    float brightness{1.0f}; ///< multiplied, in full at full saturation and not at all at none
+}; // struct Rotation
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -103,7 +110,7 @@ class ColourMap
         ModuleKnobCap,        ///< the cap over the wedge's inside
         ///@}
 
-        /// The halo around whichever control has the keyboard focus.
+        /// The halo around whichever control has the focus.
         FocusHalo,
 
         ////////////////////////////////////////////////////////////////////////
@@ -278,11 +285,21 @@ class ColourMap
 
     enum Palette
     {
-        Classic, ///< the skin as it was drawn, and the only one written out
-        Reds,
-        Greens,
-        Grays,
-        SSTDark, ///< Shortcircuit XT's wireframe-dark, as near as this skin goes
+        ClassicBlue,
+        ClassicRed,
+        ClassicGreen,
+        ClassicYellow,
+        ClassicAmber,
+        ClassicPurple,
+        ClassicGray,
+        DarkBlue,
+        DarkRed,
+        DarkGreen,
+        DarkYellow,
+        DarkAmber,
+        DarkPurple,
+        DarkGray,
+
         numberOfPalettes
     }; // enum Palette
 
@@ -328,7 +345,7 @@ class ColourMap
     /// them can say `Accent` instead of `ColourMap::Accent` fifty-six times.
     ///@{
     static juce::Colour classic(Name);
-    static juce::Colour sstDark(Name);
+    static juce::Colour sstDark(Name, Rotation);
     ///@}
 
   public:

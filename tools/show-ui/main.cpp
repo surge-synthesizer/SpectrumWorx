@@ -329,7 +329,7 @@ int renderPage(juce::String const &pageName, juce::File const &output)
 /// GUI::Preferences::zoomPercentages.
 ///
 /// \note `SW_SHOW_UI_PALETTE` likewise, by ColourMap::nameOf() -- so
-/// `SW_SHOW_UI_PALETTE=Reds` renders any page in that palette. Both the
+/// `SW_SHOW_UI_PALETTE=ClassicRed` renders any page in that palette. Both the
 /// preference and the map are set: the map because a page that builds no editor
 /// has no SkinLifetime to read the preference, and the preference so that the
 /// settings page shows the palette it is being drawn in.

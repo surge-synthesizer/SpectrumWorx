@@ -18,7 +18,7 @@ namespace LE::SW::GUI
 
 namespace
 {
-ColourMap::Palette current_{ColourMap::Classic};
+ColourMap::Palette current_{ColourMap::ClassicBlue};
 std::uint32_t generation_{0};
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -28,9 +28,9 @@ std::uint32_t generation_{0};
 //
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \brief Classic, with its hue moved somewhere else.
+/// \brief ClassicBlue, with its hue moved somewhere else.
 ///
-/// \note A colour Classic left neutral is returned untouched. That is not a
+/// \note A colour ClassicBlue left neutral is returned untouched. That is not a
 /// special case being handled, it is the whole reason this works: the skin's
 /// bevels, rules, ink and shadows have no hue to move, so turning the palette
 /// turns exactly the things that carry the accent -- the lit ring on a knob,
@@ -45,13 +45,6 @@ std::uint32_t generation_{0};
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-struct Rotation
-{
-    float hue;        ///< turns of the colour wheel, added
-    float saturation; ///< multiplied
-    float brightness; ///< multiplied, in full at full saturation and not at all at none
-}; // struct Rotation
-
 juce::Colour turned(juce::Colour const colour, Rotation const &rotation)
 {
     auto const saturation(colour.getSaturation());
@@ -63,7 +56,7 @@ juce::Colour turned(juce::Colour const colour, Rotation const &rotation)
         .withMultipliedBrightness(1 + saturation * (rotation.brightness - 1));
 }
 
-/// \brief Classic, with the colour taken out rather than moved.
+/// \brief ClassicBlue, with the colour taken out rather than moved.
 ///
 /// \note By perceived brightness rather than by HSB's: the point of a grey
 /// scale is that nothing changes weight, and HSB calls a saturated blue and a
@@ -91,6 +84,10 @@ Rotation constexpr redRotation{0.4645f, 0.65f, 1.10f};
 Rotation constexpr greenRotation{0.8339f, 0.80f, 0.80f};
 /// To 37 degrees, which is SCXT's accent_1a. \see ColourMap::sstDark().
 Rotation constexpr amberRotation{0.5615f, 0.78f, 1.05f};
+/// To 55 degrees: #CFC237, matched to amberRotation's actual brightness
+Rotation constexpr yellowRotation{0.6117f, 0.8000f, 0.9733f};
+/// To 280 degrees: #C68CE3, perceived 0.638.
+Rotation constexpr purpleRotation{0.2367f, 0.4200f, 0.9692f};
 ///@}
 } // anonymous namespace
 
@@ -172,6 +169,7 @@ juce::Colour ColourMap::classic(Name const name)
         return juce::Colour(0xFF1A171Bu);
     case PanelFrame:
         return juce::Colour(0xFFFFFFFFu);
+
     case CapsuleBodyLeft:
         return juce::Colour(0xFF2B2829u);
     case CapsuleBodyRight:
@@ -274,7 +272,7 @@ juce::Colour ColourMap::classic(Name const name)
 /// neutral.
 ///
 /// \note The one palette with a `default:`, and it is the difference between
-/// this and Reds. SST Dark is a statement about the *chassis* -- what the
+/// this and ClassicRed. SST Dark is a statement about the *chassis* -- what the
 /// editor's grounds and its ink are -- and it has nothing to say about the
 /// second highlight near the foot of a slider bead or the shade a knob's bevel
 /// turns over at. Those keep the artwork's own modelling, turned to amber. So
@@ -282,7 +280,7 @@ juce::Colour ColourMap::classic(Name const name)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-juce::Colour ColourMap::sstDark(Name const name)
+juce::Colour ColourMap::sstDark(Name const name, Rotation const rotation)
 {
     switch (name)
     {
@@ -290,15 +288,17 @@ juce::Colour ColourMap::sstDark(Name const name)
     /// small marks; here the accent is also what every panel's gradient is
     /// lifted *towards*, and #FFB949 at 0.78 of perceived brightness turns that
     /// wash into the loudest thing on the page. This one sits at 0.62, which is
-    /// where Classic's blue sits, so the chassis keeps the weight it was drawn
+    /// where ClassicBlue's blue sits, so the chassis keeps the weight it was drawn
     /// with. \see BackgroundStyle::Ramp::lift.
     case Accent:
-        return juce::Colour(0xFFD09030u); // accent_1b
+        return turned(classic(Accent), rotation).withMultipliedBrightness(0.85); // accent_1b
 
-    ///   The chassis, inverted. Classic's surround is a light grey with dark
+    ///   The chassis, inverted. ClassicBlue's surround is a light grey with dark
     /// panels on it; every ground here is one of the three darks.
     case EditorGradientStart:
-        return juce::Colour(0x90D09030u); // accent_1b
+        return turned(classic(EditorGradientStart), rotation)
+            .withMultipliedBrightness(0.8263)
+            .withMultipliedAlpha(0.565f); // accent_1b
     case EditorSurround:
         return juce::Colour(0xFF1B1D20u); // bg_main
     case EditorPanel:
@@ -306,11 +306,11 @@ juce::Colour ColourMap::sstDark(Name const name)
     case EditorWell:
         return juce::Colour(0xFF1B1D20u); // bg_1
     case EditorWellFace:
-        return juce::Colour(0xFF141619u); // under bg_main, as Classic's is under its own
+        return juce::Colour(0xFF141619u); // under bg_main, as ClassicBlue's is under its own
     case PanelBackground:
         return juce::Colour(0xFF262A2fu);
     case ModuleBackground:
-        return juce::Colour(0xFF262A2Fu);
+        return juce::Colour(0xFF1B1D20u);
     case ComboBackground:
         return juce::Colour(0xFF1B1D20u);
     case MenuBackground:
@@ -322,11 +322,11 @@ juce::Colour ColourMap::sstDark(Name const name)
     /// thing on a ground this dark, so they go to the grey SCXT divides panels
     /// with.
     case EditorRule:
-        return juce::Colour(0xFF393939u); // grid_primary, opaque
+        return juce::Colour(0xFF777777u); // generic_content_low
     case PanelFrame:
         return juce::Colour(0xFF777777u); // generic_content_low
     case MenuOutline:
-        return juce::Colour(0xFF333333u); // bg_3
+        return juce::Colour(0xFF777777u); // generic_content_low
 
     /// The ink, in SCXT's four weights.
     case Text:
@@ -338,22 +338,16 @@ juce::Colour ColourMap::sstDark(Name const name)
     case Wordmark:
         return juce::Colour(0xFFFFFFFFu); // generic_content_medium
 
-    ///   A button. Classic's runs from white to black with dark ink on it,
+    ///   A button. ClassicBlue's runs from white to black with dark ink on it,
     /// which on this chassis would be a slab of daylight; SCXT's buttons are
     /// the mid grey against the panel behind them.
-    case ButtonFaceTop:
-        return juce::Colour(0xFFAFAFAFu);
     case ButtonFaceBottom:
-        return juce::Colour(0xFF262A2Fu);
-    case ButtonCaption:
-        return juce::Colour(0xFF1B1D20u);
-    case TabFaceTop:
-        return juce::Colour(0xFF777777u);
+        return juce::Colour(0xFF333333u);
     case TabFaceBottom:
-        return juce::Colour(0xFF262A2Fu);
+        return juce::Colour(0xFF333333u);
 
     default:
-        return turned(classic(name), amberRotation);
+        return turned(classic(name), rotation);
     }
 }
 
@@ -376,16 +370,34 @@ juce::Colour ColourMap::getColour(Name const name)
 {
     switch (current_)
     {
-    case Classic:
+    case ClassicBlue:
         return classic(name);
-    case SSTDark:
-        return sstDark(name);
-    case Grays:
-        return drained(classic(name));
-    case Reds:
+    case ClassicRed:
         return turned(classic(name), redRotation);
-    case Greens:
+    case ClassicGreen:
         return turned(classic(name), greenRotation);
+    case ClassicYellow:
+        return turned(classic(name), yellowRotation);
+    case ClassicAmber:
+        return turned(classic(name), amberRotation);
+    case ClassicPurple:
+        return turned(classic(name), purpleRotation);
+    case ClassicGray:
+        return drained(classic(name));
+    case DarkBlue:
+        return sstDark(name, Rotation());
+    case DarkRed:
+        return sstDark(name, redRotation);
+    case DarkGreen:
+        return sstDark(name, greenRotation);
+    case DarkYellow:
+        return sstDark(name, yellowRotation);
+    case DarkAmber:
+        return sstDark(name, amberRotation);
+    case DarkPurple:
+        return sstDark(name, purpleRotation);
+    case DarkGray:
+        return drained(sstDark(name, Rotation()));
 
     /// \note No `default:` here either, for the reason getColour()'s has none.
     case numberOfPalettes:
@@ -413,16 +425,34 @@ char const *ColourMap::nameOf(Palette const palette)
 {
     switch (palette)
     {
-    case Classic:
-        return "Classic";
-    case SSTDark:
-        return "SSTDark";
-    case Grays:
-        return "Grays";
-    case Reds:
-        return "Reds";
-    case Greens:
-        return "Greens";
+    case ClassicBlue:
+        return "ClassicBlue";
+    case ClassicRed:
+        return "ClassicRed";
+    case ClassicGreen:
+        return "ClassicGreen";
+    case ClassicYellow:
+        return "ClassicYellow";
+    case ClassicAmber:
+        return "ClassicAmber";
+    case ClassicPurple:
+        return "ClassicPurple";
+    case ClassicGray:
+        return "ClassicGray";
+    case DarkBlue:
+        return "DarkBlue";
+    case DarkRed:
+        return "DarkRed";
+    case DarkGreen:
+        return "DarkGreen";
+    case DarkYellow:
+        return "DarkYellow";
+    case DarkAmber:
+        return "DarkAmber";
+    case DarkPurple:
+        return "DarkPurple";
+    case DarkGray:
+        return "DarkGray";
     case numberOfPalettes:
         break;
     }

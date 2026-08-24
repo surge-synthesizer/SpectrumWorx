@@ -146,7 +146,7 @@ class Preferences
 
     ModuleUIMouseOverReaction moduleUIMouseOverReaction_{Never};
     LFOUpdateBehaviour lfoUpdateBehaviour_{Always};
-    ColourMap::Palette palette_{ColourMap::Classic};
+    ColourMap::Palette palette_{ColourMap::ClassicBlue};
     bool hideCursorOnKnobDrag_{true};
     unsigned int zoomPercent_{defaultZoomPercent};
 }; // class Preferences

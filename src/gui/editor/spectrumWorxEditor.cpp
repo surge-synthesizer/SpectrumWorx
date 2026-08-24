@@ -3350,12 +3350,21 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
 
     // spelled here rather than taken from ColourMap::nameOf(): what goes in the
     // preferences file has to be greppable and what goes in this list has to be
-    // readable, and "SSTDark" cannot be both
-    palette_.addItem(ColourMap::Classic, "Classic");
-    palette_.addItem(ColourMap::Reds, "Reds");
-    palette_.addItem(ColourMap::Greens, "Greens");
-    palette_.addItem(ColourMap::Grays, "Grayscale");
-    palette_.addItem(ColourMap::SSTDark, "Dark");
+    // readable, and "DarkAmber" cannot be both
+    palette_.addItem(ColourMap::ClassicBlue, "Classic Blue");
+    palette_.addItem(ColourMap::ClassicRed, "Classic Red");
+    palette_.addItem(ColourMap::ClassicGreen, "Classic Green");
+    palette_.addItem(ColourMap::ClassicYellow, "Classic Yellow");
+    palette_.addItem(ColourMap::ClassicAmber, "Classic Amber");
+    palette_.addItem(ColourMap::ClassicPurple, "Classic Purple");
+    palette_.addItem(ColourMap::ClassicGray, "Classic Gray");
+    palette_.addItem(ColourMap::DarkBlue, "Dark Blue");
+    palette_.addItem(ColourMap::DarkRed, "Dark Red");
+    palette_.addItem(ColourMap::DarkGreen, "Dark Green");
+    palette_.addItem(ColourMap::DarkYellow, "Dark Yellow");
+    palette_.addItem(ColourMap::DarkAmber, "Dark Amber");
+    palette_.addItem(ColourMap::DarkPurple, "Dark Purple");
+    palette_.addItem(ColourMap::DarkGray, "Dark Gray");
     palette_.setSelectedIndex(preferences().palette());
 
     moduleUIMouseOverReaction_.addItem(Preferences::Never, "Never");
