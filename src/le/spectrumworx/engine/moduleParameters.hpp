@@ -133,6 +133,22 @@ class ModuleParameters : public ModuleNode
     float unmodulatedBaseParameter(std::uint8_t baseParameterIndex) const;
     float unmodulatedEffectParameter(std::uint8_t effectParameterIndex) const;
 
+    /// \brief The same value, asked for the way an LFO is addressed.
+    float unmodulatedParameter(std::uint8_t lfoableParameterIndex) const;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Puts the live value of the parameter LFO \p lfoableParameterIndex
+    /// drives back to its unmodulated one.
+    ///
+    /// \note What an LFO switching off means. A sweep that stops leaves the
+    /// parameter wherever it happened to be, which is a value nobody chose and
+    /// which neither the host nor a preset has ever agreed with. \see issue #204.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    void restoreUnmodulatedParameter(std::uint8_t lfoableParameterIndex);
+
   protected:
     /// \brief Copies every live value into its unmodulated slot.
     ///

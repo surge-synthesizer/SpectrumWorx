@@ -1420,11 +1420,17 @@ void SpectrumWorxCLAP::publishModulatedValues()
     std::uint8_t slot(0);
     moduleChain().forEach<Module>([&](Module const &module) {
         auto const parameters(module.numberOfParameters());
+        std::uint32_t modulating(0);
         // from 1: Bypass has no LFO, and the LFO index is the parameter index
         // less it -- the same convention as ModuleParameters::lfo()
         for (std::uint8_t parameter(1); parameter < parameters; ++parameter)
         {
-            if (!module.lfo(static_cast<std::uint8_t>(parameter - 1)).enabled())
+            std::uint32_t const bit(std::uint32_t{1} << parameter);
+            if (module.lfo(static_cast<std::uint8_t>(parameter - 1)).enabled())
+                modulating |= bit;
+            // the block an LFO *stops* in is published too, and it is the one
+            // the engine put the parameter back in \see issue #204
+            else if (!(modulating_[slot] & bit))
                 continue;
 
             ParameterID parameterID;
@@ -1441,6 +1447,7 @@ void SpectrumWorxCLAP::publishModulatedValues()
 
             values_.set(parameterIndexFromBinaryID(parameterID.binaryValue), value);
         }
+        modulating_[slot] = modulating;
         ++slot;
     });
 }

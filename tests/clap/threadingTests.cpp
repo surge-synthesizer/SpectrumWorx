@@ -775,6 +775,89 @@ TEST_CASE("An LFO's sync and waveform reach the engine", "[clap][threading][lfo]
     CHECK(float(lfos.pEngine->parameters().get<EngineLFO::Waveform>()) == shape);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note What an LFO leaves behind when it stops. The sweep writes the engine's
+/// *live* value and never the unmodulated one -- that is what keeps a host
+/// reading the setting rather than the sweep -- so switching the LFO off used to
+/// leave the parameter wherever the sweep happened to be, which is a value
+/// nobody chose and which nothing on screen or in the file ever agreed with.
+/// \see issue #204.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Switching an LFO off puts its parameter back", "[clap][threading][lfo]")
+{
+    using LE::Parameters::IndexOf;
+
+    constexpr std::uint8_t enabledIndex(IndexOf<EngineLFO::Parameters, EngineLFO::Enabled>::value);
+    // the first effect-specific parameter, which is what a knob on a strip is
+    constexpr std::uint8_t lfoable(LE::SW::Engine::ModuleParameters::numberOfLFOBaseParameters);
+
+    Entry const entry;
+    ActivePlugin plugin(sampleRate, blockSize);
+    auto &editorHost(editorHostOf(*plugin));
+
+    BothLFOs const lfos(plugin, lfoable);
+
+    auto const module(editorHost.core().moduleChain().moduleAs<LE::SW::Module>(0));
+    REQUIRE(module);
+    REQUIRE(module->numberOfEffectSpecificParameters() > 0);
+
+    auto const settled(module->unmodulatedEffectParameter(0));
+
+    LE::SW::ParameterID enabled;
+    enabled.value.type = LE::SW::ParameterID::LFOParameter;
+    enabled.value._.lfo = {enabledIndex, lfoable, 0};
+
+    editorHost.editParameter(enabled, 1.0f);
+    plugin.flush();
+    REQUIRE(lfos.pEngine->enabled());
+
+    std::vector<float> leftIn(blockSize, 0.0f), rightIn(blockSize, 0.0f);
+    std::vector<float> leftOut(blockSize), rightOut(blockSize);
+
+    // until the sweep is somewhere other than where the parameter is: a period
+    // is seconds long and the first block of it may still read as the setting
+    unsigned block(0);
+    for (; (block < 512) && (module->getEffectParameter(0) == settled); ++block)
+        plugin.process(leftIn, rightIn, leftOut, rightOut);
+    CAPTURE(block, settled, module->getEffectParameter(0));
+    REQUIRE(module->getEffectParameter(0) != settled);
+
+    // ...and the setting itself never moved, which is what the host reads.
+    REQUIRE(module->unmodulatedEffectParameter(0) == settled);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note And what the interface was told, which is the half that decides
+    /// what the user sees. The sweep reaches a knob through the value mailbox and
+    /// nothing else does -- so a mailbox left holding the last of the sweep is
+    /// redrawn over whatever switching the LFO off put back, at the next 30 Hz
+    /// tick. Reading the engine is not enough to catch that; this is.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    LE::SW::ParameterID modulated;
+    modulated.value.type = LE::SW::ParameterID::ModuleParameter;
+    modulated.value._.module = {LE::SW::ParameterID::Zero, lfoable + 1 /*Bypass*/, 0};
+    auto const index(LE::SW::parameterIndexFromBinaryID(modulated.binaryValue));
+
+    auto const &mailbox(editorHost.modulatedValues());
+    REQUIRE(mailbox.value(index) != settled); // the sweep, as the interface has it
+
+    // The switch off, and the parameter is the parameter again.
+    editorHost.editParameter(enabled, 0.0f);
+    plugin.flush();
+
+    REQUIRE_FALSE(lfos.pEngine->enabled());
+    CHECK(module->getEffectParameter(0) == settled);
+
+    // ...and so is the number the interface will draw.
+    plugin.process(leftIn, rightIn, leftOut, rightOut);
+    CHECK(module->getEffectParameter(0) == settled);
+    CHECK(mailbox.value(index) == settled);
+}
+
 TEST_CASE("An LFO parameter the host can see reaches the engine too", "[clap][threading][lfo]")
 {
     ////////////////////////////////////////////////////////////////////////////

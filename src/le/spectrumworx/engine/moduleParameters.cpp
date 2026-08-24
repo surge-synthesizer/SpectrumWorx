@@ -134,6 +134,24 @@ float ModuleParameters::unmodulatedEffectParameter(std::uint8_t const effectPara
     return pUnmodulatedValues_[numberOfLFOBaseParameters + effectParameterIndex];
 }
 
+float ModuleParameters::unmodulatedParameter(std::uint8_t const lfoableParameterIndex) const
+{
+    return pUnmodulatedValues_[lfoableParameterIndex];
+}
+
+void ModuleParameters::restoreUnmodulatedParameter(std::uint8_t const lfoableParameterIndex)
+{
+    auto const value(unmodulatedParameter(lfoableParameterIndex));
+    // the Live setters, as the LFO's own writes are: the unmodulated value is
+    // the one being restored *from* and nothing here changes it
+    if (lfoableParameterIndex < numberOfLFOBaseParameters)
+        setBaseParameterLive(
+            static_cast<std::uint8_t>(lfoableParameterIndex + numberOfNonLFOBaseParameters), value);
+    else
+        setEffectParameterLive(
+            static_cast<std::uint8_t>(lfoableParameterIndex - numberOfLFOBaseParameters), value);
+}
+
 void ModuleParameters::captureUnmodulatedValues()
 {
     for (std::uint8_t index(numberOfNonLFOBaseParameters); index < numberOfBaseParameters; ++index)

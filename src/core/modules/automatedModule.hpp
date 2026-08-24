@@ -203,9 +203,15 @@ setAutomatedLFOParameter(std::uint8_t const parameterIndex, std::uint8_t const l
     LE_ASSUME(parameterIndex < (Constants::maxNumberOfParametersPerModule - 1 /*Bypass*/));
 
     auto &lfo(module.lfo(parameterIndex));
+    bool const wasEnabled(lfo.enabled());
 
     LE::Parameters::invokeFunctorOnIndexedParameter(
         lfo.parameters(), lfoParameterIndex, Detail::LFOParameterSetter<AutomatedParameter>{value});
+
+    // a sweep that stops leaves the parameter wherever it happened to be, and
+    // that is a value nobody chose \see issue #204
+    if (wasEnabled && !lfo.enabled())
+        module.restoreUnmodulatedParameter(parameterIndex);
 
     // Implementation note:
     //   We have to manually check whether the user/host broke the

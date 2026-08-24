@@ -264,6 +264,14 @@ freezes that LFO's instantaneous output into the file.
 The main-thread model carries **both** values, so dragging the base with the LFO
 active is a future UI change rather than a future re-plumbing.
 
+**And switching the LFO off applies it.** A sweep that stops leaves the live
+value wherever it happened to be, which is a value nobody chose and which
+neither the host nor the file has ever agreed with, so
+`Automation::setAutomatedLFOParameter` watches `Enabled` go false and calls
+`restoreUnmodulatedParameter()`. The interface does the same to the widget --
+what the sweep put there arrived down the mailbox, and that channel says nothing
+about where the parameter is. \see issue #204.
+
 **Not the same thing as depth.** `lowerBound`/`upperBound` are absolute values in
 the parameter's own units and every preset since 2011 stores them that way.
 "Base" here means *the value that applies when the LFO is off, remembered while

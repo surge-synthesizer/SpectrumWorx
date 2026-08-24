@@ -1805,13 +1805,36 @@ void SpectrumWorxEditor::updateForNewTimingInfo()
         lfoDisplay_->updateForNewTimingInfo();
 }
 
-void SpectrumWorxEditor::updateLFO(ModuleUI const &moduleUI, std::uint8_t const parameterIndex,
+void SpectrumWorxEditor::updateLFO(ModuleUI &moduleUI, std::uint8_t const parameterIndex,
                                    std::uint8_t const lfoParameterIndex,
                                    Plugins::AutomatedParameterValue const value)
 {
     LE_ASSERT(isThisTheGUIThread());
+
+    // an LFO switched off elsewhere -- a host writing the switch, or a preset
+    // arriving -- leaves the widget wherever the sweep stopped
+    using LFOImpl = LE::Parameters::LFOImpl;
+    if ((lfoParameterIndex ==
+         LE::Parameters::IndexOf<LFOImpl::Parameters, LFOImpl::Enabled>::value) &&
+        (value == 0))
+        showUnmodulatedValue(moduleUI, parameterIndex);
+
     if (lfoDisplay_ && lfoDisplay_->isEnabled())
         lfoDisplay_->updateForChangedParameters(moduleUI, parameterIndex, lfoParameterIndex, value);
+}
+
+/// \see the declaration.
+void SpectrumWorxEditor::showUnmodulatedValue(ModuleUI &moduleUI,
+                                              std::uint8_t const lfoableParameterIndex)
+{
+    LE_ASSERT(isThisTheGUIThread());
+
+    // AutomationOrPreset rather than LFOValue: this is the parameter speaking
+    // for itself, so the strip's value readout follows it as it would any other
+    // change made somewhere else
+    moduleUI.setParameter(static_cast<std::uint8_t>(lfoableParameterIndex + 1 /*Bypass*/),
+                          moduleUI.module().unmodulatedParameter(lfoableParameterIndex),
+                          ModuleUI::AutomationOrPreset);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2563,6 +2586,10 @@ void SpectrumWorxEditor::setLFOEnabled(ModuleControlBase &control, bool const en
     host().automatedParameterChanged(lfoParameterID, value);
 
     control.lfoStateChanged();
+    // ...and the knob goes back to the value under the LFO rather than staying
+    // wherever the sweep stopped \see issue #204
+    if (!enable)
+        showUnmodulatedValue(control.moduleUI(), moduleParameterIndex);
     if (lfoDisplay_ && lfoDisplay_->isFor(control))
         lfoDisplay_->resyncEnabledSwitch();
     updateActiveControlValue();

@@ -448,6 +448,47 @@ TEST_CASE("N, T and D are one choice rather than three toggles", "[gui][lfo]")
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
+/// \note The interface's half of issue #204. The engine puts the parameter back
+/// when its LFO is switched off; the widget has to come with it, because what
+/// the sweep left on screen came down the value mailbox and nothing in that
+/// channel says where the parameter actually is.
+///
+///   The mailbox is stood in for here rather than driven: `pumpModulatedValues`
+/// ends in `control.setValue()` and this is that call, without an audio thread
+/// to produce one. What the case is about is what happens *after* it.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Switching an LFO off puts the knob back where the parameter is", "[gui][lfo]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    PanelUnderTest const panel(instance);
+
+    auto &editor(instance.editor());
+    auto &control(panel.control());
+
+    auto const settled(control.getValue());
+    auto const &info(control.info());
+    REQUIRE(info.minimum < info.maximum);
+
+    editor.setLFOEnabled(control, true);
+    REQUIRE(control.isLFOEnabled());
+
+    // the sweep, as far as the widget is concerned: an end of the travel that
+    // the setting is not at
+    auto const swept((settled == info.maximum) ? info.minimum : info.maximum);
+    control.setValue(swept);
+    REQUIRE(control.getValue() == swept);
+
+    editor.setLFOEnabled(control, false);
+    REQUIRE_FALSE(control.isLFOEnabled());
+
+    CHECK(control.getValue() == settled);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
 /// \note What issue #202 asked for: the well, the mark in it and the arrow
 /// beside it are one press. The arrow was the only thing that answered a click
 /// and it is 11x17 of a target that reads as 63x30, so the obvious place to

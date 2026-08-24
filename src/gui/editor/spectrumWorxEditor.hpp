@@ -276,8 +276,23 @@ class SpectrumWorxEditor final : private SkinLifetime,
     void updateForEngineSetupChanges();
 
     void updateForNewTimingInfo();
-    void updateLFO(ModuleUI const &, std::uint8_t parameterIndex, std::uint8_t lfoParameterIndex,
+    void updateLFO(ModuleUI &, std::uint8_t parameterIndex, std::uint8_t lfoParameterIndex,
                    /*LFO::AutomatedParameterValue*/ float value);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Puts the widget for the parameter LFO \p lfoableParameterIndex
+    /// drives back to the value under that LFO. `[main-thread]`
+    ///
+    /// \note A read of this thread's own Program rather than anything queued:
+    /// the LFO writes the engine's live value and never the unmodulated one, so
+    /// the number is already here. What travelled through the value mailbox was
+    /// the sweep, and it stops without saying where the parameter actually is.
+    /// \see issue #204.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    void showUnmodulatedValue(ModuleUI &, std::uint8_t lfoableParameterIndex);
 
     ////////////////////////////////////////////////////////////////////////////
     ///

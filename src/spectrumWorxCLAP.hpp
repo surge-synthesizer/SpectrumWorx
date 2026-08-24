@@ -731,6 +731,26 @@ class SpectrumWorxCLAP final
 
     ////////////////////////////////////////////////////////////////////////////
     ///
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Which module parameters were being modulated when the mailbox was
+    /// last written, one bit per module parameter index. `[audio-thread]`
+    ///
+    /// \note So that the block an LFO *stops* in is published too. The sweep
+    /// reaches a knob through the mailbox and nothing else does, so without this
+    /// the last value the mailbox holds is the last of the sweep -- and the
+    /// interface redraws that over whatever switching the LFO off put back, on
+    /// its next tick. \see publishModulatedValues() and issue #204.
+    ///
+    /// \note Keyed by the order `moduleChain().forEach<Module>` visits, which is
+    /// what the loop already indexes by. A chain that changes shape can leave a
+    /// bit standing against a different module; the cost of that is one parameter
+    /// published once more, with the value it already has.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    std::array<std::uint32_t, SW::Constants::maxNumberOfModules> modulating_{};
+
     /// \brief The host's tempo or meter moved and the LFO panel has not redrawn.
     /// \see drainEngineEvents().
     ///
