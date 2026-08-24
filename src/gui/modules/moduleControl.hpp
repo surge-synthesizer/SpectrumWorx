@@ -78,7 +78,7 @@ template <class ImplWidget> class ModuleControl : public ParameterMenu
     ////////////////////////////////////////////////////////////////////////////
     juce::Component &menuOwner() override { return control().widget(); }
 
-    juce::String parameterName() const override { return control().name(); }
+    juce::String parameterName() const override { return control().parameterMenuName(); }
     juce::String parameterValueText() const override { return control().getValueText(); }
     ParameterID parameterID() const override { return control().parameterMenuID(); }
 
@@ -249,6 +249,10 @@ class ModuleControlBase
     ///@{
     /// Which parameter this is, as the host knows it.
     ParameterID parameterMenuID() const;
+
+    /// \brief The section header: which module strip this parameter is on, then
+    /// what it is called. \see issue #203.
+    juce::String parameterMenuName() const;
 
     /// \return false for text no value of this parameter displays as, which
     /// leaves the parameter where it was.

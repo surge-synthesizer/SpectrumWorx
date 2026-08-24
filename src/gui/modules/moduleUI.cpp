@@ -902,7 +902,8 @@ void ModuleUI::BypassButton::mouseDown(juce::MouseEvent const &event)
 
 juce::String ModuleUI::BypassButton::parameterName() const
 {
-    return parent_.module().parameterInfo(bypassIndex).name;
+    return parent_.editor().moduleParameterMenuName(
+        parent_.module(), parent_.module().parameterInfo(bypassIndex).name);
 }
 
 /// \note The two words a boolean reads as. Not the menu's -- the row below is,

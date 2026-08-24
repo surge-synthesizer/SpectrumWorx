@@ -1457,6 +1457,15 @@ ParameterID SpectrumWorxEditor::moduleParameterID(Module const &module,
     return parameterID;
 }
 
+/// \note The same number the strip's caption and the host's own parameter names
+/// carry -- the chain index counted from one. \see ParameterNameGetter.
+juce::String SpectrumWorxEditor::moduleParameterMenuName(Module const &module,
+                                                         char const *const parameterName) const
+{
+    return "Module " + juce::String(moduleChain().getIndexForModule(module) + 1) + " - " +
+           parameterName;
+}
+
 void SpectrumWorxEditor::moduleControlActivated(ModuleControlBase &control, double const minimum,
                                                 double const maximum, double const interval)
 {
@@ -2924,12 +2933,12 @@ juce::String syncTypesString(std::uint8_t const mask)
     return reading;
 }
 
-/// \brief What the menu heads itself with: the modulated parameter, then which
-/// of the LFO's own this widget carries.
+/// \brief What the menu heads itself with: the modulated parameter -- module and
+/// all, \see issue #203 -- then which of the LFO's own this widget carries.
 juce::String lfoParameterMenuName(SpectrumWorxEditor::LFODisplay const &parent,
                                   std::uint8_t const index)
 {
-    return juce::String(parent.control().name()) + " - LFO " + lfoParameterName(index);
+    return parent.control().parameterMenuName() + " - LFO " + lfoParameterName(index);
 }
 
 /// \note The host's own string, not the two lines the panel draws beside the

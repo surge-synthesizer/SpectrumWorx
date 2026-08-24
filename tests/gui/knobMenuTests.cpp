@@ -196,6 +196,48 @@ class KnobUnderTest
 } // anonymous namespace
 //------------------------------------------------------------------------------
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Issue #203's second half. With eight strips in the rack and one menu on
+/// screen, "Start Frequency" does not say whose -- and for the shared gain, wet
+/// and frequency range, which stand above the rack rather than on a strip, there
+/// is nothing on screen that does.
+///
+///   The prefix is the number the host's own parameter names carry: the module's
+/// place in the chain, counted from one. The LFO strip composes on top of it, so
+/// a menu opened there reads module, parameter, sub-parameter in that order.
+///
+/// \note Slot 1 rather than slot 0, so that the number is something other than
+/// the one an off-by-one would also produce.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("A parameter menu says which module it is about", "[gui][modules][menu]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    instance.openEditor();
+    auto &editor(instance.editor());
+    editor.addUserAddedModule(0);
+    editor.addUserAddedModule(0);
+    editor.resyncModuleRack();
+
+    auto *const pSecond(editor.regionInSlot(1));
+    REQUIRE(pSecond != nullptr);
+
+    auto &control(pSecond->effectSpecificParameterControl(0));
+    juce::String const parameter(control.name());
+
+    CHECK(control.parameterMenuName() == "Module 2 - " + parameter);
+
+    editor.moduleControlActivated(control, 0.0, 1.0, 0.0);
+    auto *const pStrip(editor.lfoDisplay());
+    REQUIRE(pStrip != nullptr);
+
+    CHECK(pStrip->phase().parameterName() == "Module 2 - " + parameter + " - LFO Phase");
+}
+
 TEST_CASE("A knob reads back the value string it prints", "[gui][modules][menu]")
 {
     ////////////////////////////////////////////////////////////////////////////

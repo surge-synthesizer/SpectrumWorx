@@ -338,6 +338,10 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// module's Bypass. \p moduleParameterIndex counts it, as a ParameterID does.
     ParameterID moduleParameterID(SW::Module const &, std::uint8_t moduleParameterIndex) const;
 
+    /// \brief What a menu over a module's parameter heads itself with: which
+    /// strip in the rack it is on, then \p parameterName. \see issue #203.
+    juce::String moduleParameterMenuName(SW::Module const &, char const *parameterName) const;
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \brief Turns \p control's LFO on or off. `[main-thread]`

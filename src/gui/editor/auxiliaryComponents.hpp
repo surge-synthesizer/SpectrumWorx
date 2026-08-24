@@ -97,7 +97,7 @@ class SharedModuleControls : public WidgetBase<>
         /// selectedThumb_ names. \see ModuleControl<>
         juce::Component &menuOwner() override { return *this; }
 
-        juce::String parameterName() const override { return name(); }
+        juce::String parameterName() const override { return parameterMenuName(); }
         juce::String parameterValueText() const override { return getValueText(); }
         ParameterID parameterID() const override { return parameterMenuID(); }
 

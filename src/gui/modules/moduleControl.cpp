@@ -136,6 +136,11 @@ bool ModuleControlBase::reportInactiveControl()
 
 ParameterID ModuleControlBase::parameterMenuID() const { return editor().moduleControlID(*this); }
 
+juce::String ModuleControlBase::parameterMenuName() const
+{
+    return editor().moduleParameterMenuName(module(), name());
+}
+
 /// \note `setValue()` rather than a notifying form, and `publishValue()` rather
 /// than `moduleParameterChanged()`: the latter asserts the mouse is on the
 /// widget, and it is on the menu. \see publishValue().

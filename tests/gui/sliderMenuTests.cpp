@@ -140,10 +140,11 @@ TEST_CASE("Every LFO slider names the parameter it stands for", "[gui][lfo][menu
     CHECK(strip.strip().phase().parameterID().binaryValue ==
           strip.idFor(lfoIndex<LFO::Phase>).binaryValue);
 
-    /// \note The module parameter's own name in front of the LFO's, so that a
-    /// menu opened over the strip says which knob's LFO it belongs to.
+    /// \note The module parameter's own name in front of the LFO's -- and the
+    /// module in front of that, \see issue #203 -- so that a menu opened over the
+    /// strip says which knob of which strip its LFO belongs to.
     CHECK(strip.strip().phase().parameterName() ==
-          juce::String(strip.control().name()) + " - LFO Phase");
+          "Module 1 - " + juce::String(strip.control().name()) + " - LFO Phase");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -410,6 +411,7 @@ TEST_CASE("The frequency range's menu is about the thumb pressed while a knob is
     range.notePressAt(low - 20);
     CHECK(range.moduleParameterIndex() == startIndex);
     CHECK(juce::String(range.name()) == "Start Frequency");
+    CHECK(range.parameterMenuName() == "Module 1 - Start Frequency");
     CHECK(range.parameterMenuID().binaryValue ==
           idFor(LE::Parameters::IndexOf<Parameters, StartFrequency>::value));
 
