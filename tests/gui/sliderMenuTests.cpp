@@ -336,3 +336,90 @@ TEST_CASE("The frequency range's menu is about the thumb pressed", "[gui][module
     CHECK(range.selectedThumb() == upperThumb);
     CHECK(range.moduleParameterIndex() == stopIndex);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Issue #203, and it is the case the one above deliberately does not set
+/// up: a control *is* selected. The frequency range stops tracking the mouse
+/// then -- that is what keeps a sweep across the rack from taking the LFO strip
+/// away from whatever the user clicked -- and a press on it used to inherit that
+/// refusal, so the slider stood for no parameter at all. `moduleParameterIndex()`
+/// spells that as an index one past the end, and `+ 1 /*Bypass*/` wraps it to
+/// zero: every answer the menu gave -- the header, the identifier the host's own
+/// entries key on, and what "Reset to default value" would have written -- was
+/// about the module's Bypass.
+///
+/// \note The preference is put back to its default here, which is the harder
+/// half: with `Never` the press may not take the selection, and what the menu is
+/// about must not depend on whether it did.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The frequency range's menu is about the thumb pressed while a knob is selected",
+          "[gui][modules][menu]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    instance.openEditor();
+    auto &editor(instance.editor());
+    editor.addUserAddedModule(0);
+    editor.resyncModuleRack();
+
+    auto *const pModuleUI(editor.regionInSlot(0));
+    REQUIRE(pModuleUI != nullptr);
+
+    LE::SW::GUI::preferences().setModuleUIMouseOverReaction(
+        LE::SW::GUI::Preferences::WhenParentOrNothingSelected);
+    static_cast<juce::Component &>(*pModuleUI).mouseEnter(pressAt(*pModuleUI, 1, 0));
+    REQUIRE(editor.selectedModule() == pModuleUI);
+
+    /// \note A knob taking the selection the way the pointer gives it, rather
+    /// than `moduleControlActivated()` -- which builds the strip without making
+    /// anything the *active* control, and it is that pointer the frequency range
+    /// asks about.
+    auto &knob(pModuleUI->effectSpecificParameterControl(0));
+    static_cast<juce::Component &>(knob.widget()).mouseEnter(pressAt(knob.widget(), 1, 0));
+    REQUIRE(editor.activeControl() == &knob);
+
+    auto &range(editor.sharedModuleControls().frequencyRange());
+    auto &widget(static_cast<juce::Component &>(range));
+
+    LE::SW::GUI::preferences().setModuleUIMouseOverReaction(LE::SW::GUI::Preferences::Never);
+
+    // the sweep that leaves the slider standing for nothing
+    widget.mouseEnter(pressAt(range, 1, 0));
+    REQUIRE(range.selectedThumb() == -1);
+
+    using namespace LE::SW::Effects::BaseParameters;
+    auto const startIndex(
+        static_cast<std::uint8_t>(LE::Parameters::IndexOf<Parameters, StartFrequency>::value - 1));
+    auto const stopIndex(
+        static_cast<std::uint8_t>(LE::Parameters::IndexOf<Parameters, StopFrequency>::value - 1));
+
+    auto const idFor([&](std::uint8_t const moduleParameterIndex) {
+        return editor.moduleParameterID(knob.module(), moduleParameterIndex).binaryValue;
+    });
+
+    auto const low(static_cast<int>(range.getPositionOfValue(range.getMinValue())));
+    auto const high(static_cast<int>(range.getPositionOfValue(range.getMaxValue())));
+
+    /// \note notePressAt() rather than a right press, which would raise a real
+    /// modal menu -- \see the note at the top of this file. It is the step
+    /// mouseDown() takes before it opens one, and the whole of the decision.
+    range.notePressAt(low - 20);
+    CHECK(range.moduleParameterIndex() == startIndex);
+    CHECK(juce::String(range.name()) == "Start Frequency");
+    CHECK(range.parameterMenuID().binaryValue ==
+          idFor(LE::Parameters::IndexOf<Parameters, StartFrequency>::value));
+
+    range.notePressAt(high + 20);
+    CHECK(range.moduleParameterIndex() == stopIndex);
+    CHECK(juce::String(range.name()) == "Stop Frequency");
+    CHECK(range.parameterMenuID().binaryValue ==
+          idFor(LE::Parameters::IndexOf<Parameters, StopFrequency>::value));
+
+    // ...and the knob kept the halo throughout, the preference saying the pointer
+    // may not take it
+    CHECK(editor.activeControl() == &knob);
+}

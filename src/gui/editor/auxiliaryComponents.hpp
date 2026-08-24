@@ -47,6 +47,12 @@ class SharedModuleControls : public WidgetBase<>
         /// juce::Slider::getThumbBeingDragged(). See selectedThumb_.
         int selectedThumb() const override { return selectedThumb_; }
 
+        /// \brief Makes this control stand for the thumb a press at \p position
+        /// lands on: the step mouseDown() takes before it raises a menu. Public
+        /// because a headless run asks it, as it does of the strip's own range
+        /// slider. \see LFODisplay::ParameterSlider::notePressAt(), issue #203.
+        void notePressAt(int position);
+
       public: // module control traits
         typedef float value_type;
         typedef float param_type;
@@ -136,6 +142,9 @@ class SharedModuleControls : public WidgetBase<>
         void reportInactiveControl();
 
         void updateSliderSelection(juce::MouseEvent const &);
+
+        /// \brief Which of the two thumbs \p position is nearer to.
+        int thumbNearest(int position) const;
 
         std::uint8_t activeParameterIndex() const;
         std::uint8_t thumbToParameterIndex() const;

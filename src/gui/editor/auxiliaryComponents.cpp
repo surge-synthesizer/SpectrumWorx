@@ -284,9 +284,9 @@ void SharedModuleControls::FrequencyRange::mouseExit(juce::MouseEvent const &eve
 void SharedModuleControls::FrequencyRange::mouseDown(juce::MouseEvent const &event) noexcept
 {
     //...mrmlj...LE_ASSERT( hasFocus() == this->isActive() );
-    /// \note The selection first, so that the menu is about the thumb the press
-    /// was nearest rather than the one a hover last left selected.
-    updateSliderSelection(event);
+    /// \note The thumb first, so that the menu is about the one the press was
+    /// nearest rather than the one a hover last left selected.
+    notePressAt(event.x);
     verifyThumbAndParameterIndicies();
 
     if (event.mods.isPopupMenu())
@@ -411,10 +411,24 @@ void SharedModuleControls::FrequencyRange::reportActiveControl()
 
     reassignTo(newParameterIndex);
     setName(pName);
-    if (!ModuleControlBase::reportActiveControl(StartFrequency::minimum(),
-                                                StartFrequency::maximum(), 0))
-        reassignTo(currentParameterIndex);
+    /// \note The reassignment stands whether or not the selection moved; it used
+    /// to be put back, which left a chosen thumb standing for no parameter and
+    /// every answer reading parameterInfo( 0 ) -- Bypass. \see issue #203.
+    ModuleControlBase::reportActiveControl(StartFrequency::minimum(), StartFrequency::maximum(), 0);
     //...mrmlj...resetting the name should not be necessary
+}
+
+/// \note A press chooses a thumb where a hover only offers one:
+/// updateSliderSelection() declines to choose at all while another control is
+/// selected, and a press used to inherit that. \see issue #203.
+void SharedModuleControls::FrequencyRange::notePressAt(int const position)
+{
+    int const thumb(thumbNearest(position));
+    bool const thumbChanged(thumb != selectedThumb_);
+    selectedThumb_ = thumb;
+    reportActiveControl();
+    if (thumbChanged)
+        repaint();
 }
 
 void SharedModuleControls::FrequencyRange::reportInactiveControl()
@@ -441,20 +455,13 @@ void SharedModuleControls::FrequencyRange::updateSliderSelection(juce::MouseEven
 {
     if (editor().activeControl() && !this->isActive())
     {
+        // both together: no thumb chosen means no parameter stood for
         selectedThumb_ = Constants::noThumb;
+        reassignTo(Constants::invalidIndex);
         return;
     }
 
-    int const mousePos(event.x);
-
-    unsigned int const startPosDistance(
-        Math::abs(Math::convert<int>(getPositionOfValue(getMinValue())) - mousePos));
-    unsigned int const stopPosDistance(
-        Math::abs(Math::convert<int>(getPositionOfValue(getMaxValue())) - mousePos));
-
-    using namespace Constants;
-    int const newSliderSelection((startPosDistance < stopPosDistance) ? startFrequencyThumbIndex
-                                                                      : stopFrequencyThumbIndex);
+    int const newSliderSelection(thumbNearest(event.x));
     bool const activeControlChanged(newSliderSelection != selectedThumb_);
 
     if (activeControlChanged)
@@ -463,6 +470,18 @@ void SharedModuleControls::FrequencyRange::updateSliderSelection(juce::MouseEven
         reportActiveControl();
         repaint();
     }
+}
+
+int SharedModuleControls::FrequencyRange::thumbNearest(int const position) const
+{
+    unsigned int const startPosDistance(
+        Math::abs(Math::convert<int>(getPositionOfValue(getMinValue())) - position));
+    unsigned int const stopPosDistance(
+        Math::abs(Math::convert<int>(getPositionOfValue(getMaxValue())) - position));
+
+    using namespace Constants;
+    return (startPosDistance < stopPosDistance) ? startFrequencyThumbIndex
+                                                : stopFrequencyThumbIndex;
 }
 
 std::uint8_t SharedModuleControls::FrequencyRange::thumbToParameterIndex() const
