@@ -609,15 +609,7 @@ TEST_CASE("A fired event is saved at rest and reads at rest", "[clap][state]")
 
     ////////////////////////////////////////////////////////////////////////////
     ///
-    /// \note **Activated**, unlike most of this file, and it has to be. An
-    /// inactive plugin has no spectral setup -- `fftSize` 0, `stepSize` 0 -- and
-    /// several of `Engine::Setup`'s conversions divide by them:
-    /// `milliSecondsToSteps` by the step, `frequencyRangePerBin` by the FFT
-    /// size. On arm64 an integer division by zero yields zero and nothing is
-    /// said; on x86 it traps. \see issue #81, which is that hazard on its own --
-    /// a host really does restore a session before it activates.
-    ///
-    ///   Activating is the right fixture rather than a way round anything: a
+    /// \note **Activated**, unlike most of this file, and deliberately so: a
     /// trigger is something a user fires while audio is running, so the state
     /// this case is about is a state a *running* plugin gets into. It was
     /// inactive only because most of this file is.

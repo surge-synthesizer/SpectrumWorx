@@ -176,13 +176,25 @@ float Setup::hzToNormalisedFrequency(float const hz) const
 
 std::uint16_t Setup::milliSecondsToSteps(std::uint16_t const milliSeconds) const
 {
+    /// \note No step before the host has activated the plugin, and an integer
+    /// division by zero is undefined behaviour. \see issue #81.
+    auto const step(stepSize<std::uint16_t>());
+    if (step == 0)
+        return 0;
     auto const result(Math::roundUpUnsignedIntegerDivision(
-        milliSeconds * sampleRate<std::uint32_t>() / stepSize<std::uint16_t>(), 1000U));
+        milliSeconds * sampleRate<std::uint32_t>() / step, 1000U));
     LE_ASSERT_MSG(result <= (std::numeric_limits<std::uint16_t>::max)(), "Step overflow");
     return result;
 }
 
-float Setup::secondsToSteps(float const seconds) const { return seconds / stepTime(); }
+/// \note The same guard in floating point, where the answer is an infinity
+/// rather than a trap -- and a caller converting one to an integer is back where
+/// it started. \see issue #81.
+float Setup::secondsToSteps(float const seconds) const
+{
+    auto const step(stepTime());
+    return (step != 0) ? (seconds / step) : 0;
+}
 float Setup::stepsPerSecond() const { return secondsToSteps(1); }
 float Setup::frameTime() const { return frameSize<float>() / sampleRate<float>(); }
 float Setup::stepTime() const { return stepSize<float>() / sampleRate<float>(); }

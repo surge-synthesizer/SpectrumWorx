@@ -71,7 +71,16 @@ class Setup
         return frameSize<T>() / windowOverlappingFactor<T>();
     }
     template <typename T> T windowSize() const { return fftSize<T>(); }
-    template <typename T> T frequencyRangePerBin() const { return sampleRate<T>() / fftSize<T>(); }
+
+    /// \note Zero before the host has activated the plugin, there being no bin to
+    /// spread the spectrum across -- and for an integer T the division that would
+    /// otherwise happen is undefined behaviour. \see issue #81.
+    template <typename T> T frequencyRangePerBin() const
+    {
+        if (fftSize<unsigned int>() == 0)
+            return T(0);
+        return sampleRate<T>() / fftSize<T>();
+    }
 
     std::uint16_t numberOfBins() const;
     float frameTime() const;
