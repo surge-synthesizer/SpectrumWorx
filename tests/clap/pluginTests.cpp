@@ -648,6 +648,63 @@ TEST_CASE("The host sees the engine's own parameters, not a stand-in", "[clap]")
     CHECK(sawAGlobal);
 }
 
+/// \note Against the formatting it replaced rather than against a written-out
+/// list: what a table can get wrong is the indexing, and only the old expression
+/// says what the right answer was. \see issue #223
+TEST_CASE("Every parameter's module path is the one its id asks for", "[clap]")
+{
+    Entry const entry;
+    ActivePlugin plugin(48000, 512);
+
+    auto const *const params(
+        static_cast<clap_plugin_params const *>(plugin->get_extension(&*plugin, CLAP_EXT_PARAMS)));
+    REQUIRE(params != nullptr);
+
+    auto const formatted([](LE::SW::ParameterID const parameterID) {
+        char text[CLAP_PATH_SIZE]{};
+        switch (parameterID.type())
+        {
+        case LE::SW::ParameterID::GlobalParameter:
+            std::strncpy(text, "Global", CLAP_PATH_SIZE - 1);
+            break;
+        case LE::SW::ParameterID::ModuleChainParameter:
+            std::snprintf(text, CLAP_PATH_SIZE, "Module %u",
+                          parameterID.value._.moduleChain.moduleIndex + 1u);
+            break;
+        case LE::SW::ParameterID::ModuleParameter:
+            std::snprintf(text, CLAP_PATH_SIZE, "Module %u",
+                          parameterID.value._.module.moduleIndex + 1u);
+            break;
+        case LE::SW::ParameterID::LFOParameter:
+            std::snprintf(text, CLAP_PATH_SIZE, "Module %u/LFO",
+                          parameterID.value._.lfo.moduleIndex + 1u);
+            break;
+        }
+        return std::string(text);
+    });
+
+    auto const count(params->count(&*plugin));
+    REQUIRE(count == LE::SW::ParameterCounts::maxNumberOfParameters);
+
+    std::set<std::string> paths;
+    for (std::uint32_t index(0); index < count; ++index)
+    {
+        clap_param_info info{};
+        REQUIRE(params->get_info(&*plugin, index, &info));
+
+        LE::SW::ParameterID parameterID;
+        parameterID.binaryValue = info.id;
+
+        CAPTURE(index, info.id, info.module);
+        CHECK(formatted(parameterID) == info.module);
+        paths.insert(info.module);
+    }
+
+    // "Global", one per slot and one per slot's LFOs -- so every slot was
+    // reached and neither shape answered for the other
+    CHECK(paths.size() == 1u + 2u * LE::SW::Constants::maxNumberOfModules);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \note The cost of declaring every slot's parameters up front: on an empty

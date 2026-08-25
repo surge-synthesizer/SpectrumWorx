@@ -37,6 +37,7 @@
 #include <atomic>
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace LE::SW
@@ -472,6 +473,18 @@ class SpectrumWorxCLAP final
     /// CLAP's module path, which is how a host groups a parameter in its
     /// generic panel -- and these group naturally, by module slot.
     void modulePathFor(ParameterID, char (&path)[CLAP_PATH_SIZE]) const noexcept;
+
+    /// \brief The eleven strings modulePathFor() can answer with, built once.
+    ///
+    /// \note Formatting one used to cost more than the rest of paramsInfo()
+    /// together, and REAPER asks for every parameter's info to resolve each id it
+    /// reads a value for. \see issue #223
+    ///
+    /// \note Built rather than written out so the set follows
+    /// Constants::maxNumberOfModules without being told.
+    void buildModulePaths();
+    static std::size_t modulePathIndex(ParameterID) noexcept;
+    std::array<std::string, 1u + 2u * SW::Constants::maxNumberOfModules> modulePaths_;
 
     /// \brief The range a parameter has *right now*, in the effect's own units.
     ///
