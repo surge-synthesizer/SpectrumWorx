@@ -150,8 +150,6 @@ juce::Colour ColourMap::classic(Name const name)
         return juce::Colour(0xFF0A0909u);
     case ModuleKnobCap:
         return juce::Colour(0xFF000000u);
-    case ModuleKnobLFORange:
-        return juce::Colour(0x8013B5EAu);
 
     case FocusHalo:
         return juce::Colour(0xFFFFFFFFu);

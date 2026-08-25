@@ -104,7 +104,7 @@ class Preferences
     /// always done. Off, the knob draws the LFO's *bounds* instead and draws no
     /// value at all -- the same information, and honestly, without eight strips'
     /// worth of movement in the corner of the eye. \see paintModuleKnob(),
-    /// ColourMap::ModuleKnobLFORange and issue #210.
+    /// and issue #210.
     ///
     ////////////////////////////////////////////////////////////////////////////
     bool showLFOAnimation() const { return showLFOAnimation_; }

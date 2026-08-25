@@ -2659,10 +2659,10 @@ struct LFOTextData
 std::size_t const lfoWidth = 174;
 
 LFOTextData sliderTexts[] = {
-    {0, &periodRatioString, 14, 36, 158, 18, juce::Justification::right},        // period ratio
-    {0, &periodMillisecondsString, 14, 71, 158, 18, juce::Justification::right}, // period ms
+    {0, &periodRatioString, 14, 37, 158, 18, juce::Justification::right},        // period ratio
+    {0, &periodMillisecondsString, 14, 69, 158, 18, juce::Justification::right}, // period ms
     {0, &rangeValueString, 14, 93, lfoWidth - 15 - 3, 18, juce::Justification::right}, // range max
-    {0, &rangeValueString, 15, 126, lfoWidth - 15, 18, juce::Justification::left},     // range min
+    {0, &rangeValueString, 15, 125, lfoWidth - 15, 18, juce::Justification::left},     // range min
     {0, &phaseString, 14, 177, 158, 18, juce::Justification::right},                   // phase %
 };
 
@@ -2680,7 +2680,7 @@ struct FixedText
 #pragma warning(pop)
 
 static FixedText const fixedText[] = {
-    {"Period", 36 + 14},
+    {"Period", 37 + 14},
     {"Range", 93 + 14},
     {"Waveform", 149 + 14},
     {"Phase", 177 + 14},
@@ -3771,11 +3771,12 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     : PanelBackground(SettingsPage), zoom_(*this, xMargin, yMargin + 0 * yStep + yOffset, "Zoom"),
       palette_(*this, xMargin, yMargin + 1 * yStep + yOffset, "Color Scheme"),
-      showLFOAnimation_(*this, xMargin - 4, yMargin + 2 * yStep + yOffset, "Show LFO animation"),
+      showLFOAnimation_(*this, xMargin - 4, yMargin + 2 * yStep + yOffset,
+                        "Animate LFO modulations"),
       previewLFOOnHover_(*this, xMargin - 4, yMargin + 2 * yStep + yOffset + ledStep,
-                         "Preview LFO on hover"),
+                         "Hover shows LFO settings"),
       hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 2 * yStep + yOffset + 2 * ledStep,
-                            "Hide cursor on knob drag")
+                            "Hide cursor on knob edits")
 {
     Settings &parent(
         Utility::ParentFromMember<Settings, InterfacePage, &Settings::interfacePage_>()(*this));

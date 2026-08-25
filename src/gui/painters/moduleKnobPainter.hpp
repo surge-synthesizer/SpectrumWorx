@@ -62,10 +62,11 @@ namespace ModuleKnobStyle
 {
 /// \note Geometry only. The colours are ColourMap's -- four ModuleKnob* entries,
 /// plus Accent for the wedge and FocusHalo for the ring.
-float constexpr innerGradientRadius{0.26f}; ///< the dome holds its centre colour in to here
-float constexpr wedgeRadius{0.717f};
-float constexpr capRadiusClosed{0.22f}; ///< with the wedge shut
-float constexpr capRadiusOpen{0.48f};   ///< with it fully open
+float constexpr innerGradientRadius{0.25f}; ///< the dome holds its centre colour in to here
+float constexpr wedgeRadius{0.75f};
+float constexpr capRadiusLFO{0.25f};   ///< when LFO is enabled for a module knob
+float constexpr capRadiusClosed{0.2f}; ///< with the wedge shut
+float constexpr capRadiusOpen{0.5f};   ///< with it fully open
 
 /// \note The wedge's travel is KnobPainter::halfSweepDegrees, shared with the
 /// editor knob's pointer -- see the note there.
@@ -91,10 +92,10 @@ float constexpr rimThickness{1.0f}; ///< px
 /// is hard edged, and stays that way.
 namespace TriggerButtonStyle
 {
-float constexpr capRadius{0.201f};     ///< the black cap, out to where it is solid
-float constexpr capEdgeRadius{0.260f}; ///< and where it has faded into the dome
-float constexpr litRadius{0.113f};     ///< the blue eye that says it is on
-float constexpr litEdgeRadius{0.172f}; ///< which fades out inside the cap
+float constexpr capRadius{0.2f};       ///< the black cap, out to where it is solid
+float constexpr capEdgeRadius{0.25f};  ///< and where it has faded into the dome
+float constexpr litRadius{0.1f};       ///< the blue eye that says it is on
+float constexpr litEdgeRadius{0.175f}; ///< which fades out inside the cap
 
 /// \note Both pairs are a straight fade fitted to the artwork's stops, and the
 /// fit is good: the cap's own ramp read 0.92, 0.63 and 0.375 opaque at the three

@@ -109,16 +109,6 @@ class ColourMap
         ModuleKnobDomeRim,    ///< the dome at its rim, and the hairline on it
         ModuleKnobCap,        ///< the cap over the wedge's inside
 
-        /// \brief The arc an LFO's bounds cover, drawn where the wedge is drawn
-        /// and under it.
-        ///
-        /// \note Translucent, and that is the whole of it: this says "the value
-        /// lives somewhere in here" against a wedge that says where it is now.
-        /// Only drawn with the animation turned off. \see
-        /// Preferences::showLFOAnimation() and issue #210.
-        ModuleKnobLFORange,
-        ///@}
-
         /// The halo around whichever control has the focus.
         FocusHalo,
 

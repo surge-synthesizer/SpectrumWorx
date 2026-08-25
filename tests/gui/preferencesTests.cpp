@@ -179,15 +179,15 @@ GUI::LEDTextButton &ledCaptioned(Editor &editor, juce::String const &caption)
 
 GUI::LEDTextButton &hideCursorButton(Editor &editor)
 {
-    return ledCaptioned(editor, "Hide cursor on knob drag");
+    return ledCaptioned(editor, "Hide cursor on knob edits");
 }
 GUI::LEDTextButton &lfoAnimationButton(Editor &editor)
 {
-    return ledCaptioned(editor, "Show LFO animation");
+    return ledCaptioned(editor, "Animate LFO modulations");
 }
 GUI::LEDTextButton &lfoPreviewButton(Editor &editor)
 {
-    return ledCaptioned(editor, "Preview LFO on hover");
+    return ledCaptioned(editor, "Hover shows LFO settings");
 }
 
 /// An editor with the Interface page up.

@@ -58,7 +58,7 @@ void paintModuleKnob(juce::Graphics &graphics, juce::Rectangle<float> const boun
         // between the two bounds, where the value would be from a stop to itself
         fillArc(KnobPainter::angleFor(juce::jlimit(0.0f, 1.0f, lfoRange->getStart())),
                 KnobPainter::angleFor(juce::jlimit(0.0f, 1.0f, lfoRange->getEnd())),
-                ColourMap::ModuleKnobLFORange);
+                ColourMap::Accent);
     else
         // the far edge is the value; the near one is the stop it opens from
         fillArc(KnobPainter::angleFor(value), bipolar ? 0.0f : -KnobPainter::halfSweepDegrees,
@@ -68,10 +68,11 @@ void paintModuleKnob(juce::Graphics &graphics, juce::Rectangle<float> const boun
     /// that the accent keeps a roughly even thickness as it lengthens, and a
     /// range has no length to follow -- one that grew with the span would draw a
     /// wide travel thinner than a narrow one, which is backwards.
-    auto const cap(lfoRange ? capRadiusClosed
+    auto const cap(lfoRange ? capRadiusLFO
                             : capRadiusClosed + (capRadiusOpen - capRadiusClosed) * openness);
-    KnobPainter::paintCap(graphics, bounds, cap, cap /*a hard edge*/,
-                          ColourMap::getColour(ColourMap::ModuleKnobCap));
+    auto const color(lfoRange ? ColourMap::getColour(ColourMap::ModuleKnobDomeCentre)
+                              : ColourMap::getColour(ColourMap::ModuleKnobCap));
+    KnobPainter::paintCap(graphics, bounds, cap, cap /*a hard edge*/, color);
 
     switch (highlight)
     {

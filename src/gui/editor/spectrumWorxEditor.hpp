@@ -1510,8 +1510,6 @@ class SpectrumWorxEditor final : private SkinLifetime,
         static std::uint16_t const yMargin = 30;
         static std::uint16_t const yOffset = 7;
         static std::uint16_t const yStep = 60;
-        /// \note Between two LEDs, which carry no title of their own and so do
-        /// not need the room a combo box's does.
         static std::uint16_t const ledStep = 30;
     }; // class Settings
 

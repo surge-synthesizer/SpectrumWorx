@@ -123,7 +123,7 @@ TriggerButton::TriggerButton(juce::Component &parent, unsigned int const x, unsi
     addToParentAndShow(parent, *this);
 
     // the extra height is the caption's room under the face. \see paintButton()
-    setBounds(x, y, ModuleUI::width, TriggerButtonStyle::diameter + 20);
+    setBounds(x, y - 2, ModuleUI::width, TriggerButtonStyle::diameter + 18);
 
     setTriggeredOnMouseDown(true);
 
@@ -214,14 +214,17 @@ void TriggerButton::mouseUp(juce::MouseEvent const &e) noexcept
 void TriggerButton::paintButton(juce::Graphics &graphics, bool const isMouseOverButton,
                                 bool const isButtonDown)
 {
-    auto const face(faceBounds());
+    auto const face(faceBounds().translated(0, 2));
 
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
-    graphics.setFont(DrawableText::defaultFont());
-    graphics.drawFittedText(getName(), 0, face.getHeight() + 3, getWidth(), 17,
+    juce::Font font(Theme::singleton().labelFont());
+    font.setHeight(15);
+    graphics.setFont(font);
+    graphics.drawFittedText(getName(), 0, face.getHeight() + 5, getWidth(), 17,
                             juce::Justification::horizontallyCentred, 1);
 
     bool const fade(isMouseOverButton && !isButtonDown);
+
     if (fade)
         graphics.beginTransparencyLayer(PointerFeedback::over);
 
