@@ -230,7 +230,9 @@ class Plugin2HostActiveInteropImpl : public Base
         impl().host().automatedParameterChanged(
             Plugin2HostInteropControler::make<typename Impl::ParameterSelector>(parameterID),
             newValue);
-        impl().markCurrentProgramAsModified();
+        // the flag, not the host call: this runs once per mouse move of a drag,
+        // and a parameter change is a dirty state without saying so \see #219
+        impl().markCurrentProgramAsEdited();
     }
 
   protected:

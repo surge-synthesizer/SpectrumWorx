@@ -419,9 +419,10 @@ class EditorHost
 
     /// \brief Says the session has changed in a way that is not a parameter.
     ///
-    /// \note The preset comment is the one that needs it: everything else goes
-    /// out through `editParameter`, which tells the host on the way past, so a
+    /// \note The preset comment is the one that needs it: everything else is a
+    /// parameter, and ext/state.h makes a parameter change dirty implicitly, so a
     /// project closed after typing a comment would be offered as unmodified.
+    /// \see issue #219.
     virtual void markStateModified() const = 0;
 
     /// \brief The preset the plugin is playing. \see LoadedPreset

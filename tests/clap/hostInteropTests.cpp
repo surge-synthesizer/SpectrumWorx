@@ -106,12 +106,46 @@ TEST_CASE("A host that answers the thread check is marked dirty where it stands"
     /// offers the thread check; against one, the mark belongs *here*, in the call,
     /// and a deferral would be a pointless round trip through the message loop.
     ///
-    /// \note An edit made in the *editor* is the main-thread route, and very
-    /// nearly the only one. `params.flush()` is `[active ? audio-thread :
-    /// main-thread]` (ext/params.h:303) and this plugin is active, so a host
-    /// event is an audio-thread event whether it arrives through flush() or
-    /// through process(); the case below is that half. What is left on the main
-    /// thread is the window: a knob, a preset load, a session restore.
+    /// \note The window is the main-thread route. `params.flush()` is `[active ?
+    /// audio-thread : main-thread]` (ext/params.h:303) and this plugin is
+    /// active, so a host event is an audio-thread event whether it arrives
+    /// through flush() or through process(); the case below is that half.
+    ///
+    /// \note A knob is *not* the trigger any more, which is what the case below
+    /// this one is about: a parameter change marks the state dirty implicitly, so
+    /// the editor announces only what is not one. \see issue #219.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    Entry const entry;
+    TestHost host{TestHost::everything()};
+    ActivePlugin plugin(48000, 512, host);
+
+    unsigned const callbacksBefore(host.mainThreadCallbacks);
+
+    // the preset comment's route, and what markStateModified() is for
+    editorHostOf(*plugin).markStateModified();
+
+    // It asked...
+    CHECK(host.threadChecks > 0);
+    // ...and acted on the answer, without a callback to come back on.
+    CHECK(host.dirtyMarks > 0);
+    CHECK(host.mainThreadCallbacks == callbacksBefore);
+}
+
+TEST_CASE("A knob does not mark the session dirty", "[clap][host]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    ///   ext/state.h: "If a parameter value changes, then it is implicit that
+    /// the state is dirty". The value still reaches the host -- that is the
+    /// gesture case further down -- so nothing is lost by keeping quiet, and a
+    /// host is entitled to answer `mark_dirty` however it likes.
+    ///
+    ///   REAPER answers it by re-reading every parameter it has, and finds each
+    /// one's index by walking `get_info` from zero. At 696 parameters that is
+    /// 696 squared calls per sweep, on the main thread, and a drag calling it
+    /// once per mouse move held the interface at 24 frames a second.
+    /// \see issue #219.
     ///
     ////////////////////////////////////////////////////////////////////////////
     Entry const entry;
@@ -126,17 +160,19 @@ TEST_CASE("A host that answers the thread check is marked dirty where it stands"
     target.binaryValue = global.id;
 
     unsigned const callbacksBefore(host.mainThreadCallbacks);
+    unsigned const marksBefore(host.dirtyMarks);
 
     editorHostOf(*plugin).automation().automatedParameterChanged(
         target,
         {static_cast<float>(wanted),
          static_cast<float>((wanted - global.min_value) / (global.max_value - global.min_value))});
 
-    // It asked...
-    CHECK(host.threadChecks > 0);
-    // ...and acted on the answer, without a callback to come back on.
-    CHECK(host.dirtyMarks > 0);
+    // neither the call nor the deferral that would end in one
+    CHECK(host.dirtyMarks == marksBefore);
     CHECK(host.mainThreadCallbacks == callbacksBefore);
+
+    // and the edited flag, which the browser's Save buttons read, is set anyway
+    CHECK(editorHostOf(*plugin).loadedPreset().modified.load());
 }
 
 TEST_CASE("The same host is not marked dirty from inside the audio callback", "[clap][host]")

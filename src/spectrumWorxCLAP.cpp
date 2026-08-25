@@ -1626,7 +1626,7 @@ void SpectrumWorxCLAP::HostProxy::automatedParameterChanged(
         const_cast<SpectrumWorxCLAP &>(plugin_).requestRescan(
             CLAP_PARAM_RESCAN_INFO | CLAP_PARAM_RESCAN_TEXT | CLAP_PARAM_RESCAN_VALUES);
 
-    plugin_.markCurrentProgramAsModified();
+    plugin_.markCurrentProgramAsEdited();
     plugin_.requestParameterFlush();
 }
 
@@ -1725,10 +1725,25 @@ void SpectrumWorxCLAP::markCurrentProgramAsModified() const
     /// \note Before the host question and not behind it: the browser's two Save
     /// buttons read this, and whether a host offers `clap.state` has nothing to
     /// do with whether the user has edited the preset. \see issue #177.
-    const_cast<SpectrumWorxCLAP &>(*this).loadedPreset_.modified.store(true,
-                                                                       std::memory_order_relaxed);
+    markCurrentProgramAsEdited();
 
     markSessionAsUnsaved();
+}
+
+/// \note What an editor edit gets instead. `clap_host_state.mark_dirty` from the
+/// UI thread is a synchronous call into the host on every mouse move of a drag,
+/// and ext/state.h says a parameter change already implies a dirty state. REAPER
+/// answers one by re-reading all 696 parameters, finding each index by walking
+/// `get_info` from zero, which held the interface at 24 frames a second.
+/// \see issue #219.
+///
+/// \note handleEvent()'s write keeps the full call: it defers, and the deferral
+/// coalesces, so a host writing a parameter every block still marks dirty once
+/// per callback rather than once per event.
+void SpectrumWorxCLAP::markCurrentProgramAsEdited() const
+{
+    const_cast<SpectrumWorxCLAP &>(*this).loadedPreset_.modified.store(true,
+                                                                       std::memory_order_relaxed);
 }
 
 void SpectrumWorxCLAP::markSessionAsUnsaved() const

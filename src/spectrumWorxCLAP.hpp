@@ -193,6 +193,13 @@ class SpectrumWorxCLAP final
     /// without anybody having edited anything. \see LoadedPreset::modified
     void markCurrentProgramAsModified() const;
 
+    /// \brief The edited flag on its own, for a change the host already knows it
+    /// has to save.
+    ///
+    /// \note ext/state.h: "If a parameter value changes, then it is implicit
+    /// that the state is dirty". \see issue #219.
+    void markCurrentProgramAsEdited() const;
+
   public:
     explicit SpectrumWorxCLAP(clap_host const *);
     ~SpectrumWorxCLAP() override;
