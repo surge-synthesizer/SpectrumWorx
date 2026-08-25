@@ -1652,12 +1652,14 @@ void SpectrumWorxCLAP::HostProxy::automatedParameterChanged(
                                           UIEdit::Kind::Value}),
                    "The outgoing edit queue is full; the host was not told about an edit.");
 
-    // the same rescan handleEvent() asks for when the *host* fills a slot: a
-    // slot selector changes what the other parameters are called and what they
-    // mean, and it can be moved from either side
-    if (parameterID.type() == ParameterID::ModuleChainParameter)
-        const_cast<SpectrumWorxCLAP &>(plugin_).requestRescan(
-            CLAP_PARAM_RESCAN_INFO | CLAP_PARAM_RESCAN_TEXT | CLAP_PARAM_RESCAN_VALUES);
+    // and no rescan for a slot selector, though this is where the parameter list
+    // changes: the engine raises chainChanged() when it applies the slot, which
+    // asks for the same one. Asking here as well only means asking twice -- the
+    // two land in different callbacks, so requestRescan() cannot coalesce them,
+    // and REAPER answers each by reading every parameter. \see issue #223
+    //
+    // this is what the host's own route already does: handleEvent() asks for
+    // nothing either and lets chainChanged() speak for it
 
     plugin_.markCurrentProgramAsEdited();
     plugin_.requestParameterFlush();

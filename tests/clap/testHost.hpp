@@ -178,6 +178,7 @@ class TestHost
         : offers_(offers), mainThread_(std::this_thread::get_id()),
           params_{[](clap_host const *const pHost, clap_param_rescan_flags const flags) {
                       self(pHost).rescanFlags |= flags;
+                      ++self(pHost).rescanCalls;
                   },
                   [](clap_host const *, clap_id, clap_param_clear_flags) {},
                   [](clap_host const *const pHost) { ++self(pHost).flushRequests; }},
@@ -233,6 +234,10 @@ class TestHost
     ////////////////////////////////////////////////////////////////////////////
 
     std::atomic<clap_param_rescan_flags> rescanFlags{0};
+    /// \note Separately from the flags, which are OR-ed: a slot change used to
+    /// announce itself twice, once from the editor and once from the engine, and
+    /// only a count tells the two apart. \see issue #223
+    std::atomic<unsigned> rescanCalls{0};
     std::atomic<unsigned> flushRequests{0};
     std::atomic<unsigned> mainThreadCallbacks{0};
     std::atomic<unsigned> restartRequests{0};

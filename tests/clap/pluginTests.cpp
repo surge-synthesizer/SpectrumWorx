@@ -1105,6 +1105,48 @@ TEST_CASE("An effect chosen before activate still processes audio", "[clap]")
     CHECK(peak(leftOut) > 0);
 }
 
+/// \note A count, not a flag: both routes ask for the same three, so OR-ing them
+/// cannot tell one announcement from two. REAPER answers each by reading every
+/// parameter, and resolves each of those ids by walking the list -- so a second
+/// rescan is another 485,112 get_info calls and another 50ms of frozen main
+/// thread. \see issue #223
+TEST_CASE("Filling a slot from the editor announces itself once", "[clap]")
+{
+    // moduleChangedByUser() asserts it is on the GUI thread, which in a test
+    // binary means there has to be a MessageManager for it to be the thread of
+    juce::ScopedJuceInitialiser_GUI const juceIsUp;
+
+    Entry const entry;
+    TestHost host{{.params = true}};
+    ActivePlugin plugin(48000, 512, host);
+
+    auto &editorHost(editorHostOf(*plugin));
+    auto const &params(parameters(*plugin));
+
+    host.rescanCalls = 0;
+
+    // what SpectrumWorxEditor::setModuleInSlot does: the slot to the engine, and
+    // the selector to the host as the parameter edit it is
+    REQUIRE(editorHost.editSlot(0, 0));
+    editorHost.automation().moduleChangedByUser(std::uint8_t(0), std::int8_t(0));
+
+    // the callback the announcement asked for, before the engine has run: this
+    // is the ordering that matters, and the one a host really produces. Draining
+    // the two requests together would let requestRescan() coalesce them and hide
+    // the second announcement this case exists to catch
+    plugin.pumpMainThread();
+
+    // now the engine applies the queued slot and raises chainChanged()
+    params.flush(&*plugin, &noInputEvents(), &discardedOutputEvents());
+
+    // and whatever that asked for, so a second announcement has its chance
+    for (unsigned callback(0); callback < 3; ++callback)
+        plugin.pumpMainThread();
+
+    CHECK(host.rescanCalls == 1);
+    CHECK((host.rescanFlags & CLAP_PARAM_RESCAN_INFO) != 0);
+}
+
 TEST_CASE("Filling a slot makes the host re-read the descriptions", "[clap]")
 {
     // The names, the module paths and the hidden flags of a slot's parameters
