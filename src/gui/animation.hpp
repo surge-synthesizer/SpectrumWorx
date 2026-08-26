@@ -53,8 +53,9 @@ namespace LE::SW::GUI
 enum AnimationStyle : std::uint8_t
 {
     NoAnimation,
-    FastAnimation,
     SlowAnimation,
+    MediumAnimation,
+    FastAnimation,
 
     numberOfAnimationStyles
 };
@@ -68,14 +69,15 @@ enum AnimationStyle : std::uint8_t
 
 /// \brief What a style means, and what the other timings here are relative to:
 /// how long a strip takes to slide one slot.
-inline constexpr unsigned int fastAnimationMilliseconds{150};
-inline constexpr unsigned int slowAnimationMilliseconds{350};
+inline constexpr unsigned int slowAnimationMilliseconds{250};
+inline constexpr unsigned int mediumAnimationMilliseconds{175};
+inline constexpr unsigned int fastAnimationMilliseconds{100};
 
 /// \brief How much longer a strip takes to grow or shrink than to slide.
 /// \note Equal durations are not equal speeds: a slide crosses a whole slot and
 /// a grow crosses half a strip, so matching the two makes an add read as a
 /// flicker next to a drag that reads as a move.
-inline constexpr float growAndShrinkFactor{1.2f};
+inline constexpr float growAndShrinkFactor{1.25f};
 
 /// \note juce::ComponentAnimator's easing, for the slide and the shrink: zero at
 /// both ends accelerates from rest and settles rather than stopping dead.
@@ -85,7 +87,7 @@ inline constexpr double slideEndSpeed{0.0};
 /// \brief How small a strip starts before it grows, as a fraction of itself.
 /// \note Not zero: a zero scale is a singular transform, and JUCE maps points
 /// through this one to decide what the mouse is over.
-inline constexpr float initialGrowScale{0.08f};
+inline constexpr float initialGrowScale{0.075f};
 
 /// \note 60 Hz, which is a frame on the displays this runs on and is the rate
 /// juce::ComponentAnimator picks for itself.

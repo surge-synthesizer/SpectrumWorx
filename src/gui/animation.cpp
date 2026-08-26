@@ -41,10 +41,12 @@ char const *nameOf(AnimationStyle const style)
     {
     case NoAnimation:
         return "NoAnimation";
-    case FastAnimation:
-        return "FastAnimation";
     case SlowAnimation:
         return "SlowAnimation";
+    case MediumAnimation:
+        return "MediumAnimation";
+    case FastAnimation:
+        return "FastAnimation";
     case numberOfAnimationStyles:
         break;
     }
@@ -57,10 +59,12 @@ unsigned int millisecondsFor(AnimationStyle const style)
     {
     case NoAnimation:
         return 0;
-    case FastAnimation:
-        return fastAnimationMilliseconds;
     case SlowAnimation:
         return slowAnimationMilliseconds;
+    case MediumAnimation:
+        return mediumAnimationMilliseconds;
+    case FastAnimation:
+        return fastAnimationMilliseconds;
     case numberOfAnimationStyles:
         break;
     }

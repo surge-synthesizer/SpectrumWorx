@@ -3820,8 +3820,9 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
 
     // spelled here rather than taken from nameOf(), for the reason above
     animation_.addItem(NoAnimation, "None");
-    animation_.addItem(FastAnimation, "Fast");
     animation_.addItem(SlowAnimation, "Slow");
+    animation_.addItem(MediumAnimation, "Medium");
+    animation_.addItem(FastAnimation, "Fast");
     animation_.setSelectedIndex(preferences().animationStyle());
 
     showLFOAnimation_.setToggleState(preferences().showLFOAnimation(), juce::dontSendNotification);
