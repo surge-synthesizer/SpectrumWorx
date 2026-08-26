@@ -55,7 +55,8 @@ clap_plugin_descriptor const *descriptor();
 clap_plugin const *createPlugin(clap_host const *);
 
 static constexpr auto misbehaviourLevel = clap::helpers::MisbehaviourHandler::Ignore;
-static constexpr auto checkingLevel = clap::helpers::CheckingLevel::Maximal;
+// not Maximal: it answers every get_value by walking the whole parameter list
+static constexpr auto checkingLevel = clap::helpers::CheckingLevel::Minimal;
 
 using PluginHelper = clap::helpers::Plugin<misbehaviourLevel, checkingLevel>;
 
