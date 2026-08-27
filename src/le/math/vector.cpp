@@ -141,22 +141,12 @@ void fill(InputOutputRange const data, float const value)
 /// tried.
 void negate(InputOutputRange const data) { negate(data, 1); }
 
-void negate(InputOutputRange data, unsigned int const stride)
+/// \note Strided elements, not floats: the two differ past a stride of one, and
+/// passing the second wrote a range's worth past the end. \see issue #10.
+void negate(InputOutputRange const data, unsigned int const stride)
 {
-#if defined(LE_MATH_USE_ACC)
-    negate(data.begin(), stride, static_cast<unsigned int>(data.size()));
-#else
-    // Implementation note:
-    //   We cannot just write while ( data ) because this checks for equality
-    // between begin() and end() and begin can actually go past end with strides
-    // larger than one.
-    //                                        (01.07.2011.) (Domagoj Saric)
-    while (data.begin() < data.end())
-    {
-        data.front() = -data.front();
-        data.advance_begin(stride);
-    }
-#endif
+    LE_ASSERT(stride > 0);
+    negate(data.begin(), stride, (static_cast<unsigned int>(data.size()) + stride - 1) / stride);
 }
 
 float const &min(InputRange const &data)
@@ -583,7 +573,8 @@ void negate(float *const pArray, unsigned int const stride, unsigned int const n
 #if defined(LE_MATH_USE_ACC)
     vDSP_vneg(pArray, stride, pArray, stride, numberOfElements);
 #else
-    negate(InputOutputRange(pArray, pArray + numberOfElements), stride);
+    for (unsigned int element(0); element < numberOfElements; ++element)
+        pArray[element * stride] = -pArray[element * stride];
 #endif
 }
 

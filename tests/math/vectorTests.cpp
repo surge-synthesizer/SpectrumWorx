@@ -99,6 +99,23 @@ TEST_CASE("negate, add and multiply", "[math][vector]")
         CHECK(data[index] == Approx((static_cast<float>(index + 1) + 2) * 0.5f));
 }
 
+TEST_CASE("a strided negate stays inside the range it was given", "[math][vector]")
+{
+    /// \note Phlip is the only caller that passes a stride, and what it hands over
+    /// is the main channel's phases -- so anything written past the end lands in
+    /// the next buffer of the engine's shared storage. \see issue #10.
+    AlignedFloats const data(size);
+    data.fill(1);
+
+    constexpr unsigned int half{size / 2};
+    Math::negate(Math::InputOutputRange(data.begin(), data.begin() + half), 2);
+
+    for (unsigned int index(0); index < half; ++index)
+        CHECK(data[index] == ((index % 2) ? 1.0f : -1.0f));
+    for (unsigned int index(half); index < size; ++index)
+        CHECK(data[index] == 1.0f);
+}
+
 TEST_CASE("addProduct is a fused multiply-add over the buffer", "[math][vector]")
 {
     AlignedFloats const a(size), b(size), accumulator(size);
