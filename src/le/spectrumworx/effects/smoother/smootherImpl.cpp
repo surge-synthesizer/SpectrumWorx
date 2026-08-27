@@ -64,7 +64,7 @@ void SmootherImpl::process(Engine::ChannelData_AmPh data, Engine::Setup const &)
         return;
     if (filterLenHalf > dataSize / 2)
         filterLenHalf = dataSize / 2 - 1;
-    Math::symmetricMovingAverage(data.amps(), workBuffer, filterLenHalf);
+    Math::symmetricMovingAverage(data.amps(), workBuffer, filterLenHalf, true /*amplitudes*/);
     Math::copy(workBuffer, data.amps());
 }
 

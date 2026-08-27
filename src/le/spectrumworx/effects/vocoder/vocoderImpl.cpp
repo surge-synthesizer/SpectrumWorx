@@ -252,12 +252,6 @@ void VocoderImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup c
         //...mrmlj...probably still broken 'reduced range' operation...
         LE_ALIGNED_STACK_BUFFER(workBuffer, Engine::real_t, fullNumberOfBins);
         lowPassSpectrum_movingAverage(envelope, workBuffer, setup);
-#ifndef NDEBUG //...mrmlj...?...clear out negative values to avoid assertion failures.
-        for (auto &amp : envelope)
-        {
-            amp = std::max(0.0f, amp);
-        }
-#endif // NDEBUG
     }
     else if (filterMethod() == FilterMethod::Envelope)
     {
@@ -488,7 +482,7 @@ void VocoderImpl::lowPassSpectrum_movingAverage(DataRange const &spectrum,
     // http://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch15.pdf
     LE_ASSERT_MSG(spectrum.size() == workBuffer.size(), "Buffer sizes mismatch.");
     DataRange const smoothedSpectrum(workBuffer);
-    Math::symmetricMovingAverage(spectrum, smoothedSpectrum, filterLength_);
+    Math::symmetricMovingAverage(spectrum, smoothedSpectrum, filterLength_, true /*amplitudes*/);
     Math::copy(smoothedSpectrum, spectrum);
 }
 

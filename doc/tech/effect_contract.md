@@ -966,9 +966,11 @@ presets rendered NaN. The fix and the comment explaining it are at
 case.
 
 **Running sums drift.** `Math::symmetricMovingAverage` carries a sum across
-thousands of bins; over pink noise `Smoother` hands `amph2DFT()` an amplitude a
-hair below zero and asserts. Benign in the output, and the reason the golden
-suite renders only in Release. See issue #10.
+thousands of bins, and a bin below the ulp of that sum vanishes into it and is
+then subtracted back out — leaving a residue no later term removes, so a
+non-negative input comes back negative and stays that way for the rest of the
+buffer. Pass `forcePositive` whenever the input is a magnitude, as `Smoother`,
+`Sharper` and `Vocoder` do. See issue #84.
 
 
 ---

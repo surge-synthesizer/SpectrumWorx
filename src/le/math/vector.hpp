@@ -78,8 +78,12 @@ void mix(InputRange const &amps, InputRange const &phases, InputOutputRange cons
 void mix(InputRange const &amps, InputRange const &phases, InputOutputRange const &reals,
          InputOutputRange const &imags, float amPhGain, float reImGain);
 
-void movingAverage(InputOutputRange const &, unsigned int windowWidth);
-void symmetricMovingAverage(InputRange const &, OutputRange, unsigned int windowWidth);
+/// \note forcePositive floors the running sum at zero: pass it wherever the
+/// input is a magnitude, because a running sum cannot preserve non-negativity
+/// on its own. \see issue #84
+void movingAverage(InputOutputRange const &, unsigned int windowWidth, bool forcePositive);
+void symmetricMovingAverage(InputRange const &, OutputRange, unsigned int windowWidth,
+                            bool forcePositive);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Iterator interfaces.

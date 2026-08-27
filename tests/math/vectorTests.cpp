@@ -245,7 +245,7 @@ TEST_CASE("movingAverage slides a window", "[math][vector]")
     // The idiom Span exists for: advance_begin/advance_end walking a window.
     AlignedFloats const data(16);
     data.fill(1);
-    Math::movingAverage(Math::InputOutputRange(data), 4);
+    Math::movingAverage(Math::InputOutputRange(data), 4, false /*forcePositive*/);
     // A constant signal averages to itself over the full-window section.
     for (unsigned int index(0); index + 4 <= 16; ++index)
         CHECK(data[index] == Approx(1.0f));
@@ -266,11 +266,73 @@ TEST_CASE("symmetricMovingAverage survives a window wider than the data", "[math
         for (unsigned int window(1); window <= 16; ++window)
         {
             INFO("size " << size << ", window " << window);
-            Math::symmetricMovingAverage(input, output, window);
+            Math::symmetricMovingAverage(input, output, window, false /*forcePositive*/);
             // A constant signal averages to itself, whatever the window does.
             for (unsigned int index(0); index < size; ++index)
                 CHECK(output[index] == Approx(1.0f));
         }
+    }
+}
+
+TEST_CASE("symmetricMovingAverage keeps a magnitude non-negative", "[math][vector]")
+{
+    // a bin below the ulp of the partial sum vanishes into the running sum and
+    // is then subtracted back out, leaving a residue no later term removes
+    AlignedFloats const input(12), output(12);
+    input.fill(0);
+    input[2] = 74;
+    input[3] = 1e-4f;
+
+    Math::symmetricMovingAverage(input, output, 4, true /*forcePositive*/);
+
+    for (unsigned int index(0); index < input.size(); ++index)
+    {
+        INFO("bin " << index << " = " << output[index]);
+        CHECK(output[index] >= 0);
+    }
+}
+
+TEST_CASE("symmetricMovingAverage carries no negative residue", "[math][vector]")
+{
+    // the residue is sticky: it survives to poison a later window that has
+    // nothing to do with the pair of bins that produced it
+    AlignedFloats const input(20), output(20);
+    input.fill(0);
+    input[2] = 74;
+    input[3] = 1e-4f;
+    input[14] = 1e-6f;
+
+    Math::symmetricMovingAverage(input, output, 4, true /*forcePositive*/);
+
+    // one non-zero bin inside a five wide window
+    CHECK(output[14] == Approx(1e-6f / 5));
+}
+
+TEST_CASE("symmetricMovingAverage leaves a signed input signed", "[math][vector]")
+{
+    // the floor is opt-in: a cepstrum or a phase axis has a sign to keep
+    AlignedFloats const input(16), output(16);
+    input.fill(-1);
+
+    Math::symmetricMovingAverage(input, output, 4, false /*forcePositive*/);
+    for (unsigned int index(0); index < input.size(); ++index)
+        CHECK(output[index] == Approx(-1.0f));
+}
+
+TEST_CASE("symmetricMovingAverage's floor costs a well conditioned signal nothing",
+          "[math][vector]")
+{
+    // it may only fire where the running sum has already lost the value
+    AlignedFloats const input(64), floored(64), unfloored(64);
+    input.iota(1);
+
+    for (unsigned int window(1); window <= 16; ++window)
+    {
+        INFO("window " << window);
+        Math::symmetricMovingAverage(input, floored, window, true /*forcePositive*/);
+        Math::symmetricMovingAverage(input, unfloored, window, false /*forcePositive*/);
+        for (unsigned int index(0); index < input.size(); ++index)
+            CHECK(floored[index] == unfloored[index]);
     }
 }
 

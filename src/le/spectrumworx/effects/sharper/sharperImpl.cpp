@@ -75,7 +75,8 @@ void SharperImpl::process(Engine::ChannelData_AmPh data, Engine::Setup const &) 
         return;
 
     LE_ALIGNED_STACK_BUFFER(smoothedAmplitudes, Engine::real_t, data.size());
-    Math::symmetricMovingAverage(data.amps(), smoothedAmplitudes, filterLenHalf_);
+    Math::symmetricMovingAverage(data.amps(), smoothedAmplitudes, filterLenHalf_,
+                                 true /*amplitudes*/);
 
     // Combine (subtract smoother from original) smoothed amplitudes with original one:
     float const limit(cutoff_);

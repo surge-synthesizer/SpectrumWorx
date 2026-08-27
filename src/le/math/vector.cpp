@@ -240,14 +240,28 @@ void mix(InputRange const &amps, InputRange const &phases, InputOutputRange cons
     mix(amps, phases, realsParam, imagsParam, amPhWeight, 1 - amPhWeight);
 }
 
+/// \note A term below the ulp of the partial sum vanishes into it and is then
+/// subtracted back out, leaving a residue no later term removes -- which is why
+/// a running sum cannot keep a non-negative input non-negative. \see issue #84
+namespace
+{
+struct SumFloor
+{
+    bool forcePositive;
+    float operator()(float const sum) const { return forcePositive ? std::max(0.0f, sum) : sum; }
+};
+} // anonymous namespace
+
 // http://www.analog.com/static/imported-files/tech_docs/dsp_book_Ch15.pdf
-void movingAverage(InputOutputRange const &data, unsigned int const windowWidth)
+void movingAverage(InputOutputRange const &data, unsigned int const windowWidth,
+                   bool const forcePositive)
 {
     LE_ASSERT_MSG(windowWidth, "Wrong parameters.");
 
+    SumFloor const floored{forcePositive};
     float const inverseWindowWidth(1 / convert<float>(windowWidth));
     InputOutputRange window(&data[0], &data[windowWidth]);
-    float sum(std::accumulate(window.begin(), window.end(), 0.0f));
+    float sum(floored(std::accumulate(window.begin(), window.end(), 0.0f)));
 
     // Main full window section
     {
@@ -260,6 +274,7 @@ void movingAverage(InputOutputRange const &data, unsigned int const windowWidth)
             float const newSumValue(window.back());
             sum -= oldSumValue;
             sum += newSumValue;
+            sum = floored(sum);
         }
     }
 
@@ -272,6 +287,7 @@ void movingAverage(InputOutputRange const &data, unsigned int const windowWidth)
             window.front() = sum / tailWindowWidth--;
             window.advance_begin(1);
             sum -= oldSumValue;
+            sum = floored(sum);
         }
     }
 }
@@ -280,7 +296,7 @@ void movingAverage(InputOutputRange const &data, unsigned int const windowWidth)
 /// bins and the working range is not, so no parameter range establishes the fit.
 /// Sharper never clamped at all. \see issue #190
 void symmetricMovingAverage(InputRange const &input, OutputRange const output,
-                            unsigned int const windowWidth)
+                            unsigned int const windowWidth, bool const forcePositive)
 {
     LE_ASSERT_MSG(input.size() == output.size(), "Input/output buffer sizes mismatched.");
 
@@ -288,12 +304,14 @@ void symmetricMovingAverage(InputRange const &input, OutputRange const output,
     if (!dataSize)
         return;
 
+    SumFloor const floored{forcePositive};
+
     // half a window either side of a centre sample; zero is the identity
     unsigned int const halfWindowWidth(std::min(windowWidth / 2, (dataSize - 1) / 2));
     unsigned int const fullWindowWidth(halfWindowWidth + 1 + halfWindowWidth);
     InputRange window(&input[0], &input[halfWindowWidth + 1 - 1] + 1);
     float *pOutputSample(output.begin());
-    float sum(std::accumulate(window.begin(), window.end(), 0.0f));
+    float sum(floored(std::accumulate(window.begin(), window.end(), 0.0f)));
 
     // Leading partial window section (before the halfWindowWidth + 1 sample)
     {
@@ -305,7 +323,7 @@ void symmetricMovingAverage(InputRange const &input, OutputRange const output,
         {
             *pOutputSample++ = sum / leadWindowWidth++;
             window.advance_end(1);
-            sum += window.back();
+            sum = floored(sum + window.back());
         }
     }
 
@@ -322,6 +340,7 @@ void symmetricMovingAverage(InputRange const &input, OutputRange const output,
             window.advance_begin(1);
             window.advance_end(1);
             sum += window.back();
+            sum = floored(sum);
         }
     }
 
@@ -336,6 +355,7 @@ void symmetricMovingAverage(InputRange const &input, OutputRange const output,
             *pOutputSample++ = sum / tailWindowWidth--;
             sum -= window.front();
             window.advance_begin(1);
+            sum = floored(sum);
         }
     }
 }
