@@ -233,34 +233,6 @@ SideChainEffect const *sideChainEffect(std::uint8_t const effect)
     return (found != std::end(sideChainEffects)) ? &*found : nullptr;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///
-/// \brief The one effect a checked build cannot render at all.
-///
-/// \note Not this file's finding and nothing to do with the side chain:
-/// `Math::symmetricMovingAverage` carries a running sum across thousands of bins
-/// and the accumulated rounding drifts a hair below zero, so Smoother hands
-/// `amph2DFT()` a negative "amplitude" and the debug-only verification aborts.
-/// It is why `goldenTests.cpp` renders in Release only; the note there is the
-/// long version.
-///
-///   Named and skipped rather than taken as a reason to make this whole file
-/// Release-only. Smoother reads no side chain, so it is one row of the *control*
-/// -- what is lost in a checked build is one effect out of forty-two in the
-/// weaker half of the pair, and what is kept is the point of the file running in
-/// the build that has the assertions.
-///
-////////////////////////////////////////////////////////////////////////////////
-
-bool abortsInACheckedBuild([[maybe_unused]] std::uint8_t const effect)
-{
-#ifndef NDEBUG
-    return std::string_view(Effects::effectStreamingName(effect)) == "Smoother";
-#else
-    return false;
-#endif // NDEBUG
-}
-
 //------------------------------------------------------------------------------
 // Measurement
 //------------------------------------------------------------------------------
@@ -387,16 +359,11 @@ TEST_CASE("An effect with no side chain cannot tell what is on the port", "[effe
     /// rather than a rounding argument.
     ///
     ////////////////////////////////////////////////////////////////////////////
-    unsigned int checked{0}, skipped{0};
+    unsigned int checked{0};
     for (std::uint8_t effect(0); effect < Effects::Constants::numberOfEffects; ++effect)
     {
         if (sideChainEffect(effect))
             continue;
-        if (abortsInACheckedBuild(effect))
-        {
-            ++skipped;
-            continue;
-        }
 
         INFO(Effects::effectName(effect));
         CHECK(render(effect, mainSignal) == render(effect, sideSignal));
@@ -404,9 +371,8 @@ TEST_CASE("An effect with no side chain cannot tell what is on the port", "[effe
     }
 
     // No silent narrowing: the sweep says how much of the list it covered.
-    UNSCOPED_INFO(std::to_string(checked) + " deaf effects compared, " + std::to_string(skipped) +
-                  " skipped in this build type");
-    CHECK((checked + skipped + std::size(sideChainEffects)) == Effects::Constants::numberOfEffects);
+    UNSCOPED_INFO(std::to_string(checked) + " deaf effects compared");
+    CHECK((checked + std::size(sideChainEffects)) == Effects::Constants::numberOfEffects);
 }
 
 TEST_CASE("The engine's own path ignores the side chain", "[effects][side-chain]")
@@ -502,11 +468,9 @@ std::string keyFor(std::uint8_t const effect, SignalPair const &pair,
 
 TEST_CASE("Side-chain fixtures", "[golden][side-chain]")
 {
-    /// \note The same skip and the same reason as `goldenTests.cpp`: rendering
-    /// real spectra in a checked build aborts inside Smoother's moving average.
-    /// Smoother is not in this set, but Sumo Pitch and the two Pitch Followers
-    /// reach the same verification through their own smoothing, so the rule is
-    /// kept whole rather than argued case by case.
+    /// \note The same skip and the same reason as `goldenTests.cpp`: the hash is
+    /// a same-build contract, and several of the effects in this set render
+    /// different bits in a checked build.
 #ifndef NDEBUG
     SKIP("Fixtures render in a release build -- see the note in goldenTests.cpp.");
 #endif

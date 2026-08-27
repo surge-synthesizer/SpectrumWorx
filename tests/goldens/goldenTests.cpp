@@ -384,21 +384,13 @@ std::string driftReport(std::vector<SWTest::Fixture> const &rendered,
 
 } // anonymous namespace
 
-/// \note Rendering the whole matrix in a checked build aborts on a debug-only
-/// verification assert: Math::symmetricMovingAverage carries a running sum
-/// across thousands of bins, and over pink noise the accumulated rounding
-/// drifts a hair below zero, so Smoother hands amph2DFT() a negative
-/// "amplitude". Benign in the output -- a sign flip on a near-silent bin --
-/// but it is a real numerical weakness, and fixing it means changing DSP
-/// output, which is precisely what should not happen in the commit that mints
-/// the baseline. It belongs with the vector primitives in stage 4.
-///
-/// The goldens are therefore a release-build artifact, which is also the build
-/// that ships. The checked build still runs every other test.
+/// \note The hash column is a same-build contract and a checked build is not that
+/// build: the pitch shifters and the effects that blend two spectra render
+/// different bits at -O0, every one of them legitimately. So the goldens are a
+/// release-build artifact, which is also the build that ships.
 #ifndef NDEBUG
 #define LE_SW_GOLDENS_NEED_A_RELEASE_BUILD                                                         \
-    SKIP("Goldens render in a release build; a checked build aborts inside Smoother -- see the "   \
-         "note in goldenTests.cpp.")
+    SKIP("Goldens render in a release build -- see the note in goldenTests.cpp.")
 #else
 #define LE_SW_GOLDENS_NEED_A_RELEASE_BUILD static_cast<void>(0)
 #endif
@@ -462,8 +454,6 @@ TEST_CASE("Golden fixtures", "[golden]")
 
 TEST_CASE("Every effect leaves the output finite and bounded", "[golden][sanity]")
 {
-    LE_SW_GOLDENS_NEED_A_RELEASE_BUILD;
-
     // Independent of the fixture file: whatever the goldens say, no effect may
     // emit a NaN or run away, and this stays meaningful across a deliberate
     // golden update.

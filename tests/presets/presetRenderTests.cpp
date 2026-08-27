@@ -25,33 +25,41 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 //------------------------------------------------------------------------------
-
-/// \note A release-build artifact, for the reason goldenTests.cpp gives at
-/// length and this file met eight times over: rendering real spectra in a checked
-/// build aborts on a debug-only verification that no amplitude is negative, and a
-/// running sum across thousands of bins drifts a hair below zero on plenty of
-/// ordinary material. Benign in the output -- the release run renders every one
-/// finite, which is the property this file is here for -- and a real numerical
-/// weakness in the vector primitives rather than in any of these presets. A skip
-/// list would have needed a dozen names and would have grown; recorded in
-/// issue #10 instead.
+namespace
+{
+/// \brief The presets a checked build still cannot play, by name.
+///
+/// \note Phlip followed by Ethereal leaves a negative amplitude; neither does it
+/// alone, and Ethereal copies the side channel's magnitudes over the main
+/// channel's. \see issue #10.
+///
+///   A rename drops a preset off this list rather than muting it silently.
+bool skipped([[maybe_unused]] std::filesystem::path const &preset,
+             [[maybe_unused]] std::filesystem::path const &banks)
+{
 #ifndef NDEBUG
-#define LE_SW_PRESET_RENDER_NEEDS_A_RELEASE_BUILD                                                  \
-    SKIP("Presets render in a release build; a checked build aborts on the negative amplitude "    \
-         "verification -- see the note in presetRenderTests.cpp.")
+    constexpr std::string_view abortsInACheckedBuild[]{
+        "Overt Dynamics/Digi Shuffler.swp",
+        "Overt Dynamics/Transformer Crunch.swp",
+    };
+    auto const relative(std::filesystem::relative(preset, banks).generic_string());
+    return std::ranges::find(abortsInACheckedBuild, relative) != std::end(abortsInACheckedBuild);
 #else
-#define LE_SW_PRESET_RENDER_NEEDS_A_RELEASE_BUILD static_cast<void>(0)
-#endif
+    return false;
+#endif // NDEBUG
+}
+} // anonymous namespace
+//------------------------------------------------------------------------------
 
 TEST_CASE("Every factory preset renders finite audio", "[presets][render]")
 {
-    LE_SW_PRESET_RENDER_NEEDS_A_RELEASE_BUILD;
-
     constexpr std::uint32_t blockSize{512};
     constexpr float sampleRate{48000};
     constexpr unsigned int blocks{16};
@@ -65,6 +73,8 @@ TEST_CASE("Every factory preset renders finite audio", "[presets][render]")
     for (auto const &file : std::filesystem::recursive_directory_iterator(banks))
     {
         if (file.path().extension() != ".swp")
+            continue;
+        if (skipped(file.path(), banks))
             continue;
 
         /// \note One engine per preset, as presetCorpusTests.cpp does: loading B

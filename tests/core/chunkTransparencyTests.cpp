@@ -66,7 +66,6 @@
 #include <cmath>
 #include <cstdint>
 #include <span>
-#include <string_view>
 #include <vector>
 //------------------------------------------------------------------------------
 namespace
@@ -290,17 +289,6 @@ TEST_CASE("The engine's own WOLA path does not care how the block was cut up", "
                            SWTest::Signal::Sweep);
 }
 
-/// \brief Skipped for a reason that has nothing to do with chunking: Smoother
-/// writes a negative amplitude, and the engine's own `Negative` check on
-/// `amPhData.amps()` (`channelData.cpp:125`) aborts a Debug run the moment
-/// anything renders it. A single whole-block render does it; this file is simply
-/// the first thing to render every effect in a checked build. \see issue #84,
-/// with which this exclusion should come off.
-bool tripsTheEngineInDebug(std::uint8_t const effect)
-{
-    return std::string_view(Effects::effectStreamingName(effect)) == "Smoother";
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \brief **A seeded render repeats**, for every effect, on a fresh engine.
@@ -326,8 +314,6 @@ TEST_CASE("The same seed renders the same samples", "[chunking][seed]")
 {
     for (std::uint8_t effect(0); effect < Effects::Constants::numberOfEffects; ++effect)
     {
-        if (tripsTheEngineInDebug(effect))
-            continue;
         INFO("effect " << unsigned(effect) << " (" << Effects::effectName(effect) << ')');
         SWTest::Slot const slots[]{{static_cast<std::int8_t>(effect), {}}};
 
@@ -359,8 +345,6 @@ TEST_CASE("No effect can tell how the block was cut up", "[chunking]")
 {
     for (std::uint8_t effect(0); effect < Effects::Constants::numberOfEffects; ++effect)
     {
-        if (tripsTheEngineInDebug(effect))
-            continue;
         INFO("effect " << unsigned(effect) << " (" << Effects::effectName(effect) << ')');
         SWTest::Slot const slots[]{{static_cast<std::int8_t>(effect), {}}};
         requireTransparent(slots, configurations[0], 1024, configurations[0].hop(),
