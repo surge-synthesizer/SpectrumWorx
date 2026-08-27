@@ -25,37 +25,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <string>
-#include <string_view>
 #include <vector>
-//------------------------------------------------------------------------------
-namespace
-{
-/// \brief The presets a checked build still cannot play, by name.
-///
-/// \note Phlip followed by Ethereal leaves a negative amplitude; neither does it
-/// alone, and Ethereal copies the side channel's magnitudes over the main
-/// channel's. \see issue #10.
-///
-///   A rename drops a preset off this list rather than muting it silently.
-bool skipped([[maybe_unused]] std::filesystem::path const &preset,
-             [[maybe_unused]] std::filesystem::path const &banks)
-{
-#ifndef NDEBUG
-    constexpr std::string_view abortsInACheckedBuild[]{
-        "Overt Dynamics/Digi Shuffler.swp",
-        "Overt Dynamics/Transformer Crunch.swp",
-    };
-    auto const relative(std::filesystem::relative(preset, banks).generic_string());
-    return std::ranges::find(abortsInACheckedBuild, relative) != std::end(abortsInACheckedBuild);
-#else
-    return false;
-#endif // NDEBUG
-}
-} // anonymous namespace
 //------------------------------------------------------------------------------
 
 TEST_CASE("Every factory preset renders finite audio", "[presets][render]")
@@ -73,8 +46,6 @@ TEST_CASE("Every factory preset renders finite audio", "[presets][render]")
     for (auto const &file : std::filesystem::recursive_directory_iterator(banks))
     {
         if (file.path().extension() != ".swp")
-            continue;
-        if (skipped(file.path(), banks))
             continue;
 
         /// \note One engine per preset, as presetCorpusTests.cpp does: loading B

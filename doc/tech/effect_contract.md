@@ -656,7 +656,7 @@ enrols the effect and — for the two snapshot files — obliges you to regenera
 | `clap/parameterModelTests.cpp` | id-count agreement, slot-swap renaming, nameability | no |
 | `tools/show-ui` | one `show-ui-renders-module-<Effect>` offscreen render, registered from `effectsList.hpp` and driven by `SW_SHOW_UI_EFFECT` | no |
 
-Three of these carry **hand-maintained name lists** a new effect can fall silently
+Two of these carry **hand-maintained name lists** a new effect can fall silently
 outside of:
 
 > **A side-chain effect with no row in `sideChainTests.cpp:171-219` fails
@@ -666,17 +666,16 @@ outside of:
 > at `:400` still passes, so the failure arrives as a mystery. Add the row, and if
 > your effect does not listen at its defaults, add the `engage` lambda too.
 
-The other two: `goldenTests.cpp:148-171` (`amplifiesRounding`) lists the ten
-effects whose decisions amplify one-ulp differences and are therefore held to a
-looser tolerance — and its own note asks you to establish that a new entry is a
-decision boundary rather than a bug before adding one. `sideChainTests.cpp:247-254`
-lists the effects that abort in a checked build; it has one entry, Smoother, and
-should not gain a second.
+The other: `goldenTests.cpp`'s `amplifiesRounding` lists the ten effects whose
+decisions amplify one-ulp differences and are therefore held to a looser
+tolerance — and its own note asks you to establish that a new entry is a decision
+boundary rather than a bug before adding one.
 
-> **The goldens render in Release only** (`goldenTests.cpp:331-337` skips under
-> `#ifndef NDEBUG`, because the matrix trips Smoother's assert). So a debug build
-> has nothing to catch a DSP regression, which is why the property tests above
-> exist and run in both. Verify in both build directories.
+> **The two fixture cases render in Release only.** `Golden fixtures` and
+> `Side-chain fixtures` skip under `#ifndef NDEBUG` because the hash column is a
+> same-build contract and a checked build does not render those bits. The rest of
+> the suite runs in both, `Every effect leaves the output finite and bounded`
+> included. Verify in both build directories.
 
 ## 1.11 What the layering forbids
 
@@ -955,7 +954,7 @@ full-spectrum scratch buffer so the history stays whole.
 | PVD and non-PVD twins | `PitchShifterBasedEffect<Base, PitchShifter\|PVPitchShifter>` | Pitch Follower, Pitch Magnet |
 | mark a hot path | `LE_HOT` + `LE_OPTIMIZE_FOR_SPEED_BEGIN/END()`, `LE_COLD` on `setup()` | Colorifer |
 
-### Two numerical traps with receipts
+### Three traps with receipts
 
 **Exact zeros arrive.** A preceding Bandpass, Sharper or Denoiser leaves
 amplitudes at exactly 0. `Exaggerator` raises amplitudes to a user-chosen
@@ -971,6 +970,16 @@ then subtracted back out — leaving a residue no later term removes, so a
 non-negative input comes back negative and stays that way for the rest of the
 buffer. Pass `forcePositive` whenever the input is a magnitude, as `Smoother`,
 `Sharper` and `Vocoder` do. See issue #84.
+
+**A stride is not a count.** `Math::negate( range, stride )` is the only strided
+primitive and `Phlip`'s Even and Odd modes are its only caller. On Apple it
+forwards to `vDSP_vneg`, which wants the number of *elements* to negate, and the
+range's float count was passed instead — so a stride of 2 wrote a range's worth
+past the end, into the next buffer of the shared storage, where the side
+channel's amplitudes live. `Ethereal` copied those back over the main channel's
+and a checked build asserted. An overrun inside one arena is the class a
+sanitizer cannot see; what caught it was two factory presets. The two backends
+had disagreed since 2011 and only Apple was wrong. See issue #10.
 
 
 ---
