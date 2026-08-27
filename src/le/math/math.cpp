@@ -204,15 +204,22 @@ float modulo(float const dividend, float const divisor)
     /// deliberate here (it is what makes this usable for phase mapping into
     /// [0, 2pi)), so the reference is the floored modulo, not fmod.
     /// Phasevolution was the first effect to feed it a negative dividend.
-    LE_ASSERT_MSG(nearEqual(mod, static_cast<float>(std::fmod(dividend, divisor) +
-                                                    ((std::fmod(dividend, divisor) != 0) &&
-                                                             ((dividend < 0) != (divisor < 0))
-                                                         ? divisor
-                                                         : 0))) ||
-                      (static_cast<int>(static_cast<float>(static_cast<float>(dividend) /
-                                                           static_cast<float>(divisor))) !=
-                       static_cast<int>(static_cast<double>(static_cast<double>(dividend) /
-                                                            static_cast<double>(divisor)))),
+    ///
+    /// \note The skip compares the two *floors*: truncation agrees where they
+    /// differ, which is how -10pi mod 2pi got through it.
+    ///
+    /// \note The tolerance is scaled to the dividend rather than to the result.
+    /// `mod` is a cancellation, so its error is an ulp of the dividend however
+    /// small the remainder -- and a ULP count on the result only held where the
+    /// compiler could fuse the multiply-subtract, which x86-64 cannot.
+    LE_ASSERT_MSG((std::fabs(mod - static_cast<float>(std::fmod(dividend, divisor) +
+                                                      ((std::fmod(dividend, divisor) != 0) &&
+                                                               ((dividend < 0) != (divisor < 0))
+                                                           ? divisor
+                                                           : 0))) <=
+                   8 * std::fabs(dividend) * std::numeric_limits<float>::epsilon()) ||
+                      (divisionFloor != static_cast<int>(std::floor(static_cast<double>(dividend) /
+                                                                    static_cast<double>(divisor)))),
                   "Broken modulo.");
     return mod;
 #elif defined(__GNUC__)

@@ -94,6 +94,17 @@ TEST_CASE("modulo matches std::fmod for positive operands", "[math][scalar]")
     CHECK(Math::modulo(7u, 3u) == 1u);
 }
 
+TEST_CASE("modulo survives a quotient that floors differently in double", "[math][scalar]")
+{
+    // -10pi mod 2pi: the float quotient is exactly -5, the double one is
+    // -5.0000000758, so the two floors differ by one and the debug-only
+    // reference check has to know that rather than fire
+    constexpr float twoPi{6.28318548f};
+    CHECK(Math::modulo(-31.4159279f, twoPi) == Approx(0).margin(1e-5));
+    CHECK(Math::modulo(-43.9822998f, twoPi) == Approx(0).margin(1e-5));
+    CHECK(Math::modulo(9179.77246f, -3059.92407f) == Approx(0).margin(1e-3));
+}
+
 TEST_CASE("Power-of-two helpers", "[math][scalar]")
 {
     CHECK(Math::isPowerOfTwo(1024u));
