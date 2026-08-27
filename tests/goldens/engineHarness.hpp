@@ -27,6 +27,8 @@
 #include "le/spectrumworx/sideChainSource.hpp"
 #include "le/utility/buffers.hpp"
 
+#include <sst/plugininfra/cpufeatures.h>
+
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -47,9 +49,18 @@ class Engine : public LE::SW::SpectrumWorxCore
 
     Engine() { setProgram(program_); }
 
-    /// SpectrumWorxCore::process is protected; a host reaches it through the
-    /// per-format wrapper.
-    using Core::process;
+    /// \brief `SpectrumWorxCore::process` is protected; a host reaches it through
+    /// the per-format wrapper, and so does this -- denormal guard included.
+    ///
+    /// \note Without it the harness renders in whatever FPU state the test binary
+    /// started in, which is not the one the plugin renders in. \see issue #10.
+    void process(float const *const *const inputs, float const *const *const pSideChannels,
+                 float *const *const outputs, float const &outputGainScale,
+                 unsigned int const samples)
+    {
+        sst::plugininfra::cpufeatures::FPUStateGuard const denormalGuard;
+        Core::process(inputs, pSideChannels, outputs, outputGainScale, samples);
+    }
 
     /// Likewise protected, and likewise something only a test asks directly.
     /// Six assertions in the engine depend on it; engineOwnershipTests.cpp is
