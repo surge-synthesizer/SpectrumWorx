@@ -32,7 +32,7 @@ struct PitchSpringBase ///<
     typedef CommonParameters::SpringType SpringType;
 
     LE_DEFINE_PARAMETER(Depth, LinearSignedInteger, Minimum<0>, Maximum<2400>, Default<200>,
-                        Unit<" st">);
+                        Unit<" ct">);
     LE_DEFINE_PARAMETER(Period, LinearUnsignedInteger, Minimum<10>, Maximum<10000>, Default<1000>,
                         Unit<" ms">);
     LE_DEFINE_PARAMETERS(SpringType, Depth, Period);
