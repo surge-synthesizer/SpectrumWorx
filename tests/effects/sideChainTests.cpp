@@ -522,51 +522,12 @@ TEST_CASE("Side-chain fixtures", "[golden][side-chain]")
     /// what `goldenTests.cpp` says its own nine amount to. When a second
     /// platform runs this, the drift report is what decides the split.
     ///
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \note **Measured, 06.08.2026, and then read.** Linux/x86_64 put Ethereal
-    /// and Vaxateer outside `amplified()`; Windows/x86_64 -- the same
-    /// architecture and the same pffft, so MSVC against GCC -- left those two
-    /// alone and put **Merger** outside it instead, all four rows, peak by 0.65
-    /// to 0.76. Two platforms, two different answers, which is what a list built
-    /// one runner at a time looks like from the inside.
-    ///
-    ///   So the third was added by reading the other twelve rather than by
-    /// waiting for a fourth platform. What these three have and the twelve do
-    /// not is a per-bin branch on a comparison **between two computed spectra**,
-    /// which then substitutes the side channel's value for the main one:
-    ///
-    ///     Ethereal   side < main * threshold          -> amps and phases
-    ///     Vaxateer   (a > b) && (c > d)               -> amps
-    ///     Merger     *pLargerValue > *pSmallerValue   -> amps and phases
-    ///
-    /// A flipped bin therefore does not move a value, it swaps in a different
-    /// one -- and where the phase goes with it, neighbouring bins line up and
-    /// the *peak* moves far more than the rms does, which is the signature all
-    /// three failures share. Vaxateer has a second sensitivity on top: its
-    /// threshold is `rmsGain_ * Math::rms( amps )`, a reduction over the whole
-    /// spectrum, so a different vector width moves the threshold as well as the
-    /// bins measured against it.
-    ///
-    ///   The other twelve branch on parameters or on a precomputed position
-    /// table -- deterministic given the preset -- or are arithmetic throughout.
-    /// Burrito comes closest, assigning `data.side().phases()` under `if
-    /// (*pPosition++)`, but that table is its period wrapping around rather than
-    /// a measurement of the spectra. None of them is expected here; if one turns
-    /// up, it is a finding rather than a fourth row for this list.
-    ///
-    ///   None of the three is a bound that could be widened and still fail on
-    /// silence, so they get `sameBuildOnly()` and keep the hash. The twelve keep
-    /// the wide bound, which none of them has yet needed all of.
+    /// \note Ethereal, Vaxateer and Merger stood outside even this bound, on
+    /// `sameBuildOnly()`. They are held to the same one as the other twelve now
+    /// that they are compiled correctly, and what they do is asserted in
+    /// `comparingEffectsTests.cpp`. \see issue #21.
     ///
     ////////////////////////////////////////////////////////////////////////////
-    auto const tolerancesFor([](std::string const &key) {
-        auto const effect(std::string_view(key).substr(0, key.find('/')));
-        return ((effect == "Ethereal") || (effect == "Vaxateer") || (effect == "Merger"))
-                   ? SWTest::Tolerances::sameBuildOnly()
-                   : SWTest::Tolerances::amplified();
-    });
-
     std::vector<std::string> failures;
     for (auto const &fixture : fixtures)
     {
@@ -576,8 +537,8 @@ TEST_CASE("Side-chain fixtures", "[golden][side-chain]")
             failures.push_back(fixture.key + ": no golden");
             continue;
         }
-        auto const result(
-            SWTest::compare(entry->second, fixture.digest, sameBuild, tolerancesFor(fixture.key)));
+        auto const result(SWTest::compare(entry->second, fixture.digest, sameBuild,
+                                          SWTest::Tolerances::amplified()));
         if (!result.matches)
             failures.push_back(fixture.key + ": " + result.explanation);
     }

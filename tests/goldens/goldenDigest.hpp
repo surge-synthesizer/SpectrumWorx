@@ -150,30 +150,6 @@ struct Tolerances
     /// goldenTests.cpp. Loose enough to absorb a moved bin, still tight enough
     /// that silence, a gross gain change or a different spectrum fails.
     static Tolerances amplified();
-
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \brief No numeric contract at all: the hash, and nothing else.
-    ///
-    ///   For an effect whose decision boundary sits where the inputs do, rather
-    /// than somewhere the inputs occasionally reach. Ethereal against a silent
-    /// side channel tests `0 < main * threshold` -- so the branch turns on
-    /// whether a near-silent bin is exactly zero or a denormal, which is an
-    /// answer x86 and aarch64 give differently, and each flipped bin takes the
-    /// side's phase of 0 and aligns with its neighbours. Measured across
-    /// macOS/arm64 against Linux/x86_64 that is a relative peak of 0.99 and 111
-    /// dB in a band: not a moved bin, a different render.
-    ///
-    ///   `amplified()` cannot be widened to cover it and stay a test -- a bound
-    /// admitting 0.99 admits silence and a doubled gain too. So these rows keep
-    /// the parts that still mean something on any machine (the non-finite count,
-    /// and `Digest::peak == 0`, which the fixture cases check separately) and
-    /// the bit-exact hash on the machine that minted them, which is where their
-    /// regression cover actually lives. What the effects *do* belongs in a
-    /// behavioural case, the way amplifyingEffectsTests.cpp answered the nine.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-    static Tolerances sameBuildOnly();
 }; // struct Tolerances
 
 bool withinTolerance(Deltas const &, Tolerances const &);

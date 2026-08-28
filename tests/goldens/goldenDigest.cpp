@@ -20,7 +20,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
-#include <limits>
 // \note std::numbers::pi rather than M_PI, which is a POSIX extension MSVC only
 // defines under _USE_MATH_DEFINES.
 #include <numbers>
@@ -309,15 +308,6 @@ Tolerances Tolerances::amplified()
     /// relative difference near 1, and a genuinely different spectrum moves a
     /// band by far more than 8 dB.
     return Tolerances{0.35f, 0.20f, 5e-3f, 8.0f};
-}
-
-Tolerances Tolerances::sameBuildOnly()
-{
-    // Infinities rather than a large number, so that nothing here reads as a
-    // bound somebody measured. compare() still enforces the non-finite count
-    // and, on the minting machine, the hash.
-    auto const unbounded(std::numeric_limits<float>::infinity());
-    return Tolerances{unbounded, unbounded, unbounded, unbounded};
 }
 
 bool withinTolerance(Deltas const &measured, Tolerances const &tolerances)

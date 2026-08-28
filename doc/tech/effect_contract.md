@@ -647,6 +647,7 @@ enrols the effect and — for the two snapshot files — obliges you to regenera
 | `effects/effectsListTests.cpp` | count, uniqueness of `title[]`, index↔name round trip, distinct impl type, group membership | no — but bump the count asserts |
 | `effects/sideChainTests.cpp` | renders **all 57** with and without a side chain and checks whether the output moves | see the trap below |
 | `effects/amplifyingEffectsTests.cpp` | finite/bounded output, determinism (same render twice), bypass equals the empty chain — plus hand-written per-effect properties | no |
+| `effects/comparingEffectsTests.cpp` | Ethereal, Vaxateer and Merger: what each selects, and that a side chain fed the main signal leaves all three transparent at every setting | no |
 | `effects/silentDefaultsTests.cpp` | pins the effects legitimately silent at defaults and asserts that set may not grow | **yes if yours is silent** — and prefer fixing the defaults |
 | `goldens/goldenTests.cpp` | 8 rows per effect — 2 FFT/overlap configurations × 4 signals — into `goldens/data/goldens.txt`. 500 ms each, except the effects `needsALongRender()` names, which get 2 s | **yes** — `SW_GOLDEN_UPDATE=1`, and read the diff before committing it |
 | `parameters/parameterTableTests.cpp` | puts every effect into slot 0 in turn and dumps its parameter table | **yes** — `SW_PARAMETER_TABLE_UPDATE=1` |
@@ -669,7 +670,10 @@ outside of:
 The other: `goldenTests.cpp`'s `amplifiesRounding` lists the ten effects whose
 decisions amplify one-ulp differences and are therefore held to a looser
 tolerance — and its own note asks you to establish that a new entry is a decision
-boundary rather than a bug before adding one.
+boundary rather than a bug before adding one. A third list, three effects held to
+no numeric bound at all, was deleted once the reason they diverged turned out to
+be undefined behaviour rather than arithmetic; the note asks that of a new entry
+because it was right to.
 
 > **The two fixture cases render in Release only.** `Golden fixtures` and
 > `Side-chain fixtures` skip under `#ifndef NDEBUG` because the hash column is a
@@ -954,7 +958,7 @@ full-spectrum scratch buffer so the history stays whole.
 | PVD and non-PVD twins | `PitchShifterBasedEffect<Base, PitchShifter\|PVPitchShifter>` | Pitch Follower, Pitch Magnet |
 | mark a hot path | `LE_HOT` + `LE_OPTIMIZE_FOR_SPEED_BEGIN/END()`, `LE_COLD` on `setup()` | Colorifer |
 
-### Three traps with receipts
+### Four traps with receipts
 
 **Exact zeros arrive.** A preceding Bandpass, Sharper or Denoiser leaves
 amplitudes at exactly 0. `Exaggerator` raises amplitudes to a user-chosen
@@ -980,6 +984,20 @@ channel's amplitudes live. `Ethereal` copied those back over the main channel's
 and a checked build asserted. An overrun inside one arena is the class a
 sanitizer cannot see; what caught it was two factory presets. The two backends
 had disagreed since 2011 and only Apple was wrong. See issue #10.
+
+**A range picked before the loop does not follow it.** `Ethereal`, `Vaxateer`
+and `Merger` each chose their comparison operands once — `ReadOnlyDataRange
+const & sideAmps( data.side().amps() )` — and read them inside a `while ( data )`
+that advances the very ranges they name. That reference came back through
+`SubRange`'s const accessor, which `reinterpret_cast`-ed a `Span<float>` into a
+`Span<float const>`; under that aliasing promise the optimiser was free to hoist
+the source pointer, and it did. Every bin the effect replaced got **bin zero's**
+value, so `Ethereal` at its defaults rendered a peak of 81 where the correct
+answer was 0.5 — a 160× error against the same source built at `-O0`, and the
+whole of the "99 % disagreement between two architectures" those three were
+excused from the fixture bounds for. The pun is gone: the const accessors return
+a view by value. If you need a source that tracks the loop, read it through
+`data` each bin or advance a cursor of your own alongside. See issue #21.
 
 
 ---
@@ -1076,11 +1094,11 @@ Ten effects, nine of which read the side chain.
 |---:|---|---|---:|---|:-:|---|
 | 33 | Talking Wind | `talking_wind` | 2 | — | ✔ | Cepstral vocoder: main is the modulator, side the carrier. **The reference side-chain effect**, and it says its polarity in a comment. |
 | 34 | Convolver | `convolver` | 3 | D | ✔ | Multiplies main by the live or trigger-frozen side spectrum. **Defaults to the non-side mode.** |
-| 35 | Ethereal | `ethereal` | 3 | — | ✔ | Replaces main bins with side bins where a level comparison holds. Pre-selects sources outside the loop to stay branchless. |
-| 36 | Vaxateer | `vaxateer` | 3 | — | ✔ | Eight comparison modes against an RMS threshold, decoded into four range cursors before the loop. |
+| 35 | Ethereal | `ethereal` | 3 | — | ✔ | Replaces main bins with side bins where a level comparison holds. `Mode` picks what is copied, read through `data` per bin. |
+| 36 | Vaxateer | `vaxateer` | 3 | — | ✔ | Eight comparison modes against an RMS threshold, decoded into four pointers into cursors the loop advances itself. |
 | 37 | Shapeless | `shapeless` | 1 | — | ✔ | Transfers the side channel's spectral shape onto main, chunk by chunk. |
 | 38 | Colorifer | `colorifer` | 3 | — | ✔ | Block-wise energy ratio transfer with optional square/sqrt/exp preprocessing. The `LE_HOT`/`LE_COLD` reference. |
-| 39 | Merger | `merger` | 2 | — | ✔ | Six conditions collapsed to two range pointers and one branchless loop. |
+| 39 | Merger | `merger` | 2 | — | ✔ | Six conditions collapsed to two pointers into cursors the loop advances itself, and one branchless loop. |
 | 40 | Blender | `blender` | 1 | — | ✔ | One `Math::mix` over a `jointView()` of the ReIm pair. §2.4. |
 | 41 | Inserter | `inserter` | 4 | — | ✔ | Blits a band of the side spectrum into main at a chosen destination. |
 | 42 | Burrito | `burrito` | 4 | MC+D | ✔ | Replaces or sums side bins at randomly chosen positions, re-rolled every `Period`. **The positions only change once the period wraps** — and at the default `Period` of 250 ms and `Replace` mode, a fixture shorter than that with side == main sees nothing at all. |

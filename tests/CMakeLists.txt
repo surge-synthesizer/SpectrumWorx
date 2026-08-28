@@ -28,6 +28,7 @@ add_executable(sw-dsp-tests
         core/engineSetupTests.cpp
         core/protocolTests.cpp
         effects/amplifyingEffectsTests.cpp
+        effects/comparingEffectsTests.cpp
         effects/effectsListTests.cpp
         effects/freezeTests.cpp
         effects/parameterFuzzTests.cpp
