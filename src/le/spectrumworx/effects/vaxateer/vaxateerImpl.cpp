@@ -65,9 +65,11 @@ void VaxateerImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup 
     float const thr(rmsGain_ * Math::rms(pRMSSource->amps()));
 
     // Setup threshold comparison sources:
-    ReadOnlyDataRange const &mainAmps(
-        static_cast<Engine::ChannelData_AmPh const &>(data.main()).amps());
-    ReadOnlyDataRange const &sideAmps(data.side().amps());
+    /// \note Cursors of our own, advanced alongside `data`: a range taken from
+    /// the spectra does not follow the loop, so pointing at one pinned every
+    /// comparison to bin zero. \see issue #21.
+    ReadOnlyDataRange mainAmps(data.main().amps());
+    ReadOnlyDataRange sideAmps(data.side().amps());
     ReadOnlyDataRange const threshold(&thr, &thr + 1);
 
     ReadOnlyDataRange const *pThresholdComparisonHigherSource;
@@ -146,6 +148,8 @@ void VaxateerImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup 
         }
 
         ++data;
+        mainAmps.advance_begin(1);
+        sideAmps.advance_begin(1);
     }
 }
 

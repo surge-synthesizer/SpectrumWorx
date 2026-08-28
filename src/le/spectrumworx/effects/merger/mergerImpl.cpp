@@ -52,9 +52,11 @@ void MergerImpl::setup(IndexRange const &, Engine::Setup const &engineSetup)
 void MergerImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup const &) const
 {
     // Possible threshold value sources
-    ReadOnlyDataRange const &mainAmps(
-        static_cast<Engine::ChannelData_AmPh const &>(data.main()).amps());
-    ReadOnlyDataRange const &sideAmps(data.side().amps());
+    /// \note Cursors of our own, advanced alongside `data`: a range taken from
+    /// the spectra does not follow the loop, so pointing at one pinned every
+    /// comparison to bin zero. \see issue #21.
+    ReadOnlyDataRange mainAmps(data.main().amps());
+    ReadOnlyDataRange sideAmps(data.side().amps());
     ReadOnlyDataRange const threshold(&threshold_, &threshold_ + 1);
 
     ReadOnlyDataRange const *pLargerValue;
@@ -96,6 +98,8 @@ void MergerImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup co
             data.main().phases().front() = data.side().phases().front();
         }
         ++data;
+        mainAmps.advance_begin(1);
+        sideAmps.advance_begin(1);
     }
 }
 

@@ -312,18 +312,6 @@ template <class Data> class SharedStorageDataPairImpl : public DataPairImpl<Data
 ///                                           (11.11.2011.) (Domagoj Saric)
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Detail
-{
-template <typename Range> struct makeConst
-{
-    using type = Range;
-};
-template <> struct makeConst<DataRange>
-{
-    using type = ReadOnlyDataRange;
-};
-} // namespace Detail
-
 #pragma warning(push)
 #pragma warning(disable : 4512) // Assignment operator could not be generated.
 
@@ -388,17 +376,6 @@ class SubRange : public DataPairImpl<SubRangeHolder>
     using Impl::first;
     using Impl::second;
 
-    using ReadOnlySubRange = typename Engine::Detail::makeConst<SubRangeHolder>::type;
-
-    ReadOnlySubRange const &first() const
-    {
-        return reinterpret_cast<ReadOnlySubRange const &>(Impl::first());
-    }
-    ReadOnlySubRange const &second() const
-    {
-        return reinterpret_cast<ReadOnlySubRange const &>(Impl::second());
-    }
-
   private:
     FullRangeData *LE_RESTRICT const pFullData_;
 }; // class SubRange
@@ -420,15 +397,6 @@ class SharedStorageHalfFFTBufferPair : public SharedStorageDataPairImpl<HalfFFTB
     template <class FullRangeData, class SubRangeHolder> friend class SubRange;
     using Impl::first;
     using Impl::second;
-
-    ReadOnlyDataRange const &first() const
-    {
-        return reinterpret_cast<ReadOnlyDataRange const &>(data()[First]);
-    }
-    ReadOnlyDataRange const &second() const
-    {
-        return reinterpret_cast<ReadOnlyDataRange const &>(data()[Second]);
-    }
 }; // class SharedStorageHalfFFTBufferPair
 
 namespace Detail

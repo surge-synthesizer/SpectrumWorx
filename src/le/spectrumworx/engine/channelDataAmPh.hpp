@@ -36,8 +36,10 @@ class FullChannelData_AmPh : public Engine::SharedStorageHalfFFTBufferPair
     DataRange const &amps() { return first(); }
     DataRange const &phases() { return second(); }
 
-    ReadOnlyDataRange const &amps() const { return first(); }
-    ReadOnlyDataRange const &phases() const { return second(); }
+    /// \note By value: a read-only view of a mutable range is a different type,
+    /// and returning a reference to one meant type-punning it. \see issue #21.
+    ReadOnlyDataRange amps() const { return first(); }
+    ReadOnlyDataRange phases() const { return second(); }
 }; // class FullChannelData_AmPh
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,8 +59,8 @@ class ChannelData_AmPh : public SubRange<FullChannelData_AmPh, DataRange>
     DataRange const &amps() { return first(); }
     DataRange const &phases() { return second(); }
 
-    ReadOnlyDataRange const &amps() const { return first(); }
-    ReadOnlyDataRange const &phases() const { return second(); }
+    ReadOnlyDataRange amps() const { return first(); }
+    ReadOnlyDataRange phases() const { return second(); }
 }; // class ChannelData_AmPh
 
 #pragma warning(pop)

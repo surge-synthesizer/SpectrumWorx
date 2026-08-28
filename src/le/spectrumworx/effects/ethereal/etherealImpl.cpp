@@ -52,11 +52,10 @@ void EtherealImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup 
 
     float const threshold(threshold_);
 
-    Engine::MainSideChannelData_AmPh const &constData(data);
-    ReadOnlyDataRange const &ampSource(mode_.magnitudes() ? constData.side().amps()
-                                                          : constData.main().amps());
-    ReadOnlyDataRange const &phaseSource(mode_.phases() ? constData.side().phases()
-                                                        : constData.main().phases());
+    /// \note Which side to read, rather than a range to read it from: a range
+    /// picked before the loop does not advance with it. \see issue #21.
+    bool const takeSideAmps(mode_.magnitudes());
+    bool const takeSidePhases(mode_.phases());
 
     while (data)
     {
@@ -66,8 +65,10 @@ void EtherealImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup 
 
         if (shouldReplace)
         {
-            data.main().amps().front() = ampSource.front();
-            data.main().phases().front() = phaseSource.front();
+            if (takeSideAmps)
+                data.main().amps().front() = data.side().amps().front();
+            if (takeSidePhases)
+                data.main().phases().front() = data.side().phases().front();
         }
 
         ++data;

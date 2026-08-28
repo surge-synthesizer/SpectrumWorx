@@ -31,8 +31,8 @@ class FullChannelData_ReIm : public SharedStorageHalfFFTBufferPair
     DataRange const &reals() { return first(); }
     DataRange const &imags() { return second(); }
 
-    ReadOnlyDataRange const &reals() const { return first(); }
-    ReadOnlyDataRange const &imags() const { return second(); }
+    ReadOnlyDataRange reals() const { return first(); }
+    ReadOnlyDataRange imags() const { return second(); }
 };
 
 #pragma warning(push)
@@ -46,8 +46,8 @@ class ChannelData_ReIm : public SubRange<FullChannelData_ReIm, DataRange>
     DataRange const &reals() { return first(); }
     DataRange const &imags() { return second(); }
 
-    ReadOnlyDataRange const &reals() const { return first(); }
-    ReadOnlyDataRange const &imags() const { return second(); }
+    ReadOnlyDataRange reals() const { return first(); }
+    ReadOnlyDataRange imags() const { return second(); }
 };
 
 #pragma warning(pop)
