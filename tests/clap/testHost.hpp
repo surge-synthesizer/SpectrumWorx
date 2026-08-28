@@ -839,14 +839,7 @@ class ActivePlugin
     void flush(clap_input_events const *const events = nullptr,
                clap_output_events const *const out = nullptr) const
     {
-        auto const *const pParams(static_cast<clap_plugin_params const *>(
-            pPlugin_->get_extension(pPlugin_, CLAP_EXT_PARAMS)));
-        REQUIRE(pParams != nullptr);
-        {
-            auto const audioThread(scopedAudioCallback());
-            pParams->flush(pPlugin_, events ? events : &noInputEvents(),
-                           out ? out : &discardedOutputEvents());
-        }
+        flushWithoutPump(events, out);
 
         /// \note And then the callback the plugin asked for, because a real host
         /// runs one. A parameter delivered here is applied to the engine on this
@@ -857,6 +850,28 @@ class ActivePlugin
         /// this, and none of them had a reason to say so before there were two
         /// copies to keep level.
         pumpMainThread();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The same flush, leaving the main thread a drain behind.
+    ///
+    /// \note For the cases whose subject is the drain itself: pumping *is*
+    /// `on_main_thread`, so one folded into the flush would discharge the
+    /// deferral they are asking about, and they would pass proving nothing.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    void flushWithoutPump(clap_input_events const *const events = nullptr,
+                          clap_output_events const *const out = nullptr) const
+    {
+        auto const *const pParams(static_cast<clap_plugin_params const *>(
+            pPlugin_->get_extension(pPlugin_, CLAP_EXT_PARAMS)));
+        REQUIRE(pParams != nullptr);
+
+        auto const audioThread(scopedAudioCallback());
+        pParams->flush(pPlugin_, events ? events : &noInputEvents(),
+                       out ? out : &discardedOutputEvents());
     }
 
     ////////////////////////////////////////////////////////////////////////////

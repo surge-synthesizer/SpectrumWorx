@@ -134,7 +134,7 @@ std::vector<float> run(Arrangement const arrangement)
 
     auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
-    parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
+    plugin.flush(&*fillSlotOne);
 
     std::vector<float> leftIn(blockSize), rightIn(blockSize);
     std::vector<float> sideLeft(blockSize), sideRight(blockSize);
@@ -319,7 +319,7 @@ TEST_CASE("The sample is read forwards rather than held", "[external-audio][side
 
     auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
-    parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
+    plugin.flush(&*fillSlotOne);
 
     editorHostOf(*plugin).setNewSample(carrier());
 
@@ -368,7 +368,7 @@ TEST_CASE("Clearing the sample stops it being heard", "[external-audio][side-cha
 
     auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
-    parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
+    plugin.flush(&*fillSlotOne);
 
     std::vector<float> leftIn(blockSize), rightIn(blockSize);
     std::vector<float> sideLeft(blockSize), sideRight(blockSize);
@@ -425,7 +425,7 @@ TEST_CASE("The sample goes back to its start when the transport does",
 
     auto const colorifer(SWTest::effectByStreamingName("Colorifer"));
     OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), colorifer);
-    parameters(*plugin).flush(&*plugin, &*fillSlotOne, &discardedOutputEvents());
+    plugin.flush(&*fillSlotOne);
 
     editorHostOf(*plugin).setNewSample(carrier());
 

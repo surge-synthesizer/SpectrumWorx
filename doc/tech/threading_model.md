@@ -538,6 +538,15 @@ shared assertion counter and is reported as a race in
 `processStatus()` for exactly this: the workers record and the main thread
 asserts.
 
+**And flush through the harness rather than the extension.** A flush against an
+active plugin is `[audio-thread]`, so `ActivePlugin::flush()` brackets it in a
+`TestHost::AudioCallback` and then runs the callback a real host would;
+`flushWithoutPump()` is the same call for the two cases whose subject is the
+deferral. Reaching for `parameters( *plugin ).flush( &*plugin, … )` instead
+calls it from the main thread, and a host that offers `clap.thread-check` says
+so — which is how the case in `hostInteropTests.cpp` that asserts
+`hostMisbehaviours().empty()` found it.
+
 **A case that reads one copy is a case that cannot see this class of bug.** The
 display, `paramsValue`, `stateSave` and the preset writer all answer from the
 main thread's `Program`, so a test built out of any of them agrees with an edit
