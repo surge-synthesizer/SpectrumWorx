@@ -290,6 +290,17 @@ class PresetBrowser final : public PanelBackground,
     /// loop to deliver it.
     void commentChanged();
 
+    /// \name What the two Save buttons do.
+    /// \note Public for the same reason: juce::Button::triggerClick() posts.
+    ///@{
+    void savePressed();
+    void saveAsPressed();
+    ///@}
+
+    /// \brief Whether the filename box is up waiting to be told what to call a
+    /// new preset -- which is how far a Save As gets before the user answers.
+    bool isNamingANewPreset() const { return newPresetPending_; }
+
   private:
   private: // friend class Detail::BackgroundWithCurrentFolder;
     juce::TextEditor presetNameEditBox_;

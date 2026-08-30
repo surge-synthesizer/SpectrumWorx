@@ -667,14 +667,79 @@ void PresetBrowser::saveCurrentPreset(juce::String const &presetName, fs::path c
     rememberLoadedPreset(presetName, targetFile);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Both ask for a byline first, and a patch with nowhere to record one is
+/// the reason. **Save is asked as well as Save As**: it overwrites a file that
+/// already carries an author, so letting it through unsigned would take a byline
+/// *off* a patch rather than merely fail to put one on. \see issue #56.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void PresetBrowser::savePressed()
+{
+    if (!editor().requireAuthorForSaving())
+        return;
+
+    // the preset that is *playing*, not the row the list is pointing at
+    auto const &loaded(editor().editorHost().loadedPreset());
+    if (loaded.canBeOverwritten())
+        saveCurrentPreset(loaded.name, loaded.file);
+}
+
+void PresetBrowser::saveAsPressed()
+{
+    if (!editor().requireAuthorForSaving())
+        return;
+
+    // a factory bank has nowhere to write, and Save As is offered there now,
+    // so it takes the list with it
+    goToUserPresets();
+
+    // a name the user is *offered*, so it may be imperfect but may not take
+    // forever. Running out of numbers offers one that is already taken,
+    // which is what the first round offers anyway: the edit box is up and
+    // the user types over it
+    constexpr unsigned int mostNamesToTry{1000};
+
+    juce::String const baseName(editor().currentProgramName());
+    juce::String newPreset(baseName);
+
+    for (unsigned int counter(1);
+         (findPreset(newPreset) != files_.end()) && (counter <= mostNamesToTry); ++counter)
+        newPreset = baseName + juce::String::formatted(" (%02u)", counter);
+
+    // Implementation note:
+    //   Creating a new preset is done asynchronously (as it waits for
+    // user input), so further processing is delegated to the
+    // textEditorReturnKeyPressed() callback.
+    //                                    (17.12.2009.) (Domagoj Saric)
+    //
+    // The box this puts up owns the keyboard until then. \see buttonClicked().
+
+    newPresetPending_ = true;
+
+    showFilenameEditBox(newPreset, PresetBrowser::getNumRows());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **Save As returns before the focus move at the bottom, and must.** It
+/// has just put the filename box up, and taking the focus off that box is what
+/// dismisses it -- so a press would open the box and shut it again in the same
+/// call. Hoisted out of the chain rather than left as a `return` among the
+/// `else if`s, which is where it read as removable and was removed.
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void PresetBrowser::buttonClicked(juce::Button *const pButton)
 {
+    if (pButton == &saveAs_)
+        return saveAsPressed();
+
     if (pButton == &save_)
     {
-        // the preset that is *playing*, not the row the list is pointing at
-        auto const &loaded(editor().editorHost().loadedPreset());
-        if (loaded.canBeOverwritten())
-            saveCurrentPreset(loaded.name, loaded.file);
+        savePressed();
     }
     else if (pButton == &delete_)
     {
@@ -687,38 +752,6 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
             delete_.setEnabled(false);
             deselectAllRows();
         }
-    }
-    else if (pButton == &saveAs_)
-    {
-        // a factory bank has nowhere to write, and Save As is offered there now,
-        // so it takes the list with it
-        goToUserPresets();
-
-        // a name the user is *offered*, so it may be imperfect but may not take
-        // forever. Running out of numbers offers one that is already taken,
-        // which is what the first round offers anyway: the edit box is up and
-        // the user types over it
-        constexpr unsigned int mostNamesToTry{1000};
-
-        juce::String const baseName(editor().currentProgramName());
-        juce::String newPreset(baseName);
-
-        for (unsigned int counter(1);
-             (findPreset(newPreset) != files_.end()) && (counter <= mostNamesToTry); ++counter)
-            newPreset = baseName + juce::String::formatted(" (%02u)", counter);
-
-        // Implementation note:
-        //   Creating a new preset is done asynchronously (as it waits for
-        // user input) so we return here immediately (delegating further
-        // processing to the textEditorReturnKeyPressed() callback) and skip
-        // the comment().moveKeyboardFocusToSibling() call as this would
-        // cause the popup preset name edit box to disappear immediately.
-        //                                    (17.12.2009.) (Domagoj Saric)
-
-        newPresetPending_ = true;
-
-        showFilenameEditBox(newPreset, PresetBrowser::getNumRows());
-        return;
     }
     else if (pButton == &upFolder_)
     {

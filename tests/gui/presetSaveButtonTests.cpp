@@ -27,11 +27,16 @@
 
 #include "le/spectrumworx/factoryPresets.hpp"
 
+#include "gui/preferences.hpp"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <string>
 //------------------------------------------------------------------------------
 namespace
 {
@@ -311,4 +316,156 @@ TEST_CASE("A preset from another bank is not highlighted", "[gui][presets]")
     auto &browser(browserOf(instance));
 
     CHECK(browser.selectedPresetName().isEmpty());
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Saving without a byline
+// -----------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   A patch says who made it, so a user who has not said who they are is asked
+/// before either Save writes anything, and is put on the page that asks. Issue
+/// #56.
+///
+/// \note **The alert box itself is not reachable here.** It is posted, and there
+/// is no message loop in a test binary to deliver either it or the continuation
+/// that dismissing it runs -- so the two halves are driven separately: the
+/// buttons for the refusal, and `showAuthorSetting()` for where the user lands.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+/// \brief A preferences folder of this case's own, empty.
+///
+/// \note Its own, for the reason preferencesTests.cpp gives at length: ctest
+/// runs a process per case and eight at a time, so a case that *writes* a
+/// preference may not share the folder the rest of the binary reads.
+void useOwnPreferences(char const *const name)
+{
+    auto const folder(fs::path(SW_TEST_OUTPUT_DIR) / "preferences" / name);
+    fs::remove_all(folder);
+    LE::SW::GUI::setPreferencesFolder(folder);
+}
+
+/// An editor showing the browser, with something worth saving in it.
+PresetBrowser &browserWithAnEdit(SWTest::Instance &instance)
+{
+    auto &browser(browserOf(instance));
+    edit(instance);
+    browser.updateSaveButtons();
+    return browser;
+}
+} // anonymous namespace
+
+TEST_CASE("Save As asks for an author name before it asks for a preset name",
+          "[gui][presets][author]")
+{
+    useOwnPreferences("saveAsUnsigned");
+    REQUIRE(LE::SW::GUI::preferences().author().empty());
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance;
+    auto &browser(browserWithAnEdit(instance));
+    REQUIRE(browser.saveAsIsOffered());
+
+    browser.saveAsPressed();
+
+    // the filename box never came up: there is nothing to call it yet
+    CHECK_FALSE(browser.isNamingANewPreset());
+}
+
+TEST_CASE("With an author name Save As asks what to call it", "[gui][presets][author]")
+{
+    useOwnPreferences("saveAsSigned");
+    LE::SW::GUI::preferences().setAuthor("Martin Walker");
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance;
+    auto &browser(browserWithAnEdit(instance));
+    REQUIRE(browser.saveAsIsOffered());
+
+    browser.saveAsPressed();
+
+    CHECK(browser.isNamingANewPreset());
+}
+
+TEST_CASE("Save will not replace a signed patch with an unsigned one", "[gui][presets][author]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Save is asked as well as Save As, and this is why: it overwrites a
+    /// file that already carries a byline, so letting it through unsigned takes
+    /// an author *off* a patch rather than merely failing to put one on.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    useOwnPreferences("saveUnsigned");
+    REQUIRE(LE::SW::GUI::preferences().author().empty());
+
+    auto const folder(fs::path(SW_TEST_OUTPUT_DIR) / "presets" / "saveUnsigned");
+    fs::remove_all(folder);
+    fs::create_directories(folder);
+    auto const file(folder / "Existing.swp");
+
+    {
+        std::ofstream existing(file, std::ios::binary);
+        existing << R"(<SpectrumWorxPreset Version="2.6" LastModified="14.12.2011 18:21" )"
+                    R"(Comment="" Author="Little Endian"><Global In="1"/></SpectrumWorxPreset>)";
+    }
+    auto const before(std::filesystem::file_size(file));
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance;
+    auto &browser(browserOf(instance));
+
+    pretendLoaded(instance, "Existing", PanelState::PresetLocation::user, file);
+    edit(instance);
+    browser.updateSaveButtons();
+    REQUIRE(browser.saveIsOffered());
+
+    browser.savePressed();
+
+    // untouched -- the byline that was in it is still in it
+    CHECK(std::filesystem::file_size(file) == before);
+
+    /// \note And the other half, which is what says the refusal above is the
+    /// gate rather than a Save that never worked from here: name yourself and
+    /// the same press writes, and what it writes is signed.
+    LE::SW::GUI::preferences().setAuthor("Paul Walker");
+    browser.savePressed();
+
+    std::ifstream written(file, std::ios::binary);
+    std::string const contents((std::istreambuf_iterator<char>(written)),
+                               std::istreambuf_iterator<char>());
+    CHECK(contents.find("Author=\"Paul Walker\"") != std::string::npos);
+    CHECK(contents.find("Format=\"3\"") != std::string::npos);
+}
+
+TEST_CASE("Asking for an author name lands on the page that has one", "[gui][presets][author]")
+{
+    useOwnPreferences("authorPrompt");
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance;
+    instance.openEditor();
+    auto &editor(instance.editor());
+
+    // the browser is what the user pressed Save in, and the two panels share one
+    // rectangle -- so this has to shut it, which is why it runs from a dismissed
+    // dialog rather than from inside the button's own callback
+    editor.showPresetBrowser(true);
+    REQUIRE(editor.presetBrowser() != nullptr);
+
+    editor.showAuthorSetting();
+
+    CHECK(editor.presetBrowser() == nullptr);
+    CHECK(instance.panelState().panel == PanelState::Panel::settings);
+    CHECK(instance.panelState().settingsPage ==
+          LE::SW::GUI::SpectrumWorxEditor::interfacePageIndex);
+
+    /// \note Which control has the keyboard is not asserted: a grab only takes
+    /// on a real desktop window and the window manager may refuse it anyway.
+    /// tests/gui/moduleControlFocusTests.cpp is where that machinery lives.
 }

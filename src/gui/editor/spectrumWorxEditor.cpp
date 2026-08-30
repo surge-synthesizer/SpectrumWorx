@@ -1852,6 +1852,29 @@ void SpectrumWorxEditor::showSettings(unsigned int const pageIndexToActivate)
     editorHost_.panelState().panel = PanelState::Panel::settings;
 }
 
+/// \note A continuation, not a call: opening the settings destroys the preset
+/// browser this is asked from, and a dismissed dialog is safely past that.
+bool SpectrumWorxEditor::requireAuthorForSaving()
+{
+    if (!preferences().author().empty())
+        return true;
+
+    juce::Component::SafePointer<SpectrumWorxEditor> const self(this);
+    GUI::warningMessageBox("No author name.", "Please set an author name in Settings.",
+                           [self]() mutable {
+                               if (self)
+                                   self->showAuthorSetting();
+                           });
+    return false;
+}
+
+void SpectrumWorxEditor::showAuthorSetting()
+{
+    showSettings(interfacePageIndex);
+    LE_ASSERT(settings_.has_value());
+    settings_->authorTextBox().editor().grabKeyboardFocus();
+}
+
 /// \note Checked against the tabs this build has rather than trusted: the number
 /// comes out of a host's state blob, written by some earlier version, and JUCE
 /// clamps an out-of-range tab index to -1 and opens a panel with no page in it.

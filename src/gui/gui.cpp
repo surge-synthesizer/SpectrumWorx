@@ -130,6 +130,24 @@ void warningMessageBox(std::string_view const title, std::string_view const mess
     }
 }
 
+void warningMessageBox(std::string_view const title, std::string_view const message,
+                       std::function<void()> onDismissed)
+{
+    LE_ASSERT_MSG(!UnattendedLoad::inProgress(),
+                  "A modal box in front of a host restoring a session.");
+
+    JUCE_AUTORELEASEPOOL
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::MessageBoxIconType::WarningIcon, juce::String(title.data(), title.size()),
+            juce::String(message.data(), message.size()), {}, nullptr,
+            juce::ModalCallbackFunction::create([onDismissed = std::move(onDismissed)](int) {
+                if (onDismissed)
+                    onDismissed();
+            }));
+    }
+}
+
 void warningOkCancelBox(TCHAR const *const title, TCHAR const *const question,
                         std::function<void(bool)> onResult)
 {

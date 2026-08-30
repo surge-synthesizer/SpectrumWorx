@@ -249,6 +249,16 @@ Interface page, and three things about it are deliberate:
   format's, and every route in applies it: the panel as the name is typed, the
   preferences file on the way off disk, and the writer itself.
 
+**Neither Save button writes without one.** A user who has not named themselves
+is asked to, in a box, and dismissing it puts them on the page that asks —
+`SpectrumWorxEditor::requireAuthorForSaving()`. Save is gated as well as Save As,
+because it overwrites a file that already carries a byline and letting it through
+unsigned would take an author *off* a patch. Nothing else is gated, and
+`stateSave` least of all: nobody pressed anything, and a host restoring a project
+may not meet a dialog. The prompt is a *continuation* of the box rather than a
+call beside it, because the two panels share one rectangle — opening the settings
+destroys the browser the press came from.
+
 Every 3.0 document this build writes is written by this user, so session state
 and undo snapshots carry the byline too — there is no rule about which caller
 gets one. That also means a factory preset re-saved by a user is signed by *that

@@ -681,6 +681,24 @@ class SpectrumWorxEditor final : private SkinLifetime,
 
     ////////////////////////////////////////////////////////////////////////////
     ///
+    /// \brief Whether a patch may be saved, and asks for a byline when it may
+    /// not. \see issue #56.
+    ///
+    /// \note False puts a box in front of the user, so this is for the two Save
+    /// buttons and nothing else. A host writing session state is never asked --
+    /// nobody pressed anything, and an unsigned state blob is not a file anyone
+    /// will read a byline off.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    bool requireAuthorForSaving();
+
+    /// \brief Opens the settings on the page the author name is on, with the
+    /// box focused. What dismissing the box above leads to, and public so a
+    /// headless run can get there without one.
+    void showAuthorSetting();
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
     /// \brief Shows this editor at \p zoomPercent and remembers the choice.
     ///
     ///   Three things in one call, and they have to happen in this order:
@@ -1404,6 +1422,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
         ~Settings();
 
         void updateEnginePage();
+
+        /// The Interface page's author box. \see issue #56.
+        TitledTextBox &authorTextBox() { return interfacePage_.authorTextBox(); }
 
         ////////////////////////////////////////////////////////////////////////
         ///

@@ -241,6 +241,14 @@ template <class BaseComponent = juce::Component> class WidgetBase : public BaseC
 
 void warningMessageBox(std::string_view title, std::string_view message, bool canBlock);
 
+/// \brief The same, with something to do once the user has dismissed it.
+///
+/// \note A continuation and not a convenience: the caller is usually inside a
+/// widget's own callback, and \p onDismissed runs long after that has returned
+/// -- which is what makes it safe for it to shut the panel it was called from.
+void warningMessageBox(std::string_view title, std::string_view message,
+                       std::function<void()> onDismissed);
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class UnattendedLoad
