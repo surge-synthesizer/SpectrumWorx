@@ -237,8 +237,8 @@ Interface page, and three things about it are deliberate:
   calls on a *reparsed* 2.x file, so a byline written there would be retrofitted
   onto a grammar that has no such attribute, in a file the plugin it came from
   cannot then read back as it wrote it. Only `SavedPreset::setAuthor()` signs
-  anything, and only the 3.0 writer calls it. Retrofitting 2.x is a separate
-  decision nobody has made.
+  anything, and only the 3.0 writer calls it. The shipped banks were signed
+  another way — see below.
 - **A name is sanitised before it reaches the document**, by
   `SW::sanitisedAuthorName()` — the two quotes, the two angle brackets and the
   control codes go, the rest is trimmed and cut to 64 bytes on a UTF-8 boundary.
@@ -255,6 +255,29 @@ gets one. That also means a factory preset re-saved by a user is signed by *that
 user*: the attribute says who wrote the document, not who the sound is descended
 from. Displaying an author, and filtering the browser by one, are stage two of
 issue #56 and are not here.
+
+### The shipped banks carry one too
+
+All 288 were signed on 30.08.2026 — `Little Endian`, except `Gamma Shift`
+(`Martin Walker`), `Sidechainables` (`CinningBao`), `Overt Dynamics`
+(`Syndicate Synthetique`) and `ESS` (`ESS (Little Endian)`).
+
+**They are still 2.x, and the attribute was inserted into the root tag as byte
+surgery rather than written by the 3.0 writer.** That is the whole constraint:
+these files are the only corpus of the 2.x grammar and the only thing keeping its
+reader honest, so a pass that rewrote them would have left nothing to test the
+reader against. Their line endings differ file to file, 262 of the 288 end in a
+NUL byte and 26 do not, and every one of those bytes is as it was — the edit
+begins and ends inside the opening tag. What it also demonstrates, and what the
+retrofit rests on, is that the 2.x reader ignores an attribute it has never heard
+of.
+
+`tests/presets/data/fixtures` was deliberately **not** signed. Those eight are
+frozen copies that may not be edited, and leaving them unsigned keeps a
+"no byline at all" file in the reader's diet. "Every factory preset says who
+wrote it" (`presetCorpusTests.cpp`) pins the banks, by bank rather than by count,
+so adding a preset is ordinary work and an unsigned or mis-attributed one is a
+finding.
 
 Against 2.x:
 

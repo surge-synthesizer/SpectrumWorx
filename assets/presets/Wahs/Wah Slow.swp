@@ -1,4 +1,4 @@
-<SpectrumWorxPreset Version="2.6" LastModified="15.12.2011 15:57" Comment="">
+<SpectrumWorxPreset Version="2.6" LastModified="15.12.2011 15:57" Comment="" Author="Little Endian">
 	<Global In="1.0000" Out="1.0000" Mix="1.0000" FFT_size="2048" Overlap_factor="4" Window_type="0" Input_mode="0"/>
 	<Modules>
 		<Gain Bypass="0">
