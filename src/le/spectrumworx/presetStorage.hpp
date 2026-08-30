@@ -75,11 +75,14 @@ void copyPresetName(char const *name, std::span<char> target);
 /// \param externalSample empty when no sample is loaded. Stored as UTF-8 bytes,
 /// which is the one spelling that survives the preset being opened on another
 /// machine.
+/// \param author who is saving it, from the settings panel. Empty writes no
+/// byline at all. \see presets.hpp's sanitisedAuthorName().
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 void savePreset(std::filesystem::path const &file, std::filesystem::path const &externalSample,
-                SideChainSource sideChainSource, std::string_view comment, Program const &);
+                SideChainSource sideChainSource, std::string_view comment, std::string_view author,
+                Program const &);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///

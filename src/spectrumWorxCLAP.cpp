@@ -28,7 +28,8 @@
 
 #include "core/threading/threadCheck.hpp"
 
-#include "gui/gui.hpp" // warningMessageBox()
+#include "gui/gui.hpp"         // warningMessageBox()
+#include "gui/preferences.hpp" // the author a saved document is signed with
 
 // loadPreset() takes the editor by pointer so that this can call it with none
 // \see doc/tech/streaming_format.md
@@ -1923,8 +1924,8 @@ class UndoPause
 std::string SpectrumWorxCLAP::captureStateForUndo()
 {
     auto const identity(loadedPresetState());
-    return savePreset(LE::IO::pathToUTF8(sampleFile_), sideChainSourceMain_, {}, programMain_,
-                      &identity);
+    return savePreset(LE::IO::pathToUTF8(sampleFile_), sideChainSourceMain_, {},
+                      GUI::preferences().author(), programMain_, &identity);
 }
 
 /// \note Captured here and now rather than cached from the end of the last
@@ -2221,7 +2222,7 @@ try
     // pathToUTF8, so <p n="Sample"> holds the same bytes on every platform and a
     // session written on one opens on another
     auto const state(savePreset(LE::IO::pathToUTF8(sampleFile_), sideChainSourceMain_, {},
-                                programMain_, &dawExtraState));
+                                GUI::preferences().author(), programMain_, &dawExtraState));
 
     // the terminator goes into the stream: loadFrom() parses a C string, and a
     // host may hand back exactly what it was given with nothing after it

@@ -130,6 +130,11 @@ char const parameterValueAttributeName_[] = "v";
 } // namespace
 
 char const Preset::formatAttributeName[] = "Format";
+
+/// \note Capitalised, with the four it stands beside on the root element. On
+/// disk, and therefore unrenameable.
+char const Preset::authorAttributeName[] = "Author";
+
 char const Preset::dawExtraStateNodeName[] = "dawExtraState";
 
 char const PresetHeader::AttributeNames::version[] = "Version";
@@ -411,6 +416,14 @@ std::string_view Preset::getComment() const
     auto const *const pComment(root().Attribute(PresetHeader::AttributeNames::comment));
     LE_ASSERT(pComment);
     return pComment ? std::string_view(pComment) : std::string_view();
+}
+
+/// \note No assert where getComment() has one: an absent byline is every 2.x
+/// file rather than a document nobody set a header on.
+std::string_view Preset::author() const
+{
+    auto const *const pAuthor(root().Attribute(authorAttributeName));
+    return pAuthor ? std::string_view(pAuthor) : std::string_view();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -938,6 +951,14 @@ SavedPreset::SavedPreset()
 
 void SavedPreset::setHeader(PresetHeader const &header) { Preset::setHeader(header); }
 
+void SavedPreset::setAuthor(std::string_view const author)
+{
+    auto const name(sanitisedAuthorName(author));
+    if (name.empty())
+        return;
+    root().SetAttribute(authorAttributeName, name);
+}
+
 ParametersSaver::ParametersSaver(SavedPreset &preset)
     : PresetHandler(preset), pParametersNode_(&preset.globalParametersNode())
 {
@@ -1094,13 +1115,15 @@ void ParametersSaver::setSideChainSource(SideChainSource const source)
 /// and it is converted by the editor. \see tests/checkNoJuceFile.cmake.
 std::string savePreset(std::string_view const externalSampleFilePath,
                        SideChainSource const sideChainSource, std::string_view const comment,
-                       Program const &program, DawExtraState const *const pDawExtraState)
+                       std::string_view const author, Program const &program,
+                       DawExtraState const *const pDawExtraState)
 {
     PresetHeader const presetHeader(comment);
     SavedPreset preset;
     ParametersSaver parametersSaver(preset);
 
     preset.setHeader(presetHeader);
+    preset.setAuthor(author);
 
     LE::Parameters::forEach(program.parameters(), parametersSaver);
 

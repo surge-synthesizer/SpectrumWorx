@@ -279,7 +279,7 @@ TEST_CASE("A saved preset loads back as itself", "[preset-roundtrip]")
 
             original = dump(engine).text;
 
-            saved = savePreset({}, engine.sideChainSource(), "round trip", engine.program());
+            saved = savePreset({}, engine.sideChainSource(), "round trip", {}, engine.program());
             REQUIRE_FALSE(saved.empty());
         }
 
@@ -373,7 +373,7 @@ TEST_CASE("Saving while an LFO is running stores the setting, not the sweep",
         [&](ModuleParameters const &module) { liveValue = module.getBaseParameter(gain); });
     REQUIRE(liveValue != setValue);
 
-    auto const saved(savePreset({}, engine.sideChainSource(), "lfo running", engine.program()));
+    auto const saved(savePreset({}, engine.sideChainSource(), "lfo running", {}, engine.program()));
     REQUIRE_FALSE(saved.empty());
 
     INFO("saved preset:\n" << saved);
@@ -404,7 +404,7 @@ TEST_CASE("A parameter under an enabled LFO still restores its own value", "[pre
 
         REQUIRE(drivenValue != 0);
 
-        saved = savePreset({}, engine.sideChainSource(), "lfo", engine.program());
+        saved = savePreset({}, engine.sideChainSource(), "lfo", {}, engine.program());
         REQUIRE_FALSE(saved.empty());
     }
 
@@ -487,7 +487,7 @@ TEST_CASE("A preset saved to a file loads back from it", "[preset-roundtrip]")
         original = dump(engine).text;
 
         auto const preset(
-            savePreset({}, engine.sideChainSource(), "through a file", engine.program()));
+            savePreset({}, engine.sideChainSource(), "through a file", {}, engine.program()));
         REQUIRE(
             writePresetFile(file, preset.c_str(), static_cast<unsigned int>(preset.size() + 1)));
     }
@@ -566,7 +566,7 @@ TEST_CASE("A preset saved under the host's locale is a preset anywhere else",
             });
 
         original = dump(engine).text;
-        saved = savePreset({}, engine.sideChainSource(), "written abroad", engine.program());
+        saved = savePreset({}, engine.sideChainSource(), "written abroad", {}, engine.program());
         REQUIRE_FALSE(saved.empty());
     }
 

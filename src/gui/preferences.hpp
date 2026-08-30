@@ -38,6 +38,8 @@
 
 #include <array>
 #include <memory>
+#include <string>
+#include <string_view>
 
 namespace LE::SW::GUI
 {
@@ -142,6 +144,13 @@ class Preferences
     /// Always one of zoomPercentages.
     unsigned int zoomPercent() const { return zoomPercent_; }
 
+    /// \brief The name every 3.0 patch this user saves is signed with, empty
+    /// until they give one. Always what SW::sanitisedAuthorName() answers.
+    ///
+    /// \note The odd one out here, these being otherwise about the editor, and
+    /// in the same file for the same reason. \see issue #56.
+    std::string const &author() const { return author_; }
+
     /// Each of these writes the file. `[main-thread]`
     void setShowLFOAnimation(bool);
     void setPreviewLFOOnHover(bool);
@@ -155,6 +164,10 @@ class Preferences
     /// reason an unrecognised enumeration name is: the file is the user's to
     /// edit, and every zoom has to be one the combo box can show.
     void setZoomPercent(unsigned int);
+
+    /// \note Sanitised rather than refused: a name is not a command, and there
+    /// is nothing to say that dropping the character does not say better.
+    void setAuthor(std::string_view);
 
     /// Where this instance reads and writes.
     fs::path const &file() const;
@@ -172,6 +185,7 @@ class Preferences
     AnimationStyle animationStyle_{FastAnimation};
     bool hideCursorOnKnobDrag_{true};
     unsigned int zoomPercent_{defaultZoomPercent};
+    std::string author_;
 }; // class Preferences
 
 /// \brief The process-wide preferences, under `rootPath()` -- beside the user's

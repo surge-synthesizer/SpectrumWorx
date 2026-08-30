@@ -119,6 +119,7 @@ spirit for two of the four tuples; this finishes it.
 | `tests/presets/data/presetFixtures.txt` | what the frozen fixtures under `data/fixtures` load into, by two routes: read directly, and read → rewritten as 3.0 → read again | a preset loads differently, or the translation into 3.0 loses something |
 | `tests/presets/data/format3.swp` | the 3.0 grammar itself — hand written, read by a test that never runs the writer | the grammar moves. A rename applied to writer *and* reader passes every round-trip test and orphans every file already saved; this is what does not pass. |
 | `tests/clap/stateTests.cpp` | `clap_plugin_state`: the round trip through a second instance, the bytes, the sample, and what a host may do to a stream | state stops being a preset, or stops surviving a truncated / mis-sized / hostile one |
+| `tests/presets/authorTests.cpp` | the byline: what a name may carry, that a hostile one reaches the file as a name rather than as escaping, and that an *unsigned* patch is byte-for-byte the patch it was | the sanitising rule moves, the attribute is written unconditionally, or a comment edit starts signing a 2.x file |
 
 `streamingNameTests.cpp` also asserts the mechanism itself rather than only its
 output: no streaming name is null or empty (the default is a null sentinel
@@ -181,7 +182,8 @@ version; both went with the parameter on 07.08.2026.
 ### 4.2 The 3.0 grammar
 
 ```xml
-<SpectrumWorxPreset Format="3" Version="3.0" LastModified="02.08.2026 12:00" Comment="">
+<SpectrumWorxPreset Format="3" Version="3.0" LastModified="02.08.2026 12:00" Comment=""
+                    Author="Martin Walker">
 	<Global>
 		<p n="In" v="1" />
 		<p n="FFT size" v="4096" />
@@ -220,6 +222,39 @@ deliberate and neither is the norm here —
 A patch with no `Side chain source` is migrated from 2016's `Input_mode`, which
 every shipped preset carries and which is no longer a parameter — read at load,
 never written. See [`sidechain-approach.md`](sidechain-approach.md) §4.
+
+`Author` (30.08.2026) is the third addition, and the only one that is not about
+what the plugin sounds like. It is who saved it, from the settings panel's
+Interface page, and three things about it are deliberate:
+
+- **It is written only when there is one**, like the sample and unlike `Side
+  chain source`. A build whose user has not named themselves emits the bytes it
+  always did, which is what left every committed fixture and every digest in
+  `presetFixtures.txt` unmoved when this landed — and an absent attribute is the
+  honest reading anyway: nobody claimed it.
+- **It is not a `PresetHeader` member**, where `Version`, `LastModified` and
+  `Comment` are, and that is the point. `setHeader()` is what `saveDirtyComment()`
+  calls on a *reparsed* 2.x file, so a byline written there would be retrofitted
+  onto a grammar that has no such attribute, in a file the plugin it came from
+  cannot then read back as it wrote it. Only `SavedPreset::setAuthor()` signs
+  anything, and only the 3.0 writer calls it. Retrofitting 2.x is a separate
+  decision nobody has made.
+- **A name is sanitised before it reaches the document**, by
+  `SW::sanitisedAuthorName()` — the two quotes, the two angle brackets and the
+  control codes go, the rest is trimmed and cut to 64 bytes on a UTF-8 boundary.
+  TinyXML escapes what it prints, so this is not what keeps the document
+  well-formed; it is what keeps the name the user typed and the name in the file
+  the *same string*, rather than a byline that reads back as `&quot;`. The rule
+  lives in `le/spectrumworx/authorName.hpp` because the constraint is the
+  format's, and every route in applies it: the panel as the name is typed, the
+  preferences file on the way off disk, and the writer itself.
+
+Every 3.0 document this build writes is written by this user, so session state
+and undo snapshots carry the byline too — there is no rule about which caller
+gets one. That also means a factory preset re-saved by a user is signed by *that
+user*: the attribute says who wrote the document, not who the sound is descended
+from. Displaying an author, and filtering the browser by one, are stage two of
+issue #56 and are not here.
 
 Against 2.x:
 
@@ -359,6 +394,13 @@ format is that library's; what this tree fixes about it is that the one
 enumeration in it — the palette — is streamed **by name**, so inserting a value
 cannot silently change what an existing file means.
 `tests/gui/preferencesTests.cpp` pins the names.
+
+The **author** is the sixth, and it is the one that is not about the editor at
+all — it is who this user is, and it is in the same file for the same reason: it
+is the same in every instance and in every project, so no host's state blob
+should be asked to carry it. It is read back through the same sanitising the
+panel applies, because the file is the user's to edit and a hand-typed quote in
+it must not reach a preset either. \see §4.2's `Author`.
 
 The zoom is a percentage and **100 means no transform at all**. It used to mean
 1.5: the skin was a 563 x 376 bitmap laid out for a 2010 screen and

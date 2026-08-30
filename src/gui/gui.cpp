@@ -1692,6 +1692,73 @@ void TitledComboBox::selectionScrolled()
     SpectrumWorxEditor::Settings::comboBoxValueChanged(*this);
 }
 
+TitledTextBox::TitledTextBox(juce::Component &parent, unsigned int const x, unsigned int const y,
+                             char const *const title, int const maximumLength)
+    : title_(title, 6, 0, settingsComboWidth - 12, 20, juce::Justification::left)
+{
+    setName(title);
+    setSize(settingsComboWidth, settingsComboHeight + 23);
+    addToParentAndShow(parent, *this);
+
+    // the frame is this widget's, so the editor brings none of its own
+    editor_.setMultiLine(false);
+    editor_.setReturnKeyStartsNewLine(false);
+    editor_.setPopupMenuEnabled(true);
+    editor_.setBorder({});
+    editor_.setIndents(0, 0);
+    editor_.setJustification(juce::Justification::centred);
+    editor_.setFont(Theme::singleton().labelFont());
+    editor_.setInputRestrictions(maximumLength);
+    editor_.setColour(juce::TextEditor::backgroundColourId,
+                      ColourMap::getColour(ColourMap::Transparent));
+    editor_.setColour(juce::TextEditor::textColourId, ColourMap::getColour(ColourMap::Text));
+    editor_.addListener(this);
+
+    // ComboBox::textMargin either side, so a typed name sits where a chosen
+    // one does
+    editor_.setBounds(ComboBox::textMargin, boxTop + 2,
+                      settingsComboWidth - 2 * ComboBox::textMargin, settingsComboHeight - 4);
+    addToParentAndShow(*this, editor_);
+
+    setBounds(static_cast<int>(x), static_cast<int>(y), getWidth(), getHeight());
+}
+
+juce::String TitledTextBox::text() const { return editor_.getText(); }
+
+void TitledTextBox::setText(juce::String const &newText)
+{
+    editor_.setText(newText, juce::dontSendNotification);
+}
+
+void TitledTextBox::edited()
+{
+    if (onEdit)
+        onEdit(text());
+}
+
+void TitledTextBox::commit()
+{
+    if (onCommit)
+        onCommit();
+}
+
+void TitledTextBox::paint(juce::Graphics &graphics)
+{
+    auto const accent(ColourMap::getColour(ColourMap::Accent));
+    auto const rim(hasFocus() ? ColourMap::getColour(ColourMap::FocusHalo) : accent);
+
+    FramePainter::paint(graphics,
+                        juce::Rectangle<float>(0, static_cast<float>(boxTop),
+                                               static_cast<float>(settingsComboWidth),
+                                               static_cast<float>(settingsComboHeight)),
+                        settingsComboFrame, rim, ColourMap::getColour(ColourMap::ComboBackground),
+                        1.0f /*halo*/);
+
+    // the title takes the context's colour, and the frame left its own
+    graphics.setColour(ColourMap::getColour(ColourMap::Text));
+    title_.draw(graphics);
+}
+
 namespace Detail
 {
 void addPowerOfTwoValueStringsToComboBox(unsigned int const firstValue,

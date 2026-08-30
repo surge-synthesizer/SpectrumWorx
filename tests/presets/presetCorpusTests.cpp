@@ -202,7 +202,7 @@ Loaded loadBuffer(std::vector<char> data, bool &succeeded, std::string *const pR
     CHECK(SWTest::presetProblems().unknownEffect == 0);
 
     if (pRewritten)
-        *pRewritten = savePreset({}, engine.sideChainSource(), {}, engine.program());
+        *pRewritten = savePreset({}, engine.sideChainSource(), {}, {}, engine.program());
 
     succeeded = true;
     auto loaded(dump(engine));

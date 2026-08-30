@@ -1504,6 +1504,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
             TitledComboBox const &paletteComboBox() const { return palette_; }
             TitledComboBox const &animationComboBox() const { return animation_; }
 
+            /// who this user signs a patch as. \see issue #56
+            TitledTextBox &authorTextBox() { return author_; }
+
           private: // JUCE component overrides.
             void paint(juce::Graphics &) override;
 
@@ -1522,6 +1525,9 @@ class SpectrumWorxEditor final : private SkinLifetime,
             LEDTextButton showLFOAnimation_;
             LEDTextButton previewLFOOnHover_;
             LEDTextButton hideCursorOnKnobDrag_;
+            /// last, and a row clear of the switches: the only thing on the
+            /// page that is not about the editor
+            TitledTextBox author_;
         }; // class InterfacePage
 
         EnginePage enginePage_;

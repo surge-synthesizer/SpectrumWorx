@@ -1364,6 +1364,80 @@ class TitledComboBox : public ComboBox
     DrawableText const title_;
 }; // class TitledComboBox
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \class TitledTextBox
+///
+/// \brief A line the user types, in the settings combo box's rectangle and under
+/// a title where a TitledComboBox draws its own -- so the two line up in one
+/// column, whether the answer is picked off a list or spelled.
+///
+/// \note It holds a juce::TextEditor rather than deriving from one: the frame
+/// and the title are this widget's to paint.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+class TitledTextBox : public WidgetBase<>, private juce::TextEditor::Listener
+{
+  public:
+    /// where the box starts under the title. \see TitledComboBox::paint()
+    static int constexpr boxTop{18};
+
+    /// \param maximumLength in characters, as juce::TextEditor counts them.
+    TitledTextBox(juce::Component &parent, unsigned int x, unsigned int y, char const *title,
+                  int maximumLength);
+
+    juce::String text() const;
+
+    /// \note Silent -- neither callback below runs. A widget that reported
+    /// being filled as an edit would write back whatever it was told to show.
+    void setText(juce::String const &);
+
+    /// \brief What the text having moved does, per keystroke, paste and drop.
+    ///
+    /// \note Kept as it is typed rather than when the box is done with: the
+    /// settings panel is destroyed by opening the browser, so an edit held for
+    /// the focus would be an edit lost by pressing PRESETS.
+    std::function<void(juce::String const &)> onEdit;
+
+    /// \brief And what finishing does -- the return key, or the focus leaving.
+    /// For whoever wants the box to show what was actually kept.
+    std::function<void()> onCommit;
+
+    /// \brief The editor itself, to restrict what may be typed into it -- and
+    /// for a headless run, to type into. \see juce::TextEditor::setInputFilter().
+    juce::TextEditor &editor() { return editor_; }
+
+    /// \name What this widget's listener does.
+    /// \note Public because juce::TextEditor **posts** its listener's callbacks
+    /// and a test binary has no message loop. \see PresetBrowser::commentChanged().
+    ///@{
+    void edited();
+    void commit();
+    ///@}
+
+  private: // juce::Component overrides
+    // the rim follows the focus, which lands on the child rather than on this
+    void focusOfChildComponentChanged(juce::Component::FocusChangeType) override { repaint(); }
+
+    void paint(juce::Graphics &) override;
+
+  private: // juce::TextEditor::Listener overrides
+    void textEditorTextChanged(juce::TextEditor &) override { edited(); }
+    void textEditorReturnKeyPressed(juce::TextEditor &) override { commit(); }
+    void textEditorFocusLost(juce::TextEditor &) override { commit(); }
+
+    // nothing to restore: onEdit has already kept every keystroke
+    void textEditorEscapeKeyPressed(juce::TextEditor &editor) override
+    {
+        editor.giveAwayKeyboardFocus();
+    }
+
+  private:
+    DrawableText const title_;
+    juce::TextEditor editor_;
+}; // class TitledTextBox
+
 // Implementation note:
 //   The following fillComboBoxForParameter<>() implementation supports only
 // enumerated and power-of-two parameters and uses their internal knowledge

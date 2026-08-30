@@ -504,7 +504,7 @@ TEST_CASE("Session state is the preset format plus a dawExtraState block", "[cla
     /// opening somebody's preset would silently overwrite where your browser was
     /// pointing and which settings you had -- the exact confusion between "what
     /// this sounds like" and "where I was" that the block exists to avoid.
-    auto const asPreset(LE::SW::savePreset({}, LE::SW::defaultSideChainSource, {},
+    auto const asPreset(LE::SW::savePreset({}, LE::SW::defaultSideChainSource, {}, {},
                                            plugin.implementation().program()));
     CHECK(asPreset.find("<SpectrumWorxPreset") != std::string::npos);
     CHECK(asPreset.find("<dawExtraState") == std::string::npos);
@@ -576,7 +576,7 @@ TEST_CASE("Where the user was in the panel column rides in the dawExtraState blo
     /// \note And a `.swp` over the top of it does not move any of it. The file
     /// has no `<dawExtraState>` element, so `loadPreset` never calls the reader
     /// -- which is the property that lets one serialisation be both documents.
-    auto const asPreset(LE::SW::savePreset({}, LE::SW::defaultSideChainSource, {},
+    auto const asPreset(LE::SW::savePreset({}, LE::SW::defaultSideChainSource, {}, {},
                                            restored.implementation().program()));
     auto buffer(asBuffer(asPreset));
     InStream presetStream(buffer);

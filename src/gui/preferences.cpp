@@ -13,6 +13,9 @@
 /// `rootPath()`, which is where the file goes.
 #include "gui.hpp"
 
+/// `sanitisedAuthorName()`, the rule on a byline.
+#include "le/spectrumworx/authorName.hpp"
+
 #include "le/utility/assert.hpp"
 #include "le/utility/platformSpecifics.hpp"
 
@@ -47,6 +50,7 @@ enum PreferenceKey
     zoomPercentKey,
     paletteKey,
     animationStyleKey,
+    authorKey,
     numberOfPreferenceKeys
 };
 
@@ -69,6 +73,8 @@ std::string preferenceKeyName(PreferenceKey const key)
         return "palette";
     case animationStyleKey:
         return "animationStyle";
+    case authorKey:
+        return "author";
     case numberOfPreferenceKeys:
         break;
     }
@@ -179,6 +185,10 @@ Preferences::Preferences(fs::path const &folder) : storage_(std::make_unique<Sto
         provider.getUserDefaultValue(zoomPercentKey, static_cast<int>(zoomPercent_))));
     if (Preferences::isOfferedZoom(zoom))
         zoomPercent_ = zoom;
+
+    /// \note Sanitised, this file being the user's to edit: a quote typed in
+    /// here may no more reach a preset than one typed into the panel.
+    author_ = sanitisedAuthorName(provider.getUserDefaultValue(authorKey, author_));
 }
 
 bool Preferences::isOfferedZoom(unsigned int const percent)
@@ -227,6 +237,12 @@ void Preferences::setZoomPercent(unsigned int const percent)
 
     zoomPercent_ = percent;
     storage_->provider.updateUserDefaultValue(zoomPercentKey, static_cast<int>(percent));
+}
+
+void Preferences::setAuthor(std::string_view const name)
+{
+    author_ = sanitisedAuthorName(name);
+    storage_->provider.updateUserDefaultValue(authorKey, author_);
 }
 
 fs::path const &Preferences::file() const { return storage_->file; }

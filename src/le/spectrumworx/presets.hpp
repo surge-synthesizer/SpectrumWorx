@@ -22,6 +22,9 @@
 /// MSVC reported as a cascade of syntax errors rather than as missing names.
 #include "configuration/versionConfiguration.hpp"
 
+/// `sanitisedAuthorName()`, the rule on a byline.
+#include "le/spectrumworx/authorName.hpp"
+
 #include "le/math/conversion.hpp"
 #include "le/parameters/parametersUtilities.hpp"
 /// `isAnEvent`, which is what "an event always streams off" is spelt with.
@@ -368,6 +371,10 @@ class Preset
 
     std::string_view getComment() const;
 
+    /// \brief Who the file says wrote it. Empty is the normal answer: no 2.x
+    /// file carries one, and nor does an unsigned 3.0 one.
+    std::string_view author() const;
+
     TiXmlDocument &xml() { return document_; }
     TiXmlDocument const &xml() const { return document_; }
 
@@ -382,6 +389,7 @@ class Preset
 
     static void reportPresetLoadingError();
 
+    static char const authorAttributeName[];
     static char const dawExtraStateNodeName[];
 
   private:
@@ -725,6 +733,13 @@ class SavedPreset : public Preset
 
     void setHeader(PresetHeader const &);
 
+    /// \brief Stamps \p author onto the document, sanitised, and writes nothing
+    /// for a name that sanitises to nothing.
+    ///
+    /// \note Here rather than in PresetHeader, which is what a comment edit
+    /// rewrites a *2.x* file through. \see issue #56.
+    void setAuthor(std::string_view author);
+
     TiXmlElement &globalParametersNode() { return *pGlobalParametersNode_; }
     TiXmlElement &moduleParametersNode() { return *pModuleParametersNode_; }
 
@@ -981,11 +996,13 @@ class Program;
 /// \param sideChainSource what feeds the side channel. Written beside the sample
 /// rather than with the parameters, because it is the same answer -- the file
 /// selector's -- and not an automatable value. \see sideChainSource.hpp.
+/// \param author who is saving it, from the settings panel. Empty writes no
+/// attribute; anything else is sanitised on the way in.
 /// \param pDawExtraState null for a `.swp`, which carries only what the plugin
 /// sounds like; non-null for the session state a host holds, which carries that
 /// plus where the user had got to. See DawExtraState.
 std::string savePreset(std::string_view externalSampleFilePath, SideChainSource sideChainSource,
-                       std::string_view comment, Program const &,
+                       std::string_view comment, std::string_view author, Program const &,
                        DawExtraState const *pDawExtraState = nullptr);
 
 } // namespace SW

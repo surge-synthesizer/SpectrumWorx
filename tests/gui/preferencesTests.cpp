@@ -190,6 +190,14 @@ GUI::LEDTextButton &lfoPreviewButton(Editor &editor)
     return ledCaptioned(editor, "Hover shows LFO settings");
 }
 
+/// \brief The Interface page's one text box, which is the author. \see issue #56.
+GUI::TitledTextBox &authorTextBox(Editor &editor)
+{
+    auto const boxes(descendantsOfType<GUI::TitledTextBox>(editor));
+    REQUIRE(boxes.size() == 1);
+    return *boxes.front();
+}
+
 /// An editor with the Interface page up.
 Editor &editorOnTheInterfacePage(SWTest::Instance &instance)
 {
@@ -230,6 +238,7 @@ TEST_CASE("Every preference survives a new instance over the same folder", "[gui
         written.setPalette(GUI::ColourMap::ClassicRed);
         written.setHideCursorOnKnobDrag(false);
         written.setZoomPercent(75);
+        written.setAuthor("Martin Walker");
 
         REQUIRE(fs::exists(written.file()));
     }
@@ -240,6 +249,7 @@ TEST_CASE("Every preference survives a new instance over the same folder", "[gui
     CHECK(read.palette() == GUI::ColourMap::ClassicRed);
     CHECK(!read.hideCursorOnKnobDrag());
     CHECK(read.zoomPercent() == 75);
+    CHECK(read.author() == "Martin Walker");
 }
 
 TEST_CASE("The file names its keys and its enumerated values", "[gui][preferences]")
@@ -260,6 +270,7 @@ TEST_CASE("The file names its keys and its enumerated values", "[gui][preference
     preferences.setShowLFOAnimation(false);
     preferences.setHideCursorOnKnobDrag(false);
     preferences.setZoomPercent(125);
+    preferences.setAuthor("Martin Walker");
 
     auto const file(contentsOf(preferences.file()));
     CAPTURE(file);
@@ -268,6 +279,7 @@ TEST_CASE("The file names its keys and its enumerated values", "[gui][preference
     CHECK(file.find("key=\"showLFOAnimation\" value=\"0\"") != std::string::npos);
     CHECK(file.find("key=\"hideCursorOnKnobDrag\" value=\"0\"") != std::string::npos);
     CHECK(file.find("key=\"zoomPercent\" value=\"125\"") != std::string::npos);
+    CHECK(file.find("key=\"author\" value=\"Martin Walker\"") != std::string::npos);
 }
 
 TEST_CASE("A value this build does not recognise reads as the default", "[gui][preferences]")
@@ -467,4 +479,128 @@ TEST_CASE("Choosing a zoom on the page resizes the editor and remembers it",
 
     Preferences const onDisk(GUI::preferences().file().parent_path());
     CHECK(onDisk.zoomPercent() == 200);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// The author
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("An author name in the file is sanitised on the way back in",
+          "[gui][preferences][author][hostile]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The file is the user's to edit, so the widget's input filter is not
+    /// the only way a name gets in and cannot be the only place the rule is
+    /// applied. \see SW::sanitisedAuthorName() and issue #56.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    auto const folder(caseFolder("hostileAuthor"));
+
+    write(folder / "SpectrumWorxUserDefaults.xml",
+          "<?xml version = \"1.0\" encoding = \"UTF-8\" ?>\n"
+          "<defaults version=\"1\">\n"
+          "  <default key=\"author\" value=\"paul&quot;&gt;&lt;/xml&gt;\" type=\"1\"/>\n"
+          "</defaults>\n");
+
+    Preferences const preferences(folder);
+    CHECK(preferences.author() == "paul/xml");
+}
+
+TEST_CASE("With no preferences file nobody is the author", "[gui][preferences][author]")
+{
+    // an unsigned build writes no byline at all, and this is the half of that
+    // claim that lives up here. \see [preset-author] for the other one
+    Preferences const preferences(caseFolder("noAuthor"));
+    CHECK(preferences.author().empty());
+}
+
+TEST_CASE("Typing a name on the page writes it to the file", "[gui][preferences][author]")
+{
+    useCaseFolder("pageWritesTheAuthor");
+
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    auto &editor(editorOnTheInterfacePage(instance));
+
+    auto &box(authorTextBox(editor));
+    REQUIRE(box.text().isEmpty());
+
+    /// \note Typed into the editor, then `edited()` by hand: juce::TextEditor
+    /// posts its listener's callback and there is no message loop here to
+    /// deliver it. \see the note on TitledTextBox::edited().
+    box.editor().setText("Martin Walker", false);
+    box.edited();
+
+    /// \note And it is already stored, with nothing having taken the focus away
+    /// -- which is the point rather than a convenience for the test. The panel
+    /// is destroyed the moment the browser is opened, so a name held until the
+    /// box was finished with would be a name lost by pressing PRESETS.
+    CHECK(GUI::preferences().author() == "Martin Walker");
+
+    Preferences const onDisk(GUI::preferences().file().parent_path());
+    CHECK(onDisk.author() == "Martin Walker");
+}
+
+TEST_CASE("The page opens showing the name in the preferences", "[gui][preferences][author]")
+{
+    useCaseFolder("pageReadsTheAuthor");
+    GUI::preferences().setAuthor("Martin Walker");
+
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    auto &editor(editorOnTheInterfacePage(instance));
+
+    CHECK(authorTextBox(editor).text() == "Martin Walker");
+}
+
+TEST_CASE("What may not reach a preset cannot be typed into the box",
+          "[gui][preferences][author][hostile]")
+{
+    useCaseFolder("authorFilter");
+
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    auto &editor(editorOnTheInterfacePage(instance));
+
+    auto &box(authorTextBox(editor));
+
+    /// \note `insertTextAtCaret`, which is what a keystroke and a paste both go
+    /// through -- `setText` does too, so either would do; this is the one that
+    /// says "typed".
+    box.editor().insertTextAtCaret(R"(paul"></xml>)");
+    CHECK(box.text() == "paul/xml");
+
+    box.edited();
+    CHECK(GUI::preferences().author() == "paul/xml");
+}
+
+TEST_CASE("A preset saved from the editor carries the name", "[gui][preferences][author]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief End to end: the settings panel to the bytes on disk.
+    ///
+    /// \note The two halves are pinned separately -- the rule and the writer in
+    /// `[preset-author]`, the widget and the file above -- and neither says the
+    /// name actually travels. This is the join, and it is the join that issue
+    /// #56 asks for.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    useCaseFolder("authorReachesAPreset");
+
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    auto &editor(editorOnTheInterfacePage(instance));
+
+    auto &box(authorTextBox(editor));
+    box.editor().setText("Martin Walker", false);
+    box.edited();
+
+    auto const file(caseFolder("authorReachesAPresetOutput") / "signed.swp");
+    fs::create_directories(file.parent_path());
+    editor.savePreset(file, true /*ignore external sample*/, juce::String());
+
+    REQUIRE(fs::exists(file));
+    CHECK(contentsOf(file).find("Author=\"Martin Walker\"") != std::string::npos);
 }

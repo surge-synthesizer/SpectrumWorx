@@ -353,6 +353,11 @@ void usePreferencesOfNobodyInParticular(juce::File const &output)
                          requested);
     }
 
+    /// \note And `SW_SHOW_UI_AUTHOR`: the byline draws nothing when it is
+    /// empty, which is all a render of an unconfigured build could show.
+    if (auto const *const requested = std::getenv("SW_SHOW_UI_AUTHOR"))
+        LE::SW::GUI::preferences().setAuthor(requested);
+
     if (auto const *const requested = std::getenv("SW_SHOW_UI_PALETTE"))
     {
         using ColourMap = LE::SW::GUI::ColourMap;

@@ -43,6 +43,7 @@ add_executable(sw-dsp-tests
         parameters/lfoTests.cpp
         parameters/parameterLayoutTests.cpp
         parameters/streamingNameTests.cpp
+        presets/authorTests.cpp
         presets/presetCorpusTests.cpp
         presets/presetFileTests.cpp
         presets/presetHarness.cpp

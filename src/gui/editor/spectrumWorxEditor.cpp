@@ -1360,7 +1360,8 @@ void SpectrumWorxEditor::savePreset(fs::path const &presetFile, bool const ignor
 
     // where the interface's juce::String becomes the format's bytes
     SW::savePreset(presetFile, externalSample, source,
-                   std::string_view(comment.toRawUTF8(), comment.getNumBytesAsUTF8()), program());
+                   std::string_view(comment.toRawUTF8(), comment.getNumBytesAsUTF8()),
+                   preferences().author(), program());
 }
 
 char const *SpectrumWorxEditor::currentProgramName() const { return program().name().data(); }
@@ -3925,6 +3926,28 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
     line(latency_, infoTextY + (lineHeight * 3));
 }
 
+namespace
+{
+/// \brief Keeps out of the author box what may not reach a preset -- every
+/// keystroke, paste and drop goes through here. \see SW::isAllowedInAuthorName().
+class AuthorNameFilter final : public juce::TextEditor::InputFilter
+{
+  public:
+    juce::String filterNewText(juce::TextEditor &, juce::String const &newInput) override
+    {
+        juce::String kept;
+        for (auto const character : newInput)
+        {
+            // above ASCII is somebody's own script, and the rule is over bytes
+            auto const codePoint(static_cast<std::uint32_t>(character));
+            if ((codePoint > 0x7Fu) || SW::isAllowedInAuthorName(static_cast<char>(codePoint)))
+                kept += juce::String::charToString(character);
+        }
+        return kept;
+    }
+}; // class AuthorNameFilter
+} // anonymous namespace
+
 SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     : PanelBackground(SettingsPage), zoom_(*this, xMargin, yMargin + 0 * yStep + yOffset, "Zoom"),
       palette_(*this, xMargin, yMargin + 1 * yStep + yOffset, "Color Scheme"),
@@ -3934,7 +3957,9 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
       previewLFOOnHover_(*this, xMargin - 4, yMargin + 3 * yStep + yOffset + ledStep,
                          "Hover shows LFO settings"),
       hideCursorOnKnobDrag_(*this, xMargin - 4, yMargin + 3 * yStep + yOffset + 2 * ledStep,
-                            "Hide cursor on knob edits")
+                            "Hide cursor on knob edits"),
+      author_(*this, xMargin, yMargin + 5 * yStep + yOffset, "Author",
+              static_cast<int>(SW::maxAuthorLength))
 {
     Settings &parent(
         Utility::ParentFromMember<Settings, InterfacePage, &Settings::interfacePage_>()(*this));
@@ -3985,6 +4010,16 @@ SpectrumWorxEditor::Settings::InterfacePage::InterfacePage()
     hideCursorOnKnobDrag_.setToggleState(preferences().hideCursorOnKnobDrag(),
                                          juce::dontSendNotification);
     hideCursorOnKnobDrag_.addListener(&parent);
+
+    // filtered as it is typed and sanitised again as it is stored: the filter
+    // is what keeps a character from appearing and vanishing later
+    author_.editor().setInputFilter(new AuthorNameFilter, true /*take ownership*/);
+    author_.setText(juce::String(preferences().author()));
+    author_.onEdit = [](juce::String const &name) {
+        preferences().setAuthor(std::string_view(name.toRawUTF8(), name.getNumBytesAsUTF8()));
+    };
+    // and once it is done with, the box shows what was actually kept
+    author_.onCommit = [this] { author_.setText(juce::String(preferences().author())); };
 }
 
 void SpectrumWorxEditor::Settings::InterfacePage::paint(juce::Graphics &graphics)
