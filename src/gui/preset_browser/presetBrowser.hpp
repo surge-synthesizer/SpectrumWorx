@@ -259,6 +259,10 @@ class PresetBrowser final : public PanelBackground,
     /// \brief The highlighted row's name, or nothing when none is a preset.
     juce::String selectedPresetName() const;
 
+    /// \brief The byline under the comment box: "Author: " and who the loaded
+    /// patch says wrote it. \see issue #56.
+    juce::String authorLabel() const;
+
   private:
     /// \brief Records what has just been loaded, and calls it unedited.
     void rememberLoadedPreset(juce::String const &presetName, fs::path const &file);

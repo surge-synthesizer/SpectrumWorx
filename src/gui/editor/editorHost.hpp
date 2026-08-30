@@ -151,6 +151,13 @@ struct LoadedPreset
     /// into the session instead of being lost. \see issue #180.
     juce::String comment;
 
+    /// \brief Who the loaded patch says wrote it, empty when it does not say.
+    ///
+    /// \note Not cleared by loaded() below, where the comment is: a byline is
+    /// the *file's* answer rather than the browser's bookkeeping, and
+    /// GUI::loadPreset() is what writes it -- before this runs. \see issue #56.
+    juce::String author;
+
     std::atomic<bool> modified{false};
 
     /// \brief Whether Save has somewhere to write, which a factory preset and a

@@ -44,12 +44,12 @@ void outline(juce::Graphics &graphics, juce::Rectangle<float> const bounds, floa
 //
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note The four frames are, top to bottom: where the browser says which
-/// folder it is in, the row Save / Save as / Delete sit in, the list, and the
-/// comment box under it. The fifth shape is the right-hand cap of a *fifth*
-/// capsule inside the first, which is what divides the folder name from the
-/// button that changes it -- an arc and nothing else, so it is drawn by
-/// clipping the capsule it belongs to down to its own end.
+/// \note The five frames are, top to bottom: where the browser says which
+/// folder it is in, the row Save / Save as / Delete sit in, the list, the
+/// comment box under it, and the byline under that. The sixth shape is the
+/// right-hand cap of another capsule inside the first, which is what divides the
+/// folder name from the button that changes it -- an arc and nothing else, so it
+/// is drawn by clipping the capsule it belongs to down to its own end.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -79,8 +79,9 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
     }
 
     outline(graphics, {fieldInset, 42.f, 267.f, 41.f}, cornerRadius);   // the button row
-    outline(graphics, {fieldInset, 114.f, 267.f, 360.f}, cornerRadius); // the list
-    outline(graphics, {fieldInset, 482.f, 267.f, 47.f}, cornerRadius);  // the comment box
+    outline(graphics, {fieldInset, 114.f, 267.f, 324.f}, cornerRadius); // the list
+    outline(graphics, {fieldInset, 446.f, 267.f, 47.f}, cornerRadius);  // the comment box
+    outline(graphics, {fieldInset, authorFieldTop, 267.f, authorFieldHeight}, cornerRadius);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

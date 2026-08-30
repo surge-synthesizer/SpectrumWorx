@@ -85,6 +85,22 @@ class PanelPainter
     /// which is the tab bar's own depth below the top of the panel.
     static float constexpr settingsFrameTop{18.f};
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief The browser's byline field, under the comment box.
+    ///
+    /// \note The list gave up a row and a half of itself for it -- 36 px at the
+    /// 24 px it draws a row at -- and the comment box moved down into the gap
+    /// that left, so the two below it keep the margins they always had. \see
+    /// issue #56, and PresetBrowser::authorLabel() for what goes in it.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static float constexpr authorFieldTop{501.f};
+    static float constexpr authorFieldHeight{28.f};
+
+    /// What the list gave up, in pixels. \see above.
+    static int constexpr authorFieldCost{36};
+
     /// \brief The sizes the two are drawn at, which were their artwork's.
     ///
     /// \note The settings panel is this page plus ButtonStyle::tabHeight, which

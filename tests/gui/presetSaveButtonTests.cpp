@@ -37,6 +37,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <vector>
 //------------------------------------------------------------------------------
 namespace
 {
@@ -350,6 +351,29 @@ void useOwnPreferences(char const *const name)
     LE::SW::GUI::setPreferencesFolder(folder);
 }
 
+/// Every descendant of \p root that is a \p Widget, in child order.
+template <typename Widget> std::vector<Widget *> descendantsOfType(juce::Component &root)
+{
+    std::vector<Widget *> found;
+    for (auto *const pChild : root.getChildren())
+    {
+        if (auto *const pWidget(dynamic_cast<Widget *>(pChild)); pWidget)
+            found.push_back(pWidget);
+        for (auto *const pDeeper : descendantsOfType<Widget>(*pChild))
+            found.push_back(pDeeper);
+    }
+    return found;
+}
+
+/// \brief The browser's list, reached the way presetNavigationTests.cpp reaches
+/// it -- there is exactly one in the editor while the browser is up.
+juce::ListBox &listOf(PresetBrowser &browser)
+{
+    auto const lists(descendantsOfType<juce::ListBox>(browser));
+    REQUIRE(lists.size() == 1);
+    return *lists.front();
+}
+
 /// An editor showing the browser, with something worth saving in it.
 PresetBrowser &browserWithAnEdit(SWTest::Instance &instance)
 {
@@ -441,6 +465,10 @@ TEST_CASE("Save will not replace a signed patch with an unsigned one", "[gui][pr
                                std::istreambuf_iterator<char>());
     CHECK(contents.find("Author=\"Paul Walker\"") != std::string::npos);
     CHECK(contents.find("Format=\"3\"") != std::string::npos);
+
+    // and the browser says so without having to reload what it just wrote
+    CHECK(instance.loadedPreset().author == "Paul Walker");
+    CHECK(browser.authorLabel() == "Author: Paul Walker");
 }
 
 TEST_CASE("Asking for an author name lands on the page that has one", "[gui][presets][author]")
@@ -468,4 +496,91 @@ TEST_CASE("Asking for an author name lands on the page that has one", "[gui][pre
     /// \note Which control has the keyboard is not asserted: a grab only takes
     /// on a real desktop window and the window manager may refuse it anyway.
     /// tests/gui/moduleControlFocusTests.cpp is where that machinery lives.
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// The byline the browser shows
+// ----------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   Under the comment box, and it follows what is *playing* rather than what
+/// the list is pointing at -- selecting a row loads it, so for the browser the
+/// two are the same thing. The list gave up a row and a half to make room.
+/// \see issue #56.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The browser says who wrote the preset it has loaded", "[gui][presets][author]")
+{
+    useOwnPreferences("bylineShown");
+
+    SWTest::HostSideJuce const juceIsUp;
+
+    /// \note An engine that was never set up, as every row-selecting case in
+    /// presetNavigationTests.cpp uses: selecting a row *loads* the preset, and a
+    /// preset that moves the FFT size leaves engineSetup() stale enough to
+    /// assert on the way through ModuleInitialiser.
+    SWTest::Instance instance(false);
+    auto &browser(browserOf(instance));
+
+    // nothing loaded yet, and an empty field would read as one still filling in
+    CHECK(browser.authorLabel() == "Author: unknown");
+
+    instance.editor().showFactoryBank("Gamma Shift");
+    auto *const pBrowser(instance.editor().presetBrowser());
+    REQUIRE(pBrowser != nullptr);
+    listOf(*pBrowser).selectRow(0);
+
+    /// \note The bank's own author, retrofitted onto those 2.x files in
+    /// "Credit for people we believe to be authors in pre 3.0 patches" -- so
+    /// this reads the byline off a *file* rather than off anything this session
+    /// wrote.
+    CHECK(pBrowser->authorLabel() == "Author: Martin Walker");
+    CHECK(instance.loadedPreset().author == "Martin Walker");
+}
+
+TEST_CASE("A preset with no byline says so rather than keeping the last one",
+          "[gui][presets][author]")
+{
+    useOwnPreferences("bylineCleared");
+
+    auto const folder(fs::path(SW_TEST_OUTPUT_DIR) / "presets" / "bylineCleared");
+    fs::remove_all(folder);
+    fs::create_directories(folder);
+    auto const unsignedPreset(folder / "Nobody.swp");
+    {
+        std::ofstream file(unsignedPreset, std::ios::binary);
+        // <Modules> and all: the 2.x reader wants the section even when empty
+        file << R"(<SpectrumWorxPreset Version="2.6" LastModified="14.12.2011 18:21" )"
+                R"(Comment=""><Global In="1.0" Out="1.0" Mix="1.0" FFT_size="2048" )"
+                R"(Overlap_factor="4" Window_type="0" Input_mode="0"/><Modules/>)"
+                R"(</SpectrumWorxPreset>)";
+    }
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance(false); // \see the case above
+    browserOf(instance);
+
+    instance.editor().showFactoryBank("Gamma Shift");
+    auto *pBrowser(instance.editor().presetBrowser());
+    REQUIRE(pBrowser != nullptr);
+    listOf(*pBrowser).selectRow(0);
+    REQUIRE(pBrowser->authorLabel() == "Author: Martin Walker");
+
+    /// \note Loaded through the editor rather than by pointing the browser at
+    /// the folder, which is its own business: what this is about is that the
+    /// *load* writes the byline, whichever route reached it.
+    std::ifstream file(unsignedPreset, std::ios::binary);
+    std::string const text((std::istreambuf_iterator<char>(file)),
+                           std::istreambuf_iterator<char>());
+    std::vector<char> buffer(text.begin(), text.end());
+    buffer.push_back('\0'); // the parse wants a terminator
+
+    juce::String comment;
+    REQUIRE(instance.editor().loadPreset(buffer.data(), true, comment, "Nobody"));
+
+    CHECK(instance.loadedPreset().author.isEmpty());
+    CHECK(pBrowser->authorLabel() == "Author: unknown");
 }

@@ -12,6 +12,7 @@
 
 #include "configuration/versionConfiguration.hpp"
 #include "gui/editor/spectrumWorxEditor.hpp"
+#include "gui/preferences.hpp" // the byline a save writes
 #include "io/jucePath.hpp"
 
 #include "le/parameters/uiElements.hpp"
@@ -97,8 +98,11 @@ PresetBrowser::PresetBrowser()
     jogPrevious_.setTopLeftPosition(233, GlyphStyle::rowTop);
     jogNext_.setTopLeftPosition(jogPrevious_.getRight() + 1, GlyphStyle::rowTop);
 
-    listBox_.setBounds(17, 119, getWidth() - 33, 351);
-    comment().setBounds(12, 484, getWidth() - 25, 43);
+    // both measured off the frames panelPainter.cpp draws behind them, and the
+    // list is a row and a half shorter than it was so the byline has somewhere
+    // to go. \see PanelPainter::authorFieldTop
+    listBox_.setBounds(17, 119, getWidth() - 33, 351 - PanelPainter::authorFieldCost);
+    comment().setBounds(12, 484 - PanelPainter::authorFieldCost, getWidth() - 25, 43);
 
     addChildComponent(&presetNameEditBox_);
     presetNameEditBox_.setAlwaysOnTop(true);
@@ -329,6 +333,10 @@ void PresetBrowser::presetSelectionChanged()
 
     comment().setText(originalComment_, false);
     LE_ASSERT(comment().getWantsKeyboardFocus() || !comment().isEnabled());
+
+    // the byline is painted rather than held in a widget, so nothing else marks
+    // it dirty when the preset under it changes
+    repaint();
 }
 
 unsigned int PresetBrowser::selectedIndex() const
@@ -665,6 +673,11 @@ void PresetBrowser::saveCurrentPreset(juce::String const &presetName, fs::path c
     /// both buttons go out until the next one. After the refresh, which comes
     /// through updateSaveButtons() itself. \see issue #177.
     rememberLoadedPreset(presetName, targetFile);
+
+    // the byline the file now carries, which is this user: nothing was loaded,
+    // so the loader that usually writes this never ran. \see issue #56
+    editor().editorHost().loadedPreset().author = juce::String(preferences().author());
+    repaint();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1212,12 +1225,26 @@ void PresetBrowser::takeColours()
                         ColourMap::getColour(ColourMap::TextFaint));
 }
 
+/// \note "unknown" rather than an empty field, which reads as one that has not
+/// finished filling in. Every shipped preset names somebody; a user preset saved
+/// before 08.2026 names nobody and always will.
+juce::String PresetBrowser::authorLabel() const
+{
+    auto const &author(editor().editorHost().loadedPreset().author);
+    return _T( "Author: " ) + (author.isEmpty() ? juce::String(_T( "unknown" )) : author);
+}
+
 void PresetBrowser::paint(juce::Graphics &graphics)
 {
     PanelBackground::paint(graphics);
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
     graphics.setFont(20);
     graphics.drawFittedText(locationLabel(), 20, 15, 233, 18, juce::Justification::centredLeft, 1);
+
+    // the byline, in the comment box's own type so the two read as a pair
+    graphics.setFont(17);
+    graphics.drawFittedText(authorLabel(), 20, juce::roundToInt(PanelPainter::authorFieldTop) + 5,
+                            245, 18, juce::Justification::centredLeft, 1);
 }
 
 bool PresetBrowser::Item::operator==(Item const &other) const { return name == other.name; }

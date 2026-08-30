@@ -259,6 +259,16 @@ may not meet a dialog. The prompt is a *continuation* of the box rather than a
 call beside it, because the two panels share one rectangle — opening the settings
 destroys the browser the press came from.
 
+**The browser shows it**, under the comment box, in a field the list gave up a
+row and a half of itself for — `PanelPainter::authorFieldTop`, and
+`PresetBrowser::authorLabel()` for what goes in it. It follows what is *playing*
+rather than what the list is pointing at, those being the same thing in a browser
+where selecting a row loads it; `GUI::loadPreset()` is what fills
+`LoadedPreset::author`, and a save writes it too, because nothing was loaded
+then. A patch that names nobody reads "unknown" rather than blank, which would
+look like a field still filling in. The rest of that panel is a redesign still to
+come.
+
 Every 3.0 document this build writes is written by this user, so session state
 and undo snapshots carry the byline too — there is no rule about which caller
 gets one. That also means a factory preset re-saved by a user is signed by *that

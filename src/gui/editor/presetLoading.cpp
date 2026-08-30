@@ -457,6 +457,24 @@ bool loadPreset(EditorHost &host, SpectrumWorxEditor *const pEditor, char *const
     if (comment)
         *comment =
             juce::String::fromUTF8(commentBytes.data(), static_cast<int>(commentBytes.size()));
+
+    /// \note Parsed a third time, for one attribute. SW::loadPreset() has no
+    /// out-parameter for a byline and giving it one would touch every caller in
+    /// the tree for a string only the browser wants -- where this costs a
+    /// document nobody has to hold on to, on a user's click. \see issue #56.
+    ///
+    /// \note Written whether or not the file names anyone, so that a patch with
+    /// no byline does not wear the last one's.
+    if (succeeded)
+    {
+        Preset preset;
+        std::string_view author;
+        if (preset.loadFrom(inMemoryPreset))
+            author = preset.author();
+        host.loadedPreset().author =
+            juce::String::fromUTF8(author.data(), static_cast<int>(author.size()));
+    }
+
     if (succeeded)
         copyPresetName(presetName, consumer.program().name());
     consumer.notifyHostAboutPresetChangeEnd();
