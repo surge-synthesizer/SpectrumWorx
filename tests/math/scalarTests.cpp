@@ -84,6 +84,11 @@ TEST_CASE("Rounding matches the CRT", "[math][scalar]")
     CHECK(Math::truncate(-1.9f) == -1);
     CHECK(Math::round(1.4f) == 1);
     CHECK(Math::round(1.6f) == 2);
+
+    // \note -0.0f is negative: the sign bit is the question being asked.
+    CHECK(Math::isNegative(-0.0f));
+    CHECK_FALSE(Math::isNegative(0.0f));
+    CHECK(Math::isNegative(-1.0f));
 }
 
 TEST_CASE("modulo matches std::fmod for positive operands", "[math][scalar]")
@@ -109,6 +114,11 @@ TEST_CASE("Power-of-two helpers", "[math][scalar]")
 {
     CHECK(Math::isPowerOfTwo(1024u));
     CHECK_FALSE(Math::isPowerOfTwo(1000u));
+    // \note Zero has no bit set, so it is not a power of two. The bit trick this
+    // replaced -- ( v & ( v - 1 ) ) == 0 -- said it was, which made an FFT size
+    // of 0 a valid parameter value.
+    CHECK_FALSE(Math::isPowerOfTwo(0u));
+
     // \note PowerOfTwo::floor returns the *exponent*, not the power of two --
     // it is firstSetBit -- while ::ceil and ::round return the value. The
     // asymmetry is 2016's; the assertions record it rather than endorse it.
@@ -125,6 +135,11 @@ TEST_CASE("Power-of-two helpers", "[math][scalar]")
     CHECK(Math::PowerOfTwo::round(5u) == 4u);
     CHECK(Math::PowerOfTwo::round(6u) == 8u);
     CHECK(Math::PowerOfTwo::round(1000u) == 1024u);
+
+    // \note Below one the old exponent arithmetic shifted by a negative amount.
+    CHECK(Math::PowerOfTwo::ceil(0.5f) == 1u);
+    CHECK(Math::PowerOfTwo::ceil(1.0f) == 1u);
+    CHECK(Math::PowerOfTwo::ceil(1024.5f) == 2048u);
     static_assert(Math::IsPowerOfTwo<256>::value);
     static_assert(!Math::IsPowerOfTwo<255>::value);
 }

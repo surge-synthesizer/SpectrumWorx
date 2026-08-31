@@ -304,21 +304,11 @@ bool isZero(float const &value)
     return PositiveFloats::isZero(positive);
 }
 
-bool isNegative(float const value)
-{
-    static_assert(sizeof(int) == sizeof(float), "Unexpected data sizes");
-    auto const result(isNegative(std::bit_cast<int>(value)));
-    LE_ASSERT_MSG((result == (value < 0)) || (value == -0.0f), "Unexpected result");
-    return result;
-}
+/// \note The sign bit, so -0.0f is negative -- which is what the shift this
+/// replaces answered, and what its assertion carved out an exception for.
+bool isNegative(float const value) { return std::signbit(value); }
 
-bool isNegative(int const value)
-{
-    std::uint8_t const valueNumberOfBits(sizeof(value) * 8);
-    std::uint8_t const valueSign(std::bit_cast<unsigned int>(value) >> (valueNumberOfBits - 1));
-    LE_ASSERT_MSG(valueSign == (value < 0), "Unexpected result");
-    return valueSign != 0;
-}
+bool isNegative(int const value) { return value < 0; }
 
 bool isNegative(unsigned int /*value*/) { return false; }
 
@@ -364,22 +354,12 @@ namespace PowerOfTwo
 /// \note Declared as ceil( float ) and defined as ceil( float const & ), so
 /// the declaration had never resolved to anything. Nothing in the tree called
 /// it; sw-tests is the first thing that tried.
+/// \note Read the exponent field, so a value below 1 shifted by a negative
+/// amount. std::bit_ceil answers 1 there.
 unsigned int ceil(float const value)
 {
-    // http://stackoverflow.com/questions/466204/rounding-off-to-nearest-power-of-2
-    // http://www.gamedev.net/community/forums/topic.asp?topic_id=229831
-
-    auto const valueBits(std::bit_cast<unsigned int>(value));
-    unsigned int const notPowerOfTwo((valueBits << 9) != 0);
-    unsigned int const exponent(
-        (valueBits >> 23) // remove fractional part of the floating point number
-        - 127             // subtract 127 (the bias) from the exponent
-        + notPowerOfTwo   // add one to the exponent if the value was not a power of two
-    );
-
-    LE_ASSUME(exponent < (sizeof(1U) * 8));
-
-    return 1U << exponent;
+    LE_ASSERT_MSG((value >= 0) && (value <= 2147483648.0f), "Invalid input");
+    return std::bit_ceil(static_cast<unsigned int>(std::ceil(value)));
 }
 
 unsigned int floor(unsigned int const value) { return firstSetBit(value); }
@@ -391,18 +371,15 @@ unsigned int round(unsigned int const value)
     // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=36473
 
     LE_ASSERT_MSG(value != 0, "Invalid input");
-    unsigned int const firstSetBitInValue(firstSetBit(value));
-    /// \note The MSVC arm here was _bittest( &value, firstSetBitInValue - 1 ),
-    /// which unlike this one did not short-circuit: at value 1 the index is -1
-    /// and it read the word before `value`.
-    unsigned int const isNextBitSet(firstSetBitInValue &&
-                                    ((value & (1U << (firstSetBitInValue - 1))) != 0));
 
-    unsigned int const exponent(firstSetBitInValue + isNextBitSet);
+    /// \note The MSVC arm this replaced was _bittest( &value, exponent - 1 ),
+    /// which did not short-circuit: at value 1 it read the word before `value`.
+    auto const exponent(std::bit_width(value) - 1);
+    auto const roundUp(exponent && ((value >> (exponent - 1)) & 1));
 
-    LE_ASSUME(exponent < (sizeof(1U) * 8));
+    LE_ASSUME((exponent + roundUp) < static_cast<int>(sizeof(1U) * 8));
 
-    return 1U << exponent;
+    return 1U << (exponent + roundUp);
 }
 
 std::uint8_t log2(unsigned int const value)
@@ -427,11 +404,7 @@ std::uint8_t log2(unsigned int const value)
 
 std::uint8_t numberOfSetBits(int const value)
 {
-    // Implementation note:
-    //   http://tekpool.wordpress.com/category/bit-count.
-    //                                        (11.05.2009.) (Domagoj Saric)
-    auto const uCount(value - ((value >> 1) & 033333333333) - ((value >> 2) & 011111111111));
-    return static_cast<std::uint8_t>(((uCount + (uCount >> 3)) & 030707070707) % 63);
+    return static_cast<std::uint8_t>(std::popcount(std::bit_cast<unsigned int>(value)));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -450,28 +423,10 @@ std::uint8_t numberOfSetBits(int const value)
 // http://stackoverflow.com/questions/364985/algorithm-for-finding-the-smallest-power-of-two-thats-greater-or-equal-to-a-give
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(_MSC_VER) && !defined(_XBOX)
-#pragma intrinsic(_BitScanReverse)
-#endif // _MSC_VER
-
 std::uint8_t firstSetBit(int const value)
 {
     LE_ASSERT_MSG(value, "Invalid input");
-#if defined(_MSC_VER)
-#ifdef _XBOX
-    std::uint8_t const leadingZeroBits(_CountLeadingZeros(value));
-    return (sizeof(value) * 8) - 1 - leadingZeroBits;
-#else
-    unsigned long firstSetBitIndex;
-    LE_VERIFY(_BitScanReverse(&firstSetBitIndex, value) && "No bits set in the passed value.");
-    return static_cast<std::uint8_t>(firstSetBitIndex);
-#endif
-#elif defined(__GNUC__)
-    std::uint8_t const leadingZeroBits(__builtin_clz(value));
-    return (sizeof(value) * 8) - 1 - leadingZeroBits;
-#else // _MSC_VER
-#error not implemented.
-#endif // _MSC_VER
+    return static_cast<std::uint8_t>(std::bit_width(std::bit_cast<unsigned int>(value)) - 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -487,14 +442,9 @@ std::uint8_t firstSetBit(int const value)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-bool isPowerOfTwo(unsigned int const value)
-{
-    // http://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2
-    bool const result((value & (value - 1)) == 0);
-    // If only one bit is set then it is certainly a power-of-two value.
-    LE_ASSERT_MSG(result == (numberOfSetBits(value) == 1), "Power of two logic bug.");
-    return result;
-}
+/// \note ( value & ( value - 1 ) ) == 0 also called zero a power of two, so a
+/// preset naming an FFT size of 0 passed isValidValue(). This does not.
+bool isPowerOfTwo(unsigned int const value) { return std::has_single_bit(value); }
 
 bool isPowerOfTwo(int const value)
 {

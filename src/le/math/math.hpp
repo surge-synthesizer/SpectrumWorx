@@ -29,6 +29,7 @@
 /// had never compiled in a release build.
 #include "le/utility/span.hpp"
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -147,8 +148,7 @@ std::uint8_t numberOfSetBits(int);
 bool isPowerOfTwo(int);
 bool isPowerOfTwo(unsigned int);
 
-template <unsigned int value>
-struct IsPowerOfTwo : std::integral_constant<bool, (1 << LE::Utility::staticLog2(value)) == value>
+template <unsigned int value> struct IsPowerOfTwo : std::bool_constant<std::has_single_bit(value)>
 {
 };
 
