@@ -1259,13 +1259,13 @@ void PresetBrowser::takeColours()
                         ColourMap::getColour(ColourMap::TextFaint));
 }
 
-/// \note "unknown" rather than an empty field, which reads as one that has not
+/// \note "Unknown" rather than an empty field, which reads as one that has not
 /// finished filling in. Every shipped preset names somebody; a user preset saved
 /// before 08.2026 names nobody and always will.
 juce::String PresetBrowser::authorLabel() const
 {
     auto const &author(editor().editorHost().loadedPreset().author);
-    return _T( "Author: " ) + (author.isEmpty() ? juce::String(_T( "unknown" )) : author);
+    return _T( "Author: " ) + (author.isEmpty() ? juce::String(_T( "Unknown" )) : author);
 }
 
 void PresetBrowser::paint(juce::Graphics &graphics)
