@@ -25,6 +25,9 @@
 ///       meter decides the grid a synced period snaps to, and the claim that a
 ///       host merely *stating* its meter must not resnap anything was reasoned
 ///       rather than measured.
+///     - **which of that grid a request between two of its periods lands on**,
+///       over every meter from two beats to sixteen -- issue #243, where the
+///       search for the nearer of the two neighbours always stopped at one beat.
 ///
 /// \note The waveform table is a golden in the shape `parameterTableTests.cpp`
 /// established, and for the same reason: eleven small functions whose output is
@@ -52,6 +55,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -1006,6 +1010,133 @@ TEST_CASE("Three four, six eight and five four each snap to a grid of their own"
 
     // Every guard above went out of scope with the statement that made it.
     CHECK(LFOImpl::Timer::measureNumerator() == 4);
+}
+
+TEST_CASE("Four sixths of a bar in six eight is a half bar away, not a whole one", "[lfo]")
+{
+    ScopedHostTiming const inSixEight(barOf(6), 6);
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Issue #243, in its shortest form. The grid cases above ask which
+    /// periods a meter can hold; this asks which of them a request that falls
+    /// between two lands on, which is a separate claim and the one that was
+    /// wrong.
+    ///
+    ///   `snapSyncedPeriodScale()` takes the nearest whole divisor above the
+    /// request and the nearest below and keeps the nearer of the two. The one
+    /// below was a *forward* search from one beat, and one divides every meter,
+    /// so it always stopped there: the comparison was measuring the request
+    /// against the bottom of the bar rather than against its real neighbour.
+    ///
+    ///   Four four and three four hide it, which is why nothing was ever
+    /// reported -- neither has a request whose true lower neighbour would have
+    /// beaten the upper one. Six eight has one.
+    ///
+    ///   The other half of #243 has no case here because it cannot be seen from
+    /// outside: both searches could run past the end of their range, and the
+    /// value that came back was right only because an `iota_view`'s end iterator
+    /// holds its bound. It is gone rather than tested -- the ranges now include
+    /// the divisor they are looking for, and an assert says so.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    REQUIRE(LFOImpl::Timer::measureNumerator() == 6);
+
+    // A sixth from the half bar, two sixths from the whole one.
+    CHECK(LFOImpl::snapPeriodScale(4 / 6.0f, LFO::Quarter).first ==
+          Catch::Approx(0.5f).margin(1e-4));
+}
+
+TEST_CASE("Every synced period snaps to a nearest beat count its meter divides", "[lfo]")
+{
+    ScopedHostTiming const timing;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The general form of the case above, over every meter a host is
+    /// likely to report. A property rather than a table of answers because what
+    /// went wrong is a *search*, and a search that is right for the four meters
+    /// this file already drove is exactly what shipped.
+    ///
+    ///   "A nearest" rather than "the nearest": a request can sit exactly
+    /// between two divisors -- three beats of four four is one from the half bar
+    /// and one from the whole one -- and which way a tie goes is a separate
+    /// decision from whether the search found the neighbour at all. The case
+    /// below pins that.
+    ///
+    ///   Up to sixteen, which is past any meter a host is likely to report and
+    /// is also the numerator that says this is not an odd-meter bug: sixteen has
+    /// five divisors of its own and mis-snapped four of its requests.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    auto const divisorsOf([](unsigned const beatsPerBar) {
+        std::vector<unsigned> divisors;
+        for (unsigned candidate(1); candidate <= beatsPerBar; ++candidate)
+            if ((beatsPerBar % candidate) == 0)
+                divisors.push_back(candidate);
+        return divisors;
+    });
+
+    for (unsigned beatsPerBar(2); beatsPerBar <= 16; ++beatsPerBar)
+    {
+        auto const numerator(static_cast<std::uint8_t>(beatsPerBar));
+        ScopedHostTiming const meter(barOf(numerator), numerator);
+        REQUIRE(LFOImpl::Timer::measureNumerator() == numerator);
+
+        auto const divisors(divisorsOf(beatsPerBar));
+
+        for (unsigned beats(1); beats <= beatsPerBar; ++beats)
+        {
+            auto const distanceFrom([beats](unsigned const divisor) {
+                return (divisor > beats) ? (divisor - beats) : (beats - divisor);
+            });
+
+            auto const wanted(static_cast<float>(beats) / static_cast<float>(beatsPerBar));
+            auto const snapped(LFOImpl::snapPeriodScale(wanted, LFO::Quarter).first);
+            auto const snappedBeats(
+                static_cast<unsigned>(std::lround(snapped * static_cast<float>(beatsPerBar))));
+
+            CAPTURE(beatsPerBar, beats, wanted, snapped, snappedBeats);
+            REQUIRE(snappedBeats >= 1);
+            // It landed on a beat count the bar divides into...
+            CHECK((beatsPerBar % snappedBeats) == 0);
+            // ...and no other such beat count was nearer to what was asked for.
+            CHECK(distanceFrom(snappedBeats) ==
+                  distanceFrom(*std::ranges::min_element(divisors, {}, distanceFrom)));
+        }
+    }
+}
+
+TEST_CASE("A request exactly between two beat counts takes the shorter period", "[lfo]")
+{
+    ScopedHostTiming const timing;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note Three beats of four four is one beat from the half bar and one from
+    /// the whole bar, so nearest does not decide it and something has to. It is
+    /// the `<` in `snapSyncedPeriodScale()`: the upper candidate has to be
+    /// strictly nearer to win, so a tie goes to the shorter period.
+    ///
+    ///   Worth a case of its own because it is the one answer in *four four*
+    /// that issue #243 moves -- three quarters of a bar was a whole bar, by a
+    /// distance of one against three rather than by a tie, because the lower
+    /// candidate was always a single beat. The rule itself is not new: three
+    /// four has always resolved its tie downwards, which is the `halfABarIn(3)`
+    /// line above, and the two meters now agree.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    REQUIRE(LFOImpl::Timer::measureNumerator() == 4);
+    CHECK(LFOImpl::snapPeriodScale(0.75f, LFO::Quarter).first == Catch::Approx(0.5f));
+
+    {
+        ScopedHostTiming const inThreeFour(barOf(3), 3);
+        CHECK(LFOImpl::snapPeriodScale(2 / 3.0f, LFO::Quarter).first ==
+              Catch::Approx(1 / 3.0f).margin(1e-4));
+    }
 }
 
 TEST_CASE("A host that opens in five four is stating its meter rather than changing it", "[lfo]")

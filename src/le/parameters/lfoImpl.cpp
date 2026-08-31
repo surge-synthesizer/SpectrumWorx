@@ -602,18 +602,24 @@ lfo_value_t snapSyncedPeriodScale(lfo_value_t const periodScale)
     {
         LE_ASSERT((numberOfBeats >= 1) && (numberOfBeats <= LFOImpl::Timer::measureNumerator()));
 
-        auto const wholeDivisorFinder([](std::uint8_t const value) {
-            return LFOImpl::Timer::measureNumerator() % value == 0;
-        });
+        unsigned const beats(numberOfBeats);
+        unsigned const beatsPerBar(LFOImpl::Timer::measureNumerator());
 
-        auto const upperClosest(*std::ranges::find_if(
-            std::views::iota(numberOfBeats, LFOImpl::Timer::measureNumerator()),
-            wholeDivisorFinder));
-        auto const lowerClosest(*std::ranges::find_if(
-            std::views::iota(std::uint8_t(1), numberOfBeats), wholeDivisorFinder));
-        auto const closest(((upperClosest - numberOfBeats) < (numberOfBeats - lowerClosest))
-                               ? upperClosest
-                               : lowerClosest);
+        auto const wholeDivisorFinder(
+            [beatsPerBar](unsigned const value) { return beatsPerBar % value == 0; });
+
+        // inclusive bounds, so neither search can run off the end
+        auto const upper(std::views::iota(beats, beatsPerBar + 1));
+        auto const lower(std::views::iota(1u, beats + 1) | std::views::reverse);
+
+        auto const upperClosest(std::ranges::find_if(upper, wholeDivisorFinder));
+        auto const lowerClosest(std::ranges::find_if(lower, wholeDivisorFinder));
+        LE_ASSERT(upperClosest != upper.end());
+        LE_ASSERT(lowerClosest != lower.end());
+
+        // downwards on a tie, as three four has always resolved one
+        auto const closest(((*upperClosest - beats) < (beats - *lowerClosest)) ? *upperClosest
+                                                                               : *lowerClosest);
         return convert<float>(closest) / measureNumerator;
     }
     else
