@@ -144,16 +144,12 @@ unsigned int floor(float const value)
 float modulo(float const dividend, float const divisor)
 {
     LE_ASSUME(divisor != 0);
-#if !(defined(BOOST_SIMD_ARCH_X86) && !defined(BOOST_SIMD_HAS_SSE_SUPPORT))
     //...mrmlj...signed so that it can be (mis)used for fast(er) phase mapping...
     /*unsigned*/ int const divisionFloor(truncate(dividend / divisor));
     float const mod(dividend - (divisionFloor * divisor));
     //...mrmlj...need not hold when (mis)used for fast(er) phase mapping...
     //LE_ASSERT( std::floor( value ) == static_cast<float>( result ) );
     return mod;
-#else
-    return Math::modulo(dividend, divisor);
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
 }
 
 bool isZero(float const &value)
@@ -188,7 +184,6 @@ int ceil(float const value)
 float modulo(float const dividend, float const divisor)
 {
     LE_ASSUME(divisor != 0);
-#if !(defined(BOOST_SIMD_ARCH_X86) && !defined(BOOST_SIMD_HAS_SSE_SUPPORT))
     int const divisionFloor(floor(dividend / divisor));
     float const mod(dividend - (divisionFloor * divisor));
     // Implementation note:
@@ -222,12 +217,6 @@ float modulo(float const dividend, float const divisor)
                                                                     static_cast<double>(divisor)))),
                   "Broken modulo.");
     return mod;
-#elif defined(__GNUC__)
-    return ::__builtin_fmodf(dividend, divisor);
-#else // BOOST_SIMD_HAS_SSE_SUPPORT
-#pragma message("Add a fast version for this platform...")
-    return std::fmodf(dividend, divisor);
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
 }
 
 int modulo(int const dividend, int const divisor)
@@ -252,12 +241,7 @@ std::uint32_t clamp(std::int32_t const value, std::uint32_t const lowerBound,
 
     LE_ASSERT_MSG(lowerBound <= upperBound, "Invalid input");
 
-#ifdef BOOST_SIMD_HAS_SSE4_1_SUPPORT
-    __m128i vectorResult(_mm_cvtsi32_si128(value));
-    vectorResult = _mm_max_epi32(vectorResult, _mm_cvtsi32_si128(lowerBound));
-    vectorResult = _mm_min_epu32(vectorResult, _mm_cvtsi32_si128(upperBound));
-    return _mm_cvtsi128_si32(vectorResult);
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
     //...mrmlj...MSVC generates bad code for the ternary operator...
     if (value < static_cast<std::int32_t>(lowerBound))
         return lowerBound;
@@ -391,11 +375,7 @@ bool isZero(float const &value)
 bool isNegative(float const value)
 {
     static_assert(sizeof(int) == sizeof(float), "Unexpected data sizes");
-#ifdef BOOST_SIMD_HAS_SSE2_SUPPORT
-    auto const result(isNegative(_mm_cvtsi128_si32(_mm_castps_si128(_mm_set_ss(value)))));
-#else
     auto const result(isNegative(std::bit_cast<int>(value)));
-#endif // BOOST_SIMD_HAS_SSE2_SUPPORT
     LE_ASSERT_MSG((result == (value < 0)) || (value == -0.0f), "Unexpected result");
     return result;
 }

@@ -23,9 +23,7 @@
 #include "arm_neon.h"
 #endif // __ARM_NEON__
 
-#ifndef BOOST_SIMD_HAS_SSE_SUPPORT
 #include <algorithm>
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
 /// \note span.hpp and <string> were included only #ifndef NDEBUG, but has()
 /// and verifyFPValues() are declared over Span unconditionally, so this header
 /// had never compiled in a release build.
@@ -111,15 +109,6 @@ float valueIfGreater(float testValue, float lowerBound, float value);
 
 unsigned int ceil(float value);
 unsigned int floor(float value);
-#if (defined(__clang__) && defined(BOOST_SIMD_ARCH_ARM))
-// http://en.wikipedia.org/wiki/Rounding#Rounding_to_integer // round to nearest up, incorrect for negative values...
-inline unsigned int round(float const floatingPointValue)
-{
-    return static_cast<unsigned int>(floatingPointValue + 0.5f);
-}
-#else
-//using Math::round; //...mrmlj...compilation errors with 'anonymous impl namespaces'...
-#endif // __clang__
 
 float modulo(float dividend, float divisor);
 
@@ -445,23 +434,9 @@ void verifyFPValues(LE::Utility::Span<float const> const &range, char const *con
 
 LE_FORCEINLINE float clamp(float const value, float const lowerBound, float const upperBound)
 {
-#if defined(BOOST_SIMD_HAS_SSE_SUPPORT)
-    __m128 vectorResult(_mm_set_ss(value));
-    vectorResult = _mm_max_ss(vectorResult, _mm_set_ss(lowerBound));
-    vectorResult = _mm_min_ss(vectorResult, _mm_set_ss(upperBound));
-    return _mm_cvtss_f32(vectorResult);
-#elif defined(BOOST_SIMD_ARCH_ARM)
-    // NEON http://stackoverflow.com/questions/11516935/efficient-neon-implementation-of-clipping?rq=1
-    if (value < lowerBound)
-        return lowerBound;
-    else if (value > upperBound)
-        return upperBound;
-    return value;
-#else
     /// \note Unqualified min/max here only ever found LE::Math's pointer-range
     /// overloads — this branch had never been compiled.
     return std::min(std::max(value, lowerBound), upperBound);
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
 }
 
 LE_FORCEINLINE float copySign(float const targetNumber, float const signSource)
@@ -470,20 +445,13 @@ LE_FORCEINLINE float copySign(float const targetNumber, float const signSource)
 
 #if defined(__GNUC__)
     float const result(__builtin_copysignf(targetNumber, signSource));
-#elif defined(BOOST_SIMD_HAS_SSE_SUPPORT)
-    __m128 const signBitMaskVector(_mm_set_ps1(-0.0f));
-    __m128 const targetNumberAbsoluteBits(
-        _mm_andnot_ps(signBitMaskVector, _mm_set_ss(targetNumber)));
-    __m128 const signSourceSignBit(_mm_and_ps(signBitMaskVector, _mm_set_ss(signSource)));
-    __m128 const resultVector(_mm_or_ps(targetNumberAbsoluteBits, signSourceSignBit));
-    float const result(_mm_cvtss_f32(resultVector));
 #else
     int const targetNumberAbsoluteBits(reinterpret_cast<int const &>(targetNumber) & 0x7FFFFFFF);
     int const signSourceSignBit(reinterpret_cast<int const &>(signSource) & 0x80000000);
     int const resultBits(targetNumberAbsoluteBits | signSourceSignBit);
 
     float const result(reinterpret_cast<float const &>(resultBits));
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
+#endif // __GNUC__
 
 #ifdef _MSC_VER
     LE_ASSERT(result == /*std*/ ::_copysign(targetNumber, signSource));
@@ -496,11 +464,6 @@ LE_FORCEINLINE float copySign(float const targetNumber, float const signSource)
 LE_FORCEINLINE float valueIfNot(float const &value, bool const condition)
 {
     auto const mask(static_cast<std::uint32_t>(static_cast<std::uint8_t>(condition) - 1));
-#if defined(BOOST_SIMD_HAS_SSE2_SUPPORT)
-    __m128 const maskVector(_mm_castsi128_ps(_mm_cvtsi32_si128(mask)));
-    __m128 const resultVector(_mm_and_ps(maskVector, _mm_set_ss(value)));
-    float const result(_mm_cvtss_f32(resultVector));
-#else
     union
     {
         std::uint32_t bits;
@@ -509,7 +472,6 @@ LE_FORCEINLINE float valueIfNot(float const &value, bool const condition)
     resultBits.value = value;
     resultBits.bits &= mask;
     float const result(resultBits.value);
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
     LE_ASSERT(result == (condition ? 0 : value));
     return result;
 }
@@ -551,104 +513,34 @@ LE_FORCEINLINE float valueIfNot(float const &value, bool const condition)
 
 LE_FORCEINLINE std::int32_t round(float const floatingPointValue)
 {
-    // Implementation note:
-    // MSVC, GCC and Clang do not provide in-memory operand versions of SSE
-    // intrinsics however we do not use inline assembler instead as this does
-    // more harm than good because it hinders the optimizer.
-    //                                        (06.12.2010.) (Domagoj Saric)
-#ifdef BOOST_SIMD_HAS_SSE_SUPPORT
-    return _mm_cvtss_si32(_mm_set_ss(floatingPointValue));
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #ifdef _XBOX
     return __frnd(floatingPointValue);
 #else
-    /// \note Was x86-32 inline assembly, fld/fistp, and reached because
-    /// BOOST_SIMD_HAS_SSE_SUPPORT above is defined nowhere in the tree -- so this
-    /// is the arm every MSVC build takes, not the fallback it reads as. MSVC
-    /// accepts __asm only when targeting 32-bit x86, so x64 and ARM64 both failed
-    /// to compile it rather than merely missing a fast path.
-    ///
-    ///   std::lrintf is the same operation under the same rounding mode as both
-    /// the assembly it replaces and the __builtin_lrintf arm below: fistp and
-    /// lrintf alike follow the current mode, and nothing here changes it from the
+    /// \note std::lrintf is the same operation under the same rounding mode as
+    /// the x86-32 fld/fistp this replaces and as the __builtin_lrintf arm below:
+    /// both follow the current mode, and nothing here changes it from the
     /// default nearest-even.
     return static_cast<std::int32_t>(std::lrintf(floatingPointValue));
-#endif
-#elif defined(BOOST_SIMD_ARCH_ARM) && defined(__GNUC__)
-#if defined(__SOFTFP__) || (defined(__thumb__) && (__ARM_ARCH < 7))
-    // https://connect.microsoft.com/VisualStudio/feedback/details/1179496/cq-intrinsics-vc-lrintf-is-376-times-longer-than-gcc-clang-version
-    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=48139
-    // https://llvm.org/bugs/show_bug.cgi?id=11544 Trivial math builtins not inlined
-    // http://lists.apple.com/archives/perfoptimization-dev/2007/Jan/msg00002.html
-    return __builtin_lrintf(floatingPointValue);
-#elif (__ARM_ARCH == 7)
-    // https://www.crest.iu.edu/projects/conceptcpp/docs/html-ext/CGBuiltin_8cpp_source.html
-    //...mrmlj...Clang (3.6 and Xcode 7.2.1) crashes here with "fatal error: error in backend: Cannot select: intrinsic %llvm.arm.vcvtr"...
-    // return __builtin_arm_vcvtr_f( floatingPointValue, 0 );
-
-    // http://www.ethernut.de/en/documents/arm-inline-asm.html
-    // http://hardwarebug.org/2010/07/06/arm-inline-asm-secrets
-    // This uses the 'current' rounding mode, which defaults to what we want
-    // (see FPDSCR, Floating-point Default Status Control Register), i.e.
-    // round to nearest.
-    float mutableInput(floatingPointValue);
-    std::int32_t integerValue;
-    __asm__("vcvtr.s32.f32 %1, %1\n"
-            "vmov.s32      %0, %1\n"
-            : "=r"(integerValue), "+&w"(mutableInput));
-    LE_ASSERT(integerValue == __builtin_lrintf(floatingPointValue));
-    return integerValue;
-#elif (__ARM_ARCH >= 8)
-    return vcvtns_s32_f32(floatingPointValue);
-#else
-// vcvt_* "rounds towards zero" which actually seems to be plain truncation...
-// http://stackoverflow.com/questions/10762620/vectorized-floating-point-rounding-using-neon
-#if 1
-    std::int32_t const integerValue(floatingPointValue +
-                                    __builtin_copysignf(0.5f, floatingPointValue));
-#elif 0 // was: little endian magic-number rounding
-    double constexpr magic(
-        (1ULL << 52) *
-        1.5); //...mrmlj...float( 1<<23 ) should work/be enough for positive numbers...
-    union
-    {
-        double asDouble;
-        std::int32_t asInteger;
-    } bits = {floatingPointValue + magic};
-    auto const integerValue(bits.asInteger);
-#elif 0 // Clang 3.2 issues two FPU control register fetch instructions so slower than the last one
-    // http://stackoverflow.com/questions/485525/round-for-float-in-c
-    auto const truncatedValue(static_cast<std::int32_t>(floatingPointValue));
-    float const difference(floatingPointValue - truncatedValue);
-    auto const adjustment((difference >= 0.5f) - (difference <= -0.5f));
-    auto const integerValue(truncatedValue + adjustment);
-#else
-    int const integerValue(floatingPointValue + ((floatingPointValue > 0) ? +0.5f : -0.5f));
-#endif
-    //...mrmlj...LE_ASSERT( integerValue == ::__builtin_rintf( floatingPointValue ) ) ); // rounds to nearest even
-    return integerValue;
 #endif
 #elif defined(__GNUC__)
     /// \note Neither Clang nor GCC inline a call to __builtin_lrintf (at
     /// least when targeting the ARM).
     ///                                   (02.11.2012.) (Domagoj Saric)
     return static_cast<std::int32_t>(::__builtin_lrintf(floatingPointValue));
-#endif
+#endif // _MSC_VER
 }
 
 LE_FORCEINLINE int round(double const floatingPointValue)
 {
-#ifdef BOOST_SIMD_HAS_SSE2_SUPPORT
-    return _mm_cvtsd_si32(_mm_load_sd(&floatingPointValue));
-#elif defined(__GNUC__)
+#if defined(__GNUC__)
     return static_cast<int>(::__builtin_lrint(floatingPointValue));
 #elif defined(_XBOX)
     return __frnd(floatingPointValue);
 #elif defined(_MSC_VER)
-    /// \note As for round( float ) above: the SSE2 arm is keyed on a macro
-    /// nothing defines, so MSVC fell through to the magic-number union below --
-    /// which carried an __asm cross-check of its own result, in a debug build, on
-    /// an architecture where MSVC cannot assemble it. std::lrint is the same
+    /// \note MSVC fell through to the magic-number union below -- which carried
+    /// an __asm cross-check of its own result, in a debug build, on an
+    /// architecture where MSVC cannot assemble it. std::lrint is the same
     /// rounding under the same mode and needs neither.
     return static_cast<int>(std::lrint(floatingPointValue));
 #elif 1 //...mrmlj...was LE_LITTLE_ENDIAN; the union below is byte-order dependent
@@ -682,42 +574,14 @@ LE_FORCEINLINE int truncate(float const floatingPointValue)
     /// -2^31 is a power of two and converts exactly.
     LE_ASSERT_MSG(floatingPointValue < 2147483648.0f, "Float out of int range.");
     LE_ASSERT_MSG(floatingPointValue > std::numeric_limits<int>::min(), "Float out of int range.");
-#ifdef BOOST_SIMD_HAS_SSE_SUPPORT
-    return _mm_cvttss_si32(_mm_set_ss(floatingPointValue));
-#else
     return static_cast<int>(floatingPointValue);
-#endif
 }
 
 namespace PositiveFloats
 {
-LE_FORCEINLINE bool isGreater(float const left, float const right)
-{
-#if defined(_MSC_VER) && defined(BOOST_SIMD_HAS_SSE_SUPPORT)
-    unsigned int const boolean(_mm_ucomigt_ss(_mm_set_ss(left), _mm_set_ss(right)));
-    //LE_ASSUME( boolean == 0 || boolean == 1 ); ...mrmlj...seems to cause larger code...
-    //LE_ASSUME( boolean <= 1 );
-    return reinterpret_cast<bool const &>(boolean);
-#elif defined(_MSC_VER) && defined(BOOST_SIMD_HAS_SSE2_SUPPORT)
-    __m128 const maskVector(_mm_cmpge_ss(_mm_set_ss(left), _mm_set_ss(right)));
-    unsigned const mask(_mm_cvtsi128_si32(_mm_castps_si128(maskVector)));
-    return reinterpret_cast<bool const &>(mask);
-#else
-    return left > right;
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
-}
+LE_FORCEINLINE bool isGreater(float const left, float const right) { return left > right; }
 
-LE_FORCEINLINE bool isGreater(double const left, double const right)
-{
-#if defined(_MSC_VER) && defined(BOOST_SIMD_HAS_SSE2_SUPPORT)
-    unsigned int const boolean(_mm_ucomigt_sd(_mm_set_sd(left), _mm_set_sd(right)));
-    LE_ASSUME(boolean == 0 || boolean == 1);
-    LE_ASSUME(boolean <= 1);
-    return reinterpret_cast<bool const &>(boolean);
-#else
-    return left > right;
-#endif // BOOST_SIMD_HAS_SSE_SUPPORT
-}
+LE_FORCEINLINE bool isGreater(double const left, double const right) { return left > right; }
 
 // Implementation note:
 //   This function is required because MSVC10 is unable to generate good
@@ -727,17 +591,8 @@ LE_FORCEINLINE bool isGreater(double const left, double const right)
 LE_FORCEINLINE float valueIfGreater(float const testValue, float const lowerBound,
                                     float const value)
 {
-#ifdef BOOST_SIMD_HAS_SSE_SUPPORT
-#ifdef __GNUC__
-    __m128 const mask(_mm_cmpgt_ss(_mm_set_ss(testValue), _mm_set_ss(lowerBound)));
-#else
-    __m128 const mask(_mm_cmpgt_ps(_mm_set_ss(testValue), _mm_set_ss(lowerBound))); //...mrmlj...
-#endif
-    return _mm_cvtss_f32(_mm_and_ps(mask, _mm_set_ss(value)));
-#else
     auto const isGreater_(isGreater(testValue, lowerBound));
     return isGreater_ ? value : 0;
-#endif
 }
 } // namespace PositiveFloats
 
