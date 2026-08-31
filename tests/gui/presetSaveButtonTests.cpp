@@ -526,7 +526,7 @@ TEST_CASE("The browser says who wrote the preset it has loaded", "[gui][presets]
     auto &browser(browserOf(instance));
 
     // nothing loaded yet, and an empty field would read as one still filling in
-    CHECK(browser.authorLabel() == "Author: unknown");
+    CHECK(browser.authorLabel() == "Author: Unknown");
 
     instance.editor().showFactoryBank("Gamma Shift");
     auto *const pBrowser(instance.editor().presetBrowser());
@@ -582,5 +582,5 @@ TEST_CASE("A preset with no byline says so rather than keeping the last one",
     REQUIRE(instance.editor().loadPreset(buffer.data(), true, comment, "Nobody"));
 
     CHECK(instance.loadedPreset().author.isEmpty());
-    CHECK(pBrowser->authorLabel() == "Author: unknown");
+    CHECK(pBrowser->authorLabel() == "Author: Unknown");
 }

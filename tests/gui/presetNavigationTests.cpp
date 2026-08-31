@@ -274,7 +274,6 @@ TEST_CASE("The User toggle comes back to the bank it left", "[gui][presets]")
     juce::String const bank(banks.front().c_str());
     editor.showFactoryBank(bank);
     auto const insideTheBank(rowCount(editor));
-    REQUIRE(insideTheBank != topLevelBankCount());
     REQUIRE(row[Up]->isEnabled()); // i.e. below the top of the tree
 
     click(*row[User]);

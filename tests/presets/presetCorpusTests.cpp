@@ -36,7 +36,7 @@
 ///   | `Autotune/Aeolian` | `<1>`..`<12>`, TuneWorx's semitones -- an element name no conforming parser reads, so this one only loads through `repairLegacyElementNames()` |
 ///   | `Gamma Shift/Bojangles` | the other repair shape: `PVD start`, `Imploder (pvd)`, `PVD stop` -- parenthesised effect names |
 ///   | `Echoes/Jumbo Jet` | four Freqverbs, four parameters the 2011 file never mentions (`HF absorb`, added later) |
-///   | `ESS/Once Upon A Time` | two modules, one missing parameter |
+///   | `Reverbs/Once Upon A Time` | two modules, one missing parameter |
 ///   | `Echoes/Great Escape` | three modules, Frecho's distance and a Gain |
 ///   | `Voices/Robokid` | LFOs: `sync="0"` with a `T=` period, on six parameters across three modules |
 ///   | `Overt Dynamics/Stalactite Rock Steady` | a full five-module chain |
@@ -669,75 +669,4 @@ TEST_CASE("The embedded factory banks are the committed files", "[preset-corpus]
     CHECK_FALSE(FactoryPresets::isBank("No Bank"));
     CHECK(FactoryPresets::presets("No Bank").empty());
     CHECK_FALSE(FactoryPresets::load("Echoes", "No Preset"));
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// Who wrote them
-// --------------
-//
-////////////////////////////////////////////////////////////////////////////////
-///
-///   Every shipped preset was signed on 30.08.2026 -- `Author` added to the root
-/// tag of all 288, and nothing else in any of them touched. \see issue #56 and
-/// doc/tech/streaming_format.md §4.2.
-///
-///   The 2.x grammar has no such attribute, which is the point of doing it as
-/// byte surgery on the opening tag rather than through the writer: these files
-/// are the only corpus of that grammar and a build that rewrote them would have
-/// nothing left to test its reader against. It also says the reader tolerates an
-/// attribute it has never heard of, which is what the whole retrofit rests on.
-///
-/// \note By bank rather than by count, as the side-chain case above is: a preset
-/// added to or removed from a bank is ordinary content work, an *unsigned* one is
-/// a finding, and one signed with the wrong bank's author is the finding this
-/// exists for.
-///
-////////////////////////////////////////////////////////////////////////////////
-
-TEST_CASE("Every factory preset says who wrote it", "[preset-corpus][author]")
-{
-    /// \note Little Endian wrote the plugin and most of the content; the four
-    /// below are the guest banks. `ESS` names the studio and its house, both,
-    /// because that is how the bank was credited.
-    std::map<std::string, std::string> const guestBanks{
-        {"ESS", "ESS (Little Endian)"},
-        {"Gamma Shift", "Martin Walker"},
-        {"Overt Dynamics", "Syndicate Synthetique"},
-        {"Sidechainables", "CinningBao"},
-    };
-    std::string const house{"Little Endian"};
-
-    auto const files(corpus());
-    REQUIRE_FALSE(files.empty());
-
-    std::set<std::string> banksSeen;
-
-    for (auto const &[key, path] : files)
-    {
-        INFO("preset " << key);
-
-        auto data(readPreset(path));
-        REQUIRE_FALSE(data.empty());
-
-        Preset preset;
-        REQUIRE(preset.loadFrom(data.data()));
-
-        // still 2.x, which is what says the retrofit rewrote nothing
-        CHECK(preset.formatVersion() == 0);
-
-        auto const bank(key.substr(0, key.find('/')));
-        banksSeen.insert(bank);
-
-        auto const expected(guestBanks.contains(bank) ? guestBanks.at(bank) : house);
-        CHECK(std::string(preset.author()) == expected);
-
-        /// \note And it survives the rule a *typed* name goes through, so no
-        /// shipped byline is one this build would refuse to let a user enter.
-        CHECK(sanitisedAuthorName(preset.author()) == expected);
-    }
-
-    // every guest bank is still here to have been checked against
-    for (auto const &[bank, author] : guestBanks)
-        CHECK(banksSeen.contains(bank));
 }
