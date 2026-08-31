@@ -98,8 +98,6 @@ bool isNegative(float value);
 bool isNegative(int value);
 bool isNegative(unsigned int value);
 
-float valueIfNot(float const &value, bool condition);
-
 namespace PositiveFloats
 {
 bool isGreater(float left, float right);
@@ -144,12 +142,10 @@ std::uint8_t clamp(std::int8_t value, std::uint8_t lowerBound, std::uint8_t uppe
 std::uint16_t clamp(std::uint16_t value, std::uint16_t lowerBound, std::uint16_t upperBound);
 
 std::uint8_t firstSetBit(int);
-std::uint8_t lastSetBit(int);
 std::uint8_t numberOfSetBits(int);
 
 bool isPowerOfTwo(int);
 bool isPowerOfTwo(unsigned int);
-bool isPowerOfTwo(float);
 
 template <unsigned int value>
 struct IsPowerOfTwo : std::integral_constant<bool, (1 << LE::Utility::staticLog2(value)) == value>
@@ -458,21 +454,6 @@ LE_FORCEINLINE float copySign(float const targetNumber, float const signSource)
 #else
     LE_ASSERT(result == /*std*/ ::copysign(targetNumber, signSource));
 #endif // _MSC_VER
-    return result;
-}
-
-LE_FORCEINLINE float valueIfNot(float const &value, bool const condition)
-{
-    auto const mask(static_cast<std::uint32_t>(static_cast<std::uint8_t>(condition) - 1));
-    union
-    {
-        std::uint32_t bits;
-        float value;
-    } resultBits;
-    resultBits.value = value;
-    resultBits.bits &= mask;
-    float const result(resultBits.value);
-    LE_ASSERT(result == (condition ? 0 : value));
     return result;
 }
 

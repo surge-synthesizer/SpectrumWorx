@@ -34,36 +34,6 @@
 
 namespace LE::Math
 {
-#ifdef _MSC_VER
-#pragma runtime_checks("", off)
-#pragma check_stack(off)
-#endif // _MSC_VER
-
-namespace
-{
-union Float32
-{
-    float value;
-    struct Bits
-    {
-        std::uint32_t mantissa : 23;
-        std::uint32_t exponent : 8;
-        std::uint32_t sign : 1;
-    } bits;
-    bool negative() const { return bits.sign; }
-    std::int8_t exponent() const { return bits.exponent - 127; }
-    std::uint32_t mantissa() const { return bits.mantissa; }
-}; // union Float32
-} // namespace
-
-bool makeBool(unsigned int boolean);
-
-std::uint8_t abs(bool const value)
-{
-    LE_ASSERT_MSG(value == 0 || value == 1, "Invalid input");
-    return static_cast<std::uint8_t>(value);
-}
-
 /// \note Every float-as-integer read in this file goes through std::bit_cast.
 /// They were `reinterpret_cast<int const &>( aFloat )`, which is not a
 /// reinterpretation of the bits but a read of a float through an int lvalue --
@@ -73,57 +43,19 @@ std::uint8_t abs(bool const value)
 /// -O3 does not, which is how they survived. std::bit_cast is the C++20
 /// spelling of what all of them meant, it is defined, and it compiles to the
 /// same instruction.
-bool isGreater(float const *LE_RESTRICT const pLeft, float const *LE_RESTRICT const pRight)
+#ifdef _MSC_VER
+#pragma runtime_checks("", off)
+#pragma check_stack(off)
+#endif // _MSC_VER
+
+std::uint8_t abs(bool const value)
 {
-    /// \note The integer version is better for in-memory operands.
-    ///                                       (13.01.2012.) (Domagoj Saric)
-    LE_ASSUME(pLeft);
-    LE_ASSUME(pRight);
-
-    int leftBits(std::bit_cast<int>(*pLeft));
-    int rightBits(std::bit_cast<int>(*pRight));
-
-    int const leftSign(leftBits >> 31);
-    leftBits = (leftBits ^ leftSign) + (leftSign & 0x80000001);
-
-    int const rightSign(rightBits >> 31);
-    rightBits = (rightBits ^ rightSign) + (rightSign & 0x80000001);
-
-    auto const result(leftBits > rightBits);
-    LE_ASSERT_MSG((result == (*pLeft > *pRight)) || !std::isfinite(*pLeft) ||
-                      !std::isfinite(*pRight),
-                  "Unexpected result");
-    return result;
+    LE_ASSERT_MSG(value == 0 || value == 1, "Invalid input");
+    return static_cast<std::uint8_t>(value);
 }
 
 namespace PositiveFloats
 {
-// Float comparison
-// http://randydillon.org/Papers/2007/everfast.htm
-// http://www.cygnus-software.com/papers/comparingfloats/comparingfloats.htm
-// http://realtimecollisiondetection.net/blog/?p=89
-// http://stackoverflow.com/questions/17333/most-effective-way-for-float-and-double-comparison
-
-bool isGreater(float const *LE_RESTRICT const pLeft, float const *LE_RESTRICT const pRight)
-{
-    /// \note The integer version is better for in-memory operands.
-    ///                                   (13.01.2012.) (Domagoj Saric)
-    LE_ASSUME(pLeft);
-    LE_ASSUME(pRight);
-    auto const result(std::bit_cast<int>(*pLeft) > std::bit_cast<int>(*pRight));
-    LE_ASSERT_MSG((result == (*pLeft > *pRight)) || !std::isfinite(*pLeft) ||
-                      !std::isfinite(*pRight),
-                  "Unexpected result");
-    return result;
-}
-
-bool isGreater(double const *LE_RESTRICT const pLeft, double const *LE_RESTRICT const pRight)
-{
-    auto const result(std::bit_cast<long long>(*pLeft) > std::bit_cast<long long>(*pRight));
-    LE_ASSERT_MSG(result == (*pLeft > *pRight), "Unexpected result");
-    return result;
-}
-
 unsigned int ceil(float const value)
 {
     LE_ASSUME(value >= 0);
@@ -544,26 +476,6 @@ std::uint8_t firstSetBit(int const value)
 #endif // _MSC_VER
 }
 
-std::uint8_t lastSetBit(int const value)
-{
-    LE_ASSERT_MSG(value, "Invalid input");
-#if defined(_MSC_VER)
-#ifdef _XBOX
-    return static_cast<std::uint8_t>((sizeof(value) * 8) -
-                                     _CountLeadingZeros(~value & (value - 1)));
-#else
-    unsigned long lastSetBitIndex;
-    LE_VERIFY(_BitScanForward(&lastSetBitIndex, value) && "No bits set in the passed value.");
-    return static_cast<std::uint8_t>(lastSetBitIndex);
-#endif
-#elif defined(__GNUC__)
-    std::uint8_t const trailingZeroBits(__builtin_ctz(value));
-    return (sizeof(value) * 8) - 1 - trailingZeroBits;
-#else // _MSC_VER
-#error not implemented.
-#endif // _MSC_VER
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 // isPowerOfTwo()
@@ -590,28 +502,6 @@ bool isPowerOfTwo(int const value)
 {
     LE_ASSERT_MSG(!isNegative(value), "Invalid input");
     return isPowerOfTwo(static_cast<unsigned int>(value));
-}
-
-bool isPowerOfTwo(float const value)
-{
-    // http://cottonvibes.blogspot.com/2010/08/checking-if-float-is-power-of-2.html
-    // http://cottonvibes.blogspot.com/2012/03/table-bitpacking-to-avoid-lookup-tables.html
-    union FloatBits
-    {
-        struct Parts
-        {
-            std::uint32_t sign : 1;
-            std::uint32_t exponent : 8;
-            std::uint32_t mantissa : 23;
-        }; // struct Parts
-
-        float value;
-        std::uint32_t bits;
-        Parts parts;
-    }; // union FloatBits
-
-    FloatBits const bits = {value};
-    return !bits.parts.sign && !bits.parts.mantissa && (bits.parts.exponent >= 127);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
