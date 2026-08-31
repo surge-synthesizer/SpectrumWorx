@@ -392,13 +392,11 @@ unsigned int round(unsigned int const value)
 
     LE_ASSERT_MSG(value != 0, "Invalid input");
     unsigned int const firstSetBitInValue(firstSetBit(value));
-    unsigned int const isNextBitSet(
-#if defined(_MSC_VER) && !defined(_XBOX)
-        _bittest(reinterpret_cast<long const *>(&value), (firstSetBitInValue - 1))
-#else
-        firstSetBitInValue && ((value & (1U << (firstSetBitInValue - 1))) != 0)
-#endif // _MSC_VER
-    );
+    /// \note The MSVC arm here was _bittest( &value, firstSetBitInValue - 1 ),
+    /// which unlike this one did not short-circuit: at value 1 the index is -1
+    /// and it read the word before `value`.
+    unsigned int const isNextBitSet(firstSetBitInValue &&
+                                    ((value & (1U << (firstSetBitInValue - 1))) != 0));
 
     unsigned int const exponent(firstSetBitInValue + isNextBitSet);
 

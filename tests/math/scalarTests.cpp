@@ -109,12 +109,22 @@ TEST_CASE("Power-of-two helpers", "[math][scalar]")
 {
     CHECK(Math::isPowerOfTwo(1024u));
     CHECK_FALSE(Math::isPowerOfTwo(1000u));
-    // \note PowerOfTwo::floor and ::round return the *exponent*, not the power
-    // of two -- floor is firstSetBit -- while ::ceil returns the value. The
+    // \note PowerOfTwo::floor returns the *exponent*, not the power of two --
+    // it is firstSetBit -- while ::ceil and ::round return the value. The
     // asymmetry is 2016's; the assertions record it rather than endorse it.
     CHECK(Math::PowerOfTwo::floor(1000u) == 9u);
     CHECK(Math::PowerOfTwo::ceil(1000.0f) == 1024u);
     CHECK(Math::PowerOfTwo::log2(4096u) == 12);
+
+    // \note One is the case the MSVC arm got wrong: it tested the bit below the
+    // most significant one without the portable arm's short-circuit, so at an
+    // exponent of zero it read bit -1 -- the word before `value`.
+    CHECK(Math::PowerOfTwo::round(1u) == 1u);
+    CHECK(Math::PowerOfTwo::round(2u) == 2u);
+    CHECK(Math::PowerOfTwo::round(3u) == 4u);
+    CHECK(Math::PowerOfTwo::round(5u) == 4u);
+    CHECK(Math::PowerOfTwo::round(6u) == 8u);
+    CHECK(Math::PowerOfTwo::round(1000u) == 1024u);
     static_assert(Math::IsPowerOfTwo<256>::value);
     static_assert(!Math::IsPowerOfTwo<255>::value);
 }
