@@ -96,6 +96,11 @@ TEST_CASE("Rounding matches the CRT", "[math][scalar]")
     CHECK(Math::isNegative(-0.0f));
     CHECK_FALSE(Math::isNegative(0.0f));
     CHECK(Math::isNegative(-1.0f));
+
+    // \note MSVC compared bit patterns here and everyone else compared values,
+    // so this line answered differently per platform.
+    CHECK(Math::equal(-0.0f, 0.0f));
+    CHECK(Math::isZero(-0.0f));
 }
 
 TEST_CASE("modulo matches std::fmod for positive operands", "[math][scalar]")

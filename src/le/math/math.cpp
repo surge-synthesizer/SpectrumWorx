@@ -81,8 +81,7 @@ float modulo(float const dividend, float const divisor)
 bool isZero(float const &value)
 {
     LE_ASSERT_MSG(std::isfinite(value), "Invalid input");
-    auto const valueBits(std::bit_cast<unsigned int>(value));
-    return valueBits == 0;
+    return value == 0;
 }
 } // namespace PositiveFloats
 
@@ -197,11 +196,10 @@ bool equal(float const &left, float const &right)
 #pragma clang diagnostic pop
 #endif // __clang__
 
-#if defined(_MSC_VER)
-    return std::bit_cast<unsigned int>(left) == std::bit_cast<unsigned int>(right);
-#else
+    /// \note MSVC compared the bit patterns and everyone else compared the
+    /// values, so `equal( -0.0f, 0.0f )` answered differently per platform.
+    /// `isZero()` treats the two as one number; so does this.
     return left == right;
-#endif
 }
 
 bool equal(float const &left, unsigned int const right)
@@ -215,9 +213,7 @@ bool equal(float const &left, unsigned int const right)
 #pragma clang diagnostic pop
 #endif // __clang__
 
-    float const rightFloat(convert<float>(right));
-
-    return std::bit_cast<unsigned int>(left) == std::bit_cast<unsigned int>(rightFloat);
+    return left == convert<float>(right);
 }
 
 bool nearEqual(float const left, float const right)
@@ -266,13 +262,7 @@ bool nearEqual(float const left, unsigned int const right)
            maximumDifferenceInULPs;
 }
 
-bool isZero(float const &value)
-{
-    //...mrmlj...avoid going to the SIMD unit...
-    auto const valueAbsoluteBits(std::bit_cast<unsigned int>(value) & 0x7FFFFFFFu);
-    auto const positive(std::bit_cast<float>(valueAbsoluteBits));
-    return PositiveFloats::isZero(positive);
-}
+bool isZero(float const &value) { return value == 0; }
 
 /// \note The sign bit, so -0.0f is negative -- which is what the shift this
 /// replaces answered, and what its assertion carved out an exception for.
