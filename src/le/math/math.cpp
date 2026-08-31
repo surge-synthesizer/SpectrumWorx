@@ -25,6 +25,7 @@
 #include "le/utility/platformSpecifics.hpp"
 
 #include "le/utility/assert.hpp"
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <limits>
@@ -59,19 +60,12 @@ namespace PositiveFloats
 unsigned int ceil(float const value)
 {
     LE_ASSUME(value >= 0);
-    float const belowHalf(0.45f); //...mrmlj...
-    int const result(round(value + belowHalf));
-    LE_ASSERT_MSG(std::ceil(value) == static_cast<float>(result), "Unexpected result");
-    return result;
+    return static_cast<unsigned int>(Math::truncate(std::ceil(value)));
 }
 
-unsigned int floor(float const value)
-{
-    unsigned int const result(Math::truncate(value));
-    //...mrmlj...need not hold when (mis)used for fast(er) phase mapping...
-    //LE_ASSERT( std::floorf( value ) == static_cast<float>( result ) );
-    return result;
-}
+/// \note Truncation, deliberately: (mis)used for fast phase mapping, where the
+/// argument is non-negative and the two agree.
+unsigned int floor(float const value) { return static_cast<unsigned int>(Math::truncate(value)); }
 
 float modulo(float const dividend, float const divisor)
 {
@@ -92,24 +86,9 @@ bool isZero(float const &value)
 }
 } // namespace PositiveFloats
 
-int floor(float const value)
-{
-    // http://www.masm32.com/board/index.php?PHPSESSID=df3d20eef32d75578b6e4c0bf9b44819&action=printpage;topic=9515.0
-    int const truncatedValue(truncate(value));
-    int const result(truncatedValue - (isNegative(value) & (truncatedValue != value)));
-    LE_ASSERT_MSG(std::floor(value) == static_cast<float>(result), "Unexpected result");
-    return result;
-}
+int floor(float const value) { return truncate(std::floor(value)); }
 
-int ceil(float const value)
-{
-    // http://www.masm32.com/board/index.php?PHPSESSID=272a49f2a96ecb36c9a0b830e847c358&topic=9514.0
-
-    float const valueX2(value * 2);
-    int const result(-(round(-0.5f - valueX2) >> 1));
-    LE_ASSERT_MSG(std::ceil(value) == static_cast<float>(result), "Unexpected result");
-    return result;
-}
+int ceil(float const value) { return truncate(std::ceil(value)); }
 
 // http://ompf.org/forum/viewtopic.php?f=11&t=1271
 // http://mubench.sourceforge.net/results.html
@@ -173,16 +152,7 @@ std::uint32_t clamp(std::int32_t const value, std::uint32_t const lowerBound,
 
     LE_ASSERT_MSG(lowerBound <= upperBound, "Invalid input");
 
-#if defined(_MSC_VER)
-    //...mrmlj...MSVC generates bad code for the ternary operator...
-    if (value < static_cast<std::int32_t>(lowerBound))
-        return lowerBound;
-    else if (value > static_cast<std::int32_t>(upperBound))
-        return upperBound;
-    return value;
-#else
     return std::min<std::uint32_t>(std::max<std::int32_t>(value, lowerBound), upperBound);
-#endif // _MSC_VER
 }
 
 std::uint64_t clamp(std::int64_t const value, std::uint64_t const lowerBound,

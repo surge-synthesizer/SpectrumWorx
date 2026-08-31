@@ -33,6 +33,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <source_location>
 #include <string>
 #include <type_traits>
@@ -107,6 +108,8 @@ bool isGreater(double left, double right);
 float valueIfGreater(float testValue, float lowerBound, float value);
 
 unsigned int ceil(float value);
+/// \note Truncation, not a floor: it is (mis)used for fast phase mapping,
+/// where the argument is known non-negative and the two agree.
 unsigned int floor(float value);
 
 float modulo(float dividend, float divisor);
@@ -424,37 +427,17 @@ void verifyFPValues(LE::Utility::Span<float const> const &range, char const *con
 #endif // NDEBUG
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Force-inlined implementations for functions that MSVC10 does not inline when
-/// optimizing for size.
+/// Inline implementations.
 ////////////////////////////////////////////////////////////////////////////////
 
 LE_FORCEINLINE float clamp(float const value, float const lowerBound, float const upperBound)
 {
-    /// \note Unqualified min/max here only ever found LE::Math's pointer-range
-    /// overloads — this branch had never been compiled.
-    return std::min(std::max(value, lowerBound), upperBound);
+    return std::clamp(value, lowerBound, upperBound);
 }
 
 LE_FORCEINLINE float copySign(float const targetNumber, float const signSource)
 {
-    // http://stackoverflow.com/questions/2922619/how-to-efficiently-compare-the-sign-of-two-floating-point-values-while-handling-n
-
-#if defined(__GNUC__)
-    float const result(__builtin_copysignf(targetNumber, signSource));
-#else
-    int const targetNumberAbsoluteBits(reinterpret_cast<int const &>(targetNumber) & 0x7FFFFFFF);
-    int const signSourceSignBit(reinterpret_cast<int const &>(signSource) & 0x80000000);
-    int const resultBits(targetNumberAbsoluteBits | signSourceSignBit);
-
-    float const result(reinterpret_cast<float const &>(resultBits));
-#endif // __GNUC__
-
-#ifdef _MSC_VER
-    LE_ASSERT(result == /*std*/ ::_copysign(targetNumber, signSource));
-#else
-    LE_ASSERT(result == /*std*/ ::copysign(targetNumber, signSource));
-#endif // _MSC_VER
-    return result;
+    return std::copysign(targetNumber, signSource);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -466,85 +449,22 @@ LE_FORCEINLINE float copySign(float const targetNumber, float const signSource)
 ///
 /// \ingroup TypeConversion Type conversion
 /// \brief Rounds a floating point value to the nearest integer.
-///   Faster than a simple static_cast as it bypasses hidden ftol() calls/FPU
-/// setup code inserted by the (MSVC) compiler.
 ///
-/// \throws nothing
+/// \note Under the current rounding mode, which nothing here changes from the
+/// default nearest-even -- as were the fistp, vcvtr and _mm_cvtss_si32 arms
+/// this replaces. It is not std::round, which rounds halves away from zero.
 ///
-////////////////////////////////////////////////////////////////////////////////
-/// \todo Investigate:
-///    - boost::numeric_cast<>
-///    - http://ldesoras.free.fr/doc/articles/rounding_en.pdf
-///    - http://www.mega-nerd.com/FPcast
-///    - http://www.codeproject.com/KB/cpp/floatutils.aspx
-///    - http://www.stereopsis.com/FPU.html
-///    - http://stackoverflow.com/questions/2550281/floating-point-vs-integer-calculations-on-modern-hardware
-///    - http://chrishecker.com/Miscellaneous_Technical_Articles#Floating_Point
-///    - http://stackoverflow.com/questions/78619/what-is-the-fastest-way-to-convert-float-to-int-on-x86
-///    - http://www.devmaster.net/forums/showthread.php?t=10153
-///    - http://software.intel.com/en-us/articles/fast-floating-point-to-integer-conversions
-///    - http://stereopsis.com/sree/fpu2006.html
-///    - http://chrishecker.com/images/f/fb/Gdmfp.pdf
-///    - http://www.cs.uaf.edu/2009/fall/cs301/lecture/12_09_float_to_int.html
-///                                           (14.12.2009.) (Domagoj Saric)
-/// \todo Implement float->float rounding (it could speed up the phase vocoder/
-/// mapTo2Pi function).
-///                                           (19.02.2016.) (Domagoj Saric)
 ////////////////////////////////////////////////////////////////////////////////
 
 LE_FORCEINLINE std::int32_t round(float const floatingPointValue)
 {
-#if defined(_MSC_VER)
-#ifdef _XBOX
-    return __frnd(floatingPointValue);
-#else
-    /// \note std::lrintf is the same operation under the same rounding mode as
-    /// the x86-32 fld/fistp this replaces and as the __builtin_lrintf arm below:
-    /// both follow the current mode, and nothing here changes it from the
-    /// default nearest-even.
     return static_cast<std::int32_t>(std::lrintf(floatingPointValue));
-#endif
-#elif defined(__GNUC__)
-    /// \note Neither Clang nor GCC inline a call to __builtin_lrintf (at
-    /// least when targeting the ARM).
-    ///                                   (02.11.2012.) (Domagoj Saric)
-    return static_cast<std::int32_t>(::__builtin_lrintf(floatingPointValue));
-#endif // _MSC_VER
 }
 
 LE_FORCEINLINE int round(double const floatingPointValue)
 {
-#if defined(__GNUC__)
-    return static_cast<int>(::__builtin_lrint(floatingPointValue));
-#elif defined(_XBOX)
-    return __frnd(floatingPointValue);
-#elif defined(_MSC_VER)
-    /// \note MSVC fell through to the magic-number union below -- which carried
-    /// an __asm cross-check of its own result, in a debug build, on an
-    /// architecture where MSVC cannot assemble it. std::lrint is the same
-    /// rounding under the same mode and needs neither.
     return static_cast<int>(std::lrint(floatingPointValue));
-#elif 1 //...mrmlj...was LE_LITTLE_ENDIAN; the union below is byte-order dependent
-    double const magic((1ULL << 52) * 1.5);
-    union
-    {
-        double asDouble;
-        int asInteger;
-    } bits = {floatingPointValue + magic};
-    return bits.asInteger;
-#endif
 }
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// truncate()
-// ----------
-//
-////////////////////////////////////////////////////////////////////////////////
-// Implementation note:
-//   See the notes for round().
-//                                            (06.12.2010.) (Domagoj Saric)
-////////////////////////////////////////////////////////////////////////////////
 
 LE_FORCEINLINE int truncate(float const floatingPointValue)
 {
@@ -561,19 +481,12 @@ LE_FORCEINLINE int truncate(float const floatingPointValue)
 namespace PositiveFloats
 {
 LE_FORCEINLINE bool isGreater(float const left, float const right) { return left > right; }
-
 LE_FORCEINLINE bool isGreater(double const left, double const right) { return left > right; }
 
-// Implementation note:
-//   This function is required because MSVC10 is unable to generate good
-// code if the calling code simply uses the isGreater() and
-// fast_bool_t::mask() functions directly.
-//                                        (01.12.2011.) (Domagoj Saric)
 LE_FORCEINLINE float valueIfGreater(float const testValue, float const lowerBound,
                                     float const value)
 {
-    auto const isGreater_(isGreater(testValue, lowerBound));
-    return isGreater_ ? value : 0;
+    return isGreater(testValue, lowerBound) ? value : 0;
 }
 } // namespace PositiveFloats
 

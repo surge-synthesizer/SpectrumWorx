@@ -85,6 +85,13 @@ TEST_CASE("Rounding matches the CRT", "[math][scalar]")
     CHECK(Math::round(1.4f) == 1);
     CHECK(Math::round(1.6f) == 2);
 
+    // round() follows the current rounding mode, which is nearest-even -- as the
+    // fistp / vcvtr / cvtss2si arms it was written as all did. std::round, which
+    // it is not, would answer 1, 2 and 3 here.
+    CHECK(Math::round(0.5f) == 0);
+    CHECK(Math::round(1.5f) == 2);
+    CHECK(Math::round(2.5f) == 2);
+
     // \note -0.0f is negative: the sign bit is the question being asked.
     CHECK(Math::isNegative(-0.0f));
     CHECK_FALSE(Math::isNegative(0.0f));
