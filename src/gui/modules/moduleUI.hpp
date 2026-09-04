@@ -697,6 +697,44 @@ template <typename Parameter> struct ParameterWidget
 
 ////////////////////////////////////////////////////////////////////////////
 ///
+/// \var isBipolar
+///
+////////////////////////////////////////////////////////////////////////////
+
+/// \brief Which end a knob's wedge opens from: read off the parameter's range,
+/// not off which of the spellings happened to declare it.
+///
+///   Bipolar painting opens the wedge from twelve o'clock, which is the centre
+/// of the knob's *travel*; that coincides with the value zero only where the
+/// range is symmetric about it. So range symmetry is the question, and
+/// SymmetricInteger and SymmetricFloat -- which build their range as
+/// [ -MaximumOffset, +MaximumOffset ] and carry SymmetricParameterTag for it --
+/// are one way of arriving at the answer rather than the definition of it.
+///
+///   The tag was the whole test until 09.2026, and Imploder/Exploder's Glissando
+/// is what that got wrong: +/-300 cents, as bipolar as Pitch Shifter's Cents,
+/// and painted from the left stop. Nothing is wrong with the parameter. It is
+/// spelt LinearSignedInteger because its default is -100, and a Symmetric
+/// parameter's default is always zero -- Symmetric derives its entire range from
+/// the one offset, so it cannot say "symmetric range, off-centre default" at
+/// all. Talking Wind's envelope gain, +/-10 dB, was the same mistake in a float.
+///
+/// \note A range that merely reaches below zero is not this: Imploder's
+/// Threshold runs -120 .. 0 dB, whose centre is -60 dB, and a wedge opening from
+/// there would be growing out of a value that means nothing.
+///
+/// \note The unscaled bounds rather than minimum() and maximum(): those are
+/// functions, while these are the compile-time integers every knob-bearing
+/// parameter has -- linear, symmetric and power-of-two alike -- and for a float
+/// parameter the accessors return a value already divided by the denominator
+/// that both bounds share and symmetry does not care about.
+template <class Parameter>
+bool constexpr isBipolar{(static_cast<std::int64_t>(Parameter::unscaledMaximum) > 0) &&
+                         (static_cast<std::int64_t>(Parameter::unscaledMinimum) ==
+                          -static_cast<std::int64_t>(Parameter::unscaledMaximum))};
+
+////////////////////////////////////////////////////////////////////////////
+///
 /// \class WidgetInitialiser
 ///
 ////////////////////////////////////////////////////////////////////////////
@@ -718,12 +756,9 @@ struct WidgetInitialiser
 
     template <class Parameter> static void setup(ModuleControlImpl<ModuleKnob> &knob)
     {
-        knob.setupForParameter(
-            std::is_base_of<LE::Parameters::SymmetricParameterTag, typename Parameter::Tag>::value
-                ? ModuleKnob::Bipolar
-                : ModuleKnob::Unipolar,
-            ModuleKnob::diameter, ModuleKnob::QuantizationFor<Parameter>::value,
-            Parameter::discreteValueDistance);
+        knob.setupForParameter(isBipolar<Parameter> ? ModuleKnob::Bipolar : ModuleKnob::Unipolar,
+                               ModuleKnob::diameter, ModuleKnob::QuantizationFor<Parameter>::value,
+                               Parameter::discreteValueDistance);
     }
 }; // struct WidgetInitialiser
 

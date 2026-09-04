@@ -39,6 +39,11 @@
 #include "gui/gui.hpp"
 #include "gui/modules/moduleUI.hpp"
 
+#include "le/spectrumworx/effects/eximploder/exImploder.hpp"
+#include "le/spectrumworx/effects/pitch_shifter/pitchShifter.hpp"
+#include "le/spectrumworx/effects/pitch_spring/pitchSpring.hpp"
+#include "le/spectrumworx/effects/talking_wind/talkingWind.hpp"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -163,4 +168,40 @@ TEST_CASE("Both knobs sweep through the same arc", "[gui][knob]")
     STATIC_CHECK(GUI::KnobPainter::angleFor(0.0f) == -GUI::KnobPainter::halfSweepDegrees);
     STATIC_CHECK(GUI::KnobPainter::angleFor(0.5f) == 0.0f);
     STATIC_CHECK(GUI::KnobPainter::angleFor(1.0f) == GUI::KnobPainter::halfSweepDegrees);
+}
+
+TEST_CASE("A knob's polarity is read off the range, not the spelling", "[gui][knob]")
+{
+    using namespace LE::SW::Effects;
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    ///   Bipolar painting opens the wedge from twelve o'clock, which is the
+    /// centre of the knob's *travel*; that is the value zero only where the
+    /// range is symmetric about it. So the question the painter is really
+    /// asking is whether the range is symmetric -- and SymmetricInteger, which
+    /// builds its range as [ -MaximumOffset, +MaximumOffset ] and tags itself
+    /// for it, is one way of arriving there rather than the definition of it.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+
+    // The spelling that says so: Pitch Shifter's Cents, +/-100 ct.
+    STATIC_CHECK(GUI::Detail::isBipolar<Detail::PitchShifterBase::Cents>);
+
+    //   ...and the spelling that does not. Imploder/Exploder's Glissando is
+    // +/-300 cents and every bit as bipolar, declared with LinearSignedInteger
+    // for one reason: its default is -100, and a Symmetric parameter's default
+    // is always zero. It painted unipolar for that reason alone.
+    STATIC_CHECK(GUI::Detail::isBipolar<Detail::ExImPloder::Gliss>);
+
+    // Talking Wind's envelope gain, +/-10 dB, is the same case in a float.
+    STATIC_CHECK(GUI::Detail::isBipolar<TalkingWind::EnvelopeGain>);
+
+    ///   And the negative that keeps the rule from being "reaches below zero":
+    /// Imploder's threshold runs -120 .. 0 dB, whose centre is -60 dB. A wedge
+    /// opening from there would be growing out of a value that means nothing.
+    STATIC_CHECK_FALSE(GUI::Detail::isBipolar<Detail::ExImPloder::Threshold>);
+
+    // ...and the plain unipolar one, for the other side of the fence.
+    STATIC_CHECK_FALSE(GUI::Detail::isBipolar<Detail::PitchSpringBase::Depth>);
 }
