@@ -146,6 +146,51 @@ TEST_CASE("The AUv2 sub-factory names the Surge Synth Team", "[clap][identity]")
     CHECK(!pFactory->get_auv2_info(pFactory, 1, &info));
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The identity 3.0 shipped as, kept resolvable. An AU is its
+/// (type, subtype, manufacturer) triple, so becoming an `aumf` orphaned every
+/// session that named the `aufx` -- and the fix is a second, hidden
+/// AudioComponents entry rather than a second plugin.
+///
+/// \note What this pins is the *triple*, spelt out rather than derived from the
+/// constants the primary identity uses. A legacy identity that followed a
+/// rename would not be a legacy identity: the whole point is that it does not
+/// move when the current one does. \see doc/tech/midi-input.md
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The AU still answers to the identity 3.0 shipped as", "[clap][identity]")
+{
+    Entry const entry;
+
+    auto const *const pFactory(static_cast<clap_plugin_factory_auv2_legacy const *>(
+        LE::SW::ClapFirst::getFactory(CLAP_PLUGIN_FACTORY_INFO_AUV2_LEGACY)));
+    REQUIRE(pFactory != nullptr);
+
+    REQUIRE(pFactory->count != nullptr);
+    REQUIRE(pFactory->get != nullptr);
+    CHECK(pFactory->count(pFactory, 0) == 1);
+    CHECK(pFactory->count(pFactory, 1) == 0); // one plugin, so no index 1
+
+    clap_plugin_auv2_legacy_identity_t identity{};
+    REQUIRE(pFactory->get(pFactory, 0, 0, &identity));
+
+    CHECK(std::strcmp(identity.au_type, "aufx") == 0);
+    CHECK(std::strcmp(identity.au_subt, "SWrx") == 0);
+    CHECK(std::strcmp(identity.au_manu, "SSTx") == 0);
+
+    // and it is genuinely retired: the primary must not still be an aufx, or
+    // the two entries would collide and the build helper would refuse them
+    clap_plugin_info_as_auv2_t primary{};
+    auto const *const pPrimary(static_cast<clap_plugin_factory_as_auv2 const *>(
+        LE::SW::ClapFirst::getFactory(CLAP_PLUGIN_FACTORY_INFO_AUV2)));
+    REQUIRE(pPrimary->get_auv2_info(pPrimary, 0, &primary));
+    CHECK(std::strcmp(primary.au_type, identity.au_type) != 0);
+
+    CHECK_FALSE(pFactory->get(pFactory, 0, 1, &identity)); // only the one
+}
+
 TEST_CASE("The VST3 sub-factory is offered at both versions", "[clap][identity]")
 {
     Entry const entry;

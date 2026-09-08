@@ -122,14 +122,45 @@ that takes audio and no notes, which **Logic routes no MIDI to**. The note port
 would be declared and unreachable in the host it matters most for.
 
 **The type is part of an AU's identity, so this is not a setting.**
-`aufx/SWrx/SSTx` and `aumf/SWrx/SSTx` are two different components: a session
-that referenced the old one does not find the new one, and auval is
-`auval -v aumf SWrx SSTx` from here on. That cost is real and it was accepted
-deliberately, while nobody has sessions to lose. A dual registration — the same
-plugin offered under both types — is the way out if one is ever needed, and is
-not done here.
+`aufx/SWrx/SSTx` and `aumf/SWrx/SSTx` are two different components, and auval is
+`auval -v aumf SWrx SSTx` from here on.
 
-`identityTests.cpp` pins the type, so this cannot change again by accident.
+### The old identity is kept resolvable
+
+A session saved against the `aufx` would have opened without the plugin, so the
+retired identity is declared through `clap.plugin-factory-info-as-auv2-legacy`
+(`swClapEntryImpl.cpp`) and clap-wrapper writes it into the bundle as a **second
+AudioComponents entry**, identical to the first but for the triple. Both pass
+auval; the `aufx` instance reports the same `[2,2] [1,1]` layouts and builds its
+editor. Verified 01.09.2026 by opening `SpectrumWorxSCTest.logicx`, saved against
+3.0's `aufx`.
+
+That works because the wrapper no longer bakes the AU type into the generated
+entry point: one factory serves both entries and reads its type from the
+component description the host instantiated it with. A build-time constant could
+not have answered for two identities.
+
+**The entry is visible, and `kAudioComponentFlag_Unsearchable` is the trap.** It
+is documented to keep a component out of wildcard enumeration while leaving it
+resolvable by a fully specified `AudioComponentFindNext`, which is exactly what a
+retired identity wants — and it does not work. Logic restores a session against
+the registry its own AU scan builds, and that scan enumerates. Measured: with the
+flag set, `AudioComponentFindNext` found the entry, instantiated it, initialised
+it and drew its editor, Logic's scan log recorded one SpectrumWorx rather than
+two, and the session would not open. The plugin's own `ProjectData` names the
+right triple either way:
+
+```
+78 54 53 53  ->  "SSTx"   manufacturer
+78 66 75 61  ->  "aufx"   type
+78 72 57 53  ->  "SWrx"   subtype
+```
+
+Listing it costs nothing: a host filters a slot by component type, so the `aufx`
+appears in an effect slot and the `aumf` in an instrument slot, never together.
+
+`identityTests.cpp` pins the type **and** the retired triple — spelt out rather
+than derived, because a legacy identity that followed a rename would not be one.
 
 ## 7. What guards it
 

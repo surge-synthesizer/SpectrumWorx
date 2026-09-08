@@ -81,6 +81,47 @@ bool auv2Info(clap_plugin_factory_as_auv2 const *, std::uint32_t const index,
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The identity this plugin used to have, kept resolvable.
+///
+///   3.0 shipped as an `aufx`. Taking a note port meant becoming an `aumf` --
+/// Logic routes no MIDI to an effect -- and an AU's type is part of its
+/// identity, so `aufx/SWrx/SSTx` and `aumf/SWrx/SSTx` are two components as far
+/// as macOS is concerned. A session saved against the first would open without
+/// the plugin.
+///
+///   So the old triple is declared here and clap-wrapper writes it into the
+/// bundle as a second, hidden AudioComponents entry sharing this one's factory.
+/// A host reopening an old session resolves it by full description and gets the
+/// plugin; nothing enumerates it, so it is not listed twice.
+///
+/// \note One entry, and it is not a list that grows lightly: every identity
+/// here is one more thing that has to keep working. \see doc/tech/midi-input.md
+///
+////////////////////////////////////////////////////////////////////////////////
+
+constexpr char legacyAuTypeCode[]{"aufx"};
+static_assert(sizeof(legacyAuTypeCode) == 5, "An AU type code is four characters.");
+
+std::uint32_t auv2LegacyCount(clap_plugin_factory_auv2_legacy const *, std::uint32_t const index)
+{
+    return (index == 0) ? 1 : 0;
+}
+
+bool auv2LegacyIdentity(clap_plugin_factory_auv2_legacy const *, std::uint32_t const index,
+                        std::uint32_t const n, clap_plugin_auv2_legacy_identity_t *const identity)
+{
+    if ((index != 0) || (n != 0))
+        return false;
+
+    // the subtype and the manufacturer never moved; only the type did
+    std::strncpy(identity->au_type, legacyAuTypeCode, sizeof(identity->au_type));
+    std::strncpy(identity->au_subt, auSubtypeCode, sizeof(identity->au_subt));
+    std::strncpy(identity->au_manu, auManufacturerCode, sizeof(identity->au_manu));
+    return true;
+}
+
 /// \note Returning no per-plugin information is the whole point of declaring
 /// this one: the factory itself carries the vendor block that VST3 shows, and
 /// without it clap-wrapper invents one from the CLAP descriptor. What a
@@ -99,6 +140,8 @@ constexpr clap_plugin_factory factory{pluginCount, pluginDescriptor, create};
 
 constexpr clap_plugin_factory_as_auv2 auv2Factory{auManufacturerCode, SW_VENDOR, auv2Info};
 
+constexpr clap_plugin_factory_auv2_legacy auv2LegacyFactory{auv2LegacyCount, auv2LegacyIdentity};
+
 constexpr clap_plugin_factory_as_vst3 vst3Factory{SW_VENDOR, SW_VENDOR_URL, "", vst3Info, nullptr};
 } // namespace
 
@@ -112,6 +155,8 @@ void const *getFactory(char const *const factoryID)
         return &factory;
     if (std::strcmp(factoryID, CLAP_PLUGIN_FACTORY_INFO_AUV2) == 0)
         return &auv2Factory;
+    if (std::strcmp(factoryID, CLAP_PLUGIN_FACTORY_INFO_AUV2_LEGACY) == 0)
+        return &auv2LegacyFactory;
     /// \note Both versions, deliberately: the struct grew a
     /// get_vst3_compatibility member at /1, and vst3.h asks a plugin that
     /// supports the newer one to answer the older query with the same struct.
