@@ -63,9 +63,11 @@ clap_plugin const *create(clap_plugin_factory const *, clap_host const *const ho
 
 constexpr char auManufacturerCode[]{"SSTx"};
 constexpr char auSubtypeCode[]{"SWrx"};
+constexpr char auTypeCode[]{"aumf"};
 
 static_assert(sizeof(auManufacturerCode) == 5, "An AU manufacturer code is four characters.");
 static_assert(sizeof(auSubtypeCode) == 5, "An AU subtype code is four characters.");
+static_assert(sizeof(auTypeCode) == 5, "An AU type code is four characters.");
 
 bool auv2Info(clap_plugin_factory_as_auv2 const *, std::uint32_t const index,
               clap_plugin_info_as_auv2_t *const info)
@@ -73,7 +75,8 @@ bool auv2Info(clap_plugin_factory_as_auv2 const *, std::uint32_t const index,
     if (index != 0)
         return false;
 
-    info->au_type[0] = 0; // derived from the CLAP features
+    // Force type to an AUMF
+    std::strncpy(info->au_type, auTypeCode, sizeof(info->au_type));
     std::strncpy(info->au_subt, auSubtypeCode, sizeof(info->au_subt));
     return true;
 }

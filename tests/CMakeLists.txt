@@ -68,6 +68,7 @@ add_executable(sw-plugin-tests
         clap/hostileParameterIDTests.cpp
         clap/hostInteropTests.cpp
         clap/identityTests.cpp
+        clap/midiInputTests.cpp
         clap/parameterModelTests.cpp
         clap/parameterTextTests.cpp
         clap/pluginTests.cpp

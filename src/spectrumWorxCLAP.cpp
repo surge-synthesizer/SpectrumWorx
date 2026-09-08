@@ -59,6 +59,7 @@ namespace
 constexpr clap_id mainInputPort{0};
 constexpr clap_id sideChainInputPort{1};
 constexpr clap_id mainOutputPort{2};
+constexpr clap_id noteInputPort{0};
 
 bool writeFully(clap_ostream const *const stream, void const *const data, std::size_t size)
 {
@@ -425,6 +426,35 @@ bool SpectrumWorxCLAP::audioPortsInfo(std::uint32_t const index, bool const isIn
         return true;
     }
     return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Note ports
+////////////////////////////////////////////////////////////////////////////////
+
+std::uint32_t SpectrumWorxCLAP::notePortsCount(bool const isInput) const noexcept
+{
+    return isInput ? 1 : 0;
+}
+
+/// \note Both dialects, and not redundantly. A note arrives as
+/// CLAP_EVENT_NOTE_ON under the CLAP dialect, which is the one worth preferring
+/// -- it carries a note id and a double velocity. A **controller** has no CLAP
+/// note event at all and only ever arrives as a raw CLAP_EVENT_MIDI, so a plugin
+/// that took the CLAP dialect alone would see no CCs.
+/// \see doc/tech/midi-input.md
+bool SpectrumWorxCLAP::notePortsInfo(std::uint32_t const index, bool const isInput,
+                                     clap_note_port_info *const info) const noexcept
+{
+    if (!isInput || (index != 0))
+        return false;
+
+    std::memset(info, 0, sizeof(*info));
+    info->id = noteInputPort;
+    info->supported_dialects = CLAP_NOTE_DIALECT_CLAP | CLAP_NOTE_DIALECT_MIDI;
+    info->preferred_dialect = CLAP_NOTE_DIALECT_CLAP;
+    std::strncpy(info->name, "Note In", CLAP_NAME_SIZE - 1);
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -873,9 +903,72 @@ bool SpectrumWorxCLAP::paramsTextToValue(clap_id const id, char const *const dis
     return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The note port, recorded and otherwise ignored.
+///
+/// \note Nothing in the DSP reads this yet. It answers whether a host routes
+/// notes here at all, which is a question about the *port* -- and one no
+/// validator asks. \see doc/tech/midi-input.md
+///
+/// \note Channel is not read: any channel writes the same slot, which is what
+/// makes a monitor a monitor rather than a voice allocator.
+///
+/// \note `NOTE_CHOKE` lifts the key. A host sends it when a voice is cut short
+/// rather than released -- a track stopping mid-note -- and the alternative is a
+/// key drawn as held that nothing will ever lift.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+bool SpectrumWorxCLAP::handleNoteEvent(clap_event_header const *const header)
+{
+    switch (header->type)
+    {
+    case CLAP_EVENT_NOTE_ON:
+    case CLAP_EVENT_NOTE_OFF:
+    case CLAP_EVENT_NOTE_CHOKE:
+    {
+        auto const *const note(reinterpret_cast<clap_event_note const *>(header));
+        if (note->key < 0)
+            return true; // -1 is the wildcard: "every key", which nothing here holds
+        auto const key(static_cast<std::uint8_t>(note->key));
+        // a CLAP note-on with no velocity is still a note-on; the zero-velocity
+        // convention below is the MIDI dialect's, not this one's
+        if (header->type == CLAP_EVENT_NOTE_ON)
+            midiMonitor_.noteOn(key);
+        else
+            midiMonitor_.noteOff(key);
+        return true;
+    }
+    case CLAP_EVENT_MIDI:
+    {
+        auto const *const midi(reinterpret_cast<clap_event_midi const *>(header));
+        auto const status(static_cast<std::uint8_t>(midi->data[0] & 0xF0));
+        auto const first(static_cast<std::uint8_t>(midi->data[1] & 0x7F));
+        auto const second(static_cast<std::uint8_t>(midi->data[2] & 0x7F));
+
+        // a note-on of zero velocity is a note-off, and hosts do send it. Reading
+        // 0x90 as an unconditional press is a key that never lifts
+        if (status == 0x90)
+            (second > 0) ? midiMonitor_.noteOn(first) : midiMonitor_.noteOff(first);
+        else if (status == 0x80)
+            midiMonitor_.noteOff(first);
+        else if (status == 0xB0)
+            midiMonitor_.controller(first, second);
+        return true;
+    }
+    default:
+        return false;
+    }
+}
+
 bool SpectrumWorxCLAP::handleEvent(clap_event_header const *const header)
 {
     if (header->space_id != CLAP_CORE_EVENT_SPACE_ID)
+        return false;
+    // recorded and then done with: a note changes no parameter, so nothing
+    // downstream of here has anything to do with one
+    if (handleNoteEvent(header))
         return false;
     if (header->type != CLAP_EVENT_PARAM_VALUE)
         return false;

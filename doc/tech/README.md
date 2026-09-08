@@ -1,6 +1,6 @@
 # SpectrumWorx — the tech documents
 
-Nine documents, and every one of them describes the tree **as it is now** — how
+Ten documents, and every one of them describes the tree **as it is now** — how
 something works, not what is left to do about it. Nothing here is a plan being
 executed or a record of how the port got where it is; that is in [`old/`](old/).
 
@@ -16,6 +16,7 @@ executed or a record of how the port got where it is; that is in [`old/`](old/).
 | [`how-lfo-rates-and-eval-work.md`](how-lfo-rates-and-eval-work.md) | What an LFO's period holds, which bar it is a fraction of, what tempo sync does and does not move, and how often the thing is evaluated against how often its clock moves. |
 | [`sidechain-approach.md`](sidechain-approach.md) | The three things that can feed the side channel, why the choice is a *source* and not a bus topology, and what an old preset's `Input_mode` turns into. |
 | [`how-mono-ports-work.md`](how-mono-ports-work.md) | Why every port carries the same channel count, why a layout that would leave them disagreeing is refused rather than rounded, and what auval and the VST3 validator see. |
+| [`midi-input.md`](midi-input.md) | The note port and both of its dialects, the two events that leave a key stuck if they are read as a press, and why the AU had to become an `aumf`. |
 | [`undo-redo.md`](undo-redo.md) | What can be taken back, the three shapes a step comes in and why one of them is not enough, and the seam between the plugin's history and the editor that no test reaches. |
 
 ## What is left — the issue tracker

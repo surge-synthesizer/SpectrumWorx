@@ -125,9 +125,21 @@ TEST_CASE("The AUv2 sub-factory names the Surge Synth Team", "[clap][identity]")
     REQUIRE(pFactory->get_auv2_info != nullptr);
     REQUIRE(pFactory->get_auv2_info(pFactory, 0, &info));
 
-    /// An empty au_type asks the wrapper to derive it from the CLAP features,
-    /// which for an audio effect is `aufx`.
-    CHECK(info.au_type[0] == 0);
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note `aumf` -- a music effect -- and stated rather than left for the
+    /// wrapper to derive. Derivation reads `features[0]`, which is
+    /// audio-effect, and would give `aufx`: an AU that takes audio and no
+    /// notes, which Logic routes no MIDI to. The note port would be declared
+    /// and unreachable in the one host it matters most for.
+    ///
+    /// \note The type is part of an AU's **identity**, so this is not a
+    /// setting. `aufx/SWrx/SSTx` and `aumf/SWrx/SSTx` are two different
+    /// components: a session that referenced the old one does not find the new
+    /// one. \see doc/tech/midi-input.md
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    CHECK(std::strcmp(info.au_type, "aumf") == 0);
     CHECK(std::strcmp(info.au_subt, auSubtypeCode) == 0);
 
     // One plugin, so there is no index 1 to describe.

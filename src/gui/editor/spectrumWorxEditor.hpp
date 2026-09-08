@@ -32,6 +32,26 @@
 #include <utility>
 #include <optional>
 //------------------------------------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \def SW_MIDI_OVERLAY
+///
+/// \brief Draws what arrives on the note port over the whole editor.
+///
+///   A bring-up aid rather than a feature. It answers whether a host routes
+/// notes here at all -- a question no validator asks and nothing else in the
+/// interface would show -- and once answered there is nothing for a user to read
+/// in it. Off by default; define it here or on the command line to get it back.
+///
+/// \note The monitor it draws is *not* behind this. Threading::MIDIMonitor and
+/// EditorHost::midiMonitor() are always built and always tested, because they
+/// are the seam an interface that did something with notes would read.
+/// \see doc/tech/midi-input.md
+///
+////////////////////////////////////////////////////////////////////////////////
+//#define SW_MIDI_OVERLAY
+
 namespace boost
 {
 template <class T> class intrusive_ptr;
@@ -493,6 +513,32 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// headless test can be the clock.
     void pumpModulatedValues();
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Reads the MIDI monitor and arms the overlay if anything arrived.
+    ///
+    /// \returns whether the overlay's state changed, which is what says whether
+    /// a repaint was asked for -- the same shape as
+    /// `updateEngineInformationIfChanged()`, and for the same reason: a picture
+    /// cannot tell "drew the right thing" from "asked to draw it".
+    ///
+    /// \note Public so a headless test can be the clock. \see doc/tech/midi-input.md
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+#ifdef SW_MIDI_OVERLAY
+    bool pumpMIDIMonitor();
+
+    /// \brief Whether the MIDI overlay is currently drawn.
+    bool isShowingMIDI() const { return midiOverlayTicks_ > 0; }
+
+    /// How long the overlay stays up after the last thing arrived.
+    ///
+    /// \note Counted in timer ticks rather than against a clock, so that a
+    /// headless case can run the two seconds out by pumping rather than by
+    /// sleeping for them.
+    static constexpr int midiOverlaySeconds{2};
+#endif // SW_MIDI_OVERLAY
+
     /// \brief Takes the palette again if it has moved, and repaints everything.
     ///
     /// \note Public for the same reason pumpModulatedValues() is: a headless test
@@ -646,6 +692,19 @@ class SpectrumWorxEditor final : private SkinLifetime,
     /// \note Only what is outside the skin: the panel column's chrome. The skin
     /// itself is MainArea's. \see the definition.
     void paint(juce::Graphics &) override;
+#ifdef SW_MIDI_OVERLAY
+    void paintOverChildren(juce::Graphics &) override;
+
+  private:
+    /// \see pumpMIDIMonitor(). Ticks remaining, the change count last read, and
+    /// the count the current window opened at -- which is what decides whether a
+    /// controller's last write belongs to this window or an older one.
+    unsigned int midiOverlayTicks_{0};
+    std::uint32_t lastMIDIChanges_{0};
+    std::uint32_t midiWindowOpenedAt_{0};
+#endif // SW_MIDI_OVERLAY
+
+  private:
     void parentHierarchyChanged() override;
 
   private: // JUCE ButtonListener overrides.

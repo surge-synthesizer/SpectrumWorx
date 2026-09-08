@@ -250,6 +250,13 @@ juce::Colour ColourMap::classic(Name const name)
     case AboutIconDefault:
         return juce::Colour(0xFFFFFFFFu);
 
+    /// \note The same in every palette, and that is the point: it is not part of
+    /// the instrument's colour language. \see doc/tech/midi-input.md
+    case MIDIMonitorText:
+        return juce::Colour(0xFFFF2828u);
+    case MIDIMonitorPlate:
+        return juce::Colour(0xB8000000u);
+
     /// \note No `default:`, deliberately: -Wswitch is then what says a new
     /// enumerator has been added without a colour to answer it with, at compile
     /// time and in this file, rather than a black widget at run time.

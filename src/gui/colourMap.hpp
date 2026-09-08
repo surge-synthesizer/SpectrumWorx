@@ -269,6 +269,15 @@ class ColourMap
 
         AboutIconDefault,
 
+        /// \brief The MIDI monitor's text and the plate behind it.
+        ///
+        /// \note Deliberately outside the palette's own language -- an alarm
+        /// red no skin uses -- because what it reports is not part of the
+        /// instrument. It is a diagnostic overlay and it should look like one.
+        /// \see doc/tech/midi-input.md
+        MIDIMonitorText,
+        MIDIMonitorPlate,
+
         numberOfColours
     }; // enum Name
 

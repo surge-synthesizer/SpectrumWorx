@@ -23,6 +23,7 @@
 #include "core/modules/moduleDSPAndGUI.hpp"
 #include "core/spectrumWorxCore.hpp"
 #include "core/threading/messages.hpp"
+#include "core/threading/midiMonitor.hpp"
 #include "core/threading/valueMailbox.hpp"
 #include "external_audio/sample.hpp"
 #include "undoHistory.hpp"
@@ -304,6 +305,10 @@ class SpectrumWorxCLAP final
 
     SideChainSource sideChainSource() const override { return sideChainSourceMain_; }
     std::uint8_t channelWidth() const override { return channelWidth_; }
+
+    /// \brief What arrived on the note port, for the editor to draw.
+    /// \see doc/tech/midi-input.md
+    Threading::MIDIMonitor const &midiMonitor() const override { return midiMonitor_; }
     void setSideChainSource(SideChainSource) override;
     /// \note Always false while the load above is synchronous: by the time
     /// anything can ask, it has finished.
@@ -349,6 +354,13 @@ class SpectrumWorxCLAP final
                                                  std::uint32_t count) const noexcept;
 
   protected:
+    // clap_plugin_note_ports. One input, no output: nothing here makes notes.
+    // \see doc/tech/midi-input.md
+    bool implementsNotePorts() const noexcept override { return true; }
+    std::uint32_t notePortsCount(bool isInput) const noexcept override;
+    bool notePortsInfo(std::uint32_t index, bool isInput,
+                       clap_note_port_info *) const noexcept override;
+
     // clap_plugin_params
     bool implementsParams() const noexcept override { return true; }
     bool isValidParamId(clap_id) const noexcept override;
@@ -503,6 +515,10 @@ class SpectrumWorxCLAP final
     /// Applies a parameter event. Returns true if it changed a slot's effect,
     /// i.e. if the host's view of the parameter list is now stale.
     bool handleEvent(clap_event_header const *);
+
+    /// \brief Records a note or controller event and says whether it was one.
+    /// `[audio-thread]` \see doc/tech/midi-input.md
+    bool handleNoteEvent(clap_event_header const *);
     void requestRescan(clap_param_rescan_flags);
     /// `clap_host_params::request_flush`, if the host has one.
     void requestParameterFlush() const;
@@ -839,6 +855,10 @@ class SpectrumWorxCLAP final
     /// that wants mono asks for it again on the next load.
     /// \see doc/tech/how-mono-ports-work.md
     std::uint8_t channelWidth_{2};
+
+    /// \brief Written by handleEvent() on the audio thread, read by whoever
+    /// draws. Not the engine's: nothing in the DSP reads a note yet.
+    Threading::MIDIMonitor midiMonitor_;
 
     ////////////////////////////////////////////////////////////////////////////
     ///

@@ -29,6 +29,7 @@
 #define editorHost_hpp__0C5A1E7B_9D34_4F82_A6E1_37B0C4D8F925
 //------------------------------------------------------------------------------
 #include "core/threading/messages.hpp"
+#include "core/threading/midiMonitor.hpp"
 #include "le/spectrumworx/sideChainSource.hpp"
 #include "core/threading/valueMailbox.hpp"
 
@@ -425,6 +426,24 @@ class EditorHost
     ///
     ////////////////////////////////////////////////////////////////////////////
     virtual std::uint8_t channelWidth() const { return 2; }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What arrived on the note port. `[main-thread]` to read.
+    ///
+    /// \note A monitor, not a channel: the engine does not read it and nothing
+    /// downstream of it makes a sound. It exists so that "is MIDI routable"
+    /// has a visible answer. \see doc/tech/midi-input.md
+    ///
+    /// \note Defaulted to a silent one, so a harness standing in for the plugin
+    /// draws no overlay rather than having to own a monitor it never writes.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    virtual Threading::MIDIMonitor const &midiMonitor() const
+    {
+        static Threading::MIDIMonitor const silent;
+        return silent;
+    }
 
     /// \note Presets were two more virtuals here, and are neither. Everything
     /// loading one needs is reachable through core() and automation(), so it is

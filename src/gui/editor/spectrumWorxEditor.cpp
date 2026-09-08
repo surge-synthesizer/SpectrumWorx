@@ -2282,6 +2282,10 @@ void SpectrumWorxEditor::timerCallback()
 {
     applyPaletteIfChanged();
 
+#ifdef SW_MIDI_OVERLAY
+    pumpMIDIMonitor();
+#endif
+
     updateEngineInformationIfChanged();
 
     updateSaveButtonsIfShowing();
@@ -2290,6 +2294,130 @@ void SpectrumWorxEditor::timerCallback()
 
     pumpModulatedValues();
 }
+
+#ifdef SW_MIDI_OVERLAY
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note One atomic load in the common case: nothing has arrived, the counter
+/// has not moved, and the overlay is not up. What it costs when something does
+/// arrive is a repaint of the whole editor, which is what an overlay drawn over
+/// every child means.
+///
+/// \note The window is re-armed by anything arriving rather than extended only
+/// by a *new* key, so a controller swept for five seconds keeps the display up
+/// for as long as it moves.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+bool SpectrumWorxEditor::pumpMIDIMonitor()
+{
+    LE_ASSERT(isThisTheGUIThread());
+
+    auto const changes(editorHost_.midiMonitor().changes());
+    bool const wasShowing(isShowingMIDI());
+
+    if (changes != lastMIDIChanges_)
+    {
+        // a window that is not already open starts here, so a controller last
+        // touched minutes ago is not drawn as part of this one
+        if (!wasShowing)
+            midiWindowOpenedAt_ = lastMIDIChanges_;
+        lastMIDIChanges_ = changes;
+        midiOverlayTicks_ = static_cast<unsigned int>(midiOverlaySeconds * modulationRefreshHz);
+        repaint();
+        return true;
+    }
+
+    if (midiOverlayTicks_ > 0 && --midiOverlayTicks_ == 0)
+    {
+        repaint();
+        return true;
+    }
+    return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Over the children rather than in paint(): what it reports is not part of
+/// any one widget, and the skin draws the whole editor underneath.
+///
+/// \note Deliberately loud and deliberately temporary. It exists to answer
+/// whether a host routes notes here at all, which is a question no validator
+/// asks and which nothing else in the interface would show.
+/// \see doc/tech/midi-input.md
+///
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+/// \note Spelt here rather than taken from juce::MidiMessage, which lives in
+/// juce_audio_basics -- a module sw-gui does not link and would not be worth
+/// linking for twelve strings. Middle C is C4, which is the spelling most
+/// keyboards print on themselves.
+juce::String noteName(std::size_t const key)
+{
+    static char const *const names[]{"C",  "C#", "D",  "D#", "E",  "F",
+                                     "F#", "G",  "G#", "A",  "A#", "B"};
+    return juce::String(names[key % 12]) + juce::String(static_cast<int>(key / 12) - 1);
+}
+} // namespace
+
+void SpectrumWorxEditor::paintOverChildren(juce::Graphics &graphics)
+{
+    if (!isShowingMIDI())
+        return;
+
+    auto const &monitor(editorHost_.midiMonitor());
+
+    juce::String keys;
+    for (std::size_t key(0); key < Threading::MIDIMonitor::slots; ++key)
+        if (monitor.isNoteDown(key))
+        {
+            if (keys.isNotEmpty())
+                keys += ' ';
+            keys += noteName(key);
+        }
+
+    juce::String controllers;
+    for (std::size_t controller(0); controller < Threading::MIDIMonitor::slots; ++controller)
+    {
+        auto const stamp(monitor.controllerStamp(controller));
+        if ((stamp == 0) || (stamp <= midiWindowOpenedAt_))
+            continue;
+        if (controllers.isNotEmpty())
+            controllers += "  ";
+        controllers += "CC" + juce::String(static_cast<int>(controller)) + ":" +
+                       juce::String(static_cast<int>(monitor.controllerValue(controller)));
+    }
+
+    if (keys.isEmpty() && controllers.isEmpty())
+        return;
+
+    // a backing plate, because this lands wherever the panel column happens to
+    // have put something: red text over the browser's own chrome is unreadable,
+    // and what it says is the whole point of drawing it
+    auto const lines((keys.isNotEmpty() ? 1 : 0) + (controllers.isNotEmpty() ? 1 : 0));
+    auto const width(getWidth() - 24);
+    juce::Rectangle<int> const plate(6, 6, width + 12, 8 + lines * 28);
+    graphics.setColour(ColourMap::getColour(ColourMap::MIDIMonitorPlate));
+    graphics.fillRoundedRectangle(plate.toFloat(), 4.0f);
+
+    graphics.setColour(ColourMap::getColour(ColourMap::MIDIMonitorText));
+    graphics.setFont(juce::Font(juce::FontOptions{}.withHeight(22.0f).withStyle("Bold")));
+
+    int y(10);
+    auto const line([&](juce::String const &text) {
+        graphics.drawFittedText(text, 12, y, width, 26, juce::Justification::centredLeft, 1);
+        y += 28;
+    });
+    if (keys.isNotEmpty())
+        line("NOTES " + keys);
+    if (controllers.isNotEmpty())
+        line(controllers);
+}
+
+#endif // SW_MIDI_OVERLAY
 
 /// \note Polled for the reason the engine information is: the flag the two Save
 /// buttons read is set by any parameter write, host automation included, and
