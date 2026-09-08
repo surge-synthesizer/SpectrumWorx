@@ -21,6 +21,7 @@
 #include "le/parameters/uiElements.hpp"
 #include "le/parameters/parametersUtilities.hpp"
 #include "le/parameters/trigger/tag.hpp"
+#include "le/spectrumworx/effects/consumesMIDI.hpp"
 #include "le/spectrumworx/effects/effects.hpp"
 #include "le/spectrumworx/engine/channelData.hpp"
 #include "le/spectrumworx/engine/moduleParameters.hpp"
@@ -500,9 +501,13 @@ template <class EffectParam, class Base> class ModuleEffectImpl : public Base
     ChannelStatesHolder const &channelStatesHolder() const { return channelStatesHolder_; }
 
   protected: // Module process interface implementation.
-    LE_FORCEINLINE void doPreProcess(Setup const &engineSetup) override
+    LE_FORCEINLINE void doPreProcess(Setup const &engineSetup,
+                                     MIDINoteStatus const &midiNotes) override
     {
-        effect().setup(ModuleDSP::workingRange(), engineSetup);
+        if constexpr (Effects::ConsumesMIDI<Effect>)
+            effect().setup(ModuleDSP::workingRange(), engineSetup, midiNotes);
+        else
+            effect().setup(ModuleDSP::workingRange(), engineSetup);
 #ifndef NDEBUG
         setupCalled_ = true;
 #endif

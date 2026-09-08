@@ -144,6 +144,18 @@ LE::SW::Threading::MIDIMonitor const &monitorOf(clap_plugin const &plugin)
     return editorHostOf(plugin).midiMonitor();
 }
 
+/// \note The engine's copy rather than the display's. The two are written from
+/// the same handler and are deliberately different things -- one is atomic and
+/// crosses to the message thread, the other is plain and is what an effect's
+/// setup() reads. A case that only ever asked the monitor would pass with
+/// nothing wired to the engine at all.
+LE::SW::Engine::MIDINoteStatus const &notesOf(clap_plugin const &plugin)
+{
+    auto *const pHelper(static_cast<LE::SW::PluginHelper *>(plugin.plugin_data));
+    REQUIRE(pHelper != nullptr);
+    return static_cast<LE::SW::SpectrumWorxCLAP *>(pHelper)->midiNotes();
+}
+
 /// \brief Renders one block carrying \p events.
 void deliver(ActivePlugin &plugin, NoteEvents const &events)
 {
@@ -259,6 +271,96 @@ TEST_CASE("A controller arrives with its value", "[clap][midi]")
         deliver(plugin, events);
     }
     CHECK(monitor.controllerValue(74) == 12);
+}
+
+TEST_CASE("A note reaches the engine, not only the display", "[clap][midi]")
+{
+    Entry const entry;
+    ActivePlugin plugin(sampleRate, blockSize);
+    auto const &notes(notesOf(*plugin));
+
+    CHECK_FALSE(notes.isDown(60));
+
+    {
+        NoteEvents events;
+        events.noteOn(60, 1.0);
+        deliver(plugin, events);
+    }
+    CHECK(notes.isDown(60));
+    CHECK(notes.velocity(60) == 1.0f);
+
+    {
+        NoteEvents events;
+        events.noteOff(60);
+        deliver(plugin, events);
+    }
+    CHECK_FALSE(notes.isDown(60));
+    CHECK(notes.velocity(60) == 0.0f);
+}
+
+/// \note Zero is how the map spells "up", so a note-on carrying no velocity has
+/// to land as *something*. A CLAP note-on of zero velocity is still a note-on --
+/// the zero-velocity release convention is the MIDI dialect's, and is applied
+/// only there -- and a key that arrived silently up would be a note the engine
+/// never sees.
+TEST_CASE("A note-on of no velocity is still a key that is down", "[clap][midi]")
+{
+    Entry const entry;
+    ActivePlugin plugin(sampleRate, blockSize);
+    auto const &notes(notesOf(*plugin));
+
+    {
+        NoteEvents events;
+        events.noteOn(48, 0.0);
+        deliver(plugin, events);
+    }
+    CHECK(notes.isDown(48));
+    CHECK(notes.velocity(48) > 0.0f);
+
+    // ...whereas the same thing spelt in MIDI is a release
+    {
+        NoteEvents events;
+        events.midi(0x90, 50, 0);
+        deliver(plugin, events);
+    }
+    CHECK_FALSE(notes.isDown(50));
+}
+
+TEST_CASE("A controller reaches the engine too", "[clap][midi]")
+{
+    Entry const entry;
+    ActivePlugin plugin(sampleRate, blockSize);
+    auto const &notes(notesOf(*plugin));
+
+    {
+        NoteEvents events;
+        events.controller(74, 99);
+        deliver(plugin, events);
+    }
+    CHECK(notes.controllerValue(74) == 99);
+}
+
+/// \note reset() is a host throwing away the tail, and resume() runs it too. A
+/// key still down across one would come back sounding with nothing holding it.
+TEST_CASE("Resetting lifts every key", "[clap][midi]")
+{
+    Entry const entry;
+    ActivePlugin plugin(sampleRate, blockSize);
+    auto const &notes(notesOf(*plugin));
+
+    {
+        NoteEvents events;
+        events.noteOn(60);
+        events.noteOn(64);
+        deliver(plugin, events);
+    }
+    REQUIRE(notes.isDown(60));
+    REQUIRE(notes.isDown(64));
+
+    plugin->reset(&*plugin);
+
+    CHECK_FALSE(notes.isDown(60));
+    CHECK_FALSE(notes.isDown(64));
 }
 
 /// \note A parameter event and a note event travel in the same list, and

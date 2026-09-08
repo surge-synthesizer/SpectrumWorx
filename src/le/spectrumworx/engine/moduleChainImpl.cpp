@@ -365,9 +365,9 @@ void module_node_traits::set_previous(node_ptr const n, node_ptr const prev)
 } // namespace Detail
 
 void ModuleChainImpl::preProcessAll(Parameters::LFOImpl::Timer const &timer,
-                                    Setup const &engineSetup)
+                                    Setup const &engineSetup, MIDINoteStatus const &midiNotes)
 {
-    forEach<Module>([&](Module &module) { module.preProcess(timer, engineSetup); });
+    forEach<Module>([&](Module &module) { module.preProcess(timer, engineSetup, midiNotes); });
 }
 
 void ModuleChainImpl::resetAll(Math::Rng &seedSource)

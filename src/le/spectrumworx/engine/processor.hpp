@@ -15,6 +15,7 @@
 //------------------------------------------------------------------------------
 #include "buffers.hpp"
 #include "channelBuffers.hpp"
+#include "midiNoteStatus.hpp"
 #include "setup.hpp"
 
 #include "le/math/dft/fft.hpp"
@@ -49,7 +50,11 @@ class Processor
         (InterleavedInputData mainInputs, InterleavedInputData sideChannels,
          InterleavedOutputData outputs, std::uint32_t samples, float outputGain, float mixAmount);
 
-    void reset() { lfoTimer().reset(); }
+    void reset()
+    {
+        lfoTimer().reset();
+        midiNotes_.allNotesOff();
+    }
 
     void setNumberOfChannels(std::uint8_t numberOfMainChannels, std::uint8_t numberOfSideChannels);
 
@@ -62,6 +67,11 @@ class Processor
     void resetChannelBuffers();
 
     Setup const &engineSetup() const { return engineSetup_; }
+
+    /// \brief The note port, for the event handler to write and for the
+    /// effects that declare they consume it to read. \see MIDINoteStatus.
+    MIDINoteStatus &midiNotes() { return midiNotes_; }
+    MIDINoteStatus const &midiNotes() const { return midiNotes_; }
     Math::FFT_float_real_1D const &fft() const { return fft_; }
     ReadOnlyDataRange const &analysisWindow() const { return analysisWindow_; }
     ReadOnlyDataRange const &synthesisWindow() const { return synthesisWindow_; }
@@ -162,6 +172,7 @@ class Processor
   private:
     Setup engineSetup_;
     LFO::Timer lfoTimer_;
+    MIDINoteStatus midiNotes_;
     Math::FFT_float_real_1D fft_;
     FFTWindow analysisWindow_;
     FFTWindow synthesisWindow_;

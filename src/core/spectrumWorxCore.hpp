@@ -151,6 +151,11 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
 
     Processor::LFO::Timer const &lfoTimer() const { return Engine::Processor::lfoTimer(); }
 
+    /// \brief The note port. Written by the host event handler, read by the
+    /// effects that declare they consume it. \see Engine::MIDINoteStatus.
+    Engine::MIDINoteStatus &midiNotes() { return Engine::Processor::midiNotes(); }
+    Engine::MIDINoteStatus const &midiNotes() const { return Engine::Processor::midiNotes(); }
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \brief Whether anything can be inside process() right now.

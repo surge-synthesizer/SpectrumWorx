@@ -275,7 +275,7 @@ bool SpectrumWorxCore::ModuleInitialiser::operator()(Module &module,
         /// \note resize() must also call reset() so we don't have to.
         ///                                   (05.04.2012.) (Domagoj Saric)
         //...mrmlj...preProcess() should not require initialisation/resizing (ChannelState allocation)...
-        module.initialise(effect.engineSetup());
+        module.initialise(effect.engineSetup(), effect.midiNotes());
         return true;
     }
     return false;

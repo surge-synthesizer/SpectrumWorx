@@ -920,6 +920,24 @@ bool SpectrumWorxCLAP::paramsTextToValue(clap_id const id, char const *const dis
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+namespace
+{
+/// \brief A CLAP note's 0..1 velocity as the 7 bit one the engine stores.
+///
+/// \note Never zero for a note-on. Zero is how the map spells "up", and a CLAP
+/// note-on of no velocity is still a note-on -- the zero-velocity release
+/// convention belongs to the MIDI dialect and is applied only there.
+std::uint8_t velocityFromCLAP(double const velocity)
+{
+    auto const scaled(velocity * 127.0);
+    if (scaled >= 127.0)
+        return 127;
+    if (scaled < 1.0)
+        return 1;
+    return static_cast<std::uint8_t>(scaled);
+}
+} // anonymous namespace
+
 bool SpectrumWorxCLAP::handleNoteEvent(clap_event_header const *const header)
 {
     switch (header->type)
@@ -935,9 +953,15 @@ bool SpectrumWorxCLAP::handleNoteEvent(clap_event_header const *const header)
         // a CLAP note-on with no velocity is still a note-on; the zero-velocity
         // convention below is the MIDI dialect's, not this one's
         if (header->type == CLAP_EVENT_NOTE_ON)
+        {
             midiMonitor_.noteOn(key);
+            midiNotes().noteOn(key, velocityFromCLAP(note->velocity));
+        }
         else
+        {
             midiMonitor_.noteOff(key);
+            midiNotes().noteOff(key);
+        }
         return true;
     }
     case CLAP_EVENT_MIDI:
@@ -949,12 +973,21 @@ bool SpectrumWorxCLAP::handleNoteEvent(clap_event_header const *const header)
 
         // a note-on of zero velocity is a note-off, and hosts do send it. Reading
         // 0x90 as an unconditional press is a key that never lifts
-        if (status == 0x90)
-            (second > 0) ? midiMonitor_.noteOn(first) : midiMonitor_.noteOff(first);
-        else if (status == 0x80)
+        if (status == 0x90 && second > 0)
+        {
+            midiMonitor_.noteOn(first);
+            midiNotes().noteOn(first, second);
+        }
+        else if (status == 0x90 || status == 0x80)
+        {
             midiMonitor_.noteOff(first);
+            midiNotes().noteOff(first);
+        }
         else if (status == 0xB0)
+        {
             midiMonitor_.controller(first, second);
+            midiNotes().controller(first, second);
+        }
         return true;
     }
     default:

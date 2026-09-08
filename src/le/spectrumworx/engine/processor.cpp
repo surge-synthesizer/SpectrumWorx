@@ -33,7 +33,7 @@
 namespace LE::SW::Engine
 {
 
-void Processor::preProcess() { modules().preProcessAll(lfoTimer(), engineSetup()); }
+void Processor::preProcess() { modules().preProcessAll(lfoTimer(), engineSetup(), midiNotes_); }
 
 /// \see the note on the declaration.
 void Processor::preProcessForFirstFrame()

@@ -37,6 +37,7 @@ namespace Engine
 {
 
 class ChannelData;
+class MIDINoteStatus;
 class Setup;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -85,8 +86,11 @@ class ModuleDSP : public LE::SW::Engine::ModuleParameters
     using ModuleParameters::baseParameters;
     using ModuleParameters::setEffectParameter;
 
-    void initialise(Setup const &engineSetup) { setup(engineSetup); }
-    void preProcess(LFO::Timer const &, Setup const &);
+    void initialise(Setup const &engineSetup, MIDINoteStatus const &midiNotes)
+    {
+        setup(engineSetup, midiNotes);
+    }
+    void preProcess(LFO::Timer const &, Setup const &, MIDINoteStatus const &);
     void process(std::uint8_t channel, ChannelData &, Setup const &) const;
 
     virtual void reset() = 0;
@@ -124,7 +128,7 @@ class ModuleDSP : public LE::SW::Engine::ModuleParameters
 
     ~ModuleDSP();
 
-    void setup(Setup const &);
+    void setup(Setup const &, MIDINoteStatus const &);
 
     bool allocateStorage(StorageFactors const &, std::uint16_t channelStateSize,
                          std::uint32_t channelStateRequiredStorage);
@@ -133,7 +137,7 @@ class ModuleDSP : public LE::SW::Engine::ModuleParameters
     Effects::IndexRange const &workingRange() const { return workingRange_; }
 
   private:
-    virtual void doPreProcess(Setup const &) = 0;
+    virtual void doPreProcess(Setup const &, MIDINoteStatus const &) = 0;
     virtual void doProcess(std::uint8_t channel, ChannelDataProxy, Setup const &) const = 0;
 
     /// \brief The effect-specific half of seedRandomState(): one seed per

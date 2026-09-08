@@ -36,6 +36,7 @@ namespace Engine
 
 class ModuleDSP;
 class Setup;
+class MIDINoteStatus;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -386,7 +387,7 @@ class ModuleChainImpl : public ModuleChainBase
 #endif // _MSC_VER
     using ModuleChainBase::operator=;
 
-    void preProcessAll(Parameters::LFOImpl::Timer const &, Setup const &);
+    void preProcessAll(Parameters::LFOImpl::Timer const &, Setup const &, MIDINoteStatus const &);
 
     /// \brief Resets every module, and on the way gives each of them the random
     /// streams they own. \see ModuleDSP::seedRandomState().

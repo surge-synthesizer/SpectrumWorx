@@ -544,7 +544,50 @@ where it went.
 > second answer to a question that already has one.
 > `tests/effects/sideChainTests.cpp` holds the measured set of fifteen.
 
-## 1.9 Registering it
+## 1.9 MIDI
+
+An effect that consumes notes says so by taking a third `setup()` parameter:
+
+```cpp
+void setup( IndexRange const &, Engine::Setup const &, Engine::MIDINoteStatus const & );
+```
+
+**That signature is the only declaration of the fact**, for the reason §1.8 gives
+about the side chain: a constant beside it would be a second answer to a question
+the overload already answers, and the deleted `usesSideChannel` is what happens to
+one. `Effects::ConsumesMIDI` (`effects/consumesMIDI.hpp`) is the predicate, and
+`Effects::effectConsumesMIDI` (`configuration/midiConsumingEffects.hpp`) expands it
+over `effectsList.hpp` — so the set is derived from the effects rather than kept in
+step with them.
+
+**No shipped effect takes it**, as of 08.09.2026. The API is here and the route
+that feeds it is here; what reads it is later work.
+`tests/effects/midiConsumersTests.cpp` pins that count at zero, so the first effect
+to grow a note port is a deliberate edit rather than a surprise.
+
+**It goes to `setup()` and never to `process()`.** `process()` is `const`, runs
+once per channel, and may run several times per `setup()` — so a note read there
+would be re-derived per channel, and any edge taken from it would be seen by the
+first channel only. That is the trap §1.2 already states for `consumeValue()`.
+
+**The status is read only**, like `data.side()` and for the same reason: every
+module in the chain is handed the same one, so a module that consumed a note would
+take it from every later slot. An effect that needs an edge keeps the previous
+state itself, per channel.
+
+`Engine::MIDINoteStatus` is not `Threading::MIDIMonitor`. The monitor is atomic
+because it crosses to the message thread to be drawn; this one is written by the
+event handler and read by `setup()`, both on the audio thread, so nothing in it is
+synchronised. `midi-input.md` §4 is where the two are told apart, and
+`threading_model.md` §3 is the general rule.
+
+> **A note-consuming effect will need its goldens thought about.**
+> `tests/goldens/engineHarness.hpp` drives the engine directly and has nowhere to
+> put a note, so such an effect renders whatever it does with no keys down. If
+> that is silence, its eight golden rows hash identically on every platform and
+> pin nothing — which is what `silentDefaultsTests.cpp` exists to stop growing.
+
+## 1.10 Registering it
 
 Six files, and two of them are load-bearing: the first, which is where the effect
 comes into existence, and the last, which is where it becomes reachable.
@@ -637,7 +680,7 @@ is step 6 above.
 presets had been written naming the old one. A new effect has no history and its
 title is its streaming name.
 
-## 1.10 What tests a new effect joins by being listed
+## 1.11 What tests a new effect joins by being listed
 
 Almost all of them enumerate `Constants::numberOfEffects`, so appending a row
 enrols the effect and — for the two snapshot files — obliges you to regenerate.
@@ -681,7 +724,7 @@ because it was right to.
 > the suite runs in both, `Every effect leaves the output finite and bounded`
 > included. Verify in both build directories.
 
-## 1.11 What the layering forbids
+## 1.12 What the layering forbids
 
 - **No JUCE, and no host.** Everything under `src/le/` and `src/core/` (bar
   `core/host_interop/`) is inside `tests/checkNoJuceInDSP.cmake`'s roots, and it
@@ -1185,7 +1228,7 @@ They divide sharply, and the divide is what makes them worth separating from
 
 All three already have the `x.hpp` / `xImpl.hpp` / `xImpl.cpp` split, the current
 parameter macros, the current signatures and the current channel-state types.
-Finishing one means steps 1–6 of §1.9 and nothing else — plus whatever a compiler
+Finishing one means steps 1–6 of §1.10 and nothing else — plus whatever a compiler
 says the first time one sees them.
 
 | | Title / description | Parameters | Shape |
@@ -1359,9 +1402,10 @@ paper's algorithm in runnable form and that is its whole value.
 
 | If you are | Read, in this order |
 |---|---|
-| writing a new stateless effect | `effects.hpp:48-124`, `freqnamics/`, `bandpass/`, then §1.9 |
+| writing a new stateless effect | `effects.hpp:48-124`, `freqnamics/`, `bandpass/`, then §1.10 |
 | writing one with per-channel memory | `phasevolution/` (static), `wobbler/` (counter), `slew_limiter/` (one buffer), `octaver/` (dynamic) |
 | writing a side-chain effect | `talking_wind/`, then `blender/`, then §1.8 and `sideChainTests.cpp` |
+| writing an effect driven by notes | §1.9, then `midi-input.md` and `midiConsumersTests.cpp` |
 | writing anything pitch- or frequency-related | `phase_vocoder/shared.hpp` **first**, then `pitch_follower/` for the PVD/non-PVD twin pattern |
 | writing an effect that needs history | `historyBuffer.hpp`, `reverser/`, `freqverb/`, and the whole-spectrum rule in §1.5 |
 | reviving one of the four orphans | get it into `dsp.cmake` and build it. Nothing else until it compiles. |

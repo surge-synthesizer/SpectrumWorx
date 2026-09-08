@@ -88,7 +88,8 @@ namespace Effects
 //      - void setup
 //        (
 //            IndexRange const &,
-//            Engine::Setup const &
+//            Engine::Setup const &,
+//            (optional - see below) Engine::MIDINoteStatus const &
 //        )
 //      - void process
 //        (
@@ -119,6 +120,23 @@ namespace Effects
 // the build now sets uniformly, so they are gone.
 //
 //  All processing is done in-place, side-channel data is considered read only.
+//
+//  An effect consumes MIDI by taking the third setup() parameter, and that
+// signature is the only declaration of the fact -- as taking a
+// MainSideChannelData is the only declaration that an effect reads the side
+// chain. There is no constant to keep in step and therefore none to get wrong.
+// The two forms are mutually exclusive, so a mistyped third parameter fails to
+// compile rather than selecting the noteless form and never running.
+//
+//  The note status is read only for the same reason side-channel data is: every
+// module in the chain is handed the same one, so a module that consumed a note
+// would take it from every later slot. An effect that needs an edge keeps the
+// previous state itself, per channel -- see the TriggerParameter note above.
+//
+//  It is handed to setup() and not to process() because setup() is where a
+// parameter becomes DSP state: process() runs once per channel and may run
+// several times per setup(), so a note read there would be re-derived per
+// channel and any edge taken from it would be seen by the first channel only.
 //
 ////////////////////////////////////////////////////////////////////////////////
 

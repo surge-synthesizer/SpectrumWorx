@@ -31,6 +31,7 @@ add_executable(sw-dsp-tests
         effects/comparingEffectsTests.cpp
         effects/effectsListTests.cpp
         effects/freezeTests.cpp
+        effects/midiConsumersTests.cpp
         effects/parameterFuzzTests.cpp
         effects/sideChainTests.cpp
         effects/silentDefaultsTests.cpp

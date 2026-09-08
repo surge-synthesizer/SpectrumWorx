@@ -8,13 +8,17 @@ Written 01.09.2026. Everything here is in the tree and has tests naming it.
 
 ## 1. What this is, and what it is not
 
-**Nothing in the DSP reads a note**, and no pixel shows one. The engine has no
-idea a note port exists, and the overlay that answered *does a host route MIDI to
-this plugin at all* is behind `SW_MIDI_OVERLAY` and off (§5).
+A note arrives on the port, is parsed once, and lands in two places that look
+alike and are not: `Threading::MIDIMonitor`, which the interface may draw, and
+`Engine::MIDINoteStatus`, which an effect's `setup()` may read. §4 is why they are
+two things.
 
-What is here is the route: the port, the parser that reads both dialects, and the
-mailbox at the end of it. Everything else about MIDI is later work, and this is
-the shape it will be wired behind.
+**No shipped effect reads a note yet**, and no pixel shows one — the overlay that
+answered "does a host route notes here at all" is behind `SW_MIDI_OVERLAY` and off
+(§5). What is here is the route and the seam at the end of it: the port, the
+parser, the two mailboxes, and the one line of an effect's declaration that asks
+for the notes. `effect_contract.md` §1.9 is the contract an effect satisfies to
+get them.
 
 So the acceptance test is a sentence rather than a number: build with
 `SW_MIDI_OVERLAY`, run the standalone, play, and the notes appear on screen. That
@@ -59,11 +63,34 @@ as a press:
 A CLAP note-on with zero velocity is still a note-on. The zero-velocity
 convention belongs to the MIDI dialect and is applied only there.
 
-## 4. The mailbox
+## 4. The two mailboxes
 
-`src/core/threading/midiMonitor.hpp`: 128 note flags, 128 controller values, 128
-stamps saying when each controller last moved, and one change counter. The audio
-thread writes, the interface reads.
+The parser writes both. They carry nearly the same thing and are deliberately not
+one class, because they cross different boundaries.
+
+### The engine's — `engine/midiNoteStatus.hpp`
+
+128 velocities, 128 controller values, and nothing else: no atomics, no counter,
+no ordering. It is written by `handleNoteEvent()` and read by an effect's
+`setup()`, and **both of those are the audio thread**, so there is no edge to
+synchronise across and paying for one would be paying for nothing.
+
+Zero velocity is how it spells "up". That is why a CLAP note-on carrying no
+velocity is stored as 1 rather than 0 — that note is *down*, and the
+zero-velocity release convention belongs to the MIDI dialect alone (§3).
+
+`Processor::reset()` clears it, which is the host's reset and every resume. A key
+still down across a transport stop would come back sounding with nothing holding
+it.
+
+It is handed to an effect **`const`**, for the reason side-channel data is: every
+module in the chain is given the same one, so a module that consumed a note would
+take it from every later slot.
+
+### The interface's — `core/threading/midiMonitor.hpp`
+
+128 note flags, 128 controller values, 128 stamps saying when each controller last
+moved, and one change counter. The audio thread writes, the interface reads.
 
 **Deliberately not a snapshot.** Each slot is its own atomic, so a reader can
 land between the two writes of a block that moved two controllers and see one of
@@ -85,7 +112,7 @@ command line and the rest of this section describes what you get.
 
 It was a bring-up aid and it did its job. Nothing in it is for a user: it answers
 *does a host route notes here at all*, which is a question no validator asks, and
-once the answer is yes there is nothing left to read. The mailbox underneath it is
+once the answer is yes there is nothing left to read. The monitor underneath it is
 **not** behind the switch — `Threading::MIDIMonitor` and `EditorHost::midiMonitor()`
 are always built and always tested, because they are the seam an interface that
 did something with notes would read.
@@ -166,9 +193,18 @@ than derived, because a legacy identity that followed a rename would not be one.
 
 | | holds |
 |---|---|
-| `tests/clap/midiInputTests.cpp` `[midi]` | the port's shape and both dialects; a note reaching the monitor and lifting; the choke and the zero-velocity note-on that would otherwise stick; a controller arriving with its value on any channel; and that a note in the same event list does not disturb the parameter path. With `SW_MIDI_OVERLAY` it also drives the editor arming, drawing and expiring — one tick short of the window and then the tick that closes it, because a display that never expired and one that expired immediately both pass a case that only looks at the end |
-| `tests/clap/identityTests.cpp` | the AU type, so §6 does not happen twice |
+| `tests/clap/midiInputTests.cpp` `[midi]` | the port's shape and both dialects; a note reaching **both** mailboxes and lifting from each; the choke and the zero-velocity note-on that would otherwise stick; a note-on of no velocity landing as a key that is *down*; a controller arriving with its value on any channel; that a reset lifts every key; and that a note in the same event list does not disturb the parameter path. With `SW_MIDI_OVERLAY` it also drives the editor arming, drawing and expiring — one tick short of the window and then the tick that closes it, because a display that never expired and one that expired immediately both pass a case that only looks at the end |
+| `tests/effects/midiConsumersTests.cpp` `[midi]` | that the `setup()` signature is what decides a consumer — the static, non-static and by-value forms are, a mistyped third parameter is not — and that the derived table names exactly the effects that read notes, which is none of them |
+| `tests/clap/identityTests.cpp` | the AU type and the retired triple, so §6 does not happen twice |
 
 **What is not guarded is the host end.** No validator asks whether a host routes
 notes, and neither auval nor the VST3 validator sends any. The standalone with a
 keyboard is the test, which is why §1 states it as one.
+
+**And the engine's dispatch has no shipped consumer.** `ConsumesMIDI` decides
+between the two- and three-argument `setup()` at `moduleImpl.hpp`, and with no
+effect declaring the third parameter the true branch of that `if constexpr` is
+never instantiated. That is a compile error the moment one does, rather than a
+silent wrong answer — the two forms are mutually exclusive, so an effect that gets
+the signature wrong satisfies neither and fails to build. It is still a branch no
+test executes, and it is the first thing the first note-consuming effect proves.

@@ -24,13 +24,14 @@ namespace LE::SW::Engine
 
 ModuleDSP::~ModuleDSP() {}
 
-void ModuleDSP::preProcess(LFO::Timer const &timer, Setup const &engineSetup)
+void ModuleDSP::preProcess(LFO::Timer const &timer, Setup const &engineSetup,
+                           MIDINoteStatus const &midiNotes)
 {
     if (bypass())
         return;
     ModuleParameters::updateBaseParametersFromLFOs(timer);
     ModuleParameters::updateEffectParametersFromLFOs(timer);
-    setup(engineSetup);
+    setup(engineSetup, midiNotes);
 }
 
 void ModuleDSP::seedRandomState(Math::Rng &source)
@@ -45,7 +46,7 @@ void ModuleDSP::seedRandomState(Math::Rng &source)
     doSeedChannelStates(source);
 }
 
-void ModuleDSP::setup(Setup const &engineSetup)
+void ModuleDSP::setup(Setup const &engineSetup, MIDINoteStatus const &midiNotes)
 {
     using namespace Effects::BaseParameters;
 
@@ -56,7 +57,7 @@ void ModuleDSP::setup(Setup const &engineSetup)
     workingRange_.setNewRange(
         engineSetup.normalisedFrequencyToBin(std::min(leftFrequency, rightFrequency)),
         engineSetup.normalisedFrequencyToBin(rightFrequency));
-    doPreProcess(engineSetup);
+    doPreProcess(engineSetup, midiNotes);
 }
 
 bool ModuleDSP::allocateStorage(
