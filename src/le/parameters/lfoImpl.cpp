@@ -1118,7 +1118,6 @@ LFOImpl::Timer::TimingInformationChange LFOImpl::Timer::updatePositionAndTimingI
     LE_ASSERT(barDuration >= 0);
 
     // Position
-    previousTimeInBars_ = currentTimeInBars_;
     currentTimeInBars_ = positionInBars;
 
     // Timing info
@@ -1136,7 +1135,6 @@ LFOImpl::Timer::TimingInformationChange LFOImpl::Timer::updatePositionAndTimingI
     relaxed(measureNumerator_, measureNumerator);
 
     LE_ASSERT(std::isfinite(currentTimeInBars_));
-    LE_ASSERT(std::isfinite(previousTimeInBars_));
     LE_ASSERT(std::isfinite(relaxed(barDuration_)));
 
     return changeInfo;
@@ -1150,8 +1148,9 @@ LFOImpl::Timer::updatePositionAndTimingInformation(unsigned int const deltaNumbe
     float const timeToAdvanceInSeconds(Math::convert<float>(deltaNumberOfSamples) / sampleRate);
     float const timeToAdvanceInBars(timeToAdvanceInSeconds / relaxed(barDuration_));
 
-    LE_ASSERT((currentTimeInBars_ >= previousTimeInBars_) || (currentTimeInBars_ == 0));
-    previousTimeInBars_ = currentTimeInBars_;
+    // the clock only ever advances here; where it *jumps* is the overload above,
+    // which follows the host
+    LE_ASSERT(timeToAdvanceInBars >= 0);
     currentTimeInBars_ += timeToAdvanceInBars;
 
     // Timing info: the assumption, which is what the reference bar *is*.
@@ -1177,15 +1176,12 @@ void LFOImpl::Timer::setPosition(float const timeInSeconds)
     // Position
     float const timeInBars(timeInSeconds / relaxed(barDuration_));
 
-    LE_ASSERT((currentTimeInBars_ > previousTimeInBars_) || (currentTimeInBars_ == 0));
-    previousTimeInBars_ = currentTimeInBars_;
     currentTimeInBars_ = timeInBars;
 }
 
 void LFOImpl::Timer::reset()
 {
     currentTimeInBars_ = 0;
-    previousTimeInBars_ = 0;
 
     // Back to the assumption, which is what the reference bar is.
     relaxed(barDuration_, referenceBarDuration);
