@@ -155,8 +155,10 @@ float const *sampleChunk(Sample::ChannelData const &channelData, std::uint32_t &
 /// by way of a SHA-1 in clap-wrapper.
 clap_plugin_descriptor const *descriptor()
 {
+    // audio-effect first: clap-wrapper's AUv2 build helper reads features[0] and
+    // nothing else to pick the component type. The rest become the AU's tags
     static char const *features[]{CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, CLAP_PLUGIN_FEATURE_STEREO,
-                                  "spectral", nullptr};
+                                  CLAP_PLUGIN_FEATURE_MONO, "spectral", nullptr};
     static clap_plugin_descriptor const description{
         CLAP_VERSION,
         SW_CLAP_ID,
@@ -270,7 +272,10 @@ bool SpectrumWorxCLAP::activate(double const sampleRate, std::uint32_t,
 
     // input and output counts: the engine takes the side channels to be the
     // difference, so stereo main and stereo side spells four against two
-    setNumberOfChannels(4, 2);
+    //
+    // channelWidth_ is the host's answer, arrived at while deactivated -- which
+    // is here, and is why the layout can only ever change between blocks
+    setNumberOfChannels(static_cast<std::uint8_t>(2 * channelWidth_), channelWidth_);
     setSampleRate(static_cast<float>(sampleRate));
 
     // the host promises never to exceed maxFrames; a shorter block is fine
@@ -391,8 +396,8 @@ bool SpectrumWorxCLAP::audioPortsInfo(std::uint32_t const index, bool const isIn
                                       clap_audio_port_info *const info) const noexcept
 {
     std::memset(info, 0, sizeof(*info));
-    info->channel_count = 2;
-    info->port_type = CLAP_PORT_STEREO;
+    info->channel_count = channelWidth_;
+    info->port_type = (channelWidth_ == 1) ? CLAP_PORT_MONO : CLAP_PORT_STEREO;
     // never an in-place pair: at unity input gain the host's own input
     // pointers reach Engine::Processor::process, and the WOLA path has not been
     // audited for aliasing input against output
@@ -420,6 +425,89 @@ bool SpectrumWorxCLAP::audioPortsInfo(std::uint32_t const index, bool const isIn
         return true;
     }
     return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The width a set of configuration requests asks for, or nothing if it
+/// asks for a layout this plugin does not have.
+///
+/// \note **One width, every port**, and the engine is what says so:
+/// `Engine::Setup::setNumberOfChannels` asserts the side channels do not
+/// outnumber the main ones, `checkChannelConfiguration` takes `in == out`, and
+/// every effect reads the two spectra channel for channel. A mono main against a
+/// stereo side chain is not a layout this engine has.
+///
+/// \note So a request that would leave the three disagreeing is **refused**,
+/// including one that simply does not name the side chain: a port the requests
+/// do not name keeps what it has, so asking for a mono main and saying nothing
+/// about a stereo side chain still describes a layout there is no answer to.
+/// Refusing is the only honest reply -- `can_apply_configuration` promising a
+/// layout `apply_configuration` then does not produce is the one thing the
+/// extension forbids, because a host that got a `true` is told it need not
+/// re-read the ports.
+///
+/// \note The count decides and `port_type` is not read. A two channel port is a
+/// pair to a spectral processor whichever two the host means by it, and the VST3
+/// wrapper sends a null type for every arrangement that is not plain mono or
+/// stereo -- so reading it would refuse working layouts to say nothing.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+std::optional<std::uint8_t>
+SpectrumWorxCLAP::widthRequestedBy(clap_audio_port_configuration_request const *const requests,
+                                   std::uint32_t const count) const noexcept
+{
+    // what each port would carry once the requests are applied: one it does not
+    // name keeps what it has
+    auto mainIn(channelWidth_);
+    auto side(channelWidth_);
+    auto mainOut(channelWidth_);
+
+    for (std::uint32_t request(0); request < count; ++request)
+    {
+        auto const &asked(requests[request]);
+        if (asked.port_index >= audioPortsCount(asked.is_input))
+            return {}; // a port that is not there cannot be configured
+
+        if ((asked.channel_count < 1) || (asked.channel_count > 2))
+            return {};
+
+        auto const width(static_cast<std::uint8_t>(asked.channel_count));
+        if (!asked.is_input)
+            mainOut = width;
+        else if (asked.port_index == 0)
+            mainIn = width;
+        else
+            side = width;
+    }
+
+    if ((mainIn != mainOut) || (mainIn != side))
+        return {};
+
+    return mainIn;
+}
+
+bool SpectrumWorxCLAP::configurableAudioPortsCanApplyConfiguration(
+    clap_audio_port_configuration_request const *const requests,
+    std::uint32_t const count) const noexcept
+{
+    return widthRequestedBy(requests, count).has_value();
+}
+
+/// \note No `clap_host_audio_ports::changed()` and no `request_restart()`: the
+/// extension is `[main-thread & !active]`, so the host is already between
+/// activations and reads the new ports itself. The engine hears about it in
+/// `activate()`, which is the only place its channel count may move.
+bool SpectrumWorxCLAP::configurableAudioPortsApplyConfiguration(
+    clap_audio_port_configuration_request const *const requests, std::uint32_t const count) noexcept
+{
+    auto const width(widthRequestedBy(requests, count));
+    if (!width)
+        return false;
+
+    channelWidth_ = *width;
+    return true;
 }
 
 /// \brief Every parameter the engine can ever have, once, at init().
@@ -1195,6 +1283,7 @@ void SpectrumWorxCLAP::runEngine(clap_process const *const process, std::uint32_
     // the main input rather than to a null dereference
     float const *sampleChannels[Sample::numberOfChannels];
     bool sideIsScratch(false);
+
     if ((sideChainSource_ == SideChainSource::File) && pSample_ && *pSample_ &&
         (channels <= std::size(sampleChannels)) && (buffers().numberOfSideChannels() >= channels) &&
         (frames <= buffers().blockSize()))

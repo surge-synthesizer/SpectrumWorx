@@ -1177,17 +1177,22 @@ void SpectrumWorxEditor::updateSampleName(juce::String const &newSampleName)
 /// what was selected, and it is never empty -- "nothing" is not one of the three
 /// answers. \see doc/tech/sidechain-approach.md.
 
+char const *SpectrumWorxEditor::hostPortName(SideChainSource const source,
+                                             std::uint8_t const channelWidth)
+{
+    LE_ASSERT_MSG(source != SideChainSource::File, "A file is named by its file.");
+    bool const mono(channelWidth == 1);
+    if (source == SideChainSource::Host)
+        return mono ? "Sidechain Input (Mono)" : "Sidechain Input (3+4)";
+    return mono ? "Main Input (Mono)" : "Main Input (1+2)";
+}
+
 void SpectrumWorxEditor::updateSampleName()
 {
-    switch (editorHost_.sideChainSource())
-    {
-    case SideChainSource::File:
+    auto const source(editorHost_.sideChainSource());
+    if (source == SideChainSource::File)
         return updateSampleName(LE::IO::pathToJuceString(editorHost_.currentSampleFile().stem()));
-    case SideChainSource::Main:
-        return updateSampleName("Main Input (1+2)");
-    case SideChainSource::Host:
-        return updateSampleName("Sidechain Input (3+4)");
-    }
+    return updateSampleName(hostPortName(source, editorHost_.channelWidth()));
 }
 
 /// \note The loading branch is unreachable while setNewSample() decodes on this
@@ -1986,6 +1991,11 @@ template <> void SpectrumWorxEditor::updateGlobalParameterWidget<MixPercentage>(
 
 void SpectrumWorxEditor::updateForEngineSetupChanges()
 {
+    // the port layout lands in the same activate() this is called from, and the
+    // box names a port by the width it carries. The Engine page's own line is
+    // not refreshed here -- updateEngineInformation() polls for it
+    updateSampleName();
+
     Engine::Setup const &engineSetup(this->engineSetup());
     if (sharedModuleControlsActive())
         sharedModuleControls().updateForEngineSetupChanges(engineSetup);
@@ -3732,9 +3742,10 @@ void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
     //
     // neither is disabled when already selected: they are a choice rather than a
     // command, and greying out the current one hides what it says
+    auto const width(editor.editorHost().channelWidth());
     menu_.clear();
-    menu_.addItem(mainAsSideChain, "Main Input (1+2)");
-    menu_.addItem(hostSideChain, "Sidechain Input (3+4)");
+    menu_.addItem(mainAsSideChain, SpectrumWorxEditor::hostPortName(SideChainSource::Main, width));
+    menu_.addItem(hostSideChain, SpectrumWorxEditor::hostPortName(SideChainSource::Host, width));
     menu_.addSectionHeader("Audio File");
     menu_.addItem(browse, "Load file...");
     for (std::size_t sample(0); sample < factorySamples.size(); ++sample)
@@ -3912,7 +3923,7 @@ void SpectrumWorxEditor::Settings::updateEnginePage()
     overlapFactor_->setValue(parameters.get<Engine::OverlapFactor>());
     windowFunction_->setValue(parameters.get<Engine::WindowFunction>());
 
-    if (enginePage_.setEngineInformation(engineSetup))
+    if (enginePage_.setEngineInformation(engineSetup, editor.editorHost().channelWidth()))
         enginePage_.repaint();
 }
 
@@ -3921,7 +3932,8 @@ bool SpectrumWorxEditor::Settings::updateEngineInformation()
     /// \note The unchecked getter, for the reason updateEnginePage() gives
     /// above: this is called precisely while the setup and the parameters
     /// disagree, and reading it then is the whole point.
-    if (!enginePage_.setEngineInformation(editor().effect().uncheckedEngineSetup()))
+    if (!enginePage_.setEngineInformation(editor().effect().uncheckedEngineSetup(),
+                                          editor().editorHost().channelWidth()))
         return false;
     enginePage_.repaint();
     return true;
@@ -3938,12 +3950,14 @@ SpectrumWorxEditor::Settings::EnginePage::EnginePage() : PanelBackground(Setting
 /// *checked* `engineSetup()` getter -- which asserts that the setup agrees with
 /// the spectral parameters, and which is false for as long as one is in flight.
 
-bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setup const &setup)
+bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setup const &setup,
+                                                                    std::uint8_t const channelWidth)
 {
     auto const previousQuality(engineQuality_);
     auto const previousResolution(frequencyResolution_);
     auto const previousStep(timeResolution_);
     auto const previousLatency(latency_);
+    auto const previousBusLayout(busLayout_);
 
     float const qualityFactor(setup.wolaRippleFactor());
     // Implementation note:
@@ -3983,8 +3997,15 @@ bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setu
     timeResolution_ = diagnostic("Time Resolution", setup.stepTime() * 1000, "ms");
     latency_ = diagnostic("Latency", setup.latencyInMilliseconds(), "ms");
 
+    // ports by channels on each side: two input ports carrying the width, one
+    // output port carrying it. The port counts do not move with the layout --
+    // mono halves the side chain rather than removing it -- so they are written
+    // here rather than asked for. \see doc/tech/how-mono-ports-work.md
+    busLayout_ = (channelWidth == 1) ? "Mono: 2x1->1x1" : "Stereo: 2x2->1x2";
+
     return (engineQuality_ != previousQuality) || (frequencyResolution_ != previousResolution) ||
-           (timeResolution_ != previousStep) || (latency_ != previousLatency);
+           (timeResolution_ != previousStep) || (latency_ != previousLatency) ||
+           (busLayout_ != previousBusLayout);
 }
 
 void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
@@ -4005,6 +4026,7 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
     line(frequencyResolution_, infoTextY + (lineHeight * 1));
     line(timeResolution_, infoTextY + (lineHeight * 2));
     line(latency_, infoTextY + (lineHeight * 3));
+    line(busLayout_, infoTextY + (lineHeight * 4));
 }
 
 namespace

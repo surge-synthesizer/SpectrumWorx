@@ -121,3 +121,53 @@ TEST_CASE("The side chain box shows which source is selected", "[gui][side-chain
     CHECK(instance.sideChainSource() == SideChainSource::Host);
     CHECK(differingPixels(rendered(editor), showingHost) == 0);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The strings rather than the pixels, and directly rather than through the
+/// menu. `hostPortName()` exists precisely so that this is reachable: the popup
+/// cannot be opened here -- JUCE 8 compiles the message loop out of a binary with
+/// no message thread, as the note at the top of this file says -- so a wording
+/// that lived inside `showCenteredBelow` could not be tested at all, and the box
+/// and the menu held two copies of it.
+///
+/// \note A file is not one of them. It is named by its file at every width, which
+/// is why `hostPortName()` asserts rather than answering for it.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The two host ports are named for the width they carry", "[gui][side-chain][audio-ports]")
+{
+    using Editor = GUI::SpectrumWorxEditor;
+
+    CHECK(std::string(Editor::hostPortName(SideChainSource::Main, 2)) == "Main Input (1+2)");
+    CHECK(std::string(Editor::hostPortName(SideChainSource::Host, 2)) == "Sidechain Input (3+4)");
+
+    // a mono layout has no pairs to be, so the parenthetical names the mode
+    CHECK(std::string(Editor::hostPortName(SideChainSource::Main, 1)) == "Main Input (Mono)");
+    CHECK(std::string(Editor::hostPortName(SideChainSource::Host, 1)) == "Sidechain Input (Mono)");
+}
+
+/// \note And that the box asks. The name is built from the host's width rather
+/// than held from whenever the source was last picked, so a layout that changes
+/// under an open editor is a box that re-reads.
+TEST_CASE("The side chain box follows the port width", "[gui][side-chain][audio-ports]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    instance.openEditor(Editor::PanelPlacement::overlay);
+    auto &editor(instance.editor());
+
+    editor.sideChainSourceSelected(SideChainSource::Host);
+    auto const stereo(rendered(editor));
+
+    instance.setChannelWidth(1);
+    editor.updateSampleName();
+    auto const mono(rendered(editor));
+
+    CHECK(differingPixels(stereo, mono) > 0);
+
+    instance.setChannelWidth(2);
+    editor.updateSampleName();
+    CHECK(differingPixels(rendered(editor), stereo) == 0);
+}

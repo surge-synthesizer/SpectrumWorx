@@ -38,6 +38,7 @@
 #include <atomic>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -302,6 +303,7 @@ class SpectrumWorxCLAP final
     char const *setNewSample(fs::path const &) override;
 
     SideChainSource sideChainSource() const override { return sideChainSourceMain_; }
+    std::uint8_t channelWidth() const override { return channelWidth_; }
     void setSideChainSource(SideChainSource) override;
     /// \note Always false while the load above is synchronous: by the time
     /// anything can ask, it has finished.
@@ -335,6 +337,18 @@ class SpectrumWorxCLAP final
     bool audioPortsInfo(std::uint32_t index, bool isInput,
                         clap_audio_port_info *) const noexcept override;
 
+    // clap_plugin_configurable_audio_ports. \see doc/tech/how-mono-ports-work.md
+    bool implementsConfigurableAudioPorts() const noexcept override { return true; }
+    bool configurableAudioPortsCanApplyConfiguration(clap_audio_port_configuration_request const *,
+                                                     std::uint32_t count) const noexcept override;
+    bool configurableAudioPortsApplyConfiguration(clap_audio_port_configuration_request const *,
+                                                  std::uint32_t count) noexcept override;
+
+  private:
+    std::optional<std::uint8_t> widthRequestedBy(clap_audio_port_configuration_request const *,
+                                                 std::uint32_t count) const noexcept;
+
+  protected:
     // clap_plugin_params
     bool implementsParams() const noexcept override { return true; }
     bool isValidParamId(clap_id) const noexcept override;
@@ -817,6 +831,14 @@ class SpectrumWorxCLAP final
     /// \note Whether it has been told anything at all. \see activate().
     bool hostKnowsLatency_{false};
     bool engineRunning_{false};
+
+    /// \brief How many channels every port carries: 1 or 2, stereo until a host
+    /// says otherwise. `[main-thread]`, read by `activate()` and the port info.
+    ///
+    /// \note Not streamed. A patch does not decide the bus topology, and a host
+    /// that wants mono asks for it again on the next load.
+    /// \see doc/tech/how-mono-ports-work.md
+    std::uint8_t channelWidth_{2};
 
     ////////////////////////////////////////////////////////////////////////////
     ///

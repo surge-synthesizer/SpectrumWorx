@@ -165,7 +165,8 @@ Three things worth knowing about it:
   reported and cleared, and lands in the same place.
 - **Mono is not a source.** `Input_mode` 2 and 3 are the mono arrangements, and
   they say how many channels each source carries rather than which one is
-  selected — hence the odd/even test. Mono itself is issue #114.
+  selected — hence the odd/even test. Mono itself is `how-mono-ports-work.md`,
+  and it is still not a source there: it is the host's, not the patch's.
 - **`Input_mode` is read and never written.** It is migration input, not a
   parameter, and a file that omits it is not missing anything.
 
@@ -196,20 +197,21 @@ one; the preferences file already follows the same rule for its two enumerations
 
 ## 6. What is not decided here
 
-**The port layout.** The plugin declares two stereo input ports and one stereo
-output port unconditionally, in every source, and `activate()` asks the engine for
-`setNumberOfChannels(4, 2)` regardless. A host therefore shows four inputs
-whatever the patch selected. That is the handshake, not a setting, and issue #114
-is where it changes — for mono, which is the case where it genuinely has to.
+**The port layout.** The plugin declares two input ports and one output port,
+always, and no patch moves that: a host shows a side chain whatever the source
+selected. How *wide* those ports are is the host's, through
+`clap.configurable-audio-ports` — one channel or two, the same count on all three
+— and `how-mono-ports-work.md` is where that lives. Either way it is the
+handshake rather than a setting, which is the whole of §1.
 
 One consequence worth stating, since it is a cost rather than a nicety: the
 engine analyses the side channel every hop even when it is a byte-for-byte copy of
 the main input. `ProcessParameters::haveSideChannel()` is "the pointer is
 non-null" and the fallback pointer never is, so `Main` pays for a redundant
-transform. Only a build whose engine channel count follows the layout could skip
-it — issue #114 again, and it is not free: with no side channel at all the side
-spectrum is never filled, so a Blender would go *silent* rather than blend with
-itself.
+transform. Mono halves that cost along with everything else but does not remove
+it; only a build that dropped the side channel entirely could, and that is not
+free — with no side channel the side spectrum is never filled, so a Blender would
+go *silent* rather than blend with itself.
 
 ## 7. What guards it
 

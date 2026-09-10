@@ -271,6 +271,23 @@ class SpectrumWorxEditor final : private SkinLifetime,
     void updateSampleName();
     void updateSampleNameAsync();
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief What the box and the menu call the host's two ports, at a given
+    /// channel width.
+    ///
+    /// \note One function because there are two callers and they used to hold
+    /// the strings separately -- and because it is the only way the menu's
+    /// wording is testable at all: opening a popup needs a message loop, which
+    /// JUCE 8 compiles out of a binary that has no message thread.
+    ///
+    /// \note The parenthetical names channels when there are two of them and the
+    /// mode when there is one. `(1+2)` and `(3+4)` are which pair a port is, and
+    /// a mono layout has no pairs to be.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static char const *hostPortName(SideChainSource, std::uint8_t channelWidth);
+
     void updateForGlobalParameterChange();
 
     void updateForEngineSetupChanges();
@@ -1514,10 +1531,14 @@ class SpectrumWorxEditor final : private SkinLifetime,
           public:
             EnginePage();
 
-            /// \brief Rebuilds the four lines under the combo boxes from \p setup.
+            /// \brief Rebuilds the five lines under the combo boxes.
             /// \returns whether any of them changed, which is what says whether
             /// the page needs repainting. \see Settings::updateEngineInformation().
-            bool setEngineInformation(Engine::Setup const &setup);
+            ///
+            /// \note \p channelWidth comes from the host rather than from \p setup:
+            /// the setup carries what the *engine* is running, which is nothing at
+            /// all before the first activate(). \see EditorHost::channelWidth().
+            bool setEngineInformation(Engine::Setup const &setup, std::uint8_t channelWidth);
 
           private: // JUCE component overrides.
             void paint(juce::Graphics &) override;
@@ -1527,6 +1548,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
             juce::String frequencyResolution_;
             juce::String timeResolution_;
             juce::String latency_;
+            juce::String busLayout_;
         }; // class EnginePage
 
         class InterfacePage : public PanelBackground

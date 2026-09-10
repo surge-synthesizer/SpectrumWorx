@@ -797,10 +797,16 @@ class ActivePlugin
         /// `runEngine()` branches on it *and* on the second buffer's `data32` --
         /// so a port with no buffers is a third arrangement rather than a
         /// nonsense one.
+        ///
+        /// \note The *channel* count is whatever the ports declare, so a
+        /// reconfigured plugin is handed the mono block a mono host would hand
+        /// it rather than a stereo one it happens to be able to read half of.
+        /// The right-hand vectors are still filled by the caller and simply go
+        /// unread, which is what a mono track's second channel is.
         clap_audio_buffer inputs[]{
-            {&inputChannels[0], nullptr, 2, 0, 0},
-            {pSideChainLeft_ ? &sideChannels[0] : nullptr, nullptr, 2, 0, 0}};
-        clap_audio_buffer output{&outputChannels[0], nullptr, 2, 0, 0};
+            {&inputChannels[0], nullptr, channelWidth_, 0, 0},
+            {pSideChainLeft_ ? &sideChannels[0] : nullptr, nullptr, channelWidth_, 0, 0}};
+        clap_audio_buffer output{&outputChannels[0], nullptr, channelWidth_, 0, 0};
 
         clap_process process{};
         process.steady_time = -1;
@@ -933,6 +939,109 @@ class ActivePlugin
         return pDescriptor->id;
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Asks the plugin for a port layout of \p width channels, the way a
+    /// host does: deactivated, one `apply_configuration`, activated again.
+    ///
+    /// \note Returns what the plugin said, so a case may assert either answer.
+    /// The blocks that follow are rendered at whatever width the ports then
+    /// declare -- so a refused request goes on rendering at the old one rather
+    /// than handing over buffers nobody asked for.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    bool reconfigure(std::uint32_t const width)
+    {
+        bool applied{false};
+        whileDeactivated(
+            [&](clap_plugin const &plugin) { applied = applyChannelWidth(plugin, width); });
+        return applied;
+    }
+
+    /// How many channels every port currently carries. \see reconfigure()
+    std::uint32_t channelWidth() const { return channelWidth_; }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Runs \p question against the plugin with the engine stopped.
+    ///
+    /// \note For the calls whose contract is `[main-thread & !active]` --
+    /// `clap.configurable-audio-ports` is both of them. clap-helpers checks it
+    /// and writes to `std::cerr` rather than refusing, so a case that asked an
+    /// active plugin would pass while telling the plugin something no host ever
+    /// tells it.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void whileDeactivated(std::function<void(clap_plugin const &)> const &question)
+    {
+        {
+            auto const audioThread(scopedAudioCallback());
+            pPlugin_->stop_processing(pPlugin_);
+        }
+        pPlugin_->deactivate(pPlugin_);
+
+        question(*pPlugin_);
+        channelWidth_ = declaredChannelWidth(*pPlugin_);
+
+        REQUIRE(pPlugin_->activate(pPlugin_, sampleRate_, 1, blockSize_));
+        auto const audioThread(scopedAudioCallback());
+        REQUIRE(pPlugin_->start_processing(pPlugin_));
+    }
+
+    /// \brief One request per port, main busses at \p width and the side chain
+    /// left at what it has -- which is exactly the shape clap-wrapper's AUv2
+    /// probe sends, and the one a plugin has to accept for AU to offer mono.
+    static bool applyChannelWidth(clap_plugin const &plugin, std::uint32_t const width)
+    {
+        auto const &ports(audioPorts(plugin));
+        auto const *const configurable(static_cast<clap_plugin_configurable_audio_ports const *>(
+            plugin.get_extension(&plugin, CLAP_EXT_CONFIGURABLE_AUDIO_PORTS)));
+        REQUIRE(configurable != nullptr);
+
+        std::vector<clap_audio_port_configuration_request> requests;
+        for (bool const isInput : {true, false})
+            for (std::uint32_t index(0); index < ports.count(&plugin, isInput); ++index)
+            {
+                clap_audio_port_info info{};
+                REQUIRE(ports.get(&plugin, index, isInput, &info));
+
+                // every port, because that is the only layout this plugin has --
+                // a request leaving the side chain behind is refused. \see
+                // doc/tech/how-mono-ports-work.md
+                (void)info;
+                requests.push_back({isInput, index, width,
+                                    (width == 1) ? CLAP_PORT_MONO : CLAP_PORT_STEREO, nullptr});
+            }
+
+        auto const size(static_cast<std::uint32_t>(requests.size()));
+        auto const can(configurable->can_apply_configuration(&plugin, requests.data(), size));
+        auto const applied(configurable->apply_configuration(&plugin, requests.data(), size));
+        REQUIRE(can == applied); // one answer, asked twice
+        return applied;
+    }
+
+    /// The main input port's channel count, which the output port shares.
+    static std::uint32_t declaredChannelWidth(clap_plugin const &plugin)
+    {
+        return declaredPortWidth(plugin, true, 0);
+    }
+
+    static std::uint32_t declaredPortWidth(clap_plugin const &plugin, bool const isInput,
+                                           std::uint32_t const index)
+    {
+        clap_audio_port_info info{};
+        REQUIRE(audioPorts(plugin).get(&plugin, index, isInput, &info));
+        return info.channel_count;
+    }
+
+    static clap_plugin_audio_ports const &audioPorts(clap_plugin const &plugin)
+    {
+        auto const *const ports(static_cast<clap_plugin_audio_ports const *>(
+            plugin.get_extension(&plugin, CLAP_EXT_AUDIO_PORTS)));
+        REQUIRE(ports != nullptr);
+        return *ports;
+    }
+
   private:
     void create(clap_host const &host,
                 std::function<void(clap_plugin const &)> const &beforeActivate)
@@ -942,6 +1051,7 @@ class ActivePlugin
         REQUIRE(pPlugin_->init(pPlugin_));
         if (beforeActivate)
             beforeActivate(*pPlugin_);
+        channelWidth_ = declaredChannelWidth(*pPlugin_);
         REQUIRE(pPlugin_->activate(pPlugin_, sampleRate_, 1, blockSize_));
         auto const audioThread(scopedAudioCallback());
         REQUIRE(pPlugin_->start_processing(pPlugin_));
@@ -963,6 +1073,10 @@ class ActivePlugin
     std::vector<float> *pSideChainLeft_{nullptr};
     std::vector<float> *pSideChainRight_{nullptr};
     bool sideChainPortPresent_{false};
+
+    /// What the ports say they carry, re-read whenever they may have moved.
+    /// Every buffer handed to process() declares this many channels.
+    std::uint32_t channelWidth_{2};
 }; // class ActivePlugin
 
 inline clap_plugin_params const &parameters(clap_plugin const &plugin)

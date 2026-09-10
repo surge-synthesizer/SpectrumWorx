@@ -493,6 +493,41 @@ TEST_CASE("The engine information follows the engine, and says when it moved",
     CHECK(differenceOver(before, rendered(editor), overlayRectangle()) > 0);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The fifth line, which is the only one that is not derived from the FFT
+/// setup: how many ports there are and how wide they are, which is the host's
+/// answer rather than the engine's. \see doc/tech/how-mono-ports-work.md
+///
+/// \note It goes through the same "did anything move" boolean as the other four,
+/// so a width that changed under an open editor repaints once rather than never
+/// or thirty times a second.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The engine page names the bus layout", "[gui][overlay][settings][audio-ports]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    auto &editor(overlayEditor(instance));
+
+    editor.showSettings(Editor::enginePageIndex);
+    auto const stereo(rendered(editor));
+    CHECK_FALSE(editor.updateEngineInformationIfChanged());
+
+    instance.setChannelWidth(1);
+    CHECK(editor.updateEngineInformationIfChanged());
+    CHECK_FALSE(editor.updateEngineInformationIfChanged());
+
+    auto const mono(rendered(editor));
+    CHECK(differenceOver(stereo, mono, overlayRectangle()) > 0);
+
+    // and back, so neither string is the one it happens to start on
+    instance.setChannelWidth(2);
+    CHECK(editor.updateEngineInformationIfChanged());
+    CHECK(differenceOver(stereo, rendered(editor), overlayRectangle()) == 0);
+}
+
 TEST_CASE("The settings tab survives the editor window closing", "[gui][overlay]")
 {
     SWTest::HostSideJuce const juce;

@@ -410,6 +410,22 @@ class EditorHost
     virtual void registerSampleLoadedListener(SpectrumWorxEditor &) = 0;
     virtual void deregisterSampleLoadedListener(SpectrumWorxEditor const &) = 0;
 
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief How many channels every audio port carries: 1 or 2. `[main-thread]`
+    ///
+    /// \note **Not `Engine::Setup::numberOfChannels()`**, which is what the
+    /// engine is running and is zero until the first `activate()`. The standalone
+    /// builds its editor before activating, so a widget reading the setup there
+    /// would draw a plugin with no channels at all.
+    ///
+    /// \note Defaulted rather than pure: a harness standing in for the plugin is
+    /// the stereo case, and every one of them was written before there was
+    /// another. \see doc/tech/how-mono-ports-work.md
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    virtual std::uint8_t channelWidth() const { return 2; }
+
     /// \note Presets were two more virtuals here, and are neither. Everything
     /// loading one needs is reachable through core() and automation(), so it is
     /// one free function over this interface -- presetLoading.hpp -- rather than

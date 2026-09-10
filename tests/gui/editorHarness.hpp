@@ -224,6 +224,11 @@ class Instance final : public GUI::EditorHost
     SideChainSource sideChainSource() const override { return sideChainSource_; }
     void setSideChainSource(SideChainSource const source) override { sideChainSource_ = source; }
 
+    /// \note Settable, because the width is the *host's* answer and a case
+    /// standing in for a host has to be able to give the other one.
+    std::uint8_t channelWidth() const override { return channelWidth_; }
+    void setChannelWidth(std::uint8_t const width) { channelWidth_ = width; }
+
     SpectrumWorxCore &core() override { return engine_; }
     Plugin2HostInteropControler &automation() override { return notifications_; }
 
@@ -360,6 +365,7 @@ class Instance final : public GUI::EditorHost
     Threading::ValueMailbox values_;
     std::unique_ptr<GUI::SpectrumWorxEditor> pEditor_;
     SideChainSource sideChainSource_{defaultSideChainSource};
+    std::uint8_t channelWidth_{2};
     GUI::PanelState panelState_;
     mutable GUI::LoadedPreset loadedPreset_;
 }; // class Instance
