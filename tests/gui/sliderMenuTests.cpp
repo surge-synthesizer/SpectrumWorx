@@ -287,10 +287,10 @@ TEST_CASE("The frequency range's menu is about the thumb pressed", "[gui][module
     /// \note The other two-thumbed slider, and the one that was already a module
     /// control: it needed the mix-in and the thumb rule, not the answers.
     ///
-    /// \note No control activated here, unlike every case above: the frequency
-    /// range only tracks the mouse while nothing else is the active control --
-    /// \see FrequencyRange::updateSliderSelection() -- so selecting the module is
-    /// the whole of the setup it wants.
+    /// \note No control activated here, unlike every case above: what the
+    /// pointer does to this slider is its own subject -- \see
+    /// frequencyRangeTests.cpp -- and selecting the module is the whole of the
+    /// setup a question about the *menu* wants.
     ////////////////////////////////////////////////////////////////////////////
     SWTest::HostSideJuce const juceIsUp;
 
@@ -337,14 +337,14 @@ TEST_CASE("The frequency range's menu is about the thumb pressed", "[gui][module
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \note Issue #203, and it is the case the one above deliberately does not set
-/// up: a control *is* selected. The frequency range stops tracking the mouse
-/// then -- that is what keeps a sweep across the rack from taking the LFO strip
-/// away from whatever the user clicked -- and a press on it used to inherit that
-/// refusal, so the slider stood for no parameter at all. `moduleParameterIndex()`
-/// spells that as an index one past the end, and `+ 1 /*Bypass*/` wraps it to
-/// zero: every answer the menu gave -- the header, the identifier the host's own
-/// entries key on, and what "Reset to default value" would have written -- was
-/// about the module's Bypass.
+/// up: a control *is* selected. The frequency range used to stop tracking the
+/// mouse then -- that was how a sweep across the rack was kept from taking the
+/// LFO strip away from whatever the user had clicked -- and a press on it
+/// inherited the refusal, so the slider stood for no parameter at all.
+/// `moduleParameterIndex()` spells that as an index one past the end, and
+/// `+ 1 /*Bypass*/` wraps it to zero: every answer the menu gave -- the header,
+/// the identifier the host's own entries key on, and what "Reset to default
+/// value" would have written -- was about the module's Bypass.
 ///
 /// \note And the pointer never takes the selection, which is the harder half:
 /// the press may leave the knob selected, and what the menu is about must not
@@ -381,9 +381,12 @@ TEST_CASE("The frequency range's menu is about the thumb pressed while a knob is
     auto &range(editor.sharedModuleControls().frequencyRange());
     auto &widget(static_cast<juce::Component &>(range));
 
-    // the sweep that leaves the slider standing for nothing
-    widget.mouseEnter(pressAt(range, 1, 0));
-    REQUIRE(range.selectedThumb() == -1);
+    ///   The sweep marks the thumb it is nearest, whatever else is selected,
+    /// since issue #220 -- so the press below has to decide for itself rather
+    /// than read what the pointer left, and this one leaves the *upper* thumb
+    /// marked before pressing near the lower.
+    widget.mouseEnter(pressAt(range, static_cast<float>(range.getWidth()), 0));
+    REQUIRE(range.selectedThumb() == 2 /*upper*/);
 
     using namespace LE::SW::Effects::BaseParameters;
     auto const startIndex(

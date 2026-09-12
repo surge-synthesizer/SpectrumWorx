@@ -91,15 +91,14 @@ class SharedModuleControls : public WidgetBase<>
         void deselect() override { reportInactiveControl(); }
 
         /// \note And the selection here is a *thumb*, so this is the one control
-        /// select() cannot make up an answer for: it forwards to the same
-        /// reportActiveControl() a press does, which does nothing until a thumb
-        /// has been chosen.
-        void select() override { reportActiveControl(); }
+        /// select() cannot make up an answer for: it does nothing until a press
+        /// or the pointer has chosen one.
+        void select() override;
         ///@}
 
-        /// \note And this one is the base's outright: a two-thumbed slider has no
-        /// wheel and no ring of its own to re-key. \see issue #210.
-        void unhover() override { mouseLeft(); }
+        /// \note And the pointer's half is the same whether the editor announces
+        /// it or JUCE does. \see issue #210.
+        void unhover() override { endHover(); }
 
         void setValue(float value) override;
         float getValue() const override;
@@ -150,8 +149,17 @@ class SharedModuleControls : public WidgetBase<>
         void paint(juce::Graphics &) override;
 
       private:
+        /// \brief Points this control at the parameter selectedThumb_ names, and
+        /// names it. \return false when no thumb is chosen, there being no
+        /// parameter to point at.
+        bool pointAtSelectedThumb();
+
         void reportActiveControl();
         void reportInactiveControl();
+
+        /// \brief What the pointer leaving does: hands the LFO strip back, and
+        /// unmarks a thumb it had marked. \see the definition.
+        void endHover();
 
         void updateSliderSelection(juce::MouseEvent const &);
 

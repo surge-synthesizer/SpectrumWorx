@@ -273,11 +273,9 @@ void SharedModuleControls::FrequencyRange::mouseEnter(juce::MouseEvent const &ev
     juce::Slider::mouseEnter(event);
 }
 
-/// \note Through mouseLeft(), for the reason its definition gives: a thumb the
-/// user clicked stays selected when the pointer wanders off it.
 void SharedModuleControls::FrequencyRange::mouseExit(juce::MouseEvent const &event) noexcept
 {
-    mouseLeft();
+    endHover();
     juce::Slider::mouseExit(event);
 }
 
@@ -374,7 +372,7 @@ LFOImpl &SharedModuleControls::FrequencyRange::lfo()
     return controlModule.baseLFO(activeParameterIndex());
 }
 
-void SharedModuleControls::FrequencyRange::reportActiveControl()
+bool SharedModuleControls::FrequencyRange::pointAtSelectedThumb()
 {
     LE_ASSERT(&parent().editor() == &this->editor());
 
@@ -394,7 +392,7 @@ void SharedModuleControls::FrequencyRange::reportActiveControl()
         pName = Name<StopFrequency>::string_;
         break;
     default:
-        return;
+        return false;
     }
 
     if ((editor().activeControl() == this) && (currentParameterIndex != newParameterIndex))
@@ -414,13 +412,49 @@ void SharedModuleControls::FrequencyRange::reportActiveControl()
     /// \note The reassignment stands whether or not the selection moved; it used
     /// to be put back, which left a chosen thumb standing for no parameter and
     /// every answer reading parameterInfo( 0 ) -- Bypass. \see issue #203.
-    ModuleControlBase::reportActiveControl(StartFrequency::minimum(), StartFrequency::maximum(), 0);
     //...mrmlj...resetting the name should not be necessary
+    return true;
 }
 
-/// \note A press chooses a thumb where a hover only offers one:
-/// updateSliderSelection() declines to choose at all while another control is
-/// selected, and a press used to inherit that. \see issue #203.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **Whether the keyboard is here decides, except when this widget already
+/// holds the selection.** The hack above has just handed it back so that the
+/// reassigned parameter can take it, and it is this widget's either way: what
+/// moved is which of its two parameters the user is on, and a control that has to
+/// re-announce that cannot be made to lose the selection by it. Asking the
+/// keyboard there would, the pointer reaching the far thumb long after the
+/// keyboard has gone elsewhere -- and `pActiveControl_` left null with the LFO
+/// strip still up is a state `displayedControl()` has no answer for.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SharedModuleControls::FrequencyRange::reportActiveControl()
+{
+    bool const ours(editor().activeControl() == this);
+    if (!pointAtSelectedThumb())
+        return;
+
+    if (ours)
+        activateControl(StartFrequency::minimum(), StartFrequency::maximum(), 0);
+    else
+        ModuleControlBase::reportActiveControl(StartFrequency::minimum(), StartFrequency::maximum(),
+                                               0);
+}
+
+/// \note The click's own step with the keyboard left out, as it is for every
+/// other control -- \see ModuleControlImpl::select(). What tools/show-ui and a
+/// headless case have instead of a press.
+void SharedModuleControls::FrequencyRange::select()
+{
+    if (pointAtSelectedThumb())
+        activateControl(StartFrequency::minimum(), StartFrequency::maximum(), 0);
+}
+
+/// \note A press chooses a thumb where a hover only marks one, and it chooses
+/// under the pointer's feet: the menu is about the thumb the press landed on
+/// rather than the one a sweep across the widget last left marked. \see
+/// issue #203.
 void SharedModuleControls::FrequencyRange::notePressAt(int const position)
 {
     int const thumb(thumbNearest(position));
@@ -451,25 +485,68 @@ std::uint8_t SharedModuleControls::FrequencyRange::activeParameterIndex() const
     return indexFromControl;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief Marks the thumb the pointer is nearest, and lends it the LFO strip.
+///
+///   Neither half is a selection. This used to decline to choose a thumb at all
+/// while any other control was selected -- which is the whole of issue #220: the
+/// frequency range was the one module control a hover did nothing to, so seeing
+/// either frequency's LFO meant giving up whatever knob you had clicked. A thumb
+/// is offered whatever else is selected now, and the selection is
+/// reportActiveControl()'s question rather than this one's.
+///
+/// \note The hover is handed back and taken again when the thumb moves, rather
+/// than merely repainted. It is the same shape as the DIRTY HACK above and the
+/// same reason for it: the editor's preview keys on a *control*, and one control
+/// standing for two parameters has to give the strip back before it can be lent
+/// the other thumb. \see SpectrumWorxEditor::moduleControlHovered().
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void SharedModuleControls::FrequencyRange::updateSliderSelection(juce::MouseEvent const &event)
 {
-    if (editor().activeControl() && !this->isActive())
+    if (int const thumb(thumbNearest(event.x)); thumb != selectedThumb_)
     {
-        // both together: no thumb chosen means no parameter stood for
-        selectedThumb_ = Constants::noThumb;
-        reassignTo(Constants::invalidIndex);
-        return;
-    }
-
-    int const newSliderSelection(thumbNearest(event.x));
-    bool const activeControlChanged(newSliderSelection != selectedThumb_);
-
-    if (activeControlChanged)
-    {
-        selectedThumb_ = newSliderSelection;
+        mouseLeft();
+        selectedThumb_ = thumb;
         reportActiveControl();
         repaint();
     }
+
+    mouseEntered(StartFrequency::minimum(), StartFrequency::maximum(), 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note **A marked thumb does not outlive the pointer that marked it.** What
+/// the menu is about, what the header reads and which bead wears the halo are all
+/// the chosen thumb, and none of the three has an answer once the pointer has
+/// gone. A thumb a *press* chose is the exception and keeps both: the slider is
+/// then the selected control and the strip is still showing it.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void SharedModuleControls::FrequencyRange::endHover()
+{
+    mouseLeft();
+
+    if (selectedThumb_ == Constants::noThumb)
+        return; // nothing marked to unmark
+
+    /// \note A drag holds its thumb too, and it has to: unmarking one leaves the
+    /// slider standing for no parameter, and `valueChanged()` would then publish
+    /// the edit as the module's Bypass -- issue #203's shape. JUCE does not
+    /// re-ask what is under the pointer while a button is down, so this is the
+    /// invariant written down rather than a case that has been seen. \see
+    /// MouseInputSourceImpl::setPointerState().
+    if (isActive() || (getThumbBeingDragged() != Constants::noThumb))
+        return;
+
+    // both together: no thumb chosen means no parameter stood for
+    selectedThumb_ = Constants::noThumb;
+    reassignTo(Constants::invalidIndex);
+    repaint();
 }
 
 int SharedModuleControls::FrequencyRange::thumbNearest(int const position) const

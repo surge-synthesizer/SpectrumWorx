@@ -92,6 +92,7 @@ add_executable(sw-plugin-tests
         parameters/parameterTableTests.cpp
         presets/presetHarness.cpp
         gui/discreteParameterTests.cpp
+        gui/frequencyRangeTests.cpp
         gui/knobMenuTests.cpp
         gui/knobPaintingTests.cpp
         gui/lfoDisplayTests.cpp
