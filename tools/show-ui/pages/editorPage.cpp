@@ -479,12 +479,22 @@ class EditorPage final : public juce::Component
         selected.lfo().setLowerBound(0.25f);
         selected.lfo().setUpperBound(0.80f);
 
+        auto const pointerOver([](juce::Component &widget, juce::Point<float> const position) {
+            widget.mouseEnter(juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(),
+                                               position, juce::ModifierKeys(), 1.0f, 0.0f, 0.0f,
+                                               0.0f, 0.0f, &widget, &widget, juce::Time(), position,
+                                               juce::Time(), 1, false));
+        });
+
         auto &widget(pHovered->effectSpecificParameterControl(0).widget());
-        auto const centre(widget.getLocalBounds().getCentre().toFloat());
-        widget.mouseEnter(juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(),
-                                           centre, juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f,
-                                           0.0f, &widget, &widget, juce::Time(), centre,
-                                           juce::Time(), 1, false));
+        pointerOver(widget, widget.getLocalBounds().getCentre().toFloat());
+
+        ///   And the frequency range, whose two beads are the other thing an eye
+        /// is being asked about: one of them marked by the pointer and the other
+        /// plain, at a size that no longer says which is which. \see issue #220.
+        auto &range(editor_->sharedModuleControls().frequencyRange());
+        pointerOver(range, {static_cast<float>(range.getPositionOfValue(range.getMinValue())),
+                            static_cast<float>(range.getHeight()) / 2});
     }
 
     HarnessHost host_;

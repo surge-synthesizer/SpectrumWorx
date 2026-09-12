@@ -37,12 +37,17 @@ namespace LE::SW::GUI
 ///
 /// \class SliderWithSelectedThumb
 ///
-/// \brief A slider that highlights a thumb the mouse is merely over, not only
-/// the one being dragged.
+/// \brief A slider whose thumbs stand for parameters: one of them is marked by
+/// the mouse merely passing over it, not only by being dragged.
 ///
 /// \note juce::Slider::getThumbBeingDragged() answers the narrower question and
 /// its state is private, so the wider notion is declared here rather than forced
 /// into JUCE's, and Theme asks for it where a slider offers one.
+///
+/// \note **And such a slider is drawn with the chunky bead throughout.** Growing
+/// the bead is how a plain slider says which thumb the mouse has; one that says
+/// it with a halo has no use for the size, and this one stands among the module
+/// knobs whose halo it is wearing. \see SliderThumbStyle and issue #220.
 ////////////////////////////////////////////////////////////////////////////////
 
 class SliderWithSelectedThumb
@@ -52,12 +57,15 @@ class SliderWithSelectedThumb
     /// encoding juce::Slider::getThumbBeingDragged() uses.
     virtual int selectedThumb() const = 0;
 
+    /// \brief How strongly the marked thumb wears the halo: full for the thumb
+    /// of the selected control, half for one merely under the pointer, and
+    /// nothing when the slider is neither. \see highlightFor() and
+    /// SliderThumbPainter::paint().
+    virtual float selectedThumbHalo() const = 0;
+
   protected:
     ~SliderWithSelectedThumb() = default;
 }; // class SliderWithSelectedThumb
-
-/// The selected thumb if the slider tracks one, else the dragged thumb.
-int selectedOrDraggedThumb(juce::Slider const &);
 
 /// \note LookAndFeel_V2, not LookAndFeel_V4, and not LookAndFeel.
 ///

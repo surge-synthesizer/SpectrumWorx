@@ -47,6 +47,23 @@ class SharedModuleControls : public WidgetBase<>
         /// juce::Slider::getThumbBeingDragged(). See selectedThumb_.
         int selectedThumb() const override { return selectedThumb_; }
 
+        /// \note The same two strengths a knob draws its ring at, from the same
+        /// question: this control stands among the knobs and says which
+        /// parameter it is on the way they do. \see issue #220.
+        float selectedThumbHalo() const override
+        {
+            switch (highlightFor(*this))
+            {
+            case Highlight::Selected:
+                return 1.0f;
+            case Highlight::Hovered:
+                return hoverStrength;
+            case Highlight::None:
+                return 0.0f;
+                LE_DEFAULT_CASE_UNREACHABLE();
+            }
+        }
+
         /// \brief Makes this control stand for the thumb a press at \p position
         /// lands on: the step mouseDown() takes before it raises a menu. Public
         /// because a headless run asks it, as it does of the strip's own range

@@ -28,20 +28,21 @@ namespace
 {
 std::optional<Theme> singleton_;
 
-/// \note Drawn at 5/3 while dragged, which is what the enlarge flag means -- it
-/// was a bitmap blown up by Artwork::drawScaled() and is a drawing asked for at
-/// a bigger size now, so the enlarged one is no longer soft.
+/// \note The enlarged bead was a bitmap blown up by Artwork::drawScaled() and is
+/// a drawing asked for at a bigger size now, so it is no longer soft.
 void paintSliderThumb(juce::Graphics &graphics, float const position,
-                      int const sliderVerticalPosition, int const sliderHeight, bool const enlarge)
+                      int const sliderVerticalPosition, int const sliderHeight, bool const enlarge,
+                      float const haloStrength = 0.0f)
 {
-    auto const scale(enlarge ? 5.0f / 3 : 1.0f);
+    auto const scale(enlarge ? SliderThumbStyle::enlargement : 1.0f);
     auto const width(SliderThumbStyle::width * scale);
     auto const height(SliderThumbStyle::height * scale);
 
     SliderThumbPainter::paint(
-        graphics, juce::Rectangle<float>(position - width / 2,
-                                         sliderVerticalPosition + (sliderHeight - height) / 2,
-                                         width, height));
+        graphics,
+        juce::Rectangle<float>(position - width / 2,
+                               sliderVerticalPosition + (sliderHeight - height) / 2, width, height),
+        haloStrength);
 }
 } // anonymous namespace
 
@@ -280,12 +281,6 @@ juce::Font Theme::getPopupMenuFont()
     return juce::Font(juce::FontOptions(regularTypeface()).withHeight(18.0f));
 }
 
-int selectedOrDraggedThumb(juce::Slider const &slider)
-{
-    auto const *const pSelectable(dynamic_cast<SliderWithSelectedThumb const *>(&slider));
-    return pSelectable ? pSelectable->selectedThumb() : slider.getThumbBeingDragged();
-}
-
 void Theme::drawLinearSliderBackground(juce::Graphics &graphics, int const x, int const y,
                                        int const width, int const height, float /*sliderPos*/,
                                        float /*minSliderPos*/, float /*maxSliderPos*/,
@@ -299,22 +294,39 @@ void Theme::drawLinearSliderBackground(juce::Graphics &graphics, int const x, in
                                 static_cast<float>(x + width));
 }
 
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note Two questions about each bead: how big it is, and what it says. A plain
+/// slider says which thumb the mouse has by growing it; a slider whose thumbs
+/// stand for parameters is drawn at that size throughout and says it with the
+/// halo the knobs beside it wear. \see SliderWithSelectedThumb, issue #220.
+///
+////////////////////////////////////////////////////////////////////////////////
+
 void Theme::drawLinearSliderThumb(juce::Graphics &graphics, int const /*x*/, int const y,
                                   int const /*width*/, int const height, float const sliderPos,
                                   float const minSliderPos, float const maxSliderPos,
                                   juce::Slider::SliderStyle const style, juce::Slider &slider)
 {
-    auto const activeThumb(selectedOrDraggedThumb(slider));
+    auto const *const pParameterThumbs(dynamic_cast<SliderWithSelectedThumb const *>(&slider));
+    auto const markedThumb(pParameterThumbs ? pParameterThumbs->selectedThumb()
+                                            : slider.getThumbBeingDragged());
+    auto const halo(pParameterThumbs ? pParameterThumbs->selectedThumbHalo() : 0.0f);
+
+    auto const bead([&](float const position, bool const marked) {
+        paintSliderThumb(graphics, position, y, height, pParameterThumbs || marked,
+                         marked ? halo : 0.0f);
+    });
 
     switch (style)
     {
     case juce::Slider::LinearHorizontal:
-        paintSliderThumb(graphics, sliderPos, y, height, activeThumb == 0);
+        bead(sliderPos, markedThumb == 0);
         break;
 
     case juce::Slider::TwoValueHorizontal:
-        paintSliderThumb(graphics, minSliderPos, y, height, activeThumb == 1);
-        paintSliderThumb(graphics, maxSliderPos, y, height, activeThumb == 2);
+        bead(minSliderPos, markedThumb == 1);
+        bead(maxSliderPos, markedThumb == 2);
         break;
 
     default:
@@ -323,7 +335,16 @@ void Theme::drawLinearSliderThumb(juce::Graphics &graphics, int const /*x*/, int
     }
 }
 
-int Theme::getSliderThumbRadius(juce::Slider &) { return SliderThumbStyle::width / 2; }
+/// \note What JUCE insets the track by, so that a thumb at either end of the
+/// travel is drawn inside the widget: the enlarged bead and its halo, where the
+/// thumbs carry both.
+int Theme::getSliderThumbRadius(juce::Slider &slider)
+{
+    using namespace SliderThumbStyle;
+    if (dynamic_cast<SliderWithSelectedThumb const *>(&slider))
+        return static_cast<int>(width * enlargement / 2 + glowRings);
+    return width / 2;
+}
 
 void Theme::createSingleton() { singleton_.emplace(); }
 

@@ -45,6 +45,15 @@ int constexpr width{6};
 int constexpr height{12};
 ///@}
 
+/// \brief What it grows to: while it is being dragged, and for good on a slider
+/// whose thumbs stand for parameters of their own.
+///
+/// \note The frequency range is the only one of those, and it is drawn among the
+/// module knobs -- so its beads are the chunky one throughout and say which of
+/// them is the parameter with a halo instead. \see SliderWithSelectedThumb and
+/// issue #220.
+float constexpr enlargement{5.0f / 3};
+
 /// What the bead leaves clear of that, as a fraction of each side.
 ///@{
 float constexpr sideInset{0.12f};
@@ -70,6 +79,27 @@ float constexpr shadowThickness{0.06f}; ///< of the bead's width
 float constexpr shadowLeftAlpha{0.90f};
 float constexpr shadowRightAlpha{0.125f};
 ///@}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief The halo, which is `glowRings` ellipses a pixel apart, each one out
+/// from the bead's edge and each covered by the brighter one inside it -- so the
+/// light falls off with how many of them a pixel is under.
+///
+/// \note The rings rather than KnobPainter::paintFocusRing(): a bead is twice as
+/// tall as it is wide, and the radial gradient that draws a knob's ring is
+/// circular -- it would peak along a circle through a lozenge rather than along
+/// its edge. Same idiom, and the same two numbers, as FrameStyle's glow.
+///
+/// \note Two rings at the least, the falloff being written as the first and the
+/// last.
+///
+////////////////////////////////////////////////////////////////////////////////
+///@{
+unsigned int constexpr glowRings{3};
+float constexpr glowInnerAlpha{0.35f}; ///< at the ring against the bead
+float constexpr glowOuterAlpha{0.10f}; ///< and at the last one
+///@}
 } // namespace SliderThumbStyle
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -81,9 +111,18 @@ float constexpr shadowRightAlpha{0.125f};
 class SliderThumbPainter
 {
   public:
+    ////////////////////////////////////////////////////////////////////////////
+    ///
     /// \brief Draws the bead filling \p bounds, at whatever size it is asked
     /// for.
-    static void paint(juce::Graphics &, juce::Rectangle<float> bounds);
+    ///
+    /// \param haloStrength how strongly it wears the halo, 0 for not at all:
+    /// full for the thumb of the selected control and half for one merely under
+    /// the pointer, which is what a knob's ring says at the same two strengths.
+    /// \see hoverStrength and issue #220.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    static void paint(juce::Graphics &, juce::Rectangle<float> bounds, float haloStrength = 0.0f);
 
   public:
     SliderThumbPainter() = delete; // a drawing, not an object

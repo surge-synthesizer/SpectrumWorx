@@ -15,11 +15,26 @@
 namespace LE::SW::GUI
 {
 
-void SliderThumbPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const bounds)
+void SliderThumbPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
+                               float const haloStrength)
 {
     using namespace SliderThumbStyle;
 
     auto const bead(bounds.reduced(sideInset * bounds.getWidth(), endInset * bounds.getHeight()));
+
+    if (haloStrength > 0)
+    {
+        //   Outermost first, each ring covered in turn by the brighter one
+        // inside it, so what shows is the difference between them.
+        auto const white(ColourMap::getColour(ColourMap::FocusHalo));
+        for (unsigned int ring(glowRings); ring >= 1; --ring)
+        {
+            auto const outwards(static_cast<float>(ring - 1) / (glowRings - 1));
+            graphics.setColour(white.withAlpha(
+                haloStrength * (glowInnerAlpha + (glowOuterAlpha - glowInnerAlpha) * outwards)));
+            graphics.fillEllipse(bead.expanded(static_cast<float>(ring)));
+        }
+    }
 
     juce::ColourGradient lit(ColourMap::getColour(ColourMap::ThumbHighlight), bead.getX(),
                              bead.getY(), ColourMap::getColour(ColourMap::ThumbFoot), bead.getX(),

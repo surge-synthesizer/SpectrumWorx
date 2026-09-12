@@ -32,6 +32,7 @@
 #include "gui/modules/moduleControl.hpp"
 #include "gui/modules/moduleUI.hpp"
 #include "gui/preferences.hpp"
+#include "gui/theme.hpp"
 
 #include "le/parameters/lfoImpl.hpp"
 #include "le/parameters/parametersUtilities.hpp"
@@ -367,4 +368,46 @@ TEST_CASE("The frequency range draws the thumb the pointer marks", "[gui][module
     range.pointerEnters(range.lowThumb());
 
     CHECK(differ(unmarked, rendered(range.widget())));
+}
+
+TEST_CASE("A selected frequency thumb is not drawn as a marked one", "[gui][modules][hover]")
+{
+    ///   Both wear the halo the knobs beside them wear, and the selection wears
+    /// it louder -- which is the whole of what tells them apart now that the
+    /// bead no longer changes size. \see issue #210 and issue #220.
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    instance.openEditor();
+    RangeUnderTest const range(instance);
+
+    range.knob().select();
+    range.pointerEnters(range.lowThumb());
+    auto const marked(rendered(range.widget()));
+
+    range.pointerLeaves();
+    range.range().notePressAt(static_cast<int>(range.lowThumb()));
+    range.control().select();
+
+    CHECK(differ(marked, rendered(range.widget())));
+}
+
+TEST_CASE("The frequency range's thumbs are chunkier than an LFO slider's", "[gui][modules]")
+{
+    ///   Because they are drawn among the module knobs and stand for parameters
+    /// of their own, which the LFO strip's sliders do not. \see issue #220, and
+    /// SliderWithSelectedThumb, which is where the two part company.
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    instance.openEditor();
+    RangeUnderTest const range(instance);
+    auto &editor(instance.editor());
+
+    range.knob().select();
+    REQUIRE(editor.lfoDisplay() != nullptr);
+
+    auto &theme(GUI::Theme::singleton());
+    CHECK(theme.getSliderThumbRadius(range.range()) >
+          theme.getSliderThumbRadius(editor.lfoDisplay()->range()));
 }
