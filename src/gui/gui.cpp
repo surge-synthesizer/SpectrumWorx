@@ -1515,10 +1515,6 @@ void EditorKnob::setupForParameter(std::uint8_t const parameterIndex, param_type
 
 namespace
 {
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 struct ParameterPrinter
 {
     typedef char const *result_type;
@@ -1530,7 +1526,6 @@ struct ParameterPrinter
     float const value;
     LE::Parameters::PrintBuffer const buffer;
 }; // struct ParameterPrinter
-#pragma warning(pop)
 } // namespace
 
 /// \note One place rather than two that could drift: the menu's type-in field

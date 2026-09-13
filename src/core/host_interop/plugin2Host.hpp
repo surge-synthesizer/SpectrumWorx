@@ -213,10 +213,6 @@ struct Plugin2HostPassiveInteropController::ParameterLabelGetter
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 struct Plugin2HostPassiveInteropController::ParameterValueStringGetter
 {
     using result_type = char const *;
@@ -233,7 +229,6 @@ struct Plugin2HostPassiveInteropController::ParameterValueStringGetter
     /// generic parameter machinery that knows nothing of LFOs. \see issue #11.
     Parameters::LFO::Timing lfoTiming;
 }; // struct ParameterValueStringGetter
-#pragma warning(pop)
 
 //...mrmlj...MSVC12u5: bad codegen if we move these functions into the .cpp file...
 template <>

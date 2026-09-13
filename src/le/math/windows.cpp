@@ -22,9 +22,6 @@
 namespace LE::Math
 {
 
-#pragma warning(push)
-#pragma warning(disable : 4244) // Conversion from 'window_t' to 'float', possible loss of data.
-
 void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window const windowType)
 {
     // http://en.wikipedia.org/wiki/Window_function
@@ -82,12 +79,12 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
     case Window::Triangle:
         for (; i < halfSize; ++i)
         {
-            *pWindow++ = 2 * i / sizef;
+            *pWindow++ = static_cast<float>(2 * i / sizef);
         }
         LE_ASSERT(i == round(halfSize));
         for (; i < sizef; ++i)
         {
-            *pWindow++ = 2 * (1 - i / sizef);
+            *pWindow++ = static_cast<float>(2 * (1 - i / sizef));
         }
         break; // Triangle
 
@@ -96,7 +93,7 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
         {
             window_t const alpha(3);
             window_t const temp(alpha * (i++ - halfSize) / halfSize);
-            *pWindow++ = Math::exp(-0.5 * temp * temp);
+            *pWindow++ = Math::exp(static_cast<float>(-0.5 * temp * temp));
         }
         break; // Gaussian
 
@@ -106,7 +103,7 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
     case Window::Hamming:
         while (pWindow != pEnd)
         {
-            *pWindow++ = 0.54 - 0.46 * std::cos(w);
+            *pWindow++ = static_cast<float>(0.54 - 0.46 * std::cos(w));
             w += dw;
         }
         break; // Hamming
@@ -114,7 +111,7 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
     case Window::Hann:
         while (pWindow != pEnd)
         {
-            *pWindow++ = 0.5 * (1 - std::cos(w));
+            *pWindow++ = static_cast<float>(0.5 * (1 - std::cos(w)));
             w += dw;
         }
         break; // Hann (COLA for (M+1)/2 overlap)
@@ -135,8 +132,8 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
             window_t const a3(0.13077);
             window_t const a4(0.02488);
 #endif
-            *pWindow++ = a0 - a1 * std::cos(1 * w) + a2 * std::cos(2 * w) - a3 * std::cos(3 * w) +
-                         a4 * std::cos(4 * w);
+            *pWindow++ = static_cast<float>(a0 - a1 * std::cos(1 * w) + a2 * std::cos(2 * w) -
+                                            a3 * std::cos(3 * w) + a4 * std::cos(4 * w));
 
             w += dw;
         }
@@ -146,7 +143,7 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
         while (pWindow != pEnd)
         {
             window_t const temp((i++ - halfSize) / halfSize);
-            *pWindow++ = 1 - temp * temp;
+            *pWindow++ = static_cast<float>(1 - temp * temp);
         }
         break; // Welch
 
@@ -158,7 +155,7 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
             window_t const a1(1.0 / 2);
             window_t const a2(a / 2);
 
-            *pWindow++ = a0 - a1 * std::cos(1 * w) + a2 * std::cos(2 * w);
+            *pWindow++ = static_cast<float>(a0 - a1 * std::cos(1 * w) + a2 * std::cos(2 * w));
 
             w += dw;
         }
@@ -181,7 +178,8 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
             window_t const a2(0.14128);
             window_t const a3(0.01168);
 
-            *pWindow++ = a0 - a1 * std::cos(1 * w) + a2 * std::cos(2 * w) - a3 * std::cos(3 * w);
+            *pWindow++ = static_cast<float>(a0 - a1 * std::cos(1 * w) + a2 * std::cos(2 * w) -
+                                            a3 * std::cos(3 * w));
 
             w += dw;
         }
@@ -219,7 +217,5 @@ void calculateWindow(DataRange const &window, LE::SW::Engine::Constants::Window 
 
     LE_ASSERT_MSG(max(window) > 0, "Non strictly positive window.");
 }
-
-#pragma warning(pop)
 
 } // namespace LE::Math

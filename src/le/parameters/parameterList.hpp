@@ -21,7 +21,7 @@
 #ifndef parameterList_hpp__0C4E9B15_7A32_4D68_9F21_6B8D5E3A47C0
 #define parameterList_hpp__0C4E9B15_7A32_4D68_9F21_6B8D5E3A47C0
 //------------------------------------------------------------------------------
-#include "le/utility/assert.hpp" // LE_ASSUME
+#include "le/utility/assert.hpp" // LE_ASSERT
 
 #include <cstddef>
 #include <cstdint>
@@ -90,7 +90,7 @@ template <class Parameter, class... Parameters> constexpr std::uint8_t indexOf()
 // layout is load bearing in two ways that a tuple does not honour.
 //
 //   The first parameter must be at offset zero. Module::parameterOffset()
-// carries LE_ASSUME( pParameterOffsets_[ 0 ] == 0 ), which is an assumption the
+// carries LE_ASSERT( pParameterOffsets_[ 0 ] == 0 ), which is an assumption the
 // optimiser acts on rather than an assert -- and libc++ lays a tuple out in
 // reverse, so the first parameter would land last.
 //

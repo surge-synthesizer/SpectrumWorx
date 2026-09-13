@@ -11,7 +11,7 @@
 #ifndef parametersUtilities_hpp__EB1C0F5A_FC45_4407_A713_9197376BC784
 #define parametersUtilities_hpp__EB1C0F5A_FC45_4407_A713_9197376BC784
 //------------------------------------------------------------------------------
-#include "le/utility/assert.hpp" // LE_ASSUME
+#include "le/utility/assert.hpp" // LE_ASSERT
 #include "le/utility/cstdint.hpp"
 #include "le/utility/typeList.hpp"
 
@@ -145,7 +145,7 @@ template <class Parameters, class Functor>
 typename Functor::result_type invokeFunctorOnIndexedParameter(std::uint8_t const parameterIndex,
                                                               Functor &&functor)
 {
-    LE_ASSUME(parameterIndex < Parameters::static_size);
+    LE_ASSERT(parameterIndex < Parameters::static_size);
 
     using ValidIndices = Utility::IndexList<std::uint8_t, Parameters::static_size>;
     return Utility::switchOn<ValidIndices>(parameterIndex, std::forward<Functor>(functor));

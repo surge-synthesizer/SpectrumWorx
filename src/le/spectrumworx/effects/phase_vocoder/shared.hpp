@@ -97,8 +97,8 @@ class BaseParameters
   public:
     float const &freqPerBin() const { return freqPerBin_; }
     float const &expctRate() const { return expctRate_; }
-    float deviationFactor() const { return deviationFactor_; }
-    float invDeviationFactor() const { return 1 / deviationFactor_; }
+    float deviationFactor() const { return static_cast<float>(deviationFactor_); }
+    float invDeviationFactor() const { return static_cast<float>(1 / deviationFactor_); }
 
     void setup(Engine::Setup const &);
 

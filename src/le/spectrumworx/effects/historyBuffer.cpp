@@ -54,13 +54,13 @@ ReversedHistoryBufferState::getCurrentStepData(std::uint16_t const historyLength
         //                                    (21.05.2010.) (Domagoj Saric)
         if (increment_ > 0)
         {
-            LE_ASSUME(increment_ == 1);
+            LE_ASSERT(increment_ == 1);
             increment_ = -1;
             step_ = historyLengthInSteps - 1;
         }
         else
         {
-            LE_ASSUME(increment_ == -1);
+            LE_ASSERT(increment_ == -1);
             // Implementation note:
             //   Here we check for another special case: the fact that our
             // current position (step_) went outside the 'recorded' history

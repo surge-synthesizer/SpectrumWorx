@@ -467,11 +467,9 @@ jobs:
           # Studio's own LLVM, the same compiler the test job runs the suite
           # under, so what ships here is what was tested there.
           #
-          # Quiet, for now. The warning baseline is empty under MSVC -- and
-          # clang-cl is MSVC as far as CMake's `if (MSVC)` is concerned -- so
-          # -Werror buys nothing on this leg yet. It is where a Windows baseline
-          # would first be tried; see issue #8 and the note at the top of
-          # cmake/sw-our-sources.cmake.
+          # Quiet, for now. The warning baseline is empty under clang-cl, so
+          # SW_WERROR buys nothing on this leg yet; MSVC's /W3 /WX is checked by
+          # build_plugin_msvc. See cmake/sw-our-sources.cmake.
           - os: windows-latest
             name: windows-x64
             cmake_args: -Ax64 -TClangCL
@@ -562,10 +560,11 @@ jobs:
           name: dawplugin-${{ matrix.name }}
 
   # Everything that is left of MSVC, which is the question "does it still
-  # compile". Not a matrix entry on build_plugin above, because what makes it
-  # different from that job's legs is *when it runs*, and a matrix cannot say
-  # that: a job-level `if` can, and a leg that produced nothing on every push
-  # would be a green square standing for a checkout and no compiler.
+  # compile" -- at /W3 with /WX, through SW_WERROR. Not a matrix entry on
+  # build_plugin above, because what makes it different from that job's legs
+  # is *when it runs*, and a matrix cannot say that: a job-level `if` can, and
+  # a leg that produced nothing on every push would be a green square standing
+  # for a checkout and no compiler.
   #
   #   No Inno Setup step and no signing certificates: it builds the bundles and
   # stops. basic_installer_clapfirst.cmake guards the installer target on

@@ -152,7 +152,7 @@ class ZoomedEditor final : public juce::Component
     /// is not user-resizable (the shim is told setResizable(false)).
     ///
     ////////////////////////////////////////////////////////////////////////////
-    void childBoundsChanged(juce::Component *const child) override
+    void childBoundsChanged(juce::Component *child) override
     {
         if (child == pEditor_.get())
             matchEditor();

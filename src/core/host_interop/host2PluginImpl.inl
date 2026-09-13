@@ -60,11 +60,6 @@ namespace LE::SW
 
 class ModuleChainParameter;
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-
 template <class Impl, class Protocol> class Host2PluginInteropImpl<Impl, Protocol>::ParameterSetter
 {
   private:
@@ -140,7 +135,8 @@ template <class Impl, class Protocol> class Host2PluginInteropImpl<Impl, Protoco
             /// other route builds its module on the main thread and hands the
             /// engine a pointer. See issue #9.
             typename Impl::Module *pDisplaced(nullptr);
-            auto const result(moduleChain.setParameter(moduleIndex, effectIndex,
+            auto const result(moduleChain.setParameter(moduleIndex,
+                                                       static_cast<std::int8_t>(effectIndex),
                                                        pImpl->moduleInitialiser(), &pDisplaced));
 
             /// \note Handed back rather than dropped. This runs inside
@@ -220,8 +216,6 @@ template <class Impl, class Protocol> class Host2PluginInteropImpl<Impl, Protoco
     ////////////////////////////////////////////////////////////////////////////
     Plugins::AutomatedParameterValue const value_;
 }; // ParameterSetter
-
-#pragma warning(pop)
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

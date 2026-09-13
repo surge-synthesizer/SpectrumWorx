@@ -47,7 +47,7 @@ void FreezeImpl::setup(IndexRange const &, Engine::Setup const &engineSetup)
     /// `TransitionTime`'s range starts at 0, and the note in process() says a
     /// zero period means "no transition" -- but `1 / 0` is infinity, and the
     /// first frame multiplies it by a zero frame counter to get NaN. That
-    /// tripped `LE_ASSUME( blendFactor >= 0 )` in a checked build and mixed a
+    /// tripped `LE_ASSERT( blendFactor >= 0 )` in a checked build and mixed a
     /// NaN into the magnitude and frequency arrays in a shipping one, so the
     /// whole spectrum went quiet for the rest of the session.
     ///
@@ -148,8 +148,8 @@ void FreezeImpl::process(ChannelState &cs, Engine::ChannelData_AmPh data,
     /// a period of zero. \see setup().
     float const blendFactor(
         noTransition_ ? 1.0f : std::min(cs.frameCounter++ * inverseTransitionTime_, 1.0f));
-    LE_ASSUME(blendFactor >= 0);
-    LE_ASSUME(blendFactor <= 1);
+    LE_ASSERT(blendFactor >= 0);
+    LE_ASSERT(blendFactor <= 1);
     bool const blendFactorIsOne(blendFactor == 1);
 
     // Is melting in process?

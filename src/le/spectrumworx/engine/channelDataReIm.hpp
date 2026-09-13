@@ -35,9 +35,6 @@ class FullChannelData_ReIm : public SharedStorageHalfFFTBufferPair
     ReadOnlyDataRange imags() const { return second(); }
 };
 
-#pragma warning(push)
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
-
 class ChannelData_ReIm : public SubRange<FullChannelData_ReIm, DataRange>
 {
   public:
@@ -49,8 +46,6 @@ class ChannelData_ReIm : public SubRange<FullChannelData_ReIm, DataRange>
     ReadOnlyDataRange reals() const { return first(); }
     ReadOnlyDataRange imags() const { return second(); }
 };
-
-#pragma warning(pop)
 
 using FullMainSideChannelData_ReIm = MainSide<FullChannelData_ReIm>;
 using MainSideChannelData_ReIm = MainSide<SubRange<FullMainSideChannelData_ReIm, ChannelData_ReIm>>;

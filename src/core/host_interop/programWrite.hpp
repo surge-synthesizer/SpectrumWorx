@@ -107,7 +107,8 @@ template <class Protocol> class ProgramParameterSetter
         /// \note The destroying overload, deliberately: this is the main thread's
         /// Program, and the main thread is where things are destroyed.
         /// \see AutomatedModuleChain::setParameter.
-        pProgram->moduleChain().setParameter(parameterID.moduleIndex, effectIndex,
+        pProgram->moduleChain().setParameter(parameterID.moduleIndex,
+                                             static_cast<std::int8_t>(effectIndex),
                                              ParametersOnlyModuleInitialiser{});
     }
 

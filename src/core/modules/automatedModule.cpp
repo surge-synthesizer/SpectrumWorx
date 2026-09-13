@@ -144,7 +144,7 @@ Detail::autoAdjustedLFOParameter(LFO &lfo, std::uint8_t const lfoParameterIndex,
     auto const upperBoundIndex(IndexOf<LFO::Parameters, LFO::UpperBound>::value);
     auto const syncTypesIndex(IndexOf<LFO::Parameters, LFO::SyncTypes>::value);
     auto const periodScaleIndex(IndexOf<LFO::Parameters, LFO::PeriodScale>::value);
-    LE_ASSUME(lfoParameterIndex < ParameterCounts::lfoExportedParameters);
+    LE_ASSERT(lfoParameterIndex < ParameterCounts::lfoExportedParameters);
     switch (lfoParameterIndex)
     {
     /// \note The pair names the parameter that *moved*, which is the one the

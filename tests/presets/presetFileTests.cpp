@@ -506,8 +506,8 @@ TEST_CASE("A preset that omits a parameter reports it and uses the default", "[p
 /// (lfoImpl.cpp:357). A preset carrying `wfrm="200"` is an indirect call through
 /// whatever sits 189 entries past that table, on the audio thread, on the first
 /// block after the load. `ph`, `lbnd` and `ubnd` are the same shape one step
-/// further on: out of [0,1] they make `LE_ASSUME(position >= 0 && <= 1)` a false
-/// assumption, which is undefined behaviour by construction.
+/// further on: out of [0,1] they fail `LE_ASSERT(position >= 0 && <= 1)` in a
+/// checked build and feed every waveform a position it was never written for.
 ///
 ///   Reachable from a double-clicked `.swp` and from session state, which take
 /// the same reader.

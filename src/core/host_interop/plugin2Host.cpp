@@ -104,9 +104,9 @@ void Plugin2HostInteropControler::automatedParameterChanged(ParameterID::LFO con
 {
     using namespace SW::Constants;
     using namespace ParameterCounts;
-    LE_ASSUME(lfoParameterID.moduleIndex < maxNumberOfModules);
-    LE_ASSUME(lfoParameterID.moduleParameterIndex < (maxNumberOfParametersPerModule - 1));
-    LE_ASSUME(lfoParameterID.lfoParameterIndex < lfoExportedParameters);
+    LE_ASSERT(lfoParameterID.moduleIndex < maxNumberOfModules);
+    LE_ASSERT(lfoParameterID.moduleParameterIndex < (maxNumberOfParametersPerModule - 1));
+    LE_ASSERT(lfoParameterID.lfoParameterIndex < lfoExportedParameters);
 
     ParameterID parameterID;
     parameterID.value.type = ParameterID::LFOParameter;
@@ -180,10 +180,6 @@ void Plugin2HostInteropControler::modulesChanged(AutomatedModuleChain const &cha
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 struct Plugin2HostPassiveInteropController::ParameterNameGetter
 {
     using result_type = void;
@@ -196,7 +192,6 @@ struct Plugin2HostPassiveInteropController::ParameterNameGetter
     typedef LE::Utility::Span<char> Buffer;
     Buffer const buffer_;
 }; // struct Plugin2HostPassiveInteropController
-#pragma warning(pop)
 
 void Plugin2HostPassiveInteropController::getParameterLabel(
     ParameterID const parameterID, LE::Utility::Span<char> const label,
@@ -216,7 +211,7 @@ void Plugin2HostPassiveInteropController::getParameterLabel(
 void Plugin2HostPassiveInteropController::getParameterDisplay( ParameterID const parameterID, LE::Utility::Span<char> const text, Engine::Setup const & engineSetup, Plugins::AutomatedParameterValue const * LE_RESTRICT const pValue, Program const & program )
 {
 #ifdef _WIN32
-    LE_ASSUME( pValue == nullptr );
+    LE_ASSERT( pValue == nullptr );
 #endif // _WIN32
     ParameterValueStringGetter const getter = {{ engineSetup, pValue, text }};
     char const * const pValueString( invokeFunctorOnIdentifiedParameter( parameterID, std::forward<ParameterValueStringGetter const>( getter ), &program ) );
@@ -447,7 +442,7 @@ char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::ope
         std::forward<Parameters::AutomatedParameterPrinter const>(printer));
 }
 
-/// \note The three `#if defined(_WIN32) LE_ASSUME( ... == Internal )` lines that
+/// \note The three `#if defined(_WIN32) LE_ASSERT( ... == Internal )` lines that
 /// stood in this file are gone. They recorded that on Windows -- VST 2.4, which
 /// never asks a plugin what some *other* value would read as -- the printer was
 /// only ever asked about the parameter's own. CLAP does ask, on every platform,
@@ -475,14 +470,15 @@ char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::ope
             LE_DEFAULT_CASE_UNREACHABLE();
         }
 
-    return (parameter != noModule) ? Effects::effectName(parameter) : emptySlot;
+    return (parameter != noModule) ? Effects::effectName(static_cast<std::uint8_t>(parameter))
+                                   : emptySlot;
 }
 
 #if 0
 char const * Plugin2HostPassiveInteropController::ParameterValueStringGetter::operator()( ParameterID::Module const parameterID, Program const * LE_RESTRICT const pProgram ) const
 {
 #if defined(_WIN32)
-    LE_ASSUME( printer_.pValue_ == nullptr );
+    LE_ASSERT( printer_.pValue_ == nullptr );
 #endif // _WIN32 && ! FMOD
 
     auto const pModule( pProgram->moduleChain().module( parameterID.moduleIndex ) );
@@ -514,8 +510,8 @@ char const *Plugin2HostPassiveInteropController::ParameterValueStringGetter::ope
     {
     default:
     {
-        LE_ASSUME(lfoParameterIndex != lowerBoundIndex);
-        LE_ASSUME(lfoParameterIndex != upperBoundIndex);
+        LE_ASSERT(lfoParameterIndex != lowerBoundIndex);
+        LE_ASSERT(lfoParameterIndex != upperBoundIndex);
 
         return LE::Parameters::invokeFunctorOnIndexedParameter(
             lfo.parameters(), lfoParameterIndex,
@@ -711,7 +707,7 @@ void Plugin2HostPassiveInteropController::ParameterNameGetter::operator()(
     }
 
     using namespace ParameterCounts;
-    LE_ASSUME(parameterID.lfoParameterIndex < lfoExportedParameters);
+    LE_ASSERT(parameterID.lfoParameterIndex < lfoExportedParameters);
     char const *LE_RESTRICT const lfoParameterName(
         LE::Parameters::invokeFunctorOnIndexedParameter<LFO::Parameters>(
             parameterID.lfoParameterIndex, NameGetter()));
@@ -806,7 +802,7 @@ parameterIDFromIndex(Plugins::ParameterIndex const parameterIndex)
     {
         index -= Constants::maxNumberOfModuleParameters;
 
-        LE_ASSUME(index < lfoParameters);
+        LE_ASSERT(index < lfoParameters);
 
         std::uint8_t const moduleIndex(
             index /

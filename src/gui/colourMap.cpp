@@ -298,13 +298,13 @@ juce::Colour ColourMap::sstDark(Name const name, Rotation const rotation)
     /// where ClassicBlue's blue sits, so the chassis keeps the weight it was drawn
     /// with. \see BackgroundStyle::Ramp::lift.
     case Accent:
-        return turned(classic(Accent), rotation).withMultipliedBrightness(0.85); // accent_1b
+        return turned(classic(Accent), rotation).withMultipliedBrightness(0.85f); // accent_1b
 
     ///   The chassis, inverted. ClassicBlue's surround is a light grey with dark
     /// panels on it; every ground here is one of the three darks.
     case EditorGradientStart:
         return turned(classic(EditorGradientStart), rotation)
-            .withMultipliedBrightness(0.8263)
+            .withMultipliedBrightness(0.8263f)
             .withMultipliedAlpha(0.565f); // accent_1b
     case EditorSurround:
         return juce::Colour(0xFF1B1D20u); // bg_main

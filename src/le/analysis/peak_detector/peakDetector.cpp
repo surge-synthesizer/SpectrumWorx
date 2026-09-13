@@ -34,8 +34,8 @@ using namespace LE::SW; //...mrmlj...
 
 bool operator<(Peak const &left, Peak const &right)
 {
-    LE_ASSUME(left.strength >= 0);
-    LE_ASSUME(right.strength >= 0);
+    LE_ASSERT(left.strength >= 0);
+    LE_ASSERT(right.strength >= 0);
     /// \note We want a descending sort.
     ///                                       (05.04.2016.) (Domagoj Saric)
     return left.strength > right.strength;
@@ -47,7 +47,7 @@ std::int16_t findThdStart(float const *const amp, float const thd, std::uint16_t
 {
     // Try to find stronger amplitude
     auto const pValue(std::find_if(amp, amp + num, [=](float const value) { return value > thd; }));
-    return pValue != (amp + num) ? (pValue - amp) : -1;
+    return static_cast<std::int16_t>(pValue != (amp + num) ? (pValue - amp) : -1);
 }
 
 std::int16_t findUpMax(float const *const amp, std::uint16_t const num)
@@ -170,7 +170,7 @@ void PeakDetector::restart()
 void PeakDetector::findPeaks(float const *const amplitudes, std::uint16_t const numberOfBins)
 {
     findPeaksImpl(amplitudes, numberOfBins, 0);
-    LE_ASSUME(numberOfPeaks_ <= MAX_NUM_PEAKS);
+    LE_ASSERT(numberOfPeaks_ <= MAX_NUM_PEAKS);
 }
 
 void PeakDetector::findPeaksAndStrengthSort(float const *const amplitudes,

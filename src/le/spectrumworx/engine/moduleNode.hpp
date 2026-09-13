@@ -57,7 +57,7 @@ void intrusive_ptr_release_deleter(ModuleNode const *);
 
 inline void intrusive_ptr_release(ModuleNode const *LE_RESTRICT const pModuleNode)
 {
-    LE_ASSUME(pModuleNode);
+    LE_ASSERT(pModuleNode);
     if (!--pModuleNode->referenceCount_) [[unlikely]]
     {
         intrusive_ptr_release_deleter(pModuleNode);
@@ -67,7 +67,7 @@ inline void intrusive_ptr_release(ModuleNode const *LE_RESTRICT const pModuleNod
 template <class ActualModule> ActualModule &actualModule(ModuleNode &node)
 {
     auto *LE_RESTRICT const pModule(LE::Utility::polymorphicDowncast<ActualModule *>(&node));
-    LE_ASSUME(pModule);
+    LE_ASSERT(pModule);
     return *pModule;
 }
 template <class ActualModule> ActualModule const &actualModule(ModuleNode const &node)
@@ -78,7 +78,7 @@ template <class ActualModule> ActualModule const &actualModule(ModuleNode const 
 template <class ActualModule> ModuleNode &node(ActualModule &module)
 {
     auto *LE_RESTRICT const pNode(LE::Utility::polymorphicDowncast<ModuleNode *>(&module));
-    LE_ASSUME(pNode);
+    LE_ASSERT(pNode);
     return *pNode;
 }
 template <class ActualModule> ModuleNode const &node(ActualModule const &chainedModule)

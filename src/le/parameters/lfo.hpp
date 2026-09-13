@@ -41,10 +41,6 @@ namespace LE::Parameters
 class LFO
 {
   public:
-#if defined(_MSC_VER) && (_MSC_VER < 1800)
-#pragma warning(push)
-#pragma warning(disable : 4480)
-#endif // _MSC_VER
 #ifdef DOXYGEN_ONLY
     /// \brief Types of possible LFO synchronizations to tempo
     /// \details Most often the best or desired effect of modulating a parameter
@@ -100,9 +96,6 @@ class LFO
 
         NumberOfWaveforms
     }; // enum Waveform
-#if defined(_MSC_VER) && (_MSC_VER < 1800)
-#pragma warning(pop)
-#endif // _MSC_VER
 
   public:
     ////////////////////////////////////////////////////////////////////////////

@@ -34,7 +34,7 @@ DSPProfiler::DSPProfiler() : totalSamples_(0), sampleRate_(0), totalCPUTime_(0),
 
 void DSPProfiler::setSignalSampleRate(std::uint32_t const sampleRate)
 {
-    LE_ASSUME(sampleRate < 200000);
+    LE_ASSERT(sampleRate < 200000);
     sampleRate_ = static_cast<float>(sampleRate);
     reset();
 }
@@ -47,25 +47,18 @@ void DSPProfiler::reset()
 
 void DSPProfiler::beginInterval() { lastTime_ = std::chrono::steady_clock::now(); }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wassume"
-#endif // __clang__
 void DSPProfiler::endInterval(std::uint32_t const intervalLengthInSampleFrames)
 {
     auto const newTimeStamp(std::chrono::steady_clock::now());
     auto const timeInterval(newTimeStamp - lastTime_);
 #if defined(__ANDROID__) || defined(__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__)
-    LE_ASSUME(timeInterval.count() > 0);
+    LE_ASSERT(timeInterval.count() > 0);
 #else  //...mrmlj...desktop machines seem be able to process small buffers in 'zero' time...
-    LE_ASSUME(timeInterval.count() >= 0);
+    LE_ASSERT(timeInterval.count() >= 0);
 #endif // __ANDROID__
     totalSamples_ += intervalLengthInSampleFrames;
     totalCPUTime_ += timeInterval;
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
 
 float DSPProfiler::cpuUsagePercentage() const
 {

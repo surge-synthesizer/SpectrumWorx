@@ -167,6 +167,13 @@ TEST_CASE("dB conversion round-trips", "[math][scalar][conversion]")
         CHECK(Math::normalisedLinear2dB(Math::dB2NormalisedLinear(dB)) == Approx(dB).margin(1e-3));
 }
 
+TEST_CASE("The double dB conversion keeps double precision", "[math][scalar][conversion]")
+{
+    // a float log10 is ~1e-6 dB out here
+    double const linear(0.3);
+    CHECK(Math::normalisedLinear2dB(linear) == Approx(20 * std::log10(linear)).epsilon(1e-12));
+}
+
 TEST_CASE("addPolar sums two phasors", "[math][scalar]")
 {
     // No non-NT2 implementation existed before stage 3.

@@ -59,7 +59,7 @@ namespace PositiveFloats
 {
 unsigned int ceil(float const value)
 {
-    LE_ASSUME(value >= 0);
+    LE_ASSERT(value >= 0);
     return static_cast<unsigned int>(Math::truncate(std::ceil(value)));
 }
 
@@ -69,7 +69,7 @@ unsigned int floor(float const value) { return static_cast<unsigned int>(Math::t
 
 float modulo(float const dividend, float const divisor)
 {
-    LE_ASSUME(divisor != 0);
+    LE_ASSERT(divisor != 0);
     //...mrmlj...signed so that it can be (mis)used for fast(er) phase mapping...
     /*unsigned*/ int const divisionFloor(truncate(dividend / divisor));
     float const mod(dividend - (divisionFloor * divisor));
@@ -93,7 +93,7 @@ int ceil(float const value) { return truncate(std::ceil(value)); }
 // http://mubench.sourceforge.net/results.html
 float modulo(float const dividend, float const divisor)
 {
-    LE_ASSUME(divisor != 0);
+    LE_ASSERT(divisor != 0);
     int const divisionFloor(floor(dividend / divisor));
     float const mod(dividend - (divisionFloor * divisor));
     // Implementation note:
@@ -131,13 +131,13 @@ float modulo(float const dividend, float const divisor)
 
 int modulo(int const dividend, int const divisor)
 {
-    LE_ASSUME(divisor != 0);
+    LE_ASSERT(divisor != 0);
     return dividend % divisor;
 }
 
 unsigned int modulo(unsigned int const dividend, unsigned int const divisor)
 {
-    LE_ASSUME(divisor != 0);
+    LE_ASSERT(divisor != 0);
     return dividend % divisor;
 }
 
@@ -186,15 +186,8 @@ SplitFloat splitFloat(float const value)
 
 bool equal(float const &left, float const &right)
 {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wassume"
-#endif // __clang__
-    LE_ASSUME(std::isfinite(left));
-    LE_ASSUME(std::isfinite(right));
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
+    LE_ASSERT(std::isfinite(left));
+    LE_ASSERT(std::isfinite(right));
 
     /// \note MSVC compared the bit patterns and everyone else compared the
     /// values, so `equal( -0.0f, 0.0f )` answered differently per platform.
@@ -204,14 +197,7 @@ bool equal(float const &left, float const &right)
 
 bool equal(float const &left, unsigned int const right)
 {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wassume"
-#endif // __clang__
-    LE_ASSUME(std::isfinite(left));
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
+    LE_ASSERT(std::isfinite(left));
 
     return left == convert<float>(right);
 }
@@ -337,7 +323,7 @@ unsigned int round(unsigned int const value)
     auto const exponent(std::bit_width(value) - 1);
     auto const roundUp(exponent && ((value >> (exponent - 1)) & 1));
 
-    LE_ASSUME((exponent + roundUp) < static_cast<int>(sizeof(1U) * 8));
+    LE_ASSERT((exponent + roundUp) < static_cast<int>(sizeof(1U) * 8));
 
     return 1U << (exponent + roundUp);
 }
@@ -520,8 +506,8 @@ float Rng::normalised() noexcept
     constexpr double scale(1 /
                            (static_cast<double>((std::numeric_limits<rand_t>::max() / 2) + 1) * 2));
     auto const result(static_cast<float>(static_cast<double>(narrow(next())) * scale));
-    LE_ASSUME(result >= 0);
-    LE_ASSUME(result <= 1);
+    LE_ASSERT(result >= 0);
+    LE_ASSERT(result <= 1);
     return result;
 }
 
@@ -531,10 +517,10 @@ float Rng::ranged(float const maximum) noexcept { return normalised() * maximum;
 /// \brief A random number in the [minimum, maximum] interval.
 float Rng::ranged(float const minimum, float const maximum) noexcept
 {
-    LE_ASSUME(maximum >= minimum);
+    LE_ASSERT(maximum >= minimum);
     auto const result(minimum + ranged(maximum - minimum));
-    LE_ASSUME(result >= minimum);
-    LE_ASSUME(result <= maximum);
+    LE_ASSERT(result >= minimum);
+    LE_ASSERT(result <= maximum);
     return result;
 }
 
@@ -567,10 +553,10 @@ std::uint16_t Rng::ranged(std::uint16_t const maximum) noexcept
 /// \brief A random number in the [minimum, maximum) interval.
 std::int32_t Rng::ranged(std::int32_t const minimum, std::uint32_t const maximum) noexcept
 {
-    LE_ASSUME(static_cast<signed>(maximum) > minimum);
+    LE_ASSERT(static_cast<signed>(maximum) > minimum);
     std::int32_t const result(minimum + ranged(maximum - minimum));
-    LE_ASSUME(result >= minimum);
-    LE_ASSUME(result <= static_cast<signed>(maximum));
+    LE_ASSERT(result >= minimum);
+    LE_ASSERT(result <= static_cast<signed>(maximum));
     return result;
 }
 

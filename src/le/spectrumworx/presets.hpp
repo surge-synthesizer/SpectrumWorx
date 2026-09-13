@@ -688,7 +688,7 @@ class ParametersLoader : private PresetHandler
 
     TiXmlElement const &parameters() const
     {
-        LE_ASSUME(pParameters_);
+        LE_ASSERT(pParameters_);
         return *pParameters_;
     }
 
@@ -847,7 +847,7 @@ class ParametersSaver : private PresetHandler
 
     TiXmlElement &parameters()
     {
-        LE_ASSUME(pParametersNode_);
+        LE_ASSERT(pParametersNode_);
         return *pParametersNode_;
     }
 

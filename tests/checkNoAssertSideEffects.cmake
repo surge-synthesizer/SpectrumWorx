@@ -1,9 +1,8 @@
-# Checks that nothing with a side effect is written inside LE_ASSERT,
-# LE_ASSERT_MSG or LE_ASSUME.
+# Checks that nothing with a side effect is written inside LE_ASSERT or
+# LE_ASSERT_MSG.
 #
-#   All three compile their argument away under NDEBUG -- assert.hpp:54-57 makes
-# LE_ASSERT and LE_ASSERT_MSG `static_cast<void>(0)`, and LE_ASSUME keeps only the
-# compiler's bare hint. An expression written inside one is therefore not merely
+#   Both compile their argument away under NDEBUG -- assert.hpp:54-57 makes them
+# `static_cast<void>(0)`. An expression written inside one is therefore not merely
 # unchecked in a release build, it is *absent*, and the checked build the test
 # suite runs in is the only place the program does what it reads as doing.
 #
@@ -207,8 +206,7 @@ foreach (sourceFile IN LISTS sources)
     # Most of the tree has no assertion in it at all, and reading a whole file to
     # peel it a line at a time is the expensive part of this check.
     string(FIND "${contents}" "LE_ASSERT" assertPosition)
-    string(FIND "${contents}" "LE_ASSUME" assumePosition)
-    if (assertPosition EQUAL -1 AND assumePosition EQUAL -1)
+    if (assertPosition EQUAL -1)
         continue()
     endif ()
 
@@ -237,7 +235,7 @@ foreach (sourceFile IN LISTS sources)
             # in its own right because LE_ASSERT is a prefix of it.
             set(bestPosition -1)
             set(bestLength 0)
-            foreach (macroName IN ITEMS "LE_ASSERT_MSG" "LE_ASSERT" "LE_ASSUME")
+            foreach (macroName IN ITEMS "LE_ASSERT_MSG" "LE_ASSERT")
                 string(LENGTH "${macroName}" macroLength)
                 string(FIND "${line}" "${macroName}(" position)
                 set(spacing 0)
@@ -303,7 +301,7 @@ endforeach ()
 if (offenderCount)
     message(FATAL_ERROR
             "${offenderCount} assertion(s) have a side effect inside them:\n${offenderReport}\n\n\
-LE_ASSERT, LE_ASSERT_MSG and LE_ASSUME do not evaluate their argument under NDEBUG, so this code \
+LE_ASSERT and LE_ASSERT_MSG do not evaluate their argument under NDEBUG, so this code \
 does not exist in any shipped build -- see assert.hpp:54-57. Hoist the call out of the assertion \
 and assert on its result, or say LE_VERIFY, which does still evaluate. If the expression really is \
 pure and this check has misread it, narrow the marker in `mutatingCalls` rather than adding an \

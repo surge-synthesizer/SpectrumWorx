@@ -38,9 +38,9 @@ ParsedValue parse(char const *const text, SW::Engine::Setup const &, BooleanPara
         return {};
 
     if (std::strcmp(text, "yes") == 0)
-        return 1;
+        return 1.0f;
     if (std::strcmp(text, "no") == 0)
-        return 0;
+        return 0.0f;
 
     auto const number(Utility::parseNumber(text));
     if (!number)

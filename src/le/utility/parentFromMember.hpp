@@ -53,11 +53,6 @@ template <class T> struct DummyStorage
     T const &impersonate() const { return reinterpret_cast<T const &>(storage_); }
 };
 
-#pragma warning(push)
-#pragma warning(disable : 4269) // 'const' automatic data initialized with
-                                // compiler generated default constructor
-                                // produces unreliable results
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class ParentFromMember
@@ -82,15 +77,15 @@ class ParentFromMember
     LE_FORCEINLINE Parent &operator()(Member &member) const
     {
         char *const pOpaqueMember(reinterpret_cast<char *>(&member));
-        LE_ASSUME(pOpaqueMember);
+        LE_ASSERT(pOpaqueMember);
         Parent const *const pDummyParent(reinterpret_cast<Parent const *>(pOpaqueMember));
-        LE_ASSUME(pDummyParent);
+        LE_ASSERT(pDummyParent);
         Member const *const pDummyMember(&(pDummyParent->*pMember));
-        LE_ASSUME(pDummyMember);
+        LE_ASSERT(pDummyMember);
         unsigned int const offset(static_cast<unsigned int>(
             reinterpret_cast<char const *>(pDummyMember) - pOpaqueMember));
         Parent *const pParent(reinterpret_cast<Parent *>(pOpaqueMember - offset));
-        LE_ASSUME(pParent);
+        LE_ASSERT(pParent);
         return *pParent;
     }
 
@@ -234,8 +229,6 @@ class MemberFromMember : private ParentFromMember<ParentParam, SourceMemberParam
         return operator()(const_cast<SourceMember &>(sourceMember));
     }
 }; // class MemberFromMember
-
-#pragma warning(pop)
 
 } // namespace LE::Utility
 

@@ -40,7 +40,7 @@ void Scale::tonesUpdated(std::uint8_t const snappedTo, std::uint8_t const bypass
 #endif // NDEBUG
 
     numberOfTones_ = snappedTo;
-    LE_ASSUME(bypassed == 0);
+    LE_ASSERT(bypassed == 0);
 
 #if 0
     if ( snappedTo == 0 )
@@ -56,7 +56,7 @@ void Scale::tonesUpdated(std::uint8_t const snappedTo, std::uint8_t const bypass
             float const newCenterTone(
                 std::accumulate(toneOffsets_.begin(), toneOffsets_.begin() + snappedTo, 0) /
                 Math::convert<float>(snappedTo));
-            LE_ASSUME(newCenterTone >= 0);
+            LE_ASSERT(newCenterTone >= 0);
             if (newCenterTone != centerTone_)
             {
                 if (centerTone_ == -1)
@@ -90,14 +90,14 @@ float Scale::snap2Scale(float const freq, std::uint8_t const keyIndex) const
     float const pitchScaleComparisonSource(lastPitchScale_);
 
     /// \note At least one tone is a precondition: with none the min_element()
-    /// below runs over an empty range and reads pitchScaleDeltas[ 0 ], which
-    /// nothing wrote. Its one caller returns before it when numberOfTones() is
-    /// zero, from another translation unit, so only an optimising build sees the
-    /// question -- and a checked build gets an assert if a second caller forgets.
+    /// below runs over an empty range and reads pitchScaleDeltas[ 0 ]. Its one
+    /// caller returns before it when numberOfTones() is zero, from another
+    /// translation unit, so GCC cannot see that the loop writes that element;
+    /// hence the value-initialisation, and the assert for a second caller.
     std::uint8_t const totalTones(numberOfTones() + numberOfBypassed());
-    LE_ASSUME(totalTones > 0);
-    LE_ASSUME(totalTones < 12);
-    std::array<PitchScaleRatio, 12> pitchScaleDeltas;
+    LE_ASSERT(totalTones > 0);
+    LE_ASSERT(totalTones < 12);
+    std::array<PitchScaleRatio, 12> pitchScaleDeltas{};
     for (std::uint8_t n(0); n < totalTones; ++n)
     {
         ToneOffsets::value_type const noteOffset(toneOffset(n));
@@ -115,7 +115,7 @@ float Scale::snap2Scale(float const freq, std::uint8_t const keyIndex) const
         // closest note is note base frequency multiplied by power of 2 closest to frequency ratio
         std::uint8_t const lowerOctaveExponent(PositiveFloats::floor(Math::log2(freqRatio)));
         float const lowerOctaveRatio(convert<float>(1 << lowerOctaveExponent));
-        LE_ASSUME(lowerOctaveRatio <= freqRatio);
+        LE_ASSERT(lowerOctaveRatio <= freqRatio);
         float const lowerOctavePitch(lowerOctaveRatio * noteBaseFreq);
         float const lowerPitchScale(lowerOctavePitch / freq);
         float const upperPitchScale(lowerPitchScale * 2);

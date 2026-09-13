@@ -49,10 +49,6 @@ using StaticHalfFFTBuffer =
 
 using real_t = float;
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 //...mrmlj...
 struct StorageFactors
 {
@@ -68,8 +64,6 @@ struct StorageFactors
         return std::memcmp(this, &other, sizeof(*this)) == 0;
     }
 }; // struct StorageFactors
-
-#pragma warning(pop)
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -202,9 +196,6 @@ Data makeData(FullData &fullData, IndexRange const &workingRange)
 }
 } // namespace Detail
 
-#pragma warning(push)
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
-
 template <class Data> class DataPairImpl : public DataPair
 {
   protected:
@@ -255,8 +246,6 @@ template <class Data> class DataPairImpl : public DataPair
   private:
     DataArray data_;
 }; // class DataPairImpl
-
-#pragma warning(pop)
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -311,9 +300,6 @@ template <class Data> class SharedStorageDataPairImpl : public DataPairImpl<Data
 /// \todo Document.
 ///                                           (11.11.2011.) (Domagoj Saric)
 ////////////////////////////////////////////////////////////////////////////////
-
-#pragma warning(push)
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
 
 template <class FullRangeData, class SubRangeHolder>
 class SubRange : public DataPairImpl<SubRangeHolder>
@@ -380,8 +366,6 @@ class SubRange : public DataPairImpl<SubRangeHolder>
     FullRangeData *LE_RESTRICT const pFullData_;
 }; // class SubRange
 
-#pragma warning(pop)
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class SharedStorageHalfFFTBufferPair
@@ -420,9 +404,6 @@ inline DataRange makeData<DataRange, HalfFFTBuffer<float>>(HalfFFTBuffer<float> 
 ///                                           (11.11.2011.) (Domagoj Saric)
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
-
 template <class Data> class MainSide : public SharedStorageDataPairImpl<Data>
 {
   public:
@@ -458,8 +439,6 @@ class MainSide<SubRange<FullRangeData, SubRangeHolder>>
   private:
     using SubRange<FullRangeData, SubRangeHolder>::second;
 }; // class MainSide<SubRange<FullRangeData, SubRangeHolder>>
-
-#pragma warning(pop)
 
 } // namespace Engine
 

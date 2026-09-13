@@ -29,12 +29,6 @@ class FFT_float_real_1D;
 namespace SW::Engine
 {
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \struct ChannelData_AmPh2ReIm
@@ -66,8 +60,6 @@ struct ChannelData_ReIm2AmPh
     MainSideChannelData_ReIm const input;
     MainSideChannelData_AmPh output;
 }; // struct ChannelData_ReIm2AmPh
-
-#pragma warning(pop)
 
 ////////////////////////////////////////////////////////////////////////////////
 ///

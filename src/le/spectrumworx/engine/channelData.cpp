@@ -284,8 +284,6 @@ FullMainSideChannelData_ReIm &ChannelData::InPlaceDFTBuffer::dftData()
     return *this;
 }
 
-#pragma warning(push)
-#pragma warning(disable : 4702) // Unreachable code.
 bool ChannelData::InPlaceDFTBuffer::isDFTDomainDataValid() const
 {
 #ifdef NDEBUG
@@ -295,7 +293,6 @@ bool ChannelData::InPlaceDFTBuffer::isDFTDomainDataValid() const
     return dataIsDFTDomain_;
 #endif // NDEBUG
 }
-#pragma warning(pop)
 
 void ChannelData::InPlaceDFTBuffer::setToDFTDomain()
 {

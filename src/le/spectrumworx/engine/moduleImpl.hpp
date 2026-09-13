@@ -318,7 +318,7 @@ struct MakeChannelStateHolder
 
         LE_FORCEINLINE void resize(Engine::Storage storage, Engine::StorageFactors const &factors)
         {
-            LE_ASSUME(factors.numberOfChannels <= 16);
+            LE_ASSERT(factors.numberOfChannels <= 16);
             char *const pChannelStatesBegin(storage.begin());
             char *const pChannelStatesEnd(
                 storage.advance_begin(sizeof(ChannelState) * factors.numberOfChannels).begin());
@@ -332,7 +332,7 @@ struct MakeChannelStateHolder
             {
                 LE_ASSERT(reinterpret_cast<char *>(&channelState) < storage.end());
                 ChannelState *LE_RESTRICT const pNewChannelState(new (&channelState) ChannelState);
-                LE_ASSUME(pNewChannelState);
+                LE_ASSERT(pNewChannelState);
                 pNewChannelState->resize(factors, storage);
             }
         }
@@ -379,7 +379,7 @@ template <class Parameters> struct EffectParameterPrinter
     static char const *print(std::uint8_t const parameterIndex,
                              LE::Parameters::AutomatedParameterPrinter const &printer)
     {
-        LE_ASSUME(parameterIndex < Parameters::static_size);
+        LE_ASSERT(parameterIndex < Parameters::static_size);
         return LE::Parameters::invokeFunctorOnIndexedParameter<Parameters>(
             parameterIndex, std::forward<LE::Parameters::AutomatedParameterPrinter const>(printer));
     }
@@ -391,7 +391,7 @@ template <class Parameters> struct EffectParameterParser
     static LE::Parameters::ParsedValue parse(std::uint8_t const parameterIndex,
                                              LE::Parameters::ParameterValueParser const &parser)
     {
-        LE_ASSUME(parameterIndex < Parameters::static_size);
+        LE_ASSERT(parameterIndex < Parameters::static_size);
         return LE::Parameters::invokeFunctorOnIndexedParameter<Parameters>(parameterIndex, parser);
     }
 }; // class EffectParameterParser
@@ -450,12 +450,6 @@ typename EffectParameterOffsets<Effect>::ParameterOffsets const
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4127) // Conditional expression is constant.
-#pragma warning(                                                                                   \
-    disable                                                                                        \
-    : 4373) // Previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers.
-
 template <class EffectParam, class Base> class ModuleEffectImpl : public Base
 {
   public:
@@ -513,8 +507,7 @@ template <class EffectParam, class Base> class ModuleEffectImpl : public Base
 #endif
     }
 
-    LE_FORCEINLINE void doProcess(std::uint8_t const channel,
-                                  Engine::ModuleDSP::ChannelDataProxy const data,
+    LE_FORCEINLINE void doProcess(std::uint8_t channel, Engine::ModuleDSP::ChannelDataProxy data,
                                   Setup const &setup) const override
     {
         LE_ASSERT(setupCalled_);
@@ -581,8 +574,6 @@ template <class EffectParam, class Base> class ModuleEffectImpl : public Base
     bool setupCalled_;
 #endif
 }; // class ModuleEffectImpl
-
-#pragma warning(pop)
 
 template <class Effect> class ModuleDSP::Impl final : public ModuleEffectImpl<Effect, ModuleDSP>
 {

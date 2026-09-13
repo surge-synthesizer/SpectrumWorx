@@ -441,12 +441,6 @@ struct AutomatedParameter
     ///
     ////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-#endif                  // _MSC_VER
     template <class Impl> struct Setter
     {
 #ifdef _MSC_VER //...mrmlj..."error C2797: list initialization inside member initializer list is not implemented" in LFOParameterSetter
@@ -462,9 +456,6 @@ struct AutomatedParameter
 
         value_type const automationValue;
     }; // class Setter
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 }; // struct AutomatedParameter
 
 using AutomatedParameterValue = AutomatedParameter::value_type;

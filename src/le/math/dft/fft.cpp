@@ -228,7 +228,7 @@ void FFT_float_real_1D::transform(float *LE_RESTRICT const data /*in time, out D
     /// documents input and output as allowed to alias, so the copy in is the
     /// only one needed.
     LE_ASSERT_MSG(size == this->size(), "A pffft setup is per FFT size.");
-    LE_ASSUME(fftSetup_);
+    LE_ASSERT(fftSetup_);
     auto *const LE_RESTRICT packed(workBuffer_.begin());
     copy(data, packed, size);
     pffft::pffft_transform_ordered(fftSetup_, packed, packed, scratch_.begin(),
@@ -274,7 +274,7 @@ void FFT_float_real_1D::inverseTransform(float *LE_RESTRICT const data /*in DFT 
     /// back into x — the same place, and the same order, the Accelerate branch
     /// applies its scale.
     LE_ASSERT_MSG(size == this->size(), "A pffft setup is per FFT size.");
-    LE_ASSUME(fftSetup_);
+    LE_ASSERT(fftSetup_);
     std::uint16_t const halfSize(size / 2);
     float const scale(1 / std::sqrt(convert<float>(size)));
     auto *const LE_RESTRICT packed(workBuffer_.begin());
@@ -291,11 +291,6 @@ void FFT_float_real_1D::inverseTransform(float *LE_RESTRICT const data /*in DFT 
 #endif // LE_ACC_FFT
 }
 
-/// \note The two assertions below compared a span's std::size_t against
-/// `(size() / 2) + 1`, which is an int -- the signed/unsigned mismatch a
-/// `#pragma warning( disable : 4389 )` used to bracket these two functions for
-/// MSVC and which GCC reports as -Wsign-compare. Saying which type the bin
-/// count is counted in removes the mismatch, and with it the pragma.
 void FFT_float_real_1D::transform(float *const timeDomainData, DataRange const &imaginarySubRange,
                                   bool const doFFTShift) const
 {

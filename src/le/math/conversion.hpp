@@ -65,15 +65,8 @@ template <typename Target> Target convert(double const source)
 
 namespace Detail
 {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wundefined-internal"
-#endif // __clang__
 bool convertToBool(float);
 bool convertToBool(double);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
 } // namespace Detail
 
 template <> inline bool convert<bool>(float const source) { return Detail::convertToBool(source); }
@@ -104,9 +97,6 @@ template <> struct MakeSigned<bool>
 };
 } // namespace Detail
 
-#pragma warning(push)
-#pragma warning(disable : 4197) // Top-level volatile in cast is ignored.
-
 template <typename Target, typename Source>
 typename std::enable_if<
     !(std::is_same<Target, Source>::value || !std::is_fundamental<Source>::value), Target>::type
@@ -128,8 +118,6 @@ convert(Source const source)
     LE_ASSERT(result == static_cast<Target>(source));
     return result;
 }
-
-#pragma warning(pop)
 
 template <> inline bool convert<bool, std::uint32_t>(std::uint32_t const source)
 {
@@ -299,7 +287,7 @@ Target convertLinearRange(Source const sourceValue, Source const sourceMinimum,
     Target const scaledTargetMinimum(convert<Target>(targetRangeOffset) / targetRangeScaleFactor);
     Target const scaledTargetRange(convert<Target>(targetRangeSize) / targetRangeScaleFactor);
 
-    LE_ASSUME(sourceMinimum < sourceMaximum);
+    LE_ASSERT(sourceMinimum < sourceMaximum);
     LE_ASSERT(isValueInRange<Source>(sourceValue, sourceMinimum, sourceMaximum));
 
     using SignedSource = typename Detail::MakeSigned<Source>::type;
@@ -419,8 +407,8 @@ unsigned int convertLinearRange2PowerOfTwo(Source const sourceValue)
     std::uint8_t const exponent(convert<std::uint8_t>(sourceValue * exponentRange / sourceRange) -
                                 (sourceOffset - minimumExponent));
 
-    LE_ASSUME(exponent >= minimumExponent);
-    LE_ASSUME(exponent <= maximumExponent);
+    LE_ASSERT(exponent >= minimumExponent);
+    LE_ASSERT(exponent <= maximumExponent);
 
     unsigned int const result(static_cast<std::uint16_t>(1U) << exponent);
     LE_ASSERT(isValueInRange<unsigned int>(result, targetMinimum, targetMaximum));

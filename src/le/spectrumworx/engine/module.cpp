@@ -163,7 +163,7 @@ ModuleDSP::ChannelDataProxy::operator ChannelData_ReIm2AmPh() const
 
 void *ModuleDSP::getEffectParameterPtr(std::uint8_t const parameterIndex)
 {
-    LE_ASSUME(pParameterOffsets_[0] == 0);
+    LE_ASSERT(pParameterOffsets_[0] == 0);
     std::uint16_t const parameterOffset(parametersBaseOffset_ + pParameterOffsets_[parameterIndex]);
     return reinterpret_cast<char *>(this) + parameterOffset;
 }
@@ -199,7 +199,7 @@ float ModuleDSP::setEffectParameter(std::uint8_t const parameterIndex, float con
 
 void intrusive_ptr_add_ref(ModuleNode const *LE_RESTRICT const pModuleNode)
 {
-    LE_ASSUME(pModuleNode);
+    LE_ASSERT(pModuleNode);
     ++pModuleNode->referenceCount_;
 }
 

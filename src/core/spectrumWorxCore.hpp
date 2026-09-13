@@ -250,12 +250,12 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
 
     Program &program()
     {
-        LE_ASSUME(pProgram_);
+        LE_ASSERT(pProgram_);
         return *pProgram_;
     }
     Program const &program() const
     {
-        LE_ASSUME(pProgram_);
+        LE_ASSERT(pProgram_);
         return *pProgram_;
     }
 
@@ -272,12 +272,6 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
         return program();
     } //...mrmlj...for lack of implicit conversion to Program...
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-#endif                  // _MSC_VER
     struct ModuleInitialiser
     {
         typedef SpectrumWorxCore::Module Module;
@@ -287,9 +281,6 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
         Engine::StorageFactors const &storageFactors;
         SpectrumWorxCore const &effect;
     }; // struct ModuleInitialiser
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
     ModuleInitialiser moduleInitialiser();
 
@@ -340,8 +331,6 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
         return true;
     }
 
-#pragma warning(push)
-#pragma warning(disable : 4389)              // Signed/unsigned mismatch.
     template <class Parameter, class SWImpl> //...mrmlj...ugly duplication workaround...
     static bool setGlobalParameter(SWImpl &swImpl, typename Parameter::param_type const newValue)
     {
@@ -363,7 +352,6 @@ class SpectrumWorxCore : public Host2PluginInteropControler,
             "setGlobalParameter left the engine parameters and/or setup in an inconsistent state.");
         return result;
     }
-#pragma warning(pop)
 
     bool setGlobalParameter(FFTSize &, FFTSize ::param_type newValue);
     bool setGlobalParameter(OverlapFactor &, OverlapFactor ::param_type newValue);

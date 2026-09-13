@@ -48,9 +48,6 @@ class FullChannelData_AmPh : public Engine::SharedStorageHalfFFTBufferPair
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
-
 class ChannelData_AmPh : public SubRange<FullChannelData_AmPh, DataRange>
 {
   public:
@@ -63,8 +60,6 @@ class ChannelData_AmPh : public SubRange<FullChannelData_AmPh, DataRange>
     ReadOnlyDataRange phases() const { return second(); }
 }; // class ChannelData_AmPh
 
-#pragma warning(pop)
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class FullMainSideChannelData_AmPh
@@ -73,9 +68,6 @@ class ChannelData_AmPh : public SubRange<FullChannelData_AmPh, DataRange>
 
 using FullMainSideChannelData_AmPh = MainSide<FullChannelData_AmPh>;
 using MainSideChannelData_AmPh = MainSide<SubRange<FullMainSideChannelData_AmPh, ChannelData_AmPh>>;
-
-#pragma warning(push)
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
 
 //...mrmlj...temporary workaround until engine refactoring is finished...
 //...mrmlj...http://lists.cs.uiuc.edu/pipermail/cfe-dev/2010-December/012702.html
@@ -101,8 +93,6 @@ class ChannelData_AmPhStorage : private FullChannelData_AmPh, public ChannelData
 
     static std::uint32_t requiredStorage(std::uint16_t fftSize);
 };
-
-#pragma warning(pop)
 
 DataRange subRange(DataRange const &, std::uint16_t beginIndex, std::uint16_t endIndex);
 

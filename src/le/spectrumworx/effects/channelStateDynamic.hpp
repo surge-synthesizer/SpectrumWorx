@@ -108,30 +108,16 @@ template <class Derived> struct DynamicChannelState_
 
 template <typename... ChannelStates> struct CompoundChannelState : ChannelStates...
 {
-  private:
-    // http://stackoverflow.com/questions/25680461/variadic-template-pack-expansion
-    using expander = char[]; //...mrmlj...bad msvc12 codegen if int is used instead of char
-
-  public:
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-value"
-#endif // __clang__
     void resize(Engine::StorageFactors const &factors, Engine::Storage &storage)
     {
-        expander{0, (static_cast<ChannelStates &>(*this).resize(factors, storage), '\0')...};
+        (static_cast<ChannelStates &>(*this).resize(factors, storage), ...);
     }
-    void reset() { expander{0, (static_cast<ChannelStates &>(*this).reset(), '\0')...}; }
+    void reset() { (static_cast<ChannelStates &>(*this).reset(), ...); }
 
     static std::uint32_t requiredStorage(Engine::StorageFactors const &factors)
     {
-        std::uint32_t sum(0);
-        expander{0, (sum += Utility::align(ChannelStates::requiredStorage(factors)), '\0')...};
-        return sum;
+        return (0u + ... + Utility::align(ChannelStates::requiredStorage(factors)));
     }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
 }; // struct CompoundChannelState
 
 } // namespace Effects

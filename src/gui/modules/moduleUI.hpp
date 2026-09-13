@@ -90,17 +90,12 @@ class ModuleKnob : public Knob, public ModuleControl<ModuleKnob>
     ParameterMenu &parameterMenu() override { return static_cast<ModuleControl &>(*this); }
 
   public:
-#pragma warning(push)
-#pragma warning(                                                                                   \
-    disable                                                                                        \
-    : 4480) // Nonstandard extension used: specifying underlying type for enum 'SW::Effects::PhaseVocoderShared::pitchShiftAndScale::TransientBins'.
     enum Quantization : std::uint8_t
     {
         Fixed,
         FrequencyInHertz,
         TimeInMilliseconds
     };
-#pragma warning(pop)
 
     /// Which end the value wedge opens from: the left stop, or twelve o'clock.
     enum Polarity : std::uint8_t
@@ -776,7 +771,7 @@ struct EmptyWidgets
     static void *operator new(std::size_t const count, void *LE_RESTRICT const pStorage)
     {
         (void)count;
-        LE_ASSUME(pStorage);
+        LE_ASSERT(pStorage);
         return pStorage;
     }
     static void operator delete(void *LE_RESTRICT const /*pObject*/,
@@ -791,8 +786,6 @@ struct EmptyWidgets
 ///
 ////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4584) // base-class <> is already a base-class of WidgetsStorage
 template <typename PreviousWidgets, typename Parameter>
 struct WidgetsStorage : PreviousWidgets, ParameterWidget<Parameter>::type
 {
@@ -807,7 +800,6 @@ struct WidgetsStorage : PreviousWidgets, ParameterWidget<Parameter>::type
         initialiser.setup<Parameter>(ParameterWidget<Parameter>::type::widget);
     }
 }; // struct WidgetsStorage
-#pragma warning(pop)
 
 ////////////////////////////////////////////////////////////////////////////
 ///
@@ -881,16 +873,14 @@ template <class ParametersParam> class ParameterWidgets
     void doConstruct(ModuleUI &parent)
     {
         Detail::ModuleWidgetConstructionState constructionState(parent);
-        LE_ASSUME(&parameterWidgetsStorage_);
-        Container *const pContainer(new (&parameterWidgetsStorage_) Container(constructionState));
-        LE_ASSUME(pContainer);
+        new (&parameterWidgetsStorage_) Container(constructionState);
     }
 
     Container &container()
     {
         Container *LE_RESTRICT const pContainer(
             &reinterpret_cast<Container &>(parameterWidgetsStorage_));
-        LE_ASSUME(pContainer);
+        LE_ASSERT(pContainer);
         return *pContainer;
     }
 

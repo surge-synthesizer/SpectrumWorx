@@ -71,7 +71,7 @@ class Processor::ProcessParameters
 
     float const *mainChannel() const
     {
-        LE_ASSUME(*ppMainChannels_);
+        LE_ASSERT(*ppMainChannels_);
         return *ppMainChannels_;
     }
     float const *sideChannel() const { return *ppSideChannels_; }
@@ -151,16 +151,12 @@ void Processor::process /// \throws nothing
 
 namespace
 {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wassume"
-#endif // __clang__
 float **makeDeinterLeaveBuffers(LE::Utility::Span<float> const deinterLeavedDataStorage,
                                 LE::Utility::Span<float *> const deinterLeavedDataPointers,
                                 std::uint16_t const size, std::uint8_t const numberOfChannels)
 {
-    LE_ASSUME(deinterLeavedDataStorage.begin());
-    LE_ASSUME(deinterLeavedDataPointers.begin());
+    LE_ASSERT(deinterLeavedDataStorage.begin());
+    LE_ASSERT(deinterLeavedDataPointers.begin());
     for (std::uint8_t channel(0); channel < numberOfChannels; ++channel)
     {
 #ifndef NDEBUG
@@ -169,15 +165,12 @@ float **makeDeinterLeaveBuffers(LE::Utility::Span<float> const deinterLeavedData
         else
 #endif // NDEBUG
             deinterLeavedDataPointers[channel] = &deinterLeavedDataStorage[channel * size];
-        LE_ASSUME(deinterLeavedDataPointers[channel]);
+        LE_ASSERT(deinterLeavedDataPointers[channel]);
     }
     auto const resultPointer(deinterLeavedDataPointers.begin());
-    LE_ASSUME(resultPointer);
+    LE_ASSERT(resultPointer);
     return resultPointer;
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
 
 /// \note Clang's alloca returns unaligned pointers and the Boost.SIMD
 /// macros used to crash with Apple's Clang (Xcode 5, 6) so always look
@@ -262,7 +255,7 @@ void Processor::process /// \throws nothing
     {
         if (numberOfChannels == 1)
         {
-            LE_ASSUME(processBlockSize == samples);
+            LE_ASSERT(processBlockSize == samples);
         }
         else
         {
@@ -847,7 +840,7 @@ void Processor::Channels::resize(StorageFactors const &factors, Storage &storage
     {
         ChannelBuffers *LE_RESTRICT const pNewChannelBuffers(new (&channelBuffers)
                                                                  ChannelBuffers());
-        LE_ASSUME(pNewChannelBuffers);
+        LE_ASSERT(pNewChannelBuffers);
         pNewChannelBuffers->resize(factors, storage);
         pNewChannelBuffers->reset(static_cast<std::uint16_t>(windowSize - stepSize), stepSize);
     }

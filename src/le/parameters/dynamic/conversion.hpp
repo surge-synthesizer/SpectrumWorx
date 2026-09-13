@@ -17,8 +17,6 @@
 
 namespace LE::Parameters::Detail
 {
-#pragma warning(push)
-#pragma warning(disable : 4127) // Conditional expression is constant.
 
 template <typename Source, int sourceRangeOffset, unsigned int sourceRangeSize,
           unsigned int sourceRangeScaleFactor, class Parameter, typename Target>
@@ -45,7 +43,6 @@ Target convertParameterValueToLinearValue(typename Parameter::value_type const s
                                                             Parameter::maximum());
 }
 
-#pragma warning(pop)
 } // namespace LE::Parameters::Detail
 
 #endif // conversion_hpp

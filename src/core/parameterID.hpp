@@ -28,8 +28,6 @@ namespace SW
 
 union ParameterID
 {
-#pragma warning(push)
-#pragma warning(disable : 4480) // Nonstandard extension used: specifying underlying type for enum.
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \note **Zero-based, and it stays that way.** The discriminator is the high
@@ -63,7 +61,6 @@ union ParameterID
     {
         Zero = 0
     };
-#pragma warning(pop)
 
     /// \note Members in reverse order in order to get more intuitive/nicer
     /// hex binary ID values on little endian systems.

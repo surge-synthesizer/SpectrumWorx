@@ -76,7 +76,10 @@ bool Detail::convertToBool(double const source)
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-float dB2NormalisedLinear(float const dbValue) { return std::pow(10, dbValue / 20); }
+float dB2NormalisedLinear(float const dbValue)
+{
+    return static_cast<float>(std::pow(10, dbValue / 20));
+}
 float dB2NormalisedLinear(std::int8_t const dbValue)
 {
     return dB2NormalisedLinear(static_cast<float>(dbValue));
@@ -117,7 +120,7 @@ float normalisedLinear2dB(float const linearNormalisedValue)
 double normalisedLinear2dB(double const linearNormalisedValue)
 {
     LE_ASSERT_MSG(linearNormalisedValue >= 0, "Value out of range.");
-    return 20 * log10(linearNormalisedValue);
+    return 20 * std::log10(linearNormalisedValue);
 }
 
 float normalisedPower2dB(float const linearPowerValue)
@@ -126,7 +129,10 @@ float normalisedPower2dB(float const linearPowerValue)
     return 10 * log10(linearPowerValue);
 }
 
-float dB2NormalisedPower(float const dBValue) { return std::pow(10, dBValue / 10); }
+float dB2NormalisedPower(float const dBValue)
+{
+    return static_cast<float>(std::pow(10, dBValue / 10));
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //

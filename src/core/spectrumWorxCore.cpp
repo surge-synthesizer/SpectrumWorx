@@ -187,7 +187,7 @@ bool SpectrumWorxCore::InputBuffers::resize(std::uint32_t const blockSize,
     std::uint8_t const numberOfChannels(numberOfMainChannels + numberOfSideChannels);
     std::uint8_t const baseChannelStorage(sizeof(Channels::iterator));
     std::size_t const blockBytes(std::size_t{blockSize} * sizeof(Engine::real_t));
-    auto const channelDataStorage(align(blockBytes));
+    auto const channelDataStorage(align(static_cast<unsigned int>(blockBytes)));
 
     /// \note A bound on the layout below, not a model of it: each carve is
     /// reserved rounded up and one alignment more covers the data region, so no
@@ -411,9 +411,9 @@ bool SpectrumWorxCore::updateEngineSetup()
     // no assertion that the setup's window function agrees with the parameter:
     // a window change waits for a restart, and applying it is this function's
     // own job -- resize() passes it down to changeWindowFunction()
-    StorageFactors storageFactors(
-        Processor::makeFactors(parameters.get<FFTSize>(), parameters.get<OverlapFactor>(),
-                               setup.numberOfChannels(), setup.sampleRate<std::uint32_t>()));
+    StorageFactors storageFactors(Processor::makeFactors(
+        parameters.get<FFTSize>(), static_cast<std::uint8_t>(parameters.get<OverlapFactor>()),
+        setup.numberOfChannels(), setup.sampleRate<std::uint32_t>()));
 
     if (resize(storageFactors))
         return true;

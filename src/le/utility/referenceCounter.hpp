@@ -37,32 +37,18 @@ struct ReferenceCount : Detail::counter_t
     using Detail::counter_t::counter_t;
 #endif // !_MSC_VER
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4553) // '==' : operator has no effect; did you intend '='?
-#endif                          // _MSC_VER
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wassume"
-#endif // __clang__
     /*std::uint8_t*/ void operator++()
     {
-        LE_ASSUME((*this) >= 0);
-        LE_ASSUME((*this) < std::numeric_limits<std::uint8_t>::max());
+        LE_ASSERT((*this) >= 0);
+        LE_ASSERT((*this) < std::numeric_limits<std::uint8_t>::max());
         /*return*/ fetch_add(1, std::memory_order_relaxed) /*+ 1*/;
     }
     std::uint8_t operator--()
     {
         auto const result(fetch_sub(1, std::memory_order_acq_rel) - 1);
-        LE_ASSUME(result >= 0);
+        LE_ASSERT(result >= 0);
         return static_cast<std::uint8_t>(result);
     }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
     void verifyCountEqual([[maybe_unused]] value_type const value)
     {

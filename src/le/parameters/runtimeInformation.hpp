@@ -33,16 +33,6 @@ namespace LE::Parameters
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-#if _MSC_VER < 1800
-#pragma warning(disable : 4480) // Specifying underlying type for enum
-#endif
-#endif // _MSC_VER
-
 struct RuntimeInformation
 {
     typedef float value_type; ///< Uniform type used for marshaling values of all parameter types
@@ -82,10 +72,6 @@ struct RuntimeInformation
     /// enumerated parameter. A nullptr for all other types of parameters.
     char const *LE_RESTRICT const *LE_RESTRICT const enumeratedValueStrings;
 }; // struct RuntimeInformation
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
 /// @} // group Parameters
 

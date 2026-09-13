@@ -272,9 +272,6 @@ template <typename T> class AlignedHeapBuffer : public Span<T>
 
 typedef Span<char> Storage;
 
-#pragma warning(push)
-#pragma warning(disable : 4127) // Conditional expression is constant.
-
 template <typename T> class SharedStorageBuffer : public Span<T>
 {
   public:
@@ -320,9 +317,8 @@ template <typename T> class SharedStorageBuffer : public Span<T>
             T *LE_RESTRICT pT(this->begin());
             while (pT != this->end())
             {
-                LE_ASSUME(pT);
-                T *const pNewT(new (pT) T);
-                LE_ASSUME(pNewT);
+                LE_ASSERT(pT);
+                new (pT) T;
                 ++pT;
             }
         }
@@ -354,8 +350,6 @@ template <typename T> class SharedStorageBuffer : public Span<T>
     using Range::pop_front;
     using Range::operator=;
 }; // class SharedStorageBuffer
-
-#pragma warning(pop)
 
 } // namespace Utility
 

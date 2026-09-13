@@ -565,7 +565,7 @@ void SpectrumWorxCLAP::rebuildParameterIDs()
 /// happens: all four host entry points that take a raw `clap_id` come through
 /// here, and everything downstream assumes they did. The indices reach
 /// `invokeFunctorOnIndexedParameter`, whose jump tables are guarded by nothing
-/// stronger than LE_ASSUME -- a `__builtin_assume` in release, so an index one
+/// stronger than an LE_ASSERT -- absent in release, so an index one
 /// past the end is an out-of-bounds read followed by an indirect call through
 /// whatever it found, on the audio thread for the event route. A `clap_id` is
 /// host-supplied data.

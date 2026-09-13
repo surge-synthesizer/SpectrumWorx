@@ -75,11 +75,6 @@ class Host2PluginInteropControler::AutomationBlocker
     AutomationBlocker(AutomationBlocker const &) = delete; // makes non-copyable
     AutomationBlocker &operator=(AutomationBlocker const &) = delete;
 
-    /// \note `LE_ASSERT` where both of these were `LE_ASSUME`. `__builtin_assume`
-    /// is a promise to the optimiser that the condition *holds*, not a check that
-    /// it does -- so a load that nests would be undefined behaviour rather than a
-    /// caught bug, which is the wrong way round for a guard whose whole job is to
-    /// notice one.
     AutomationBlocker(Host2PluginInteropControler const &effect)
         : pBlockAutomation_(&effect.blockAutomation_)
     {

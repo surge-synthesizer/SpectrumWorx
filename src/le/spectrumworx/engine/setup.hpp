@@ -135,12 +135,12 @@ class Setup
 
         operator real_t &()
         {
-            LE_ASSUME(real >= 0);
+            LE_ASSERT(real >= 0);
             return real;
         }
         operator real_t const &() const
         {
-            LE_ASSUME(real >= 0);
+            LE_ASSERT(real >= 0);
             return real;
         }
         operator integer_t &() { return integer; }
@@ -151,7 +151,7 @@ class Setup
 
         template <typename T> PositiveNumber &operator=(T const other)
         {
-            LE_ASSUME(other >= 0);
+            LE_ASSERT(other >= 0);
             Math::convert(other, real);
             Math::convert(other, integer);
             return *this;

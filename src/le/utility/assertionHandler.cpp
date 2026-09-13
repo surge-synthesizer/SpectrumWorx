@@ -67,9 +67,6 @@ LE_WEAK_SYMBOL_CONST char const assertionFailureMessageTitle[] = "LE SDK asserti
 
 } // namespace LE
 
-#pragma warning(push)
-#pragma warning(disable : 4702) // Unreachable code.
-
 namespace
 {
 [[maybe_unused]] static void printAssertionFailureTitle()
@@ -105,8 +102,6 @@ static void printDebugMessage(char const *const message)
 }
 
 #ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable : 4505) // Unreferenced local function has been removed.
 static void printDebugMessage(wchar_t const *const message)
 {
     printAssertionFailureTitle();
@@ -114,8 +109,7 @@ static void printDebugMessage(wchar_t const *const message)
     ::OutputDebugStringW(message);
     ::fputws(message, stderr);
 }
-#pragma warning(pop) // was a second push
-#endif               // _WIN32
+#endif // _WIN32
 
 #ifdef _WIN32
 #define LE_ASSERT_HAS_MSGBOX
@@ -252,7 +246,5 @@ void assertionFailed(char const *const expression, char const *const message,
 #endif // LE_PUBLIC_BUILD
 }
 } // namespace LE::Utility
-
-#pragma warning(pop)
 
 #endif // ( !NDEBUG || LE_PUBLIC_BUILD ) && LE_ENABLE_ASSERT_HANDLER

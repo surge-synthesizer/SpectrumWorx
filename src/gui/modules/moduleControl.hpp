@@ -406,9 +406,6 @@ class ModuleControlBase
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
-
 template <class ImplWidget>
 class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
 {
@@ -429,7 +426,7 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
     using ImplWidget::getValue;
     using ImplWidget::setValue;
 
-    void setValue(float const value) override
+    void setValue(float value) override
     {
         return ImplWidget::setValue(Math::convert<typename BaseWidget::param_type>(value));
     }
@@ -531,8 +528,6 @@ class ModuleControlImpl final : public ModuleControlBase, public ImplWidget
     virtual void mouseEnter(juce::MouseEvent const &) override { reportHoveredControl(); }
     virtual void mouseExit(juce::MouseEvent const &) noexcept override { unhover(); }
 }; // class ModuleControlImpl
-
-#pragma warning(pop)
 
 } // namespace GUI
 

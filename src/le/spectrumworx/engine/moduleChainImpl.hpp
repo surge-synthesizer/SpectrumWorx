@@ -121,28 +121,24 @@ class ModuleChainBase :
         using reference = value_type &;
 
       public:
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wassume"
-#endif // __clang__
         chain_const_iterator(decltype(nullptr) = nullptr) {}
         chain_const_iterator(value_type const *LE_RESTRICT const pointer) : smart_ptr_t(pointer)
         {
-            LE_ASSUME(pointer);
+            LE_ASSERT(pointer);
         }
         chain_const_iterator(chain_const_iterator const &other) : smart_ptr_t(other)
         {
-            LE_ASSUME(this->get());
+            LE_ASSERT(this->get());
         }
         chain_const_iterator(chain_const_iterator &&other)
             : smart_ptr_t(std::forward<smart_ptr_t>(other))
         {
-            LE_ASSUME(this->get());
+            LE_ASSERT(this->get());
         }
         template <typename Source>
         chain_const_iterator(Source &&source) : smart_ptr_t(std::forward<Source>(source))
         {
-            LE_ASSUME(this->get());
+            LE_ASSERT(this->get());
         }
         /// \note Returns the old position by value, as post-increment is
         /// defined to. It used to advance and then hand back
@@ -162,32 +158,29 @@ class ModuleChainBase :
         chain_const_iterator &operator++()
         {
             Node *LE_RESTRICT const pThisNode(this->get());
-            LE_ASSUME(pThisNode);
+            LE_ASSERT(pThisNode);
             Node *LE_RESTRICT const pNextNode(pThisNode->next_.get());
-            LE_ASSUME(pNextNode);
-            LE_ASSUME(pThisNode->referenceCount_ >=
+            LE_ASSERT(pNextNode);
+            LE_ASSERT(pThisNode->referenceCount_ >=
                       1); // can be equal to 1 with iterators to a removed module...
             this->reset(pNextNode);
-            LE_ASSUME(this->get() == pNextNode);
+            LE_ASSERT(this->get() == pNextNode);
             return *this;
         }
         chain_const_iterator &operator--()
         {
             Node *LE_RESTRICT const pNode(this->get()->previous_.get());
-            LE_ASSUME(pNode);
+            LE_ASSERT(pNode);
             this->reset(pNode);
             return *this;
         }
         reference operator*() const
         {
             Node *LE_RESTRICT const pNode(this->get());
-            LE_ASSUME(pNode);
+            LE_ASSERT(pNode);
             return *pNode;
         }
         pointer operator->() const { return &this->operator*(); }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
 
         using smart_ptr_t::operator=;
     }; // class chain_const_iterator

@@ -34,9 +34,6 @@ namespace LE::SW
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma warning(push)
-#pragma warning(disable : 4127) // Conditional expression is constant.
-
 template <class Impl, class Protocol>
 class Plugin2HostPassiveInteropImpl : public Plugin2HostPassiveInteropController
 {
@@ -62,10 +59,6 @@ class Plugin2HostPassiveInteropImpl : public Plugin2HostPassiveInteropController
     static bool getParameterRanges(ParameterID, Plugins::ParameterInformation<Protocol> &,
                                    Program const *);
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
     struct
         ParameterValueStringGetter //...mrmlj...aggregate initialisation...: Plugin2HostPassiveInteropController::ParameterValueStringGetter
     {
@@ -101,7 +94,6 @@ class Plugin2HostPassiveInteropImpl : public Plugin2HostPassiveInteropController
 
         Plugin2HostPassiveInteropController::ParameterValueStringGetter const baseGetter;
     }; // struct ParameterValueStringGetter
-#pragma warning(pop)
 
     /// \note The engine's own Program, which is only the right one to read on the
     /// thread that owns it. Every `[main-thread]` caller passes its own; see the
@@ -243,17 +235,17 @@ class Plugin2HostActiveInteropImpl : public Base
   protected: // Plugin2HostInteropControler virtual overrides
     friend class Host2PluginInteropImpl<Impl, Protocol>;
     typedef Plugin2HostInteropControler::ParameterValueForAutomation ParameterValueForAutomation;
-    void automatedParameterBeginEdit(ParameterID const parameterID) const override final
+    void automatedParameterBeginEdit(ParameterID parameterID) const override final
     {
         return impl().host().automatedParameterBeginEdit(
             Plugin2HostInteropControler::make<typename Impl::ParameterSelector>(parameterID));
     }
-    void automatedParameterEndEdit(ParameterID const parameterID) const override final
+    void automatedParameterEndEdit(ParameterID parameterID) const override final
     {
         return impl().host().automatedParameterEndEdit(
             Plugin2HostInteropControler::make<typename Impl::ParameterSelector>(parameterID));
     }
-    void gestureBegin(char const *const description) const override final
+    void gestureBegin(char const *description) const override final
     {
         return impl().host().gestureBegin(description);
     }
@@ -270,8 +262,6 @@ class Plugin2HostActiveInteropImpl : public Base
     bool latencyChanged() override final;
 
 }; // class Plugin2HostActiveInteropImpl
-
-#pragma warning(pop)
 
 } // namespace LE::SW
 

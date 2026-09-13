@@ -25,7 +25,7 @@ namespace LE::SW::Effects::PhaseVocoderShared
 
 void PitchShiftParameters::setScalingFactor(float const newScale, std::uint16_t const numberOfBins)
 {
-    LE_ASSUME(newScale > 0);
+    LE_ASSERT(newScale > 0);
 
     float const minimumScaleForSpecifiedNumberOfBins((1.0f / Math::convert<float>(numberOfBins)) +
                                                      std::numeric_limits<float>::epsilon());
@@ -56,8 +56,9 @@ LE_NOINLINE void BaseParameters::setup(Engine::Setup const &engineSetupParam)
 
     auto const freqPerBin(pEngineSetup->frequencyRangePerBin<double>());
 
-    freqPerBin_ = freqPerBin;
-    expctRate_ = twoPi_d * pEngineSetup->stepSize<double>() / pEngineSetup->fftSize<double>();
+    freqPerBin_ = static_cast<float>(freqPerBin);
+    expctRate_ = static_cast<float>(twoPi_d * pEngineSetup->stepSize<double>() /
+                                    pEngineSetup->fftSize<double>());
     deviationFactor_ = freqPerBin * pEngineSetup->windowOverlappingFactor<double>() / twoPi_d;
 
 #if defined(_DEBUG) && !defined(__clang__) && 0 //...mrmlj...started failing even on msvc10...
@@ -368,8 +369,8 @@ void LE_NOINLINE analysis(AnalysisChannelState &state, Engine::FullChannelData_A
     // Bin 0 skipped:
     std::uint16_t const startBin(1);
     std::uint16_t const endBin(pData->size());
-    LE_ASSUME(endBin < 5000);
-    LE_ASSUME(endBin > 64);
+    LE_ASSERT(endBin < 5000);
+    LE_ASSERT(endBin > 64);
 #if defined(__clang__) &&                                                                          \
     /*...mrmlj...LTO warnings displayed as errors with Xcode7.3*/ !defined(__APPLE__)
 #pragma clang loop vectorize(enable) interleave(enable)
@@ -470,7 +471,7 @@ void LE_NOINLINE synthesis(SynthesisChannelState &state, DataRange const &anaFre
     float *LE_RESTRICT pFqPh(anaFreqInSynthPhaseOut.begin() + 1);
     float *LE_RESTRICT pPhaseSum(state.phaseSum().begin() + 1);
 
-    LE_ASSUME(counter % 2 == 0);
+    LE_ASSERT(counter % 2 == 0);
     while (counter--)
     {
         LE_ASSERT(Math::truncate(bin) == bin);

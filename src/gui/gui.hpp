@@ -219,7 +219,7 @@ template <class BaseComponent = juce::Component> class WidgetBase : public BaseC
     static void *operator new(std::size_t const count, void *LE_RESTRICT const pStorage)
     {
         (void)count;
-        LE_ASSUME(pStorage);
+        LE_ASSERT(pStorage);
         return pStorage;
     }
     static void operator delete(void *LE_RESTRICT const /*pObject*/,

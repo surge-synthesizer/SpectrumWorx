@@ -616,7 +616,7 @@ void ParametersLoader::loadModuleChain(ModuleChain &newChain)
         }
         else if (foundEffect && effectEnabled)
         {
-            LE_ASSUME(effectIndex >= 0);
+            LE_ASSERT(effectIndex >= 0);
             using namespace Engine;
             auto pModule(ModuleFactory::create<PresetModule>(effectIndex));
             if (pModule)
@@ -757,7 +757,7 @@ class LFODataLoader
     /// with no bound of its own (lfoImpl.cpp:357). A `.swp` or a session naming
     /// `wfrm="200"` was an indirect call through whatever followed that table,
     /// on the audio thread, on the first block after the load. `ph`, `lbnd` and
-    /// `ubnd` out of range make `LE_ASSUME(position >= 0 && <= 1)` false inside
+    /// `ubnd` out of range make `LE_ASSERT(position >= 0 && <= 1)` false inside
     /// the waveform functions, which is undefined behaviour by construction.
     ///
     ///   An out-of-range value is treated exactly as a missing one -- the
@@ -1028,9 +1028,6 @@ class LFODataSaver
     {
     }
 
-#pragma warning(push)
-#pragma warning(disable : 4127) // Conditional expression is constant.
-
     template <class LFOParameter> void operator()(LFOParameter const &element) const
     {
         // Implementation note:
@@ -1053,8 +1050,6 @@ class LFODataSaver
         parameterNode_.SetAttribute(std::string(streamingName<LFOParameter>()),
                                     PresetHandler::makeString(lfo_.adjustValueForPreset(element)));
     }
-
-#pragma warning(pop)
 
   private:
     TiXmlElement &parameterNode_;

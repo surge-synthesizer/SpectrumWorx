@@ -129,7 +129,7 @@ SWTest::Slot freezeFiring(double const freezeAt, double const meltAt,
                         /// `inverseTransitionTime_` is `1 / steps`, so zero
                         /// makes it infinity, and the first frame multiplies it
                         /// by a zero frame counter to get NaN. A checked build
-                        /// trips `LE_ASSUME( blendFactor >= 0 )` on it; a
+                        /// trips `LE_ASSERT( blendFactor >= 0 )` on it; a
                         /// shipping one mixes the NaN into the spectrum.
                         ///
                         ////////////////////////////////////////////////////////
@@ -274,7 +274,7 @@ TEST_CASE("A press is not swallowed by a block that produces no frame", "[effect
 /// allows and which `process()` documents as meaning "no transition". The
 /// implementation formed `1 / steps` for it -- infinity -- and multiplied that
 /// by a zero frame counter on the first frame to get NaN. A checked build
-/// aborted on `LE_ASSUME( blendFactor >= 0 )`; a shipping one mixed the NaN into
+/// aborted on `LE_ASSERT( blendFactor >= 0 )`; a shipping one mixed the NaN into
 /// the magnitude and frequency arrays, and everything downstream of it in the
 /// chain went with it.
 ///

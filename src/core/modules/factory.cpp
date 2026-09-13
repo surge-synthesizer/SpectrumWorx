@@ -105,7 +105,7 @@ template <class ModuleInterface> struct ModuleConstructor
         using EffectImplementation = typename Effects::ImplForIndex<EffectIndex::value>::type;
         using ModuleImplementation = typename ModuleInterface::template Impl<EffectImplementation>;
         result_type const result(new (this) ModuleImplementation(EffectIndex()));
-        LE_ASSUME(result);
+        LE_ASSERT(result);
         return result;
     }
 
@@ -121,7 +121,7 @@ template <class ModuleInterface> struct ModuleConstructor
         static_assert(std::is_same<EffectImplementation, Effects::ArmonizerImpl>::value,
                       "Internal inconsistency");
         auto const pModule(new (this) ModuleImplementation(ArmonizerIndex()));
-        LE_ASSUME(pModule);
+        LE_ASSERT(pModule);
         /// \note Through setBaseParameter() rather than into the parameter
         /// directly, so that the unmodulated value moves with it. Writing the
         /// storage behind the setter's back would leave this module claiming a
@@ -172,7 +172,7 @@ LE::Utility::IntrusivePtr<ModuleInterface> ModuleFactory::create(std::int8_t con
     std::int8_t const noModule(-1);
     if (effectIndex == noModule)
         return nullptr;
-    LE_ASSUME(effectIndex >= 0);
+    LE_ASSERT(effectIndex >= 0);
 
     bool const moduleEnabled(Effects::includedEffects[effectIndex]);
     if (!moduleEnabled)

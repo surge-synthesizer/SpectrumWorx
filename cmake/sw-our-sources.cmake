@@ -58,24 +58,15 @@ set(SW_OWN_SOURCE_ROOTS "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/tests"
 #
 # -Wno-unused-parameter: an unused parameter is how this codebase spells "the
 # interface has one and this override does not need it", several hundred times.
-#
-# -Wno-unknown-pragmas: 288 `#pragma warning(...)` lines, all MSVC diagnostic
-# control, which is *meant* to be inert off MSVC -- 3772 of the 3902 warnings the
-# baseline produced. Wrapping each in a macro was the alternative and it buys
-# nothing: the one real pragma bug in the tree was a `push` where a `pop` was
-# meant (assertionHandler.cpp), and an unknown-pragma warning cannot tell those
-# apart either. It was found by reading.
-#
-# MSVC gets nothing here on purpose. Nobody can run one from this machine --
-# Windows arrives as a build log -- and a warning level nobody has ever compiled
-# with is a fault injected into somebody else's afternoon. It belongs with the CI
-# matrix, where the first run is free. See issue #8.
 ################################################################################
 
-if (MSVC)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set(swWarningBaseline /W3)
+elseif (MSVC)
+    # clang-cl reports as MSVC and has no baseline yet
     set(swWarningBaseline "")
 else ()
-    set(swWarningBaseline -Wall -Wextra -Wno-unused-parameter -Wno-unknown-pragmas)
+    set(swWarningBaseline -Wall -Wextra -Wno-unused-parameter)
     # -Wdangling-reference arrived in GCC 13 and fired on any reference bound to a
     # call made through a temporary, whatever the reference turned out to point
     # at. ParentFromMember()(member) is exactly that shape and returns a reference
@@ -100,7 +91,7 @@ endif ()
 # Linux joined macOS on 05.08.2026, once GCC 15.2 built the tree clean: the 849
 # warnings it had to say over the Apple Clang baseline were five causes in our
 # own code -- restrict and const qualifiers on return types, which are ignored
-# there; `LE_ASSUME( &reference )`, which asserts what the language guarantees;
+# there; asserting `&reference`, which is what the language guarantees;
 # an unnamed enum meeting an effect index in a conditional; an FFT bin count
 # counted in int and compared against a std::size_t; and a knob paint() helper
 # hiding the virtual it overloads. Each was worth the edit on its own, which is
@@ -112,7 +103,9 @@ else ()
 endif ()
 option(SW_WERROR "Treat warnings in our own sources as errors" ${swWerrorDefault})
 
-if (SW_WERROR AND NOT MSVC)
+if (SW_WERROR AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    list(APPEND swWarningBaseline /WX)
+elseif (SW_WERROR AND NOT MSVC)
     list(APPEND swWarningBaseline -Werror)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         # The two #pragma message build banners -- which backend le/math/vector.cpp

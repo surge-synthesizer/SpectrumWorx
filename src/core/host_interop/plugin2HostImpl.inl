@@ -95,7 +95,7 @@ struct ParameterGetter : ParameterGetterBase<AutomatedParameter>
     result_type operator()(ParameterID::Module const parameterID,
                            Program const *LE_RESTRICT const pProgram) const
     {
-        LE_ASSUME(parameterID.moduleParameterIndex < Constants::maxNumberOfModuleParameters);
+        LE_ASSERT(parameterID.moduleParameterIndex < Constants::maxNumberOfModuleParameters);
         return (*this)(
             parameterID,
             pProgram->moduleChain().moduleAs<ActualModule>(parameterID.moduleIndex).get());
@@ -130,11 +130,6 @@ struct ParameterGetter : ParameterGetterBase<AutomatedParameter>
 /// no caller for the half of it that does not know the module type.
 ///
 ////////////////////////////////////////////////////////////////////////////////
-
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 
 template <class ActualModule, class AutomatedParameter> struct ParameterParser
 {
@@ -324,18 +319,11 @@ template <class ActualModule, class AutomatedParameter> struct ParameterParser
     LE::Parameters::LFO::Timing const lfoTiming;
 }; // struct ParameterParser
 
-#pragma warning(pop)
-
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class ParameterInfoGetter
 ///
 ////////////////////////////////////////////////////////////////////////////////
-
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 
 template <class Protocol> class ParameterInfoGetter : public Plugins::ParameterInformation<Protocol>
 {
@@ -441,8 +429,6 @@ template <class Protocol> class ParameterInfoGetter : public Plugins::ParameterI
     ParameterInfoGetter(ParameterInfoGetter const &) = delete;
     ~ParameterInfoGetter() = delete;
 }; // class ParameterInfoGetter
-
-#pragma warning(pop)
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -556,11 +542,6 @@ bool Plugin2HostPassiveInteropImpl<Impl, Protocol>::getParameterProperties(
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4389) // Signed/unsigned mismatch.
-#endif                          // _MSC_VER
-
 template <class Impl, class Protocol, class Base>
 bool Plugin2HostActiveInteropImpl<Impl, Protocol, Base>::latencyChanged()
 {
@@ -589,10 +570,6 @@ bool Plugin2HostActiveInteropImpl<Impl, Protocol, Base>::latencyChanged()
     auto const newLatency(impl().engineSetup().latencyInSamples());
     return impl().host().reportNewLatencyInSamples(newLatency);
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
 template <class Impl, class Protocol, class Base>
 void Plugin2HostActiveInteropImpl<Impl, Protocol, Base>::moduleChanged(

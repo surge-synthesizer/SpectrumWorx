@@ -8,8 +8,8 @@
 ///
 ///   ModuleDSP::getEffectParameterPtr() reaches a parameter by adding a
 /// std::uint8_t offset to the module, and opens with
-/// LE_ASSUME( pParameterOffsets_[ 0 ] == 0 ) -- an assumption the optimiser acts
-/// on, not an assert that survives a release build. Two properties keep it true,
+/// LE_ASSERT( pParameterOffsets_[ 0 ] == 0 ) -- an assert that does not survive
+/// a release build. Two properties keep it true,
 /// and neither is visible in the parameter table snapshot or in any golden,
 /// because both would fail as silently as reading the wrong bytes:
 ///

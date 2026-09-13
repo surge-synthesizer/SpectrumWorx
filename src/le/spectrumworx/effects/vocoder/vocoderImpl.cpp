@@ -143,11 +143,11 @@ class RC
 
     float process(float const sample, float const release) const
     {
-        LE_ASSUME(sample >= 0);
-        LE_ASSUME(envelope_ >= 0);
+        LE_ASSERT(sample >= 0);
+        LE_ASSERT(envelope_ >= 0);
         auto const delta(sample - envelope_);
         auto const newEnvelope((delta < 0) ? envelope_ + release * delta : sample);
-        LE_ASSUME(newEnvelope >= sample);
+        LE_ASSERT(newEnvelope >= sample);
         envelope_ = newEnvelope;
         return newEnvelope;
     }
@@ -228,10 +228,6 @@ class LogRC : private RC
 }; // class LogRC
 } // anonymous namespace
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4702) // Unreachable code.
-#endif                          // _MSC_VER
 void VocoderImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup const &setup) const
 {
     using namespace Math;
@@ -356,10 +352,6 @@ void VocoderImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup c
 
     //LE_ASSERT( data.main().amps()[ 0 ] == 0 ); //...mrmlj...envelope DC bin is currently not fully zeroed
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
 void VocoderImpl::lowPassSpectrum_cepstrum(DataRange const &spectrum, DataRange const &workBuffer,
                                            Engine::Setup const &engineSetup) const

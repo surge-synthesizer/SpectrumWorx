@@ -181,7 +181,7 @@ Plugins::AutomatedParameterValue getAutomatedLFOParameter(std::uint8_t const par
                                                           std::uint8_t const lfoParameterIndex,
                                                           ModuleParameters const &module)
 {
-    //...mrmlj...LE_ASSUME( parameterIndex < ( Constants::maxNumberOfParametersPerModule - 1 /*Bypass*/ ) );
+    //...mrmlj...LE_ASSERT( parameterIndex < ( Constants::maxNumberOfParametersPerModule - 1 /*Bypass*/ ) );
     if (parameterIndex >= module.numberOfLFOControledParameters()) [[unlikely]]
         return getDefaultAutomatedLFOParameter<AutomatedParameter>(lfoParameterIndex);
 
@@ -209,7 +209,7 @@ setAutomatedLFOParameter(std::uint8_t const parameterIndex, std::uint8_t const l
                          Plugins::AutomatedParameterValue const value, ModuleParameters &module,
                          LFO::Timing const &timing)
 {
-    LE_ASSUME(parameterIndex < (Constants::maxNumberOfParametersPerModule - 1 /*Bypass*/));
+    LE_ASSERT(parameterIndex < (Constants::maxNumberOfParametersPerModule - 1 /*Bypass*/));
 
     auto &lfo(module.lfo(parameterIndex));
     bool const wasEnabled(lfo.enabled());

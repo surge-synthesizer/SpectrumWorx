@@ -238,7 +238,7 @@ juce::Rectangle<float> BackgroundPainter::sideChainLockBounds()
 void BackgroundPainter::paintLFOWaveformWell(juce::Graphics &graphics,
                                              juce::Point<int> const origin)
 {
-    paintRule(graphics, rectangleOf(lfoWaveformWell).translated(-origin.x, -origin.y),
+    paintRule(graphics, rectangleOf(lfoWaveformWell) - origin.toFloat(),
               lfoWaveformWell.cornerRadius, ColourMap::EditorRule);
 }
 

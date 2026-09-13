@@ -40,9 +40,6 @@ typedef juce::String::CharPointerType::CharType char_t;
 static char_t const presetExtension[] = _T( ".swp" );
 } // namespace
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
-
 PresetBrowser::PresetBrowser()
     : PanelBackground(Browser),
       // the widget is six pixels larger than the pill each way, which is the
@@ -145,8 +142,6 @@ PresetBrowser::PresetBrowser()
     addToParentAndShow(*this, comment());
     addToParentAndShow(*this, listBox_);
 }
-
-#pragma warning(pop)
 
 PanelState &PresetBrowser::place()
 {

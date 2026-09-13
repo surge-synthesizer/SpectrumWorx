@@ -117,7 +117,7 @@ template <> class ParameterInformation<Protocol::CLAP>
                        (Parameter::unscaledMinimum != 0 /*LFO::PeriodScale*/);
 
         using Label = typename Parameters::DisplayValueTransformer<Parameter>::Suffix;
-        setUnit(Label::c_str(), Label::size());
+        setUnit(Label::c_str(), static_cast<unsigned int>(Label::size()));
     }
 
     void clear()

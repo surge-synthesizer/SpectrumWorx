@@ -312,7 +312,7 @@ template <> bool lexical_cast<bool>(char const *const valueString)
     LE_ASSERT(valueString[0] == '0' || valueString[0] == '1');
     LE_ASSERT(valueString[1] == '\0' || valueString[1] == '"' || valueString[1] == '<');
     std::uint8_t const value(valueString[0] - '0');
-    LE_ASSUME((value == 0) || (value == 1));
+    LE_ASSERT((value == 0) || (value == 1));
     return reinterpret_cast<bool const &>(value);
 }
 

@@ -98,9 +98,6 @@ unsigned int const controlValueVerticalOffset = 79;
 unsigned int const sampleNameVerticalOffset = 458;
 } // namespace Constants::Layout
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
-
 SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement const placement)
     : editorHost_(editorHost), panelPlacement_(placement), nextAvailableModuleSlot_(0),
 
@@ -108,9 +105,12 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
       /// it, from constants of its own -- a painter two layers below the editor
       /// cannot see one. The assertions at the top of the body are what keep
       /// the two from drifting apart.
-      in_(*this, BackgroundStyle::knobWells[0].x, BackgroundStyle::knobWells[0].y),
-      out_(*this, BackgroundStyle::knobWells[1].x, BackgroundStyle::knobWells[1].y),
-      mix_(*this, BackgroundStyle::knobWells[2].x, BackgroundStyle::knobWells[2].y),
+      in_(*this, static_cast<unsigned int>(BackgroundStyle::knobWells[0].x),
+          static_cast<unsigned int>(BackgroundStyle::knobWells[0].y)),
+      out_(*this, static_cast<unsigned int>(BackgroundStyle::knobWells[1].x),
+           static_cast<unsigned int>(BackgroundStyle::knobWells[1].y)),
+      mix_(*this, static_cast<unsigned int>(BackgroundStyle::knobWells[2].x),
+           static_cast<unsigned int>(BackgroundStyle::knobWells[2].y)),
 
       moduleMenuButton_(*this), dropIndicator_(mainArea_),
 
@@ -201,8 +201,6 @@ SpectrumWorxEditor::SpectrumWorxEditor(EditorHost &editorHost, PanelPlacement co
     // Last: nothing may reach a half-built editor.
     editorHost_.editorOpened(*this);
 }
-
-#pragma warning(pop)
 
 SpectrumWorxEditor::~SpectrumWorxEditor()
 {
@@ -966,10 +964,6 @@ void SpectrumWorxEditor::setLastModulePosition(std::uint_fast8_t const slotIndex
 
 namespace
 {
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 
 struct EditorMainAreaText
 {
@@ -980,8 +974,6 @@ struct EditorMainAreaText
     juce::Justification const justification;
     unsigned int const textLinesToUse;
 }; // struct EditorMainAreaText
-
-#pragma warning(pop)
 
 // Implementation note:
 //   To prevent the "static initialisation order fiasco" (occurring with
@@ -1860,13 +1852,13 @@ void EditorKnob::valueChanged() noexcept
     switch (parameterIndex_)
     {
     case IndexOf<GlobalParams, InputGain>::value:
-        LE_VERIFY(editor.globalParameterChanged<InputGain>(value, false));
+        LE_VERIFY(editor.globalParameterChanged<InputGain>(static_cast<float>(value), false));
         break;
     case IndexOf<GlobalParams, OutputGain>::value:
-        LE_VERIFY(editor.globalParameterChanged<OutputGain>(value, false));
+        LE_VERIFY(editor.globalParameterChanged<OutputGain>(static_cast<float>(value), false));
         break;
     case IndexOf<GlobalParams, MixPercentage>::value:
-        LE_VERIFY(editor.globalParameterChanged<MixPercentage>(value, false));
+        LE_VERIFY(editor.globalParameterChanged<MixPercentage>(static_cast<float>(value), false));
         break;
         LE_DEFAULT_CASE_UNREACHABLE();
     }
@@ -2784,9 +2776,6 @@ SpectrumWorxEditor::LFODisplay::ComponentPtr const
 };
 #undef LE_COMP_PTR
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
-
 SpectrumWorxEditor::LFODisplay::LFODisplay()
     : switch_(*this), quarter_(*this, 93, " N "), triplet_(*this, 93 + 27 * 1, " T "),
       dotted_(*this, 93 + 27 * 2 - 3, " D "), waveform_(*this), period_(*this),
@@ -2836,8 +2825,6 @@ SpectrumWorxEditor::LFODisplay::LFODisplay()
     period_.addListener(this);
     phase_.addListener(this);
 }
-
-#pragma warning(pop)
 
 SpectrumWorxEditor::LFODisplay::~LFODisplay() { editor().setDefaultFocusHandling(); }
 
@@ -2936,11 +2923,6 @@ juce::String rangeValueString(SpectrumWorxEditor::LFODisplay const &parent,
     return parent.control().getTextFromValue(static_cast<float>(periodScale));
 }
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-
 struct LFOTextData
 {
     typedef juce::String(StringGetter)(SpectrumWorxEditor::LFODisplay const &, double const &);
@@ -2954,8 +2936,6 @@ struct LFOTextData
     juce::Justification const justification;
 };
 
-#pragma warning(pop)
-
 std::size_t const lfoWidth = 174;
 
 LFOTextData sliderTexts[] = {
@@ -2966,18 +2946,11 @@ LFOTextData sliderTexts[] = {
     {0, &phaseString, 14, 177, 158, 18, juce::Justification::right},                   // phase %
 };
 
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-
 struct FixedText
 {
     char const *const string;
     unsigned int const verticalPosition;
 };
-
-#pragma warning(pop)
 
 static FixedText const fixedText[] = {
     {"Period", 37 + 14},
@@ -3942,9 +3915,6 @@ SpectrumWorxEditor &SpectrumWorxEditor::SampleArea::editor()
                                      &SpectrumWorxEditor::sampleArea_>()(*this);
 }
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
-
 SpectrumWorxEditor::Settings::Settings() /// \throws std::bad_alloc Out of memory
     : juce::TabbedComponent(juce::TabbedButtonBar::TabsAtTop),
 
@@ -3980,9 +3950,6 @@ SpectrumWorxEditor::Settings::~Settings()
     //this->fadeOutComponent( 200, 0, 0, 0.2f );
     clearTabs();
 }
-
-#pragma warning(push)
-#pragma warning(disable : 4702) // Unreachable code.
 
 void SpectrumWorxEditor::Settings::comboBoxValueChanged(ComboBox const &comboBox)
 {
@@ -4031,8 +3998,6 @@ void SpectrumWorxEditor::Settings::comboBoxValueChanged(ComboBox const &comboBox
     // still the old one. updateEngineInformation() polls for the new one
     settings.updateEngineInformation();
 }
-
-#pragma warning(pop)
 
 void SpectrumWorxEditor::Settings::updateEnginePage()
 {
@@ -4264,8 +4229,6 @@ void SpectrumWorxEditor::Settings::InterfacePage::paint(juce::Graphics &graphics
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
     PanelBackground::paint(graphics);
 }
-
-#pragma warning(pop)
 
 /// \note Drawn from the tab's name and a ButtonPainter rather than from a
 /// bitmap per tab, which is what lets the widths below follow the words. Where

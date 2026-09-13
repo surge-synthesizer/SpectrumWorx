@@ -55,9 +55,6 @@ static std::uint8_t const stopFrequencyThumbIndex = 2;
 static int const noThumb = -1;
 } // namespace Constants
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
-
 SharedModuleControls::SharedModuleControls()
     : /// \note In order to enable a simple parameter-to-control (index) mapping,
       /// the control widgets must be added to the parent SharedModuleControls
@@ -80,8 +77,6 @@ SharedModuleControls::SharedModuleControls()
 
     updateForEngineSetupChanges(editor().engineSetup());
 }
-
-#pragma warning(pop)
 
 void SharedModuleControls::updateForEngineSetupChanges(Engine::Setup const &setup)
 {
@@ -157,8 +152,6 @@ SpectrumWorxEditor const &SharedModuleControls::editor() const
     return const_cast<SharedModuleControls &>(*this).editor();
 }
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
@@ -199,7 +192,6 @@ SharedModuleControls::FrequencyRange::FrequencyRange()
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-#pragma warning(pop)
 
 void SharedModuleControls::FrequencyRange::setValue(float const value)
 {
@@ -479,9 +471,8 @@ void SharedModuleControls::FrequencyRange::reportInactiveControl()
 std::uint8_t SharedModuleControls::FrequencyRange::activeParameterIndex() const
 {
     verifyThumbAndParameterIndicies();
-    std::uint8_t const indexFromThumb(thumbToParameterIndex());
     std::uint8_t const indexFromControl(this->moduleParameterIndex());
-    LE_ASSUME(indexFromThumb == indexFromControl);
+    LE_ASSERT(thumbToParameterIndex() == indexFromControl);
     return indexFromControl;
 }
 

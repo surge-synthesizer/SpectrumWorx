@@ -176,7 +176,7 @@ class ModuleParameters : public ModuleNode
 
     LFO &baseLFO(std::uint8_t index)
     {
-        LE_ASSUME(index < numberOfLFOBaseParameters);
+        LE_ASSERT(index < numberOfLFOBaseParameters);
         return lfos()[index];
     }
     LFO const &baseLFO(std::uint8_t index) const
@@ -210,12 +210,6 @@ class ModuleParameters : public ModuleNode
     EffectMetaData const &metaData() const { return metaData_; }
 
   public:
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-#endif                  // _MSC_VER
     struct EffectMetaData
     {
         /// \note This carried an explicit `__fastcall` on the GNU side, added as
@@ -249,9 +243,6 @@ class ModuleParameters : public ModuleNode
         /// reference members already make it non-assignable, and the only
         /// instances are the per-effect statics, handed out by reference.
     }; // struct EffectMetaData
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
   protected:
     ModuleParameters(

@@ -44,7 +44,8 @@ void setPitchScale(PhaseVocoderShared::PitchShiftParameters &pitchShiftParameter
 {
     using namespace Detail;
     float const pitchScale(PhaseVocoderShared::PitchShiftParameters::scaleFromSemiTonesAndCents(
-        parameters.get<PitchShifterBase::SemiTones>(), parameters.get<PitchShifterBase::Cents>()));
+        parameters.get<PitchShifterBase::SemiTones>(),
+        static_cast<std::int8_t>(parameters.get<PitchShifterBase::Cents>())));
     pitchShiftParameters.setScalingFactor(pitchScale, numberOfBins);
 }
 } // anonymous namespace

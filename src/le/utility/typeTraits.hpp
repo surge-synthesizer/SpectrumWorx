@@ -24,7 +24,7 @@
 #include <type_traits>
 
 #include "abi.hpp"
-#include "assert.hpp" // LE_ASSUME
+#include "assert.hpp" // LE_ASSERT
 //------------------------------------------------------------------------------
 
 /// \note Kept because a `new (pRestrictPointer) T` in the engine relied on it
@@ -34,7 +34,7 @@
 template <typename T>
 void *__attribute__((nothrow)) operator new(std::size_t /*count*/, T * LE_RESTRICT *const pStorage)
 {
-    LE_ASSUME(pStorage);
+    LE_ASSERT(pStorage);
     return reinterpret_cast<void *>(reinterpret_cast<std::size_t>(pStorage));
 }
 #endif // __clang__

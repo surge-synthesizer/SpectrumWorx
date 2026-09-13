@@ -426,10 +426,10 @@ void ModuleKnob::updateForEngineSetupChanges(Engine::Setup const &engineSetup)
         return;
 
     using namespace Math::PositiveFloats;
-    LE_ASSUME(minimum >= 0);
-    LE_ASSUME(maximum > 0);
-    LE_ASSUME(quantization > 0);
-    LE_ASSUME(maximum > quantization);
+    LE_ASSERT(minimum >= 0);
+    LE_ASSERT(maximum > 0);
+    LE_ASSERT(quantization > 0);
+    LE_ASSERT(maximum > quantization);
     bool const quantumAsMinimum((minimum < quantization) && (minimum != 0));
     double const adjustedMinimum(
         quantumAsMinimum ? quantization
@@ -593,9 +593,6 @@ void DiscreteParameter::addParameterValueEntries(juce::PopupMenu &menu)
 
 void DiscreteParameter::selectionScrolled() { moduleParameterChanged(); }
 
-#pragma warning(push)
-#pragma warning(disable : 4355) // 'this' used in base member initializer list.
-
 ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Module> pModule,
                    std::uint8_t const slotIndex)
     : editor_(editor), pModule_(std::move(pModule)), bypass_(*this), eject_(*this)
@@ -663,8 +660,6 @@ ModuleUI::ModuleUI(SpectrumWorxEditor &editor, LE::Utility::IntrusivePtr<SW::Mod
 
     moveToSlot(slotIndex);
 }
-
-#pragma warning(pop)
 
 ModuleUI::~ModuleUI()
 {
@@ -890,7 +885,7 @@ void ModuleUI::setBaseParameter(std::uint8_t const sharedParameterIndex, float c
 {
     if (sharedParameterIndex == bypassIndex)
     {
-        LE_ASSUME(source == AutomationOrPreset);
+        LE_ASSERT(source == AutomationOrPreset);
         setBypass(Math::convert<bool>(parameterValue));
     }
     else
@@ -1036,7 +1031,7 @@ ModuleControlBase &ModuleUI::effectSpecificParameterControl(std::uint8_t const p
     LE_ASSERT_MSG(actualChildIndex < unsigned(this->getNumChildComponents()),
                   "Parameter index out of range.");
     juce::Component *LE_RESTRICT const pWidget(this->getChildComponent(actualChildIndex));
-    LE_ASSUME(pWidget);
+    LE_ASSERT(pWidget);
     return ModuleControlBase::controlForWidget(*pWidget);
 }
 ModuleControlBase const &

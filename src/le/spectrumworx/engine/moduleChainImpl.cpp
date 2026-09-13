@@ -202,9 +202,9 @@ void ModuleChainBase::swap(ModuleChainBase &other)
 
 void ModuleChainBase::moveModule(std::uint8_t const sourceIndex, std::uint8_t const targetIndex)
 {
-    LE_ASSUME(sourceIndex != targetIndex);
-    //LE_ASSUME( sourceIndex < Constants::maxNumberOfModules );
-    //LE_ASSUME( targetIndex < Constants::maxNumberOfModules );
+    LE_ASSERT(sourceIndex != targetIndex);
+    //LE_ASSERT( sourceIndex < Constants::maxNumberOfModules );
+    //LE_ASSERT( targetIndex < Constants::maxNumberOfModules );
     iterator const pSource(module(sourceIndex));
     iterator const pTarget(module(targetIndex));
     LE_ASSERT(pSource != end());
@@ -257,7 +257,7 @@ void ModuleChainBase::remove(Node &node)
 #endif // NDEBUG
 }
 
-/// \note Without the `LE_ASSUME( &module )` both of these opened with: the
+/// \note Without the `LE_ASSERT( &module )` both of these opened with: the
 /// address of a reference is not null by the language's own rules, so the
 /// assumption told the optimiser nothing and GCC 15 reported it as a nonnull
 /// argument compared to NULL.
@@ -269,16 +269,16 @@ ModuleChainBase::const_iterator ModuleChainBase::iterator_to(Node const &module)
 
 ModuleChainBase::iterator ModuleChainBase::begin()
 {
-    //LE_ASSUME( this->next_.get() );
+    //LE_ASSERT( this->next_.get() );
     //return reinterpret_cast<iterator const &>( this->next_ );
     auto *LE_RESTRICT const pNode(this->next_.get());
-    LE_ASSUME(pNode);
+    LE_ASSERT(pNode);
     return iterator(pNode);
 }
 ModuleChainBase::const_iterator ModuleChainBase::begin() const
 {
     auto const *LE_RESTRICT const pNode(this->next_.get());
-    LE_ASSUME(pNode);
+    LE_ASSERT(pNode);
     return const_iterator(pNode);
     //return reinterpret_cast<const_iterator const &>( const_cast<ModuleChainBase &>( *this ).begin() );
 }

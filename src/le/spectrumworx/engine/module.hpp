@@ -52,10 +52,6 @@ class ModuleDSP : public LE::SW::Engine::ModuleParameters
     using Parameters = Effects::BaseParameters::Parameters;
     using LFO = ModuleParameters::LFO;
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
-#endif                          // _MSC_VER
     class ChannelDataProxy
     {
       public:
@@ -76,9 +72,6 @@ class ModuleDSP : public LE::SW::Engine::ModuleParameters
         bool &amPh2ReIm_;
         bool const blendRequired_;
     }; // class ChannelDataProxy
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
     template <class Effect> class Impl;
 

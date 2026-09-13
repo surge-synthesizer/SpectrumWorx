@@ -8,8 +8,8 @@
 ///   A clap_id is 32 bits of host-supplied data and ParameterID decodes all of
 /// them: a discriminator in the top byte and up to three indices below it. Those
 /// indices reach `invokeFunctorOnIndexedParameter`, whose jump tables are
-/// `cases[index]` guarded by nothing but LE_ASSUME -- which is a
-/// `__builtin_assume` in a release build, so an out-of-range index is an
+/// `cases[index]` guarded by nothing but an LE_ASSERT -- which is absent from
+/// a release build, so an out-of-range index is an
 /// out-of-bounds read and then an indirect call through whatever it found.
 ///
 ///   isValidParamId() is the one place all four host entry points funnel

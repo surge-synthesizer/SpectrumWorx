@@ -170,13 +170,9 @@ ModuleParameters::ParameterInfos const &ModuleParameters::parameterInfos()
     return Detail::ParametersInformation<ModuleParameters::BaseParameters>::data;
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wassume"
-#endif // __clang__
 ParameterInfo const &ModuleParameters::parameterInfo(std::uint8_t const parameterIndex) const
 {
-    LE_ASSUME(parameterIndex < numberOfParameters());
+    LE_ASSERT(parameterIndex < numberOfParameters());
 
     ParameterInfo const *LE_RESTRICT pParameterInfos;
     std::uint8_t index(parameterIndex);
@@ -188,7 +184,7 @@ ParameterInfo const &ModuleParameters::parameterInfo(std::uint8_t const paramete
     {
         pParameterInfos = metaData_.pParameterInfos;
         index = effectSpecificParameterIndex(index);
-        LE_ASSUME(index < numberOfEffectSpecificParameters());
+        LE_ASSERT(index < numberOfEffectSpecificParameters());
     }
     return pParameterInfos[index];
 }
@@ -196,16 +192,13 @@ ParameterInfo const &ModuleParameters::parameterInfo(std::uint8_t const paramete
 ParameterInfo const &
 ModuleParameters::effectSpecificParameterInfo(std::uint8_t const parameterIndex) const
 {
-    LE_ASSUME(parameterIndex < numberOfEffectSpecificParameters());
+    LE_ASSERT(parameterIndex < numberOfEffectSpecificParameters());
     return metaData_.pParameterInfos[parameterIndex];
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif // __clang__
 
 std::uint8_t ModuleParameters::effectSpecificParameterIndex(std::uint8_t const parameterIndex)
 {
-    LE_ASSUME(parameterIndex >= numberOfBaseParameters);
+    LE_ASSERT(parameterIndex >= numberOfBaseParameters);
     return parameterIndex - numberOfBaseParameters;
 }
 

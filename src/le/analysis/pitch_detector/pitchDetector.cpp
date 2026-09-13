@@ -96,8 +96,8 @@ using namespace SW; //...mrmlj...
 
 bool operator<(HPS const &left, HPS const &right)
 {
-    LE_ASSUME(left.harmonicProduct >= 0);
-    LE_ASSUME(right.harmonicProduct >= 0);
+    LE_ASSERT(left.harmonicProduct >= 0);
+    LE_ASSERT(right.harmonicProduct >= 0);
     /// \note We want a descending sort.
     ///                                       (05.04.2016.) (Domagoj Saric)
     return left.harmonicProduct > right.harmonicProduct;

@@ -41,12 +41,12 @@ void DenoiserImpl::setup(IndexRange const &, Engine::Setup const &engineSetup)
     float const minAmpdB(-1);
     float const maxAmp(zerodBLevel * Math::dB2NormalisedLinear(maxAmpdB));
     float const minAmp(zerodBLevel * Math::dB2NormalisedLinear(minAmpdB));
-    LE_ASSUME(maxAmp == zerodBLevel);
-    LE_ASSUME(maxAmp > minAmp);
+    LE_ASSERT(maxAmp == zerodBLevel);
+    LE_ASSERT(maxAmp > minAmp);
 
     //factor_ = ( parameters().get<Factor>() / 1000.0f ) * 2.0f;
     factor_ = Math::percentage2NormalisedLinear(parameters().get<Intensity>()) * (maxAmp - minAmp);
-    LE_ASSUME(factor_ > 0);
+    LE_ASSERT(factor_ > 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -96,8 +96,8 @@ void DenoiserImpl::process(Engine::MainSideChannelData_AmPh data, Engine::Setup 
         }
 
         float const correctionFactor(mainAmp / (c + factor));
-        LE_ASSUME(correctionFactor >= 0);
-        LE_ASSUME(correctionFactor <= 1);
+        LE_ASSERT(correctionFactor >= 0);
+        LE_ASSERT(correctionFactor <= 1);
         mainAmp *= correctionFactor;
     }
 }

@@ -82,7 +82,7 @@ void AutomatedModuleImpl<Impl>::setAutomatedParameter(std::uint8_t const paramet
                                                       bool const normalised,
                                                       WhileModulated const whileModulated)
 {
-    //...mrmlj...LE_ASSUME( parameterIndex < SW::Constants::maxNumberOfParametersPerModule );
+    //...mrmlj...LE_ASSERT( parameterIndex < SW::Constants::maxNumberOfParametersPerModule );
 
     if (parameterIndex >= impl().numberOfParameters())
         return; // index out of range

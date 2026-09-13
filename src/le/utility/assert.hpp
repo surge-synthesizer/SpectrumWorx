@@ -65,30 +65,4 @@ void assertionFailed(char const *expression, char const *message,
 
 } // namespace LE::Utility
 
-/// \note LE_ASSUME lives here, in the one header that has LE_ASSERT_MSG, because
-/// it used to live in two: abi.hpp defined it as a bare unreachable guard and
-/// platformSpecifics.hpp #undef'd it and redefined it with an assert. Which one
-/// a translation unit got was decided by which of the two headers it had
-/// included -- and typeTraits.hpp calls it from inside the set that includes
-/// only abi.hpp, so the assert silently was not there.
-///
-///   [[assume]] is C++23, so the hint is still per-compiler. It expands to a
-/// statement, not an expression.
-#if defined(_MSC_VER) && !defined(__clang__)
-#define LE_AUX_ASSUME_HINT(condition) __assume(condition)
-#elif defined(__clang__)
-#define LE_AUX_ASSUME_HINT(condition) __builtin_assume(condition)
-#else // GCC has neither __builtin_assume nor, before 13, an assume attribute.
-#define LE_AUX_ASSUME_HINT(condition)                                                              \
-    if (!(condition))                                                                              \
-    __builtin_unreachable()
-#endif
-
-#define LE_ASSUME(condition)                                                                       \
-    do                                                                                             \
-    {                                                                                              \
-        LE_ASSERT_MSG(condition, "Assumption broken.");                                            \
-        LE_AUX_ASSUME_HINT(condition);                                                             \
-    } while (false)
-
 #endif // assert_hpp

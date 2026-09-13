@@ -148,7 +148,8 @@ bool LFO::enabled() const
 }
 std ::uint8_t LFO::syncTypes() const
 {
-    return static_cast<LFOImpl const &>(*this).parameters().get<SyncTypes>();
+    return static_cast<std::uint8_t>(
+        static_cast<LFOImpl const &>(*this).parameters().get<SyncTypes>());
 }
 LFOImpl::value_type LFO::phase() const
 {
@@ -232,45 +233,45 @@ using LFOState = LFOImpl::WaveformState;
 
 lfo_value_t sine(lfo_value_t const position, LFOState &, bool /*newPeriodBegun*/)
 {
-    LE_ASSUME(position >= 0);
-    LE_ASSUME(position <= 1);
+    LE_ASSERT(position >= 0);
+    LE_ASSERT(position <= 1);
     lfo_value_t const offsetSine(-std::cos(Math::Constants::twoPi * position));
     return convertToLFORange<-1, +1>(offsetSine);
 }
 
 lfo_value_t sawtooth(lfo_value_t const position, LFOState &, bool /*newPeriodBegun*/)
 {
-    LE_ASSUME(position >= 0);
-    LE_ASSUME(position <= 1);
+    LE_ASSERT(position >= 0);
+    LE_ASSERT(position <= 1);
     return convertToLFORange<0, 1>(position);
 }
 
 lfo_value_t reverseSawtooth(lfo_value_t const position, LFOState &, bool /*newPeriodBegun*/)
 {
-    LE_ASSUME(position >= 0);
-    LE_ASSUME(position <= 1);
+    LE_ASSERT(position >= 0);
+    LE_ASSERT(position <= 1);
     return convertToLFORange<0, 1>(1 - position);
 }
 
 lfo_value_t triangle(lfo_value_t const position, LFOState &state, bool const newPeriodBegun)
 {
-    LE_ASSUME(position >= 0);
-    LE_ASSUME(position <= 1);
+    LE_ASSERT(position >= 0);
+    LE_ASSERT(position <= 1);
     return (position < 0.5f) ? sawtooth(position * 2.0f, state, newPeriodBegun)
                              : reverseSawtooth((position - 0.5f) * 2.0f, state, newPeriodBegun);
 }
 
 lfo_value_t square(lfo_value_t const position, LFOState &, bool /*newPeriodBegun*/)
 {
-    LE_ASSUME(position >= 0);
-    LE_ASSUME(position <= 1);
+    LE_ASSERT(position >= 0);
+    LE_ASSERT(position <= 1);
     return position > 0.5f;
 }
 
 lfo_value_t exponent(lfo_value_t const position, LFOState &, bool /*newPeriodBegun*/)
 {
-    LE_ASSUME(position >= 0);
-    LE_ASSUME(position <= 1);
+    LE_ASSERT(position >= 0);
+    LE_ASSERT(position <= 1);
 
     lfo_value_t const e(2.71828182845904523536f);
 
@@ -304,8 +305,8 @@ lfo_value_t randomHold(lfo_value_t const position, LFOState &state, bool const n
 
 lfo_value_t randomSlide(lfo_value_t const position, LFOState &state, bool const newPeriodBegun)
 {
-    LE_ASSUME(position >= 0);
-    LE_ASSUME(position <= 1);
+    LE_ASSERT(position >= 0);
+    LE_ASSERT(position <= 1);
     if (newPeriodBegun)
     {
         lfo_value_t const oldTarget(state.values[0] + state.values[1]);
@@ -391,7 +392,7 @@ LFOImpl::value_type LFOImpl::getValue(Timer const &timer) const
 
     auto [periodIndex, currentPeriodNormalisedPosition](
         Math::splitFloat((periodOffset + currentTime) / periodScale));
-    // a position is a place inside a period; the waveforms LE_ASSUME it
+    // a position is a place inside a period; the waveforms assert it
     if (currentPeriodNormalisedPosition < 0)
     {
         currentPeriodNormalisedPosition += 1;
@@ -962,16 +963,10 @@ void LFOImpl::updateForNewTimingInformation(
 
 namespace
 {
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
 struct LFOParameterGetter
 {
     typedef Plugins::AutomatedParameterValue result_type;
 
-#pragma warning(push)
-#pragma warning(disable : 4127) // Conditional expression is constant.
     template <class Parameter> result_type operator()() const
     {
         LE_ASSERT_MSG(
@@ -984,11 +979,9 @@ struct LFOParameterGetter
             result = LFOImpl::linearisePeriodScale(result);
         return result;
     }
-#pragma warning(pop)
 
     float const value_;
 }; // class LFOParameterGetter
-#pragma warning(pop)
 } // namespace
 Plugins::AutomatedParameterValue LFOImpl::internal2AutomatedValue(std::uint8_t const parameterIndex,
                                                                   float const internalValue,

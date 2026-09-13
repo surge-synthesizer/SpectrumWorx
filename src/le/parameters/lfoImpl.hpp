@@ -151,13 +151,6 @@ class LFOImpl : public LFO
     class Timer
     {
       public:
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4510) // Default constructor could not be generated.
-#pragma warning(disable : 4512) // Assignment operator could not be generated.
-#pragma warning(disable                                                                            \
-                : 4610) // Class can never be instantiated - user-defined constructor required.
-#endif                  // _MSC_VER
         struct TimingInformationChange
         {
             bool timingInfoChanged() const
@@ -177,9 +170,6 @@ class LFOImpl : public LFO
             /// to carry a second argument beside it.
             Timing const timing_;
         }; // struct TimingInformationChange
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
       public:
         Timer();

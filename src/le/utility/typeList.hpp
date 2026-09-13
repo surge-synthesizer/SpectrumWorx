@@ -84,7 +84,7 @@ typename std::remove_reference_t<F>::result_type switchOn(TypeList<Types...>, In
 
         LE_ASSERT_MSG(static_cast<std::size_t>(index) < sizeof...(Types),
                       "Index outside the dispatched list.");
-        LE_ASSUME(static_cast<std::size_t>(index) < sizeof...(Types));
+        LE_ASSERT(static_cast<std::size_t>(index) < sizeof...(Types));
         return cases[static_cast<std::size_t>(index)](f);
     }
 }

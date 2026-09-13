@@ -10,8 +10,6 @@
 //------------------------------------------------------------------------------
 #ifndef configuration_hpp__58D224D7_933A_421B_98B8_CCB693BD44E7
 #define configuration_hpp__58D224D7_933A_421B_98B8_CCB693BD44E7
-#if defined(_MSC_VER) && !defined(DOXYGEN_ONLY)
-#endif // MSVC && !Doxygen
 //------------------------------------------------------------------------------
 #include "stdint.h"
 
@@ -46,10 +44,6 @@ unsigned short const defaultOverlapFactor = 4;
 
 unsigned short const defaultSampleRate = 44100;
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4480) // Nonstandard extension used: specifying underlying type for enum.
-#endif                          // _MSC_VER
 /// \brief DFT WOLA windowing function
 enum Window : /*std*/ ::uint8_t
 {
@@ -65,9 +59,6 @@ enum Window : /*std*/ ::uint8_t
 
     NumberOfWindows
 };
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
 
 Window const defaultWindow = Hann;
 } // namespace Constants

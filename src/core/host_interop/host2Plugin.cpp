@@ -15,9 +15,6 @@
 namespace LE
 {
 
-#pragma warning(push)
-#pragma warning(disable : 4127) // Conditional expression is constant.
-
 //...mrmlj...orphan...
 /// \note `Char const *string`, not `Char const *const string`, and the const is
 /// not merely redundant here -- it made this function unlinkable under clang-cl.
@@ -63,8 +60,6 @@ char *copyToBuffer(Char const *string, LE::Utility::Span<char> const &buffer)
 
     return pDestinationCharacter;
 }
-
-#pragma warning(pop)
 
 template char *copyToBuffer<char>(char const *, LE::Utility::Span<char> const &);
 #ifdef _WIN32
