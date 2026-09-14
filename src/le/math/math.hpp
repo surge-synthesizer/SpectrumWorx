@@ -64,6 +64,7 @@ int round(float value);
 int round(double value);
 int truncate(float value);
 
+// floored into [0, divisor), for a positive divisor
 float modulo(float dividend, float divisor);
 int modulo(int dividend, int divisor);
 unsigned int modulo(unsigned int dividend, unsigned int divisor);

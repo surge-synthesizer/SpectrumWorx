@@ -89,42 +89,36 @@ int floor(float const value) { return truncate(std::floor(value)); }
 
 int ceil(float const value) { return truncate(std::ceil(value)); }
 
+namespace
+{
+// round the circle, so either side of the wrap is the same angle
+[[maybe_unused]] double distanceFromFlooredRemainder(float const mod, float const dividend,
+                                                     float const divisor)
+{
+    double reference(std::fmod(static_cast<double>(dividend), static_cast<double>(divisor)));
+    if (reference < 0)
+        reference += divisor;
+    double const distance(std::fabs(mod - reference));
+    return std::min(distance, std::fabs(distance - divisor));
+}
+} // anonymous namespace
+
 // http://ompf.org/forum/viewtopic.php?f=11&t=1271
 // http://mubench.sourceforge.net/results.html
 float modulo(float const dividend, float const divisor)
 {
-    LE_ASSERT(divisor != 0);
+    LE_ASSERT(divisor > 0);
     int const divisionFloor(floor(dividend / divisor));
-    float const mod(dividend - (divisionFloor * divisor));
-    // Implementation note:
-    //   std::fmod() works with double precision so its internal divisionFloor
-    // result can differ by one from ours when dividend / divisor is very close
-    // to an integer. In these cases our routine will produce a small negative
-    // mod result and will thus differ from the std::fmod() result so we skip
-    // the below sanity check for those cases.
-    //                                        (05.01.2011.) (Domagoj Saric)
-    /// \note The reference used to be std::fmod, which truncates towards zero
-    /// where this floors -- so the two differ by exactly `divisor` for every
-    /// negative dividend, and the assert fired on all of them. Flooring is
-    /// deliberate here (it is what makes this usable for phase mapping into
-    /// [0, 2pi)), so the reference is the floored modulo, not fmod.
-    /// Phasevolution was the first effect to feed it a negative dividend.
-    ///
-    /// \note The skip compares the two *floors*: truncation agrees where they
-    /// differ, which is how -10pi mod 2pi got through it.
-    ///
-    /// \note The tolerance is scaled to the dividend rather than to the result.
-    /// `mod` is a cancellation, so its error is an ulp of the dividend however
-    /// small the remainder -- and a ULP count on the result only held where the
-    /// compiler could fuse the multiply-subtract, which x86-64 cannot.
-    LE_ASSERT_MSG((std::fabs(mod - static_cast<float>(std::fmod(dividend, divisor) +
-                                                      ((std::fmod(dividend, divisor) != 0) &&
-                                                               ((dividend < 0) != (divisor < 0))
-                                                           ? divisor
-                                                           : 0))) <=
-                   8 * std::fabs(dividend) * std::numeric_limits<float>::epsilon()) ||
-                      (divisionFloor != static_cast<int>(std::floor(static_cast<double>(dividend) /
-                                                                    static_cast<double>(divisor)))),
+    float mod(dividend - (divisionFloor * divisor));
+    // the quotient can floor one high, and a tiny negative plus the divisor rounds onto it
+    if (mod < 0)
+        mod += divisor;
+    if (mod >= divisor)
+        mod -= divisor;
+    // a cancellation, so the error is an ulp of the dividend however small the result
+    LE_ASSERT_MSG(distanceFromFlooredRemainder(mod, dividend, divisor) <=
+                      8 * std::max(std::fabs(dividend), divisor) *
+                          std::numeric_limits<float>::epsilon(),
                   "Broken modulo.");
     return mod;
 }

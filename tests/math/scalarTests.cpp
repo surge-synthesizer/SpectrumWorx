@@ -19,10 +19,13 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <limits>
+#include <vector>
 //------------------------------------------------------------------------------
 
 using Catch::Approx;
@@ -111,15 +114,58 @@ TEST_CASE("modulo matches std::fmod for positive operands", "[math][scalar]")
     CHECK(Math::modulo(7u, 3u) == 1u);
 }
 
-TEST_CASE("modulo survives a quotient that floors differently in double", "[math][scalar]")
+TEST_CASE("modulo is never negative and never the divisor itself", "[math][scalar]")
 {
-    // -10pi mod 2pi: the float quotient is exactly -5, the double one is
-    // -5.0000000758, so the two floors differ by one and the debug-only
-    // reference check has to know that rather than fire
     constexpr float twoPi{6.28318548f};
-    CHECK(Math::modulo(-31.4159279f, twoPi) == Approx(0).margin(1e-5));
-    CHECK(Math::modulo(-43.9822998f, twoPi) == Approx(0).margin(1e-5));
-    CHECK(Math::modulo(9179.77246f, -3059.92407f) == Approx(0).margin(1e-3));
+    auto const infinity(std::numeric_limits<float>::infinity());
+
+    std::vector<float> dividends;
+    // the float quotient can round onto k and floor one high \see issue #236
+    for (int k(-4096); k <= 4096; ++k)
+    {
+        float const multiple(static_cast<float>(k) * twoPi);
+        float below(multiple), above(multiple);
+        dividends.push_back(multiple);
+        for (int step(0); step < 16; ++step)
+        {
+            below = std::nextafter(below, -infinity);
+            above = std::nextafter(above, infinity);
+            dividends.push_back(below);
+            dividends.push_back(above);
+        }
+    }
+    // just below zero, adding the divisor rounds onto it
+    for (float magnitude(1e-12f); magnitude < 1e-5f; magnitude *= 1.01f)
+    {
+        dividends.push_back(-magnitude);
+        dividends.push_back(magnitude);
+    }
+
+    std::size_t outOfRange(0), wrongAngle(0);
+    float firstOutOfRange(0), firstWrongAngle(0);
+    for (auto const dividend : dividends)
+    {
+        float const mod(Math::modulo(dividend, twoPi));
+        if (!(mod >= 0 && mod < twoPi) && !outOfRange++)
+            firstOutOfRange = dividend;
+
+        double reference(std::fmod(static_cast<double>(dividend), twoPi));
+        if (reference < 0)
+            reference += twoPi;
+        // the same angle either side of the wrap is right
+        double const distance(std::fabs(mod - reference));
+        double const angle(std::min(distance, std::fabs(distance - twoPi)));
+        if (angle >
+                8 * std::max(std::fabs(dividend), twoPi) * std::numeric_limits<float>::epsilon() &&
+            !wrongAngle++)
+            firstWrongAngle = dividend;
+    }
+    INFO("first out of range: modulo(" << firstOutOfRange
+                                       << ", 2pi) = " << Math::modulo(firstOutOfRange, twoPi));
+    CHECK(outOfRange == 0);
+    INFO("first wrong angle: modulo(" << firstWrongAngle
+                                      << ", 2pi) = " << Math::modulo(firstWrongAngle, twoPi));
+    CHECK(wrongAngle == 0);
 }
 
 TEST_CASE("Power-of-two helpers", "[math][scalar]")
