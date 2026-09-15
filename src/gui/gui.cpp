@@ -390,6 +390,11 @@ PaintedButton::PaintedButton(juce::Component &parent, juce::String const &text, 
     addToParentAndShow(parent, *this);
 }
 
+bool isHovered(juce::Component const &widget, bool const includeChildren)
+{
+    return widget.isEnabled() && widget.isMouseOverOrDragging(includeChildren);
+}
+
 /// \note A transparency layer rather than a colour with an alpha in it: what is
 /// being faded is a drawing of half a dozen fills, and fading each separately
 /// would show their overlaps.
@@ -1273,6 +1278,50 @@ void HorizontalSlider::mouseDrag(juce::MouseEvent const &event)
     juce::Slider::mouseDrag(refinedDrag(fine_, event));
 }
 
+int HorizontalSlider::hoveredThumb() const
+{
+    if (!isEnabled())
+        return -1;
+    // a drag keeps its thumb lit wherever the pointer has wandered
+    if (auto const dragged(getThumbBeingDragged()); dragged >= 0)
+        return dragged;
+    return hoveredThumb_;
+}
+
+int HorizontalSlider::thumbNearest(float const x) const
+{
+    if (getSliderStyle() != TwoValueHorizontal)
+        return 0;
+    // juce::Slider's own nudge, so that coincident thumbs split the same way a press does
+    auto const toMinimum(
+        std::abs(static_cast<float>(getPositionOfValue(getMinValue())) - 0.1f - x));
+    auto const toMaximum(
+        std::abs(static_cast<float>(getPositionOfValue(getMaxValue())) + 0.1f - x));
+    return (toMinimum < toMaximum) ? 1 : 2;
+}
+
+void HorizontalSlider::mouseEnter(juce::MouseEvent const &event)
+{
+    hoveredThumb_ = thumbNearest(event.position.x);
+    juce::Slider::mouseEnter(event);
+}
+
+void HorizontalSlider::mouseMove(juce::MouseEvent const &event)
+{
+    if (auto const thumb(thumbNearest(event.position.x)); thumb != hoveredThumb_)
+    {
+        hoveredThumb_ = thumb;
+        repaint();
+    }
+    juce::Slider::mouseMove(event);
+}
+
+void HorizontalSlider::mouseExit(juce::MouseEvent const &event)
+{
+    hoveredThumb_ = -1;
+    juce::Slider::mouseExit(event);
+}
+
 Knob::Knob(juce::Component &parent, unsigned int const x, unsigned int const y,
            unsigned int const xMargin, unsigned int const yMargin)
 {
@@ -1685,7 +1734,8 @@ void EditorKnob::paint(juce::Graphics &graphics)
     // valueToProportionOfLength() rather than getNormalisedValue(), so a skewed
     // range -- which the two gains have -- points where the artwork does
     paintEditorKnob(graphics, juce::Rectangle<float>(0, 0, diameter, diameter),
-                    static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())));
+                    static_cast<float>(juce::Slider::valueToProportionOfLength(Knob::getValue())),
+                    isHovered(*this) ? hoverStrength : 0.0f);
 
     // a main knob shows its value inside its own face
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
@@ -1800,6 +1850,7 @@ TitledComboBox::TitledComboBox(juce::Component &parent, unsigned int const x, un
     TitledComboBox::setBounds(x, y, getWidth(), getHeight() + 23);
     setWantsKeyboardFocus(true);
     setMouseClickGrabsKeyboardFocus(false);
+    setRepaintsOnMouseActivity(true);
 }
 
 void TitledComboBox::paint(juce::Graphics &graphics)
@@ -1852,6 +1903,8 @@ TitledTextBox::TitledTextBox(juce::Component &parent, unsigned int const x, unsi
                       ColourMap::getColour(ColourMap::Transparent));
     editor_.setColour(juce::TextEditor::textColourId, ColourMap::getColour(ColourMap::Text));
     editor_.addListener(this);
+    // the editor covers most of the box, so its pointer is the box's
+    editor_.addMouseListener(this, true);
 
     // ComboBox::textMargin either side, so a typed name sits where a chosen
     // one does
@@ -1883,8 +1936,12 @@ void TitledTextBox::commit()
 
 void TitledTextBox::paint(juce::Graphics &graphics)
 {
+    // as ComboBox::paint() says it, so the two in one column answer the pointer alike
     auto const accent(ColourMap::getColour(ColourMap::Accent));
-    auto const rim(hasFocus() ? ColourMap::getColour(ColourMap::FocusHalo) : accent);
+    auto const white(ColourMap::getColour(ColourMap::FocusHalo));
+    auto const rim(hasFocus()               ? white
+                   : isHovered(*this, true) ? accent.interpolatedWith(white, hoverStrength)
+                                            : accent);
 
     FramePainter::paint(graphics,
                         juce::Rectangle<float>(0, static_cast<float>(boxTop),

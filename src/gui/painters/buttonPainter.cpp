@@ -11,6 +11,7 @@
 #include "gui/painters/buttonPainter.hpp"
 
 #include "gui/colourMap.hpp"
+#include "gui/painters/highlight.hpp"
 #include "gui/resources.hpp"
 
 #include <cmath>
@@ -89,7 +90,8 @@ void paintGlow(juce::Graphics &graphics, juce::Rectangle<float> const pill, floa
 ////////////////////////////////////////////////////////////////////////////////
 
 void ButtonPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
-                          Shape const shape, bool const selected, juce::String const &text)
+                          Shape const shape, bool const selected, juce::String const &text,
+                          bool const hovered)
 {
     auto const pill(pillWithin(bounds, shape));
     auto const radius(radiusFor(shape));
@@ -106,6 +108,12 @@ void ButtonPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const
         graphics.setGradientFill(face(pill, ColourMap::getColour(ColourMap::Accent),
                                       ColourMap::getColour(ColourMap::TabFaceBottom),
                                       selectedTabEase, selectedTabStops));
+    else if ((shape == Tab) && hovered)
+        graphics.setGradientFill(face(
+            pill,
+            ColourMap::getColour(ColourMap::TabFaceTop)
+                .interpolatedWith(ColourMap::getColour(ColourMap::Accent), hoverStrength),
+            ColourMap::getColour(ColourMap::TabFaceBottom), selectedTabEase, selectedTabStops));
     else if (shape == Tab)
         graphics.setGradientFill(face(pill, ColourMap::getColour(ColourMap::TabFaceTop),
                                       ColourMap::getColour(ColourMap::TabFaceBottom), 1.0f, 0));

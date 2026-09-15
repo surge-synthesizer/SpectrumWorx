@@ -312,7 +312,14 @@ class BackgroundPainter
     ///
     ////////////////////////////////////////////////////////////////////////////
 
-    static void paintLFOWaveformWell(juce::Graphics &, juce::Point<int> origin);
+    static void paintLFOWaveformWell(juce::Graphics &, juce::Point<int> origin, float hover = 0.0f);
+
+    /// the sidechain source box's hover, for a widget at \p origin
+    static void paintSideChainSourceHover(juce::Graphics &, juce::Point<int> origin,
+                                          float strength);
+
+    /// the logo's hover: a glow behind it, and the logo again on top
+    static void paintLogoHover(juce::Graphics &, float strength);
 
     /// where the logo is drawn, which is also what a click on it hits
     static juce::Rectangle<float> logoBounds();

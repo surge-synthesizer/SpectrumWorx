@@ -10,6 +10,7 @@
 //------------------------------------------------------------------------------
 #include "gui/painters/panelPainter.hpp"
 
+#include "gui/painters/framePainter.hpp"
 #include "gui/painters/ruleStyle.hpp"
 
 #include "gui/colourMap.hpp"
@@ -80,8 +81,19 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
 
     outline(graphics, {fieldInset, 42.f, 267.f, 41.f}, cornerRadius);   // the button row
     outline(graphics, {fieldInset, 114.f, 267.f, 324.f}, cornerRadius); // the list
-    outline(graphics, {fieldInset, 446.f, 267.f, 47.f}, cornerRadius);  // the comment box
+    outline(graphics, presetCommentField(), cornerRadius);
     outline(graphics, {fieldInset, authorFieldTop, 267.f, authorFieldHeight}, cornerRadius);
+}
+
+juce::Rectangle<float> PanelPainter::presetCommentField()
+{
+    return {fieldInset, 446.f, 267.f, 47.f};
+}
+
+void PanelPainter::paintPresetCommentHover(juce::Graphics &graphics, float const strength)
+{
+    FramePainter::paintInnerGlow(graphics, presetCommentField(), cornerRadius, frameThickness,
+                                 strength);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -85,6 +85,10 @@ class FramePainter
     /// something else against it.
     static juce::Rectangle<float> rimWithin(juce::Rectangle<float> bounds, FrameStyle const &);
 
+    /// a hover halo inside a rule already drawn, so a widget no bigger than its box can draw it
+    static void paintInnerGlow(juce::Graphics &, juce::Rectangle<float> shape, float cornerRadius,
+                               float ruleThickness, float strength);
+
   public:
     FramePainter() = delete; // a drawing, not an object
 }; // class FramePainter

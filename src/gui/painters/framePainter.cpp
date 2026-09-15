@@ -12,6 +12,8 @@
 
 #include "gui/colourMap.hpp"
 
+#include <algorithm>
+
 namespace LE::SW::GUI
 {
 
@@ -81,6 +83,30 @@ void FramePainter::paint(juce::Graphics &graphics, juce::Rectangle<float> const 
 
     graphics.setColour(rim);
     graphics.fillPath(outline);
+}
+
+void FramePainter::paintInnerGlow(juce::Graphics &graphics, juce::Rectangle<float> const shape,
+                                  float const cornerRadius, float const ruleThickness,
+                                  float const strength)
+{
+    unsigned int constexpr rings{4};
+    float constexpr innerAlpha{0.6f};
+    float constexpr outerAlpha{0.05f};
+
+    if (strength <= 0)
+        return;
+
+    // hairlines side by side rather than stacked fills, which would cover the middle
+    auto const white(ColourMap::getColour(ColourMap::FocusHalo));
+    for (unsigned int ring(0); ring < rings; ++ring)
+    {
+        auto const inwards(static_cast<float>(ring) / (rings - 1));
+        auto const inset(ruleThickness + static_cast<float>(ring) + 0.5f);
+        graphics.setColour(
+            white.withAlpha(strength * (innerAlpha + (outerAlpha - innerAlpha) * inwards)));
+        graphics.drawRoundedRectangle(shape.reduced(inset), std::max(0.0f, cornerRadius - inset),
+                                      1.0f);
+    }
 }
 
 } // namespace LE::SW::GUI

@@ -955,10 +955,16 @@ class SpectrumWorxEditor final : private SkinLifetime,
         void paint(juce::Graphics &) override;
         /// \brief The logo, which opens the About page. \see the definition.
         void mouseDown(juce::MouseEvent const &) override;
+        void mouseMove(juce::MouseEvent const &) override;
+        void mouseExit(juce::MouseEvent const &) override;
 
       private:
         SpectrumWorxEditor &editor();
         SpectrumWorxEditor const &editor() const;
+
+        void setLogoHovered(bool);
+
+        bool logoHovered_{false};
     }; // class MainArea
 
     /// \brief Where every widget but a panel lives. \see MainArea.
@@ -1190,6 +1196,7 @@ class SpectrumWorxEditor final : private SkinLifetime,
         std::unique_ptr<juce::AccessibilityHandler> createAccessibilityHandler() override;
 
       private: // JUCE Component overrides.
+        void paint(juce::Graphics &) override;
         void mouseUp(juce::MouseEvent const &) override;
         bool keyPressed(juce::KeyPress const &) override;
 

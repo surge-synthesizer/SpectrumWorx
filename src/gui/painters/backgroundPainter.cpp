@@ -11,6 +11,7 @@
 //------------------------------------------------------------------------------
 #include "gui/painters/backgroundPainter.hpp"
 
+#include "gui/painters/framePainter.hpp"
 #include "gui/painters/glyphPainter.hpp"
 #include "gui/resources.hpp"
 
@@ -236,15 +237,44 @@ juce::Rectangle<float> BackgroundPainter::sideChainLockBounds()
 /// \note A rule and nothing else: what shows inside it is the LFO box it is cut
 /// into, which the chassis has already drawn.
 void BackgroundPainter::paintLFOWaveformWell(juce::Graphics &graphics,
-                                             juce::Point<int> const origin)
+                                             juce::Point<int> const origin, float const hover)
 {
-    paintRule(graphics, rectangleOf(lfoWaveformWell) - origin.toFloat(),
-              lfoWaveformWell.cornerRadius, ColourMap::EditorRule);
+    auto const well(rectangleOf(lfoWaveformWell) - origin.toFloat());
+    paintRule(graphics, well, lfoWaveformWell.cornerRadius, ColourMap::EditorRule);
+    FramePainter::paintInnerGlow(graphics, well, lfoWaveformWell.cornerRadius, ruleThickness,
+                                 hover);
+}
+
+void BackgroundPainter::paintSideChainSourceHover(juce::Graphics &graphics,
+                                                  juce::Point<int> const origin,
+                                                  float const strength)
+{
+    FramePainter::paintInnerGlow(graphics, rectangleOf(sideChainSourceBox) - origin.toFloat(),
+                                 sideChainSourceBox.cornerRadius, ruleThickness, strength);
 }
 
 juce::Rectangle<float> BackgroundPainter::logoBounds()
 {
     return {logoX, logoY, logoWidth, logoHeight};
+}
+
+void BackgroundPainter::paintLogoHover(juce::Graphics &graphics, float const strength)
+{
+    float constexpr reach{0.8f}; // of the logo's width, from its centre
+    float constexpr centreAlpha{0.45f};
+
+    if (strength <= 0)
+        return;
+
+    auto const logo(logoBounds());
+    auto const white(ColourMap::getColour(ColourMap::FocusHalo));
+    auto const radius(reach * logo.getWidth());
+    juce::ColourGradient glow(white.withAlpha(strength * centreAlpha), logo.getCentre(),
+                              white.withAlpha(0.0f), logo.getCentre().translated(radius, 0), true);
+    graphics.setGradientFill(glow);
+    graphics.fillEllipse(logo.withSizeKeepingCentre(2 * radius, 2 * radius));
+
+    logoArtwork().drawWithin(graphics, logo);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -200,3 +200,52 @@ TEST_CASE("Alt drags a two-value slider's thumbs together", "[gui][slider]")
         CHECK(slider.getMaxValue() == Catch::Approx(RangeFixture::high));
     }
 }
+
+// the hover halo marks a thumb, and it has to be the one a press would then take
+TEST_CASE("A slider's hover marks the thumb a press would take", "[gui][slider]")
+{
+    SECTION("one thumb")
+    {
+        Fixture fixture;
+        auto &widget(static_cast<juce::Component &>(fixture.slider));
+        CHECK(fixture.slider.hoveredThumb() == -1);
+
+        widget.mouseEnter(eventAt(fixture.slider, 10, 10, 0, false));
+        CHECK(fixture.slider.hoveredThumb() == 0);
+
+        widget.mouseExit(eventAt(fixture.slider, 10, 10, 0, false));
+        CHECK(fixture.slider.hoveredThumb() == -1);
+    }
+
+    SECTION("two thumbs, and the press agrees")
+    {
+        RangeFixture fixture;
+        auto &slider(fixture.slider);
+        auto &widget(static_cast<juce::Component &>(slider));
+        auto const low(static_cast<float>(slider.getPositionOfValue(RangeFixture::low)));
+        auto const high(static_cast<float>(slider.getPositionOfValue(RangeFixture::high)));
+
+        widget.mouseEnter(eventAt(slider, low, low, 0, false));
+        CHECK(slider.hoveredThumb() == 1);
+
+        auto const nearerHigh(low + 0.75f * (high - low));
+        widget.mouseMove(eventAt(slider, nearerHigh, nearerHigh, 0, false));
+        CHECK(slider.hoveredThumb() == 2);
+
+        widget.mouseDown(eventAt(slider, nearerHigh, nearerHigh, 0, false));
+        CHECK(slider.getThumbBeingDragged() == 2);
+        widget.mouseUp(eventAt(slider, nearerHigh, nearerHigh, 0, true));
+
+        widget.mouseExit(eventAt(slider, nearerHigh, nearerHigh, 0, false));
+        CHECK(slider.hoveredThumb() == -1);
+    }
+
+    SECTION("a disabled slider marks nothing")
+    {
+        Fixture fixture;
+        fixture.slider.setEnabled(false);
+        static_cast<juce::Component &>(fixture.slider)
+            .mouseEnter(eventAt(fixture.slider, 10, 10, 0, false));
+        CHECK(fixture.slider.hoveredThumb() == -1);
+    }
+}

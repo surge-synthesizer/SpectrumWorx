@@ -13,6 +13,7 @@
 
 #include "resources.hpp"
 
+#include "gui/painters/highlight.hpp"
 #include "gui/painters/ruleStyle.hpp"
 
 #include "le/utility/assert.hpp"
@@ -312,21 +313,26 @@ void Theme::drawLinearSliderThumb(juce::Graphics &graphics, int const /*x*/, int
     auto const markedThumb(pParameterThumbs ? pParameterThumbs->selectedThumb()
                                             : slider.getThumbBeingDragged());
     auto const halo(pParameterThumbs ? pParameterThumbs->selectedThumbHalo() : 0.0f);
+    auto const *const pHoverThumbs(dynamic_cast<SliderWithHoveredThumb const *>(&slider));
+    auto const hoveredThumb(pHoverThumbs ? pHoverThumbs->hoveredThumb() : -1);
 
-    auto const bead([&](float const position, bool const marked) {
-        paintSliderThumb(graphics, position, y, height, pParameterThumbs || marked,
-                         marked ? halo : 0.0f);
+    auto const bead([&](float const position, int const thumb) {
+        bool const marked(thumb == markedThumb);
+        auto const glow(pParameterThumbs          ? (marked ? halo : 0.0f)
+                        : (thumb == hoveredThumb) ? hoverStrength
+                                                  : 0.0f);
+        paintSliderThumb(graphics, position, y, height, pParameterThumbs || marked, glow);
     });
 
     switch (style)
     {
     case juce::Slider::LinearHorizontal:
-        bead(sliderPos, markedThumb == 0);
+        bead(sliderPos, 0);
         break;
 
     case juce::Slider::TwoValueHorizontal:
-        bead(minSliderPos, markedThumb == 1);
-        bead(maxSliderPos, markedThumb == 2);
+        bead(minSliderPos, 1);
+        bead(maxSliderPos, 2);
         break;
 
     default:

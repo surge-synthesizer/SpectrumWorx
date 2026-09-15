@@ -405,6 +405,9 @@ float constexpr over{0.88f};
 float constexpr disabled{0.30f};
 } // namespace PointerFeedback
 
+/// whether a widget that draws its own hover should draw it now. \see issue #212
+bool isHovered(juce::Component const &, bool includeChildren = false);
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// \class PaintedButton
@@ -1168,17 +1171,26 @@ juce::MouseEvent refinedDrag(FineDrag &drag, juce::MouseEvent const &);
 
 /// \brief A slider that drags like a knob: shift refines, alt links a two-value
 /// slider's thumbs, and no modifier means velocity. \see issue #167.
-class HorizontalSlider : public juce::Slider
+class HorizontalSlider : public juce::Slider, public SliderWithHoveredThumb
 {
   public:
     HorizontalSlider();
 
+    int hoveredThumb() const override;
+
   protected:
     void mouseDown(juce::MouseEvent const &) override;
     void mouseDrag(juce::MouseEvent const &) override;
+    void mouseEnter(juce::MouseEvent const &) override;
+    void mouseMove(juce::MouseEvent const &) override;
+    void mouseExit(juce::MouseEvent const &) override;
 
   private:
+    /// the thumb a press at \p x would take, as juce::Slider chooses it
+    int thumbNearest(float x) const;
+
     FineDrag fine_;
+    int hoveredThumb_{-1};
 }; // class HorizontalSlider
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1406,6 +1418,8 @@ class TitledComboBox : public ComboBox
     void mouseDown(juce::MouseEvent const &) override;
     void paint(juce::Graphics &) override;
 
+    bool showsAsHovered() const override { return isHovered(*this); }
+
     /// \note The same call the menu's own callback makes.
     void selectionScrolled() override;
 
@@ -1479,6 +1493,10 @@ class TitledTextBox : public WidgetBase<>, private juce::TextEditor::Listener
   private: // juce::Component overrides
     // the rim follows the focus, which lands on the child rather than on this
     void focusOfChildComponentChanged(juce::Component::FocusChangeType) override { repaint(); }
+
+    // and the pointer, whether on this or on the editor inside
+    void mouseEnter(juce::MouseEvent const &) override { repaint(); }
+    void mouseExit(juce::MouseEvent const &) override { repaint(); }
 
     void paint(juce::Graphics &) override;
 

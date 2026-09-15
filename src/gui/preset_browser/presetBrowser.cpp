@@ -67,6 +67,28 @@ class PresetBrowser::ListKeys final : public juce::KeyListener
     PresetBrowser &browser_;
 }; // class PresetBrowser::ListKeys
 
+class PresetBrowser::PointerWatch final : public juce::MouseListener
+{
+  public:
+    explicit PointerWatch(PresetBrowser &browser) : browser_(browser) {}
+
+  private:
+    void mouseEnter(juce::MouseEvent const &event) override
+    {
+        browser_.followPointer(event, false);
+    }
+    void mouseMove(juce::MouseEvent const &event) override { browser_.followPointer(event, false); }
+    void mouseExit(juce::MouseEvent const &event) override { browser_.followPointer(event, true); }
+
+    // a scroll moves the rows under a pointer that has not
+    void mouseWheelMove(juce::MouseEvent const &event, juce::MouseWheelDetails const &) override
+    {
+        browser_.followPointer(event, false);
+    }
+
+    PresetBrowser &browser_;
+}; // class PresetBrowser::PointerWatch
+
 PresetBrowser::PresetBrowser()
     : PanelBackground(Browser),
       // the widget is six pixels larger than the pill each way, which is the
@@ -189,6 +211,10 @@ PresetBrowser::PresetBrowser()
 
     listKeys_ = std::make_unique<ListKeys>(*this);
     listBox_.addKeyListener(listKeys_.get());
+
+    pointerWatch_ = std::make_unique<PointerWatch>(*this);
+    listBox_.addMouseListener(pointerWatch_.get(), true);
+    comment().addMouseListener(pointerWatch_.get(), true);
 }
 
 void PresetBrowser::focusList()
@@ -308,6 +334,9 @@ void PresetBrowser::rememberPlace()
 
 PresetBrowser::~PresetBrowser()
 {
+    listBox_.removeMouseListener(pointerWatch_.get());
+    comment().removeMouseListener(pointerWatch_.get());
+
     //...mrmlj...fade out does not work for 'on desktop components'
     //this->fadeOutComponent( 600, 0, 0, 0.2f );
     //juce::Point<int> const centre( this->getBounds().getCentre() );
@@ -538,6 +567,11 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
     if (rowIsSelected)
         graphics.fillAll(Theme::singleton().Theme::findColour(
             juce::DirectoryContentsDisplayComponent::highlightColourId));
+    else if (rowNumber == hoveredRow_)
+        graphics.fillAll(
+            Theme::singleton()
+                .Theme::findColour(juce::DirectoryContentsDisplayComponent::highlightColourId)
+                .withMultipliedAlpha(hoverStrength));
 
     Item const &item(this->item(rowNumber));
 
@@ -560,6 +594,37 @@ void PresetBrowser::paintListBoxItem(int const rowNumber, juce::Graphics &graphi
     // the right margin keeps a name as wide as the list off the scrollbar
     graphics.drawFittedText(item.name, x, 0, width - x - 6, height,
                             juce::Justification::centredLeft, 1);
+}
+
+void PresetBrowser::followPointer(juce::MouseEvent const &event, bool const leaving)
+{
+    auto *const pOver(event.originalComponent);
+    auto const within([pOver](juce::Component const &area) {
+        return (pOver == &area) || area.isParentOf(pOver);
+    });
+
+    int row(-1);
+    if (!leaving && within(listBox_) && !dynamic_cast<juce::ScrollBar const *>(pOver))
+    {
+        auto const position(event.getEventRelativeTo(&listBox_).getPosition());
+        row = listBox_.getRowContainingPosition(position.x, position.y);
+        if (row >= files_.size())
+            row = -1;
+    }
+    if (row != hoveredRow_)
+    {
+        if (hoveredRow_ >= 0)
+            listBox_.repaintRow(hoveredRow_);
+        hoveredRow_ = row;
+        if (row >= 0)
+            listBox_.repaintRow(row);
+    }
+
+    if (bool const overComment(!leaving && within(comment())); overComment != commentHovered_)
+    {
+        commentHovered_ = overComment;
+        repaint(PanelPainter::presetCommentField().toNearestInt());
+    }
 }
 
 // backspace as well as delete; never deletes a preset, the Delete button does
@@ -1358,6 +1423,7 @@ juce::String PresetBrowser::authorLabel() const
 void PresetBrowser::paint(juce::Graphics &graphics)
 {
     PanelBackground::paint(graphics);
+    PanelPainter::paintPresetCommentHover(graphics, commentHovered_ ? hoverStrength : 0.0f);
     graphics.setColour(ColourMap::getColour(ColourMap::Text));
     graphics.setFont(20);
     graphics.drawFittedText(locationLabel(), 20, 15, 233, 18, juce::Justification::centredLeft, 1);

@@ -1244,6 +1244,26 @@ void SpectrumWorxEditor::MainArea::paint(juce::Graphics &graphics)
     {
         drawMainAreaText(graphics, text);
     }
+
+    if (logoHovered_)
+        BackgroundPainter::paintLogoHover(graphics, hoverStrength);
+}
+
+void SpectrumWorxEditor::MainArea::mouseMove(juce::MouseEvent const &event)
+{
+    setLogoHovered(logoArea().contains(event.x, event.y));
+}
+
+void SpectrumWorxEditor::MainArea::mouseExit(juce::MouseEvent const &) { setLogoHovered(false); }
+
+void SpectrumWorxEditor::MainArea::setLogoHovered(bool const hovered)
+{
+    if (hovered == logoHovered_)
+        return;
+    logoHovered_ = hovered;
+    setMouseCursor(hovered ? juce::MouseCursor::PointingHandCursor
+                           : juce::MouseCursor::NormalCursor);
+    repaint(logoArea().expanded(logoArea().getWidth()));
 }
 
 /// \note The logo, and this component's rather than the editor's because the
@@ -3775,7 +3795,8 @@ void SpectrumWorxEditor::LFODisplay::WaveformButton::paintButton(juce::Graphics 
                                                                  bool const /*isButtonDown*/)
 {
     // in the chassis' own frame, which is where the artwork measured the well
-    BackgroundPainter::paintLFOWaveformWell(graphics, lfoStripOrigin + getPosition());
+    BackgroundPainter::paintLFOWaveformWell(graphics, lfoStripOrigin + getPosition(),
+                                            (isEnabled() && isMouseOver) ? hoverStrength : 0.0f);
 
     // Null for an item with no icon; every LFO waveform has one.
     if (auto const *const icon(parent_.type_.getSelectedItemIcon()); icon != nullptr)
@@ -4161,7 +4182,14 @@ SpectrumWorxEditor::SampleArea::SampleArea()
     setMouseCursor(juce::MouseCursor::PointingHandCursor);
     setWantsKeyboardFocus(true);
     setMouseClickGrabsKeyboardFocus(false);
+    setRepaintsOnMouseActivity(true);
     addToParentAndShow(editor().mainArea(), *this);
+}
+
+void SpectrumWorxEditor::SampleArea::paint(juce::Graphics &graphics)
+{
+    BackgroundPainter::paintSideChainSourceHover(graphics, getPosition(),
+                                                 isHovered(*this) ? hoverStrength : 0.0f);
 }
 
 std::unique_ptr<juce::AccessibilityHandler>
@@ -4675,7 +4703,7 @@ class SettingsTab : public juce::TabBarButton
     void paint(juce::Graphics &graphics) override
     {
         ButtonPainter::paint(graphics, getLocalBounds().toFloat(), ButtonPainter::Tab,
-                             getToggleState(), getButtonText());
+                             getToggleState(), getButtonText(), isEnabled() && isOver());
     }
 };
 

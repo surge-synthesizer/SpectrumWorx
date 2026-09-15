@@ -67,6 +67,17 @@ class SliderWithSelectedThumb
     ~SliderWithSelectedThumb() = default;
 }; // class SliderWithSelectedThumb
 
+/// a plain slider that says which thumb the pointer is nearest, for its hover halo
+class SliderWithHoveredThumb
+{
+  public:
+    /// the same encoding as SliderWithSelectedThumb::selectedThumb()
+    virtual int hoveredThumb() const = 0;
+
+  protected:
+    ~SliderWithHoveredThumb() = default;
+}; // class SliderWithHoveredThumb
+
 /// \note LookAndFeel_V2, not LookAndFeel_V4, and not LookAndFeel.
 ///
 ///   LookAndFeel is abstract in JUCE 8, inheriting some twenty-six

@@ -651,6 +651,34 @@ TEST_CASE("Clicking the logo opens the About page, not an empty panel", "[gui][o
     CHECK(differenceOver(aboutPage, clicked, overlayRectangle()) == 0);
 }
 
+TEST_CASE("The pointer on the logo offers it as a button", "[gui][overlay]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    auto &editor(overlayEditor(instance));
+    auto &skin(static_cast<juce::Component &>(editor.mainArea()));
+
+    auto const pointerAt([&skin](juce::Point<float> const position) {
+        return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), position,
+                                juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, &skin, &skin,
+                                juce::Time(), position, juce::Time(), 0, false);
+    });
+    juce::MouseCursor const hand(juce::MouseCursor::PointingHandCursor);
+    juce::MouseCursor const arrow(juce::MouseCursor::NormalCursor);
+
+    auto const logo(GUI::BackgroundPainter::logoBounds());
+
+    skin.mouseMove(pointerAt(logo.getCentre()));
+    CHECK(skin.getMouseCursor() == hand);
+
+    skin.mouseMove(pointerAt(logo.getBottomRight().translated(20, 20)));
+    CHECK(skin.getMouseCursor() == arrow);
+
+    skin.mouseMove(pointerAt(logo.getCentre()));
+    skin.mouseExit(pointerAt(logo.getCentre()));
+    CHECK(skin.getMouseCursor() == arrow);
+}
+
 TEST_CASE("The two panels are mutually exclusive and land in the same place", "[gui][overlay]")
 {
     // `showPanel()` asserts the invariant; this is what it looks like on screen.

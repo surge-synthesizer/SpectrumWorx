@@ -25,7 +25,7 @@ namespace LE::SW::GUI
 ////////////////////////////////////////////////////////////////////////////////
 
 void paintEditorKnob(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
-                     float const normalisedValue)
+                     float const normalisedValue, float const sheen)
 {
     using namespace EditorKnobStyle;
 
@@ -65,6 +65,17 @@ void paintEditorKnob(juce::Graphics &graphics, juce::Rectangle<float> const boun
     cap.addColour(capSolidRadius / capRadius, capFill);
     graphics.setGradientFill(cap);
     graphics.fillEllipse(disc(capRadius * radius));
+
+    // the rim is already near white, so a ring would not show: the teal lifts instead
+    if (sheen > 0)
+    {
+        auto const lift(ColourMap::getColour(ColourMap::FocusHalo).withAlpha(sheenAlpha * sheen));
+        auto glow(
+            KnobPainter::radialAbout(centre, ringRadius * radius, lift.withAlpha(0.0f), lift));
+        glow.addColour(capSolidRadius / ringRadius, lift.withAlpha(0.0f));
+        glow.addColour(capRadius / ringRadius, lift);
+        KnobPainter::fillRing(graphics, centre, capSolidRadius * radius, ringRadius * radius, glow);
+    }
 
     graphics.setColour(ColourMap::getColour(ColourMap::EditorKnobTick));
     for (unsigned int t(0); t < numberOfTicks; ++t)

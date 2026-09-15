@@ -100,6 +100,15 @@ class PresetBrowser final : public PanelBackground,
     class ListKeys;
     std::unique_ptr<ListKeys> listKeys_;
 
+    /// the pointer over a row or the comment, neither of which draws a hover of its own
+    class PointerWatch;
+    std::unique_ptr<PointerWatch> pointerWatch_;
+
+    void followPointer(juce::MouseEvent const &, bool leaving);
+
+    int hoveredRow_{-1};
+    bool commentHovered_{false};
+
   private:
     ////////////////////////////////////////////////////////////////////////////
     ///

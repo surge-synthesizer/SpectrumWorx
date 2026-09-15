@@ -59,6 +59,12 @@ class PanelPainter
     /// \brief The strip the settings tabs stand in, across the top of \p bounds.
     static void paintTabStrip(juce::Graphics &, juce::Rectangle<float> bounds);
 
+    /// the preset comment field's frame, in the browser's coordinates
+    static juce::Rectangle<float> presetCommentField();
+
+    /// the comment field's hover, inside its frame
+    static void paintPresetCommentHover(juce::Graphics &, float strength);
+
     /// The corner the panels are rounded by.
     static float constexpr cornerRadius{12.f};
 

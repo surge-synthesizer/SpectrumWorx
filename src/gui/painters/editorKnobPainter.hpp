@@ -78,6 +78,9 @@ float constexpr rimHighlightOuter{0.952f};
 float constexpr rimOutlineRadius{0.972f};
 float constexpr rimOutlineThickness{0.033f};
 
+/// the white laid over the teal at a full hover
+float constexpr sheenAlpha{0.6f};
+
 float constexpr pointerInnerRadius{0.25f};
 float constexpr pointerOuterRadius{0.83f};
 float constexpr pointerInnerHalfWidth{0.058f}; ///< very slightly tapered
@@ -86,7 +89,10 @@ float constexpr pointerOuterHalfWidth{0.061f};
 
 /// \brief Draws an editor knob into the square \p bounds, its pointer at
 /// \p normalisedValue.
-void paintEditorKnob(juce::Graphics &, juce::Rectangle<float> bounds, float normalisedValue);
+///
+/// \param sheen how strongly it lightens under the pointer, 0 for not at all
+void paintEditorKnob(juce::Graphics &, juce::Rectangle<float> bounds, float normalisedValue,
+                     float sheen = 0.0f);
 
 } // namespace LE::SW::GUI
 

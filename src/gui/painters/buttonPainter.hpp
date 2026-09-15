@@ -157,8 +157,9 @@ class ButtonPainter
     ///
     /// \param selected whether this is the one that is on -- a lit rim and a
     /// halo for a Rectangular button, a blue face for a Tab.
+    /// \param hovered a Tab's face halfway to the selected blue, unless selected
     static void paint(juce::Graphics &, juce::Rectangle<float> bounds, Shape, bool selected,
-                      juce::String const &text);
+                      juce::String const &text, bool hovered = false);
 
     /// \brief The width a button of this shape needs to hold \p text.
     ///
