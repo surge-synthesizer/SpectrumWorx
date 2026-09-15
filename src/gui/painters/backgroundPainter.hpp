@@ -314,6 +314,9 @@ class BackgroundPainter
 
     static void paintLFOWaveformWell(juce::Graphics &, juce::Point<int> origin);
 
+    /// where the logo is drawn, which is also what a click on it hits
+    static juce::Rectangle<float> logoBounds();
+
     ////////////////////////////////////////////////////////////////////////////
     ///
     /// \brief Where the padlock beside the sidechain source label goes.

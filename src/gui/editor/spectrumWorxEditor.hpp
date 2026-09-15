@@ -940,22 +940,11 @@ class SpectrumWorxEditor final : private SkinLifetime,
       public:
         MainArea();
 
-        ////////////////////////////////////////////////////////////////////////
-        ///
-        /// \brief The logo's hit area, in this component's coordinates -- which
-        /// are the skin's.
-        ///
-        /// \note Named rather than a literal inside `mouseDown()` because
-        /// overlayPanelTests.cpp clicks the centre of it, so redrawing the skin
-        /// costs one edit here rather than two.
-        ///
-        /// \note A function rather than a constant because juce::Rectangle's
-        /// constructor is not constexpr, and a namespace-scope object would be
-        /// runtime-initialised for no reason.
-        ///
-        ////////////////////////////////////////////////////////////////////////
-
-        static juce::Rectangle<int> logoArea() { return {12, 290, 51, 63}; }
+        /// the logo's hit area, in this component's coordinates, which are the skin's
+        static juce::Rectangle<int> logoArea()
+        {
+            return BackgroundPainter::logoBounds().toNearestInt();
+        }
 
         std::unique_ptr<juce::AccessibilityHandler> createAccessibilityHandler() override
         {

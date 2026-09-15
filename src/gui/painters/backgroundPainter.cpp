@@ -242,6 +242,11 @@ void BackgroundPainter::paintLFOWaveformWell(juce::Graphics &graphics,
               lfoWaveformWell.cornerRadius, ColourMap::EditorRule);
 }
 
+juce::Rectangle<float> BackgroundPainter::logoBounds()
+{
+    return {logoX, logoY, logoWidth, logoHeight};
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // BackgroundPainter::paint()
@@ -314,7 +319,7 @@ void BackgroundPainter::paint(juce::Graphics &graphics, juce::Rectangle<float> c
     paintCentredLabel(graphics, productLabelSecondLine, regularFont(productLabelHeight),
                       productLabelCentreX, productLabelSecondLineY, ColourMap::Wordmark);
 
-    logoArtwork().drawWithin(graphics, {logoX, logoY, logoWidth, logoHeight});
+    logoArtwork().drawWithin(graphics, logoBounds());
 }
 
 } // namespace LE::SW::GUI

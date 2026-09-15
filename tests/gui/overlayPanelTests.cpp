@@ -635,13 +635,8 @@ TEST_CASE("Clicking the logo opens the About page, not an empty panel", "[gui][o
     auto &editor(overlayEditor(instance));
     REQUIRE(differenceOver(closed, rendered(editor), overlayRectangle()) == 0);
 
-    /// \note The middle of the logo's hit area, read off `MainArea::logoArea`
-    /// rather than written out here -- the skin is redrawn as ordinary work and
-    /// a coordinate copied into this file would send the click into empty space
-    /// the first time the logo moved, which passes for the wrong reason. The
-    /// main area is what the click goes to, because the logo is a position in
-    /// the skin and the skin is that component rather than the editor.
-    auto const logo(Editor::MainArea::logoArea().getCentre().toFloat());
+    // where the logo is drawn rather than the hit area, so a hit area left behind fails
+    auto const logo(GUI::BackgroundPainter::logoBounds().getCentre());
     auto &skin(static_cast<juce::Component &>(editor.mainArea()));
     skin.mouseDown(juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), logo,
                                     juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier),
