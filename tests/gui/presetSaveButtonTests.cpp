@@ -623,15 +623,19 @@ TEST_CASE("The browser says who wrote the preset it has loaded", "[gui][presets]
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Rows the listing no longer has
-// ------------------------------
+// Rows the listing no longer has, and the row that has just gone
+// ---------------------------------------------------------------
 //
 ////////////////////////////////////////////////////////////////////////////////
 ///
-///   Two out-of-range reads, neither reachable until something put a real preset
-/// file in the user tree -- every case that browsed one browsed an empty folder.
-/// Both are checked-build only, and the first is a hang rather than a wrong
-/// answer. \see issue #56.
+///   Two out-of-range reads first, neither reachable until something put a real
+/// preset file in the user tree -- every case that browsed one browsed an empty
+/// folder. Both are checked-build only, and the first is a hang.
+///
+///   Then what a delete leaves on the panel: it forgets the file either way, and
+/// the comment and byline go only when there is no edit in hand, an edit being
+/// the user's and a delete no reason to throw it away. \see issue #56 and
+/// LoadedPreset::fileDeleted().
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -690,6 +694,79 @@ TEST_CASE("Listing and deleting a user preset stays inside the listing", "[gui][
     CHECK(listOf(browser).getListBoxModel()->getNumRows() == 0);
     CHECK_FALSE(
         fs::exists(fs::path(SW_TEST_OUTPUT_DIR) / "presets" / "userPresetRows" / "Mine.swp"));
+}
+
+TEST_CASE("Deleting the preset that is playing clears its comment and byline",
+          "[gui][presets][author]")
+{
+    useOwnPreferences("deleteClears");
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance(false); // \see the byline cases above
+    auto &browser(browserOnOwnPreset(instance, "deleteClears"));
+
+    browser.deletePressed();
+
+    CHECK(browser.comment().getText().isEmpty());
+    CHECK(browser.authorLabel() == "Author: Unknown");
+    CHECK(instance.loadedPreset().comment.isEmpty());
+
+    // and there is nothing left to overwrite, the file having gone
+    CHECK_FALSE(browser.saveIsOffered());
+}
+
+TEST_CASE("Deleting the file under an edited sound keeps the edit", "[gui][presets][author]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note The workflow the clearing above must not break: load a preset, type
+    /// a note, delete the file, then save. The note has to still be there -- and
+    /// Save has to have become a Save As, there being no file left to write.
+    ////////////////////////////////////////////////////////////////////////////
+    useOwnPreferences("deleteKeepsEdits");
+    LE::SW::GUI::preferences().setAuthor("Paul Walker");
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance(false);
+    auto &browser(browserOnOwnPreset(instance, "deleteKeepsEdits"));
+
+    browser.comment().setText("mine now", juce::dontSendNotification);
+    browser.commentChanged();
+    REQUIRE(browser.saveIsOffered());
+
+    browser.deletePressed();
+
+    CHECK(browser.comment().getText() == "mine now");
+    CHECK(instance.loadedPreset().comment == "mine now");
+
+    // nothing to overwrite any more, so the press asks where to put it
+    CHECK_FALSE(browser.saveIsOffered());
+    REQUIRE(browser.saveAsIsOffered());
+
+    browser.savePressed();
+    CHECK(browser.isNamingANewPreset());
+}
+
+TEST_CASE("Deleting a preset that is not the one playing leaves it alone", "[gui][presets][author]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note The guard, put the other way about: the sound came from a file this
+    /// delete is not aimed at, so nothing the panel says about it changes. Set
+    /// up by pointing the loaded preset elsewhere rather than by selecting a
+    /// second row, selecting a row in this browser being what loads it.
+    ////////////////////////////////////////////////////////////////////////////
+    useOwnPreferences("deleteElsewhere");
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance(false);
+    auto &browser(browserOnOwnPreset(instance, "deleteElsewhere"));
+
+    auto &loaded(instance.loadedPreset());
+    loaded.file = fs::path(SW_TEST_OUTPUT_DIR) / "presets" / "deleteElsewhere" / "Elsewhere.swp";
+
+    browser.deletePressed();
+
+    CHECK(browser.authorLabel() == "Author: Martin Walker");
+    CHECK(instance.loadedPreset().comment == "a note about this sound");
 }
 
 TEST_CASE("A preset with no byline says so rather than keeping the last one",

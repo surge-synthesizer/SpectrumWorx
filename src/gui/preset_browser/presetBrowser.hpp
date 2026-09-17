@@ -302,6 +302,10 @@ class PresetBrowser final : public PanelBackground,
     /// \brief Records what has just been loaded, and calls it unedited.
     void rememberLoadedPreset(juce::String const &presetName, fs::path const &file);
 
+    /// \brief Catches the panel up after a delete took the file the loaded
+    /// preset came from. \see the definition, and LoadedPreset::fileDeleted().
+    void loadedPresetDeleted();
+
     /// \brief Moves the list into the user's own presets, for a Save As pressed
     /// while a factory bank is showing.
     void goToUserPresets();

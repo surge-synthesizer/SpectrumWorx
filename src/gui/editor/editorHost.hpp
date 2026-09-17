@@ -176,6 +176,30 @@ struct LoadedPreset
         comment.clear();
         modified.store(false, std::memory_order_relaxed);
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \brief Forgets where the sound came from, its file having been deleted.
+    ///
+    /// \note The comment and byline go **only when nothing has been edited
+    /// since the load**, in which case they are the deleted file's answers and
+    /// nothing of the user's. An edit in hand is the user's work, and deleting a
+    /// file is not a reason to throw it away -- it is a reason for the next Save
+    /// to ask for a name, which the cleared file makes it do.
+    ///
+    /// \note What is playing does not change either way. \see issue #56.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    void fileDeleted()
+    {
+        name.clear();
+        bank.clear();
+        file.clear();
+        if (modified.load(std::memory_order_relaxed))
+            return;
+        comment.clear();
+        author.clear();
+    }
 }; // struct LoadedPreset
 
 class EditorHost
