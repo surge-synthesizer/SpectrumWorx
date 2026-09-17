@@ -414,8 +414,9 @@ bool isHovered(juce::Component const &, bool includeChildren = false);
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// \brief A caption on a ButtonPainter pill: Presets and Settings, and the preset
-/// browser's Save, Save as and Delete.
+/// \brief A caption on a ButtonPainter pill: the panel button, which is what is
+/// left of this after the browser's Save, Save as and Delete became marks in its
+/// navigation row. \see issue #56.
 ///
 /// \note Held down is always lit. What else lights it is the \p Glow the button
 /// was built with: a button that is one of a set says which one is chosen, and a
@@ -923,6 +924,8 @@ class GlyphButton : public WidgetBase<juce::Button>
     enum struct Glyph
     {
         FolderUp,
+        Save,
+        Trash,
         User,
         JogPrevious,
         JogNext,

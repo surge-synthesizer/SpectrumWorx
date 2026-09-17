@@ -3,15 +3,20 @@
 /// presetSaveButtonTests.cpp
 /// -------------------------
 ///
-///   What the browser's two Save buttons offer, and when. Issue #177.
+///   What the browser's Save offers, and when. Issue #177.
 ///
-///   They used to follow the *listing*: Save was lit whenever a user preset row
+///   It used to follow the *listing*: Save was lit whenever a user preset row
 /// was selected and Save As whenever the browser was anywhere in the user tree,
 /// whether or not there was anything to save. A user who edited a factory preset
 /// -- the common way to arrive at a sound worth keeping -- had neither.
 ///
 ///   They follow the preset that is *playing* now, and whether it has been
 /// edited since it arrived.
+///
+///   There is one mark for the two of them since issue #56 -- Save As is Save
+/// with the modifier held -- so saveIsOffered() and saveAsIsOffered() now say
+/// what a plain press and a modified one would do rather than which of two
+/// widgets is lit. The cases below are unchanged by that, which is the point.
 ///
 /// Copyright (c) 2026 the SpectrumWorx contributors.
 /// SPDX-License-Identifier: GPL-3.0-or-later
@@ -416,6 +421,35 @@ TEST_CASE("With an author name Save As asks what to call it", "[gui][presets][au
     CHECK(browser.isNamingANewPreset());
 }
 
+TEST_CASE("A plain Save with nowhere to overwrite asks for a name", "[gui][presets][author]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note One mark in the navigation row does both saves since issue #56, so
+    /// a press that finds nothing to write back to has to *become* the Save As
+    /// the user meant -- a lit button that declines to act is not a state the
+    /// panel should be able to reach. It was two buttons when only one of them
+    /// was lit here.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    useOwnPreferences("saveWithNowhereToGo");
+    LE::SW::GUI::preferences().setAuthor("Martin Walker");
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance;
+    auto &browser(browserOf(instance));
+
+    pretendLoaded(instance, "Robokid", PanelState::PresetLocation::factory, {});
+    edit(instance);
+    browser.updateSaveButtons();
+    REQUIRE(browser.saveAsIsOffered());
+    REQUIRE_FALSE(browser.saveIsOffered());
+
+    browser.savePressed();
+
+    CHECK(browser.isNamingANewPreset());
+}
+
 TEST_CASE("Save will not replace a signed patch with an unsigned one", "[gui][presets][author]")
 {
     ////////////////////////////////////////////////////////////////////////////
@@ -511,6 +545,52 @@ TEST_CASE("Asking for an author name lands on the page that has one", "[gui][pre
 /// \see issue #56.
 ///
 ////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// What the two fields hold
+// ------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   Issue #56 asked for the panel in whole rows rather than in pixels: fifteen
+/// of list and three of comment, neither of them with a clipped last line. The
+/// numbers the layout is written in are the answer to these, so these are what
+/// say the answer is still right -- a font the theme hands over differently, or
+/// a frame nudged by a later issue, moves them without touching a constant.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The list shows fifteen whole preset rows", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    auto &browser(browserOf(instance));
+    auto const &list(listOf(browser));
+
+    REQUIRE(list.getRowHeight() > 0);
+    CHECK(list.getHeight() / list.getRowHeight() == 15);
+
+    // and nothing over it: a sixteenth part-row is the clipping the issue is about
+    CHECK(list.getHeight() % list.getRowHeight() == 0);
+}
+
+TEST_CASE("The comment area holds three lines without clipping the last", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    SWTest::Instance instance;
+    auto &browser(browserOf(instance));
+    auto &comment(browser.comment());
+
+    comment.setText("one\ntwo\nthree", juce::dontSendNotification);
+
+    /// \note The laid-out height rather than three times the font's, because
+    /// what has to fit is what juce::TextEditor actually draws -- line spacing
+    /// and both indents included.
+    CHECK(comment.getTextHeight() <= comment.getHeight() - comment.getBorder().getTopAndBottom());
+}
 
 TEST_CASE("The browser says who wrote the preset it has loaded", "[gui][presets][author]")
 {

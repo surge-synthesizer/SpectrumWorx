@@ -45,12 +45,16 @@ void outline(juce::Graphics &graphics, juce::Rectangle<float> const bounds, floa
 //
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note The five frames are, top to bottom: where the browser says which
-/// folder it is in, the row Save / Save as / Delete sit in, the list, the
-/// comment box under it, and the byline under that. The sixth shape is the
-/// right-hand cap of another capsule inside the first, which is what divides the
-/// folder name from the button that changes it -- an arc and nothing else, so it
-/// is drawn by clipping the capsule it belongs to down to its own end.
+/// \note The four frames are, top to bottom: where the browser says which folder
+/// it is in, the list, the comment box under it, and the byline under that. The
+/// fifth shape is the right-hand cap of another capsule inside the first, which
+/// is what divides the folder name from the button that changes it -- an arc and
+/// nothing else, so it is drawn by clipping the capsule it belongs to down to
+/// its own end.
+///
+/// \note Save, Save as and Delete had a fifth frame between the first two until
+/// issue #56. They are marks in the navigation row now, and what that frame held
+/// is what takes the list from thirteen whole rows to fifteen.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -79,15 +83,30 @@ void PanelPainter::paintPresetBrowser(juce::Graphics &graphics, juce::Rectangle<
         outline(graphics, location.withRight(258.43f), 11.265f);
     }
 
-    outline(graphics, {fieldInset, 42.f, 267.f, 41.f}, cornerRadius);   // the button row
-    outline(graphics, {fieldInset, 114.f, 267.f, 324.f}, cornerRadius); // the list
+    outline(graphics, presetListField(), cornerRadius);
     outline(graphics, presetCommentField(), cornerRadius);
-    outline(graphics, {fieldInset, authorFieldTop, 267.f, authorFieldHeight}, cornerRadius);
+    outline(graphics, presetAuthorField(), cornerRadius);
+}
+
+///   Eight apart, and eight again below the last. Each height is what that field
+/// holds -- fifteen list rows of 24, three comment lines of 17, one byline.
+///
+/// \note The comment carries two pixels of slack, its height coming from a font
+/// the theme hands over; the list can carry none. Both in
+/// presetSaveButtonTests.cpp.
+juce::Rectangle<float> PanelPainter::presetListField()
+{
+    return {fieldInset, 67.f, fieldWidth, 369.f};
 }
 
 juce::Rectangle<float> PanelPainter::presetCommentField()
 {
-    return {fieldInset, 446.f, 267.f, 47.f};
+    return {fieldInset, 444.f, fieldWidth, 61.f};
+}
+
+juce::Rectangle<float> PanelPainter::presetAuthorField()
+{
+    return {fieldInset, 513.f, fieldWidth, 22.f};
 }
 
 void PanelPainter::paintPresetCommentHover(juce::Graphics &graphics, float const strength)
@@ -150,7 +169,7 @@ void PanelPainter::paintSettingsPage(juce::Graphics &graphics, juce::Rectangle<f
     graphics.fillPath(page);
 
     graphics.setColour(ColourMap::getColour(ColourMap::PanelFrame));
-    outline(graphics, {fieldInset, settingsFrameTop, 267.f, 487.f}, cornerRadius);
+    outline(graphics, {fieldInset, settingsFrameTop, fieldWidth, 487.f}, cornerRadius);
 }
 
 } // namespace LE::SW::GUI

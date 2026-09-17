@@ -66,6 +66,64 @@ void GlyphPainter::paintFolderUp(juce::Graphics &graphics, juce::Rectangle<float
     graphics.fillPath(head);
 }
 
+void GlyphPainter::paintSave(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
+                             juce::Colour const colour)
+{
+    auto const ink(centred(bounds, saveWidth, saveHeight));
+
+    auto const trayTop(ink.getBottom() - saveTrayHeight);
+    auto const point(trayTop - saveTrayGap);
+    auto const headBase(point - saveHeadHeight);
+
+    graphics.setColour(colour);
+    graphics.fillRect(ink.getCentreX() - saveStemWidth / 2, ink.getY(), saveStemWidth,
+                      headBase - ink.getY());
+
+    juce::Path head;
+    head.startNewSubPath(ink.getCentreX() - saveHeadWidth / 2, headBase);
+    head.lineTo(ink.getCentreX() + saveHeadWidth / 2, headBase);
+    head.lineTo(ink.getCentreX(), point);
+    head.closeSubPath();
+    graphics.fillPath(head);
+
+    graphics.fillRect(ink.getX(), trayTop, saveWidth, saveTrayHeight);
+}
+
+/// \note Both paths are open at the top, where the lid covers them: a closed
+/// rectangle would put a bar under the lid as well as on it.
+void GlyphPainter::paintTrash(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
+                              juce::Colour const colour)
+{
+    auto const ink(centred(bounds, trashWidth, trashHeight));
+
+    auto const lidTop(ink.getY() + trashHandleHeight);
+    auto const bodyTop(lidTop + trashLidHeight);
+
+    // placed by the line down the middle of the pen, and the joins round the
+    // corners -- there is no radius here that is not half a stroke
+    juce::PathStrokeType const pen(trashStroke, juce::PathStrokeType::curved,
+                                   juce::PathStrokeType::butt);
+    auto const handleHalf((trashHandleWidth - trashStroke) / 2);
+    auto const bodyHalf((trashBodyWidth - trashStroke) / 2);
+
+    juce::Path handle;
+    handle.startNewSubPath(ink.getCentreX() - handleHalf, lidTop);
+    handle.lineTo(ink.getCentreX() - handleHalf, ink.getY() + trashStroke / 2);
+    handle.lineTo(ink.getCentreX() + handleHalf, ink.getY() + trashStroke / 2);
+    handle.lineTo(ink.getCentreX() + handleHalf, lidTop);
+
+    juce::Path body;
+    body.startNewSubPath(ink.getCentreX() - bodyHalf, bodyTop);
+    body.lineTo(ink.getCentreX() - bodyHalf, ink.getBottom() - trashStroke / 2);
+    body.lineTo(ink.getCentreX() + bodyHalf, ink.getBottom() - trashStroke / 2);
+    body.lineTo(ink.getCentreX() + bodyHalf, bodyTop);
+
+    graphics.setColour(colour);
+    graphics.strokePath(handle, pen);
+    graphics.strokePath(body, pen);
+    graphics.fillRect(ink.getX(), lidTop, trashWidth, trashLidHeight);
+}
+
 void GlyphPainter::paintUser(juce::Graphics &graphics, juce::Rectangle<float> const bounds,
                              juce::Colour const colour)
 {

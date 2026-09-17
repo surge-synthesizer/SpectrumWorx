@@ -39,6 +39,26 @@ typedef juce::String::CharPointerType::CharType char_t;
 
 /// \note Compared whole, by `fs::path::extension()`.
 static char_t const presetExtension[] = _T( ".swp" );
+
+/// \name Save As, which is Save with a modifier held. \see issue #56.
+///
+/// \note The command modifier, not Control: a Control click on macOS is the
+/// other button and never reaches a juce::Button.
+///
+/// \note Read from the modifiers because juce::Button::Listener is not told
+/// them -- which also makes the gesture work from the keyboard.
+///@{
+bool saveAsWasAsked() { return juce::ModifierKeys::currentModifiers.isCommandDown(); }
+
+juce::String saveAsModifierName()
+{
+#if JUCE_MAC
+    return "Command";
+#else
+    return "Control";
+#endif
+}
+///@}
 } // namespace
 
 class PresetBrowser::ListKeys final : public juce::KeyListener
@@ -90,14 +110,10 @@ class PresetBrowser::PointerWatch final : public juce::MouseListener
 }; // class PresetBrowser::PointerWatch
 
 PresetBrowser::PresetBrowser()
-    : PanelBackground(Browser),
-      // the widget is six pixels larger than the pill each way, which is the
-      // room a lit button's halo needs; the positions below allow for it
-      save_(*this, "Save", 81, 33, false), saveAs_(*this, "Save as", 81, 33, false),
-      delete_(*this, "Delete", 81, 33, false),
-      browseArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight, false,
-                   ColourMap::MouseOverGlow),
-      upFolder_(*this, GlyphButton::Glyph::FolderUp),
+    : PanelBackground(Browser), browseArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight,
+                                             false, ColourMap::MouseOverGlow),
+      upFolder_(*this, GlyphButton::Glyph::FolderUp), save_(*this, GlyphButton::Glyph::Save),
+      delete_(*this, GlyphButton::Glyph::Trash),
       userPresets_(*this, GlyphButton::Glyph::User, true /*toggles*/),
       jogPrevious_(*this, GlyphButton::Glyph::JogPrevious),
       jogNext_(*this, GlyphButton::Glyph::JogNext), ignoreSelectionChange_(false),
@@ -107,13 +123,11 @@ PresetBrowser::PresetBrowser()
 
     setSizeFromPanel();
 
-    // all three start disabled and refresh() decides from there, this running
-    // before the browser has listed anything
+    // both start disabled and refresh() decides from there, this running before
+    // the browser has listed anything
     save_.setEnabled(false);
-    saveAs_.setEnabled(false);
     delete_.setEnabled(false);
     save_.addListener(this);
-    saveAs_.addListener(this);
     delete_.addListener(this);
 
     browseArrow_.addListener(this);
@@ -132,23 +146,24 @@ PresetBrowser::PresetBrowser()
     restoreLastPlace();
 
     browseArrow_.setTopLeftPosition(261, 15);
-    save_.setTopLeftPosition(21, 45);
-    saveAs_.setTopLeftPosition(21 + 83, 45);
-    delete_.setTopLeftPosition(21 + 83 + 83, 45);
 
-    // the navigation row, in the gap the panel already had between the Save
-    // buttons and the list: up against the list's left frame, the user centred
-    // on the panel, and the jog's two halves abutting its right frame
-    upFolder_.setTopLeftPosition(10, GlyphStyle::rowTop);
-    userPresets_.setTopLeftPosition(131, GlyphStyle::rowTop);
-    jogPrevious_.setTopLeftPosition(233, GlyphStyle::rowTop);
+    // the navigation row: up inside the list's left frame, the jog's two halves
+    // abutting its right, and the rest evenly spread, 57 px of ink apart
+    upFolder_.setTopLeftPosition(11, GlyphStyle::rowTop);
+    save_.setTopLeftPosition(68, GlyphStyle::rowTop);
+    delete_.setTopLeftPosition(125, GlyphStyle::rowTop);
+    userPresets_.setTopLeftPosition(181, GlyphStyle::rowTop);
+    jogPrevious_.setTopLeftPosition(234, GlyphStyle::rowTop);
     jogNext_.setTopLeftPosition(jogPrevious_.getRight() + 1, GlyphStyle::rowTop);
 
-    // both measured off the frames panelPainter.cpp draws behind them, and the
-    // list is a row and a half shorter than it was so the byline has somewhere
-    // to go. \see PanelPainter::authorFieldTop
-    listBox_.setBounds(17, 119, getWidth() - 33, 351 - PanelPainter::authorFieldCost);
-    comment().setBounds(12, 484 - PanelPainter::authorFieldCost, getWidth() - 25, 43);
+    // inside the frames panelPainter.cpp draws behind them
+    auto const listField(PanelPainter::presetListField().toNearestInt());
+    listBox_.setBounds(listField.getX() + 8, listField.getY() + 5, listField.getWidth() - 13,
+                       listField.getHeight() - 9);
+
+    auto const commentField(PanelPainter::presetCommentField().toNearestInt());
+    comment().setBounds(commentField.getX() + 3, commentField.getY() + 2,
+                        commentField.getWidth() - 5, commentField.getHeight() - 4);
 
     addChildComponent(&presetNameEditBox_);
     presetNameEditBox_.setAlwaysOnTop(true);
@@ -185,7 +200,6 @@ PresetBrowser::PresetBrowser()
     comment().setText(editor().editorHost().loadedPreset().comment, false);
 
     LE_ASSERT(!save_.getMouseClickGrabsKeyboardFocus());
-    LE_ASSERT(!saveAs_.getMouseClickGrabsKeyboardFocus());
     LE_ASSERT(!delete_.getMouseClickGrabsKeyboardFocus());
 
     addToParentAndShow(*this, comment());
@@ -195,6 +209,11 @@ PresetBrowser::PresetBrowser()
 
     browseArrow_.setTitle("Choose Preset Folder");
     upFolder_.setTitle("Parent Folder");
+    save_.setTitle("Save Preset");
+    // where a screen reader hears about the half of this that has no mark
+    save_.setDescription("Save preset. Hold " + saveAsModifierName() +
+                         " to save it under a new name.");
+    delete_.setTitle("Delete Preset");
     userPresets_.setTitle("User Presets");
     jogPrevious_.setTitle("Previous Preset");
     jogNext_.setTitle("Next Preset");
@@ -205,8 +224,8 @@ PresetBrowser::PresetBrowser()
     // the list first, being what the panel is for, then the row above it
     int order(0);
     for (juce::Component *const pControl : std::initializer_list<juce::Component *>{
-             &listBox_, &presetNameEditBox_, &upFolder_, &userPresets_, &jogPrevious_, &jogNext_,
-             &save_, &saveAs_, &delete_, &browseArrow_, &comment()})
+             &listBox_, &presetNameEditBox_, &upFolder_, &save_, &delete_, &userPresets_,
+             &jogPrevious_, &jogNext_, &browseArrow_, &comment()})
         Accessibility::setTraversalOrder(*pControl, ++order);
 
     listKeys_ = std::make_unique<ListKeys>(*this);
@@ -347,19 +366,21 @@ PresetBrowser::~PresetBrowser()
 /// into, rename or delete there.
 bool PresetBrowser::enablePresetSaving() const { return location_ == Location::User; }
 
-// Save As offers to keep an edit somewhere new, Save offers to keep it where the
-// sound came from. Both are dead until there *is* an edit, and Save is dead for a
-// factory preset, there being nothing in the binary to overwrite.
+// Lit whenever there is an edit to keep and nothing narrower: one mark stands
+// for both saves, and Save As can always be asked for
 //
-// Neither depends on the selected row: Save writes back where the sound came
-// from, and the list may be pointing at a preset nobody has heard
+// and not on the selected row: Save writes back where the sound came from, and
+// the list may be pointing at a preset nobody has heard
 void PresetBrowser::updateSaveButtons()
 {
-    auto const &loaded(editor().editorHost().loadedPreset());
-    bool const modified(loaded.modified.load(std::memory_order_relaxed));
+    save_.setEnabled(editor().editorHost().loadedPreset().modified.load(std::memory_order_relaxed));
+}
 
-    saveAs_.setEnabled(modified);
-    save_.setEnabled(modified && loaded.canBeOverwritten());
+/// \note What a *plain* press would do, which is the narrower of the two. \see
+/// saveAsIsOffered(), and LoadedPreset::canBeOverwritten().
+bool PresetBrowser::saveIsOffered() const
+{
+    return save_.isEnabled() && editor().editorHost().loadedPreset().canBeOverwritten();
 }
 
 /// \note After the load and not before it: GUI::loadPreset ends in
@@ -869,13 +890,18 @@ void PresetBrowser::saveCurrentPreset(juce::String const &presetName, fs::path c
 
 void PresetBrowser::savePressed()
 {
+    // the preset that is *playing*, not the row the list is pointing at
+    auto const &loaded(editor().editorHost().loadedPreset());
+
+    // nowhere to write back to, so the press asks where to put it rather than
+    // doing nothing -- it is the only mark in the row that saves
+    if (!loaded.canBeOverwritten())
+        return saveAsPressed();
+
     if (!editor().requireAuthorForSaving())
         return;
 
-    // the preset that is *playing*, not the row the list is pointing at
-    auto const &loaded(editor().editorHost().loadedPreset());
-    if (loaded.canBeOverwritten())
-        saveCurrentPreset(loaded.name, loaded.file);
+    saveCurrentPreset(loaded.name, loaded.file);
 }
 
 void PresetBrowser::saveAsPressed()
@@ -915,24 +941,27 @@ void PresetBrowser::saveAsPressed()
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note **Save As returns before the focus move at the bottom, and must.** It
-/// has just put the filename box up, and taking the focus off that box is what
-/// dismisses it -- so a press would open the box and shut it again in the same
-/// call. Hoisted out of the chain rather than left as a `return` among the
-/// `else if`s, which is where it read as removable and was removed.
+/// \note **The whole Save branch returns before the focus move at the bottom,
+/// and must.** A Save As has just put the filename box up, and taking the focus
+/// off that box is what dismisses it. The whole branch, because a plain press
+/// *becomes* a Save As when there is nothing to overwrite -- and hoisted out of
+/// the chain rather than left as a `return` among the `else if`s, which is where
+/// it read as removable and was removed.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 void PresetBrowser::buttonClicked(juce::Button *const pButton)
 {
-    if (pButton == &saveAs_)
-        return saveAsPressed();
-
     if (pButton == &save_)
     {
-        savePressed();
+        if (saveAsWasAsked())
+            saveAsPressed();
+        else
+            savePressed();
+        return;
     }
-    else if (pButton == &delete_)
+
+    if (pButton == &delete_)
     {
         fs::path const target(selectedFile());
         if (!target.empty())
@@ -1428,10 +1457,13 @@ void PresetBrowser::paint(juce::Graphics &graphics)
     graphics.setFont(20);
     graphics.drawFittedText(locationLabel(), 20, 15, 233, 18, juce::Justification::centredLeft, 1);
 
-    // the byline, in the comment box's own type so the two read as a pair
+    // the byline, in the comment box's own type so the two read as a pair, and
+    // grey because it is the one field here nobody can type into
+    graphics.setColour(ColourMap::getColour(ColourMap::TextFaint));
     graphics.setFont(17);
-    graphics.drawFittedText(authorLabel(), 20, juce::roundToInt(PanelPainter::authorFieldTop) + 5,
-                            245, 18, juce::Justification::centredLeft, 1);
+    graphics.drawFittedText(authorLabel(),
+                            PanelPainter::presetAuthorField().toNearestInt().reduced(10, 0),
+                            juce::Justification::centredLeft, 1);
 }
 
 bool PresetBrowser::Item::operator==(Item const &other) const { return name == other.name; }

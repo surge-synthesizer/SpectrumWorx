@@ -272,19 +272,24 @@ class PresetBrowser final : public PanelBackground,
 
     bool enablePresetSaving() const;
 
-    /// \brief Lights the two Save buttons for what has been edited.
+    /// \brief Lights the Save mark for what has been edited.
     ///
-    /// \note Polled by the editor's timer: what they read is set by any
-    /// parameter write, host automation included, and nothing about that marks a
-    /// pixel of this panel dirty. \see issue #142, the same argument about the
-    /// engine information lines.
+    /// \note Polled by the editor's timer: what it reads is set by any parameter
+    /// write, host automation included, and nothing about that marks a pixel of
+    /// this panel dirty. \see issue #142, the same argument about the engine
+    /// information lines.
   public:
     void updateSaveButtons();
 
-    /// \brief Whether each Save button is offering to do anything. Public so a
-    /// headless run can read what the user would see.
-    bool saveIsOffered() const { return save_.isEnabled(); }
-    bool saveAsIsOffered() const { return saveAs_.isEnabled(); }
+    /// \brief Whether each save is offering to do anything. Public so a headless
+    /// run can read what the user would see.
+    ///
+    /// \note One widget answers both, so these say what a plain press and a
+    /// modified one would do rather than which of two is lit. \see savePressed().
+    ///@{
+    bool saveIsOffered() const;
+    bool saveAsIsOffered() const { return save_.isEnabled(); }
+    ///@}
 
     /// \brief The highlighted row's name, or nothing when none is a preset.
     juce::String selectedPresetName() const;
@@ -324,7 +329,7 @@ class PresetBrowser final : public PanelBackground,
     /// loop to deliver it.
     void commentChanged();
 
-    /// \name What the two Save buttons do.
+    /// \name What the Save mark does, plain and with the modifier held.
     /// \note Public for the same reason: juce::Button::triggerClick() posts.
     ///@{
     void savePressed();
@@ -340,17 +345,17 @@ class PresetBrowser final : public PanelBackground,
     juce::TextEditor presetNameEditBox_;
     juce::TextEditor commentBox_;
     juce::ListBox listBox_;
-    PaintedButton save_;
-    PaintedButton saveAs_;
-    PaintedButton delete_;
     ArrowButton browseArrow_;
 
-    /// \name The navigation row, between the Save buttons and the list
+    /// \name The navigation row, between the folder capsule and the list
     ///
-    /// \note In the gap the panel already had between the Save buttons and the
-    /// list. \see issue #44.
+    /// \note The four that navigate were issue #44's. Save and Delete joined
+    /// them as marks in issue #56, which is where the list's two extra rows came
+    /// from. Save As has no mark of its own. \see saveAsWasAsked().
     ///@{
     GlyphButton upFolder_;
+    GlyphButton save_;
+    GlyphButton delete_;
     GlyphButton userPresets_;
     GlyphButton jogPrevious_;
     GlyphButton jogNext_;

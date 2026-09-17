@@ -81,16 +81,21 @@ juce::ListBox &listOf(Editor &editor)
 ///
 /// \brief The navigation row, by position in it.
 ///
-/// \note The order is the order the four are constructed in, which is also left
-/// to right. Both are asserted below rather than assumed: a fifth glyph, or a
+/// \note The order is the order the six are constructed in, which is also left
+/// to right. Both are asserted below rather than assumed: another glyph, or a
 /// reordering, should fail here and not silently send the rest of a case at the
 /// wrong button.
+///
+/// \note Save and Delete joined the row in issue #56, as marks rather than as
+/// the words they were. There is no Save As: it is Save with the modifier held.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 enum Nav
 {
     Up,
+    Save,
+    Delete,
     User,
     JogPrevious,
     JogNext,
@@ -101,7 +106,7 @@ std::vector<GUI::GlyphButton *> navigationRow(Editor &editor)
 {
     /// \note Told from the editor's own lock -- "ignore external audio", beside
     /// the sidechain source, which is a GlyphButton too -- by its parent rather
-    /// than by its index: these four are on the browser panel and that one is
+    /// than by its index: these six are on the browser panel and that one is
     /// not.
     auto *const pPanel(listOf(editor).getParentComponent());
 

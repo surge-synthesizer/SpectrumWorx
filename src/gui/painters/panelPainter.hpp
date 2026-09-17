@@ -59,8 +59,16 @@ class PanelPainter
     /// \brief The strip the settings tabs stand in, across the top of \p bounds.
     static void paintTabStrip(juce::Graphics &, juce::Rectangle<float> bounds);
 
-    /// the preset comment field's frame, in the browser's coordinates
+    /// \name The browser's three fields, in the browser's own coordinates
+    ///
+    /// \note Asked for rather than written down twice: PresetBrowser puts its
+    /// list, comment box and byline inside these, and a frame that moved on its
+    /// own would draw around nothing.
+    ///@{
+    static juce::Rectangle<float> presetListField();
     static juce::Rectangle<float> presetCommentField();
+    static juce::Rectangle<float> presetAuthorField();
+    ///@}
 
     /// the comment field's hover, inside its frame
     static void paintPresetCommentHover(juce::Graphics &, float strength);
@@ -84,28 +92,18 @@ class PanelPainter
     /// from, so the row above the fields did not line up with them. \see
     /// issue #134 and SpectrumWorxEditor::Settings::resized().
     ///
+    /// \note Ten rather than the artwork's nine, which left eleven on the right.
+    /// \see issue #56.
+    ///
     ////////////////////////////////////////////////////////////////////////////
-    static float constexpr fieldInset{9.f};
+    static float constexpr fieldInset{10.f};
+
+    /// leaves fieldInset again on the right
+    static float constexpr fieldWidth{267.f};
 
     /// \brief The settings page's one frame, from the top of the *page* --
     /// which is the tab bar's own depth below the top of the panel.
     static float constexpr settingsFrameTop{18.f};
-
-    ////////////////////////////////////////////////////////////////////////////
-    ///
-    /// \brief The browser's byline field, under the comment box.
-    ///
-    /// \note The list gave up a row and a half of itself for it -- 36 px at the
-    /// 24 px it draws a row at -- and the comment box moved down into the gap
-    /// that left, so the two below it keep the margins they always had. \see
-    /// issue #56, and PresetBrowser::authorLabel() for what goes in it.
-    ///
-    ////////////////////////////////////////////////////////////////////////////
-    static float constexpr authorFieldTop{501.f};
-    static float constexpr authorFieldHeight{28.f};
-
-    /// What the list gave up, in pixels. \see above.
-    static int constexpr authorFieldCost{36};
 
     /// \brief The sizes the two are drawn at, which were their artwork's.
     ///

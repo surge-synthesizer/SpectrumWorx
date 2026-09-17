@@ -52,14 +52,15 @@ namespace GlyphStyle
 /// marks do: what they have in common is that each is a little wider than its
 /// ink, so that a pointer aimed at a five pixel arrowhead lands on something.
 ///
-/// \note The row itself was already there -- twenty pixels between the bottom
-/// of the Save row's frame and the top of the list's -- and held the "Ignore
-/// external audio" toggle. \see PresetBrowser's constructor for the four x
-/// positions, which sit with every other placement in that panel.
+/// \note Save and Delete joined the row as marks in issue #56, and the frame
+/// that held them as words -- with the list rows it cost -- went. \see
+/// PresetBrowser's constructor for the x positions.
 ///@{
-int constexpr rowTop{87};
+int constexpr rowTop{39};
 int constexpr rowHeight{24};
 int constexpr upWidgetWidth{24};
+int constexpr saveWidgetWidth{24};
+int constexpr trashWidgetWidth{24};
 int constexpr userWidgetWidth{26};
 int constexpr jogWidgetWidth{17};
 ///@}
@@ -112,6 +113,43 @@ float constexpr upHeight{16.05f};
 float constexpr upStroke{3.6f};
 float constexpr upHeadWidth{8.1f};
 float constexpr upHeadHeight{7.05f};
+///@}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \name Save
+///
+///   An arrow coming down onto a tray.
+////////////////////////////////////////////////////////////////////////////////
+///@{
+float constexpr saveWidth{14.0f};
+float constexpr saveHeight{16.0f};
+// the stem takes what the other three leave, so the mark keeps its height
+float constexpr saveStemWidth{2.0f};
+float constexpr saveHeadWidth{10.0f};
+float constexpr saveHeadHeight{5.0f};
+/// The tray, and the air between it and the point coming down at it.
+///@{
+float constexpr saveTrayHeight{3.0f};
+float constexpr saveTrayGap{2.0f};
+///@}
+///@}
+
+////////////////////////////////////////////////////////////////////////////////
+/// \name Delete
+///
+///   A trash can: a handle, a lid across the whole width, and a body under it.
+///
+/// \note Body and handle are stroked, not filled -- a solid can at fourteen
+/// pixels is a blob with a line over it.
+////////////////////////////////////////////////////////////////////////////////
+///@{
+float constexpr trashWidth{14.0f};
+float constexpr trashHeight{14.0f};
+float constexpr trashStroke{2.0f};
+float constexpr trashHandleWidth{6.0f};
+float constexpr trashHandleHeight{3.0f};
+float constexpr trashLidHeight{2.0f};
+float constexpr trashBodyWidth{10.0f};
 ///@}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -194,6 +232,12 @@ class GlyphPainter
   public:
     /// \brief Up one folder: draws GlyphStyle's arrow centred in \p bounds.
     static void paintFolderUp(juce::Graphics &, juce::Rectangle<float> bounds, juce::Colour);
+
+    /// \brief An arrow onto a tray: keep this. Centred in \p bounds.
+    static void paintSave(juce::Graphics &, juce::Rectangle<float> bounds, juce::Colour);
+
+    /// \brief A trash can, centred in \p bounds.
+    static void paintTrash(juce::Graphics &, juce::Rectangle<float> bounds, juce::Colour);
 
     /// \brief A head and shoulders, centred in \p bounds.
     static void paintUser(juce::Graphics &, juce::Rectangle<float> bounds, juce::Colour);

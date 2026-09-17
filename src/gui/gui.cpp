@@ -1063,6 +1063,10 @@ int glyphWidgetWidth(GlyphButton::Glyph const glyph)
     {
     case GlyphButton::Glyph::FolderUp:
         return GlyphStyle::upWidgetWidth;
+    case GlyphButton::Glyph::Save:
+        return GlyphStyle::saveWidgetWidth;
+    case GlyphButton::Glyph::Trash:
+        return GlyphStyle::trashWidgetWidth;
     case GlyphButton::Glyph::User:
         return GlyphStyle::userWidgetWidth;
     case GlyphButton::Glyph::JogPrevious:
@@ -1113,6 +1117,12 @@ void GlyphButton::paintButton(juce::Graphics &graphics, bool isMouseOverButton,
     {
     case Glyph::FolderUp:
         GlyphPainter::paintFolderUp(graphics, bounds, colour);
+        break;
+    case Glyph::Save:
+        GlyphPainter::paintSave(graphics, bounds, colour);
+        break;
+    case Glyph::Trash:
+        GlyphPainter::paintTrash(graphics, bounds, colour);
         break;
     case Glyph::User:
         GlyphPainter::paintUser(graphics, bounds, colour);
