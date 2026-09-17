@@ -1484,6 +1484,9 @@ class TitledTextBox : public WidgetBase<>, private juce::TextEditor::Listener
     ///@{
     void edited();
     void commit();
+
+    /// \brief Commits and lets go, which is what Return does.
+    void returnKeyPressed();
     ///@}
 
   public:
@@ -1505,7 +1508,8 @@ class TitledTextBox : public WidgetBase<>, private juce::TextEditor::Listener
 
   private: // juce::TextEditor::Listener overrides
     void textEditorTextChanged(juce::TextEditor &) override { edited(); }
-    void textEditorReturnKeyPressed(juce::TextEditor &) override { commit(); }
+
+    void textEditorReturnKeyPressed(juce::TextEditor &) override { returnKeyPressed(); }
     void textEditorFocusLost(juce::TextEditor &) override { commit(); }
 
     // nothing to restore: onEdit has already kept every keystroke

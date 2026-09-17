@@ -392,9 +392,28 @@ void PresetBrowser::deletePressed()
     std::error_code ignored;
     std::filesystem::remove(target, ignored);
 
+    // before the refresh, which highlights whatever is still loaded
+    if (editor().editorHost().loadedPreset().file == target)
+        loadedPresetDeleted();
+
     refresh();
     delete_.setEnabled(false);
     deselectAllRows();
+}
+
+/// \note The panel said whose the sound was and what the note on it read long
+/// after the file was gone, nothing in a delete having told it otherwise. An
+/// edit in hand keeps both -- LoadedPreset::fileDeleted() decides. \see issue #56.
+void PresetBrowser::loadedPresetDeleted()
+{
+    auto &loaded(editor().editorHost().loadedPreset());
+    loaded.fileDeleted();
+
+    originalComment_ = loaded.comment;
+    comment().setText(loaded.comment, juce::dontSendNotification);
+
+    updateSaveButtons();
+    repaint(); // the byline is painted rather than held in a widget
 }
 
 /// \note After the load and not before it: GUI::loadPreset ends in

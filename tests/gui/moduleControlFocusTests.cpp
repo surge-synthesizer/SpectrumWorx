@@ -1261,3 +1261,94 @@ TEST_CASE("The mouse passing over a clicked control does not deselect it",
     CHECK(editor.activeControl() == pControl);
     CHECK(lfoStripIsUp(editor));
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// The settings panel and the keyboard
+// -----------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   juce::TabbedComponent brings a newly shown page `toFront( true )`, which
+/// walks the keyboard into the first control on it. On the Interface page that
+/// is a text box, so opening the page put a blinking caret in a field nobody had
+/// asked to type in -- and Return did not let go of it again. \see issue #56.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+/// \brief The Author box, which is the only juce::TextEditor the settings panel
+/// has.
+juce::TextEditor &authorBoxOf(GUI::SpectrumWorxEditor &editor)
+{
+    std::vector<juce::TextEditor *> boxes;
+    std::function<void(juce::Component &)> walk([&](juce::Component &parent) {
+        for (auto *const pChild : parent.getChildren())
+        {
+            if (auto *const pBox = dynamic_cast<juce::TextEditor *>(pChild))
+                boxes.push_back(pBox);
+            walk(*pChild);
+        }
+    });
+    walk(editor);
+    REQUIRE(boxes.size() == 1);
+    return *boxes.front();
+}
+} // anonymous namespace
+
+TEST_CASE("Opening a settings page leaves the keyboard on the tab",
+          "[gui][settings][accessibility]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    editor.showSettings(GUI::SpectrumWorxEditor::enginePageIndex);
+    editor.showSettings(GUI::SpectrumWorxEditor::interfacePageIndex);
+
+    // the caret is the thing: nothing on the page may have the keyboard
+    CHECK_FALSE(authorBoxOf(editor).hasKeyboardFocus(false));
+
+    auto *const pFocused(juce::Component::getCurrentlyFocusedComponent());
+    REQUIRE(pFocused != nullptr);
+    CHECK(dynamic_cast<juce::TabBarButton *>(pFocused) != nullptr);
+}
+
+TEST_CASE("Return lets go of the Author box", "[gui][settings][accessibility]")
+{
+    SWTest::HostSideJuce const juceIsUp;
+
+    if (!SWTest::aWindowCanBeMade())
+        SKIP(SWTest::noWindow);
+
+    SWTest::Instance instance;
+    DesktopEditor const window(instance);
+    if (!window.tookTheKeyboard())
+        SKIP(keyboardRefused);
+
+    auto &editor(window.editor());
+    editor.showSettings(GUI::SpectrumWorxEditor::interfacePageIndex);
+
+    auto &author(authorBoxOf(editor));
+    author.grabKeyboardFocus();
+    REQUIRE(author.hasKeyboardFocus(false));
+
+    /// \note The handler called by hand rather than through a synthesised key:
+    /// juce::TextEditor::returnPressed() *posts*, and a test binary has no
+    /// message loop to deliver it. \see PresetBrowser::commentChanged() for the
+    /// same dodge, and TitledTextBox, which is public for this reason.
+    author.setText("Martin Walker", juce::dontSendNotification);
+    auto *const pBox(dynamic_cast<GUI::TitledTextBox *>(author.getParentComponent()));
+    REQUIRE(pBox != nullptr);
+    pBox->returnKeyPressed();
+
+    CHECK_FALSE(author.hasKeyboardFocus(false));
+}

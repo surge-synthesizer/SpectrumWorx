@@ -4724,6 +4724,18 @@ void SpectrumWorxEditor::Settings::currentTabChanged(int const newCurrentTabInde
     if ((newCurrentTabIndex >= 0) && (newCurrentTabIndex < int{numberOfSettingsPages}))
         editor().editorHost().panelState().settingsPage =
             static_cast<unsigned int>(newCurrentTabIndex);
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note juce::TabbedComponent brings the new page `toFront( true )` just
+    /// before this runs, which walks the keyboard into the first control on it
+    /// -- on the Interface page a text box, so opening the page put a blinking
+    /// caret in the Author field nobody had asked to type in. The tab is where
+    /// the keyboard belongs: it is what the arrow keys move between, and it has
+    /// no caret. \see issue #56.
+    ////////////////////////////////////////////////////////////////////////////
+    if (auto const *const pPage = getCurrentContentComponent();
+        pPage && pPage->hasKeyboardFocus(true))
+        focusCurrentTab();
 }
 
 SpectrumWorxEditor &SpectrumWorxEditor::Settings::editor()

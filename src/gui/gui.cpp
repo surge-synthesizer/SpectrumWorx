@@ -1944,6 +1944,15 @@ void TitledTextBox::commit()
         onCommit();
 }
 
+/// \note A caret still blinking after Return reads as a box that has not taken
+/// what was typed, and there was no way out of this one but the mouse. \see
+/// issue #56.
+void TitledTextBox::returnKeyPressed()
+{
+    commit();
+    editor_.giveAwayKeyboardFocus();
+}
+
 void TitledTextBox::paint(juce::Graphics &graphics)
 {
     // as ComboBox::paint() says it, so the two in one column answer the pointer alike
