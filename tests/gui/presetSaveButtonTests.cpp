@@ -621,6 +621,77 @@ TEST_CASE("The browser says who wrote the preset it has loaded", "[gui][presets]
     CHECK(instance.loadedPreset().author == "Martin Walker");
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// Rows the listing no longer has
+// ------------------------------
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+///   Two out-of-range reads, neither reachable until something put a real preset
+/// file in the user tree -- every case that browsed one browsed an empty folder.
+/// Both are checked-build only, and the first is a hang rather than a wrong
+/// answer. \see issue #56.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+/// \brief A folder of this case's own holding one signed preset, with the
+/// browser pointed at it and that preset loaded.
+PresetBrowser &browserOnOwnPreset(SWTest::Instance &instance, char const *const name)
+{
+    auto const folder(fs::path(SW_TEST_OUTPUT_DIR) / "presets" / name);
+    fs::remove_all(folder);
+    fs::create_directories(folder);
+    {
+        std::ofstream preset(folder / "Mine.swp", std::ios::binary);
+        preset << R"(<SpectrumWorxPreset Version="2.6" LastModified="14.12.2011 18:21" )"
+                  R"(Comment="a note about this sound" Author="Martin Walker"><Global In="1.0" )"
+                  R"(Out="1.0" Mix="1.0" FFT_size="2048" Overlap_factor="4" Window_type="0" )"
+                  R"(Input_mode="0"/><Modules/></SpectrumWorxPreset>)";
+    }
+
+    auto &browser(browserOf(instance));
+    browser.setNewFolder(folder);
+    listOf(browser).selectRow(0);
+
+    REQUIRE(browser.selectedPresetName() == "Mine");
+    REQUIRE(browser.authorLabel() == "Author: Martin Walker");
+    REQUIRE(browser.comment().getText() == "a note about this sound");
+    return browser;
+}
+} // anonymous namespace
+
+TEST_CASE("Listing and deleting a user preset stays inside the listing", "[gui][presets]")
+{
+    ////////////////////////////////////////////////////////////////////////////
+    /// \note Selecting the row is the first half: item() asserted that a row's
+    /// file exists by asking file(), which asks item() for the same row, so the
+    /// two called each other until the stack ran out.
+    ///
+    /// \note Deleting it is the second: saveDirtyComment() comes back through
+    /// juce::ListBox::updateContent() holding the row the comment was typed
+    /// against, which the delete has just taken out of a listing that is now
+    /// empty.
+    ////////////////////////////////////////////////////////////////////////////
+    useOwnPreferences("userPresetRows");
+
+    SWTest::HostSideJuce const juceIsUp;
+    SWTest::Instance instance(false); // \see the byline cases below
+    auto &browser(browserOnOwnPreset(instance, "userPresetRows"));
+
+    // a dirty comment is what arms saveDirtyComment() for the delete
+    browser.comment().setText("mine now", juce::dontSendNotification);
+    browser.commentChanged();
+
+    browser.deletePressed();
+
+    CHECK(listOf(browser).getListBoxModel()->getNumRows() == 0);
+    CHECK_FALSE(
+        fs::exists(fs::path(SW_TEST_OUTPUT_DIR) / "presets" / "userPresetRows" / "Mine.swp"));
+}
+
 TEST_CASE("A preset with no byline says so rather than keeping the last one",
           "[gui][presets][author]")
 {

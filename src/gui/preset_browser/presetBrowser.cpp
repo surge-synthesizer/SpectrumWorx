@@ -383,6 +383,20 @@ bool PresetBrowser::saveIsOffered() const
     return save_.isEnabled() && editor().editorHost().loadedPreset().canBeOverwritten();
 }
 
+void PresetBrowser::deletePressed()
+{
+    fs::path const target(selectedFile());
+    if (target.empty())
+        return;
+
+    std::error_code ignored;
+    std::filesystem::remove(target, ignored);
+
+    refresh();
+    delete_.setEnabled(false);
+    deselectAllRows();
+}
+
 /// \note After the load and not before it: GUI::loadPreset ends in
 /// presetChangeEnd, which marks the *session* modified.
 void PresetBrowser::rememberLoadedPreset(juce::String const &presetName, fs::path const &file)
@@ -518,8 +532,9 @@ PresetBrowser::Item const &PresetBrowser::item(unsigned int const index) const
     // paint. Hoisted, and unread under NDEBUG, where LE_ASSERT drops its argument
     std::error_code error;
     LE::Utility::ignoreUnused(error);
-    LE_ASSERT((location_ != Location::User) || item.isDirectory() ||
-              std::filesystem::exists(file(index), error));
+    // fileFor() and not file(), which would ask this for the row it is holding
+    LE_ASSERT(item.isDirectory() || fileFor(item).empty() ||
+              std::filesystem::exists(fileFor(item), error));
     return item;
 }
 
@@ -538,17 +553,20 @@ PresetBrowser::Item const &PresetBrowser::selectedItem() const { return item(sel
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-fs::path PresetBrowser::file(unsigned int const index) const
+/// \note Takes the row's Item rather than its index, so that item()'s own
+/// assertion can ask for a path without asking item() for the row it is already
+/// holding -- which is what it did until issue #56, and in a checked build the
+/// two called each other until the stack ran out. Nothing had listed a preset
+/// file in the user tree: the cases that browsed one browsed an empty folder.
+fs::path PresetBrowser::fileFor(Item const &item) const
 {
-    if (location_ != Location::User)
-        return {};
-
-    Item const &item(this->item(index));
-    if (item.isDirectory())
+    if ((location_ != Location::User) || item.isDirectory())
         return {};
 
     return currentDirectory_ / LE::IO::juceStringToPath(item.name + presetExtension);
 }
+
+fs::path PresetBrowser::file(unsigned int const index) const { return fileFor(item(index)); }
 
 fs::path PresetBrowser::selectedFile() const { return file(selectedIndex()); }
 
@@ -827,7 +845,15 @@ void PresetBrowser::saveDirtyComment()
         return;
     }
 
-    fs::path const dirtyPreset(this->file(dirtyCommentPresetIndex_));
+    /// \note Checked against the listing rather than trusted: a delete takes a
+    /// row out and comes straight back through here, by way of
+    /// juce::ListBox::updateContent(), with the index the comment was typed
+    /// against -- which by then may be off the end of a shorter listing, or of
+    /// an empty one. The preset it belonged to is the one that has just gone, so
+    /// there is nothing to write it to. \see issue #56.
+    fs::path const dirtyPreset(dirtyCommentPresetIndex_ < files_.size()
+                                   ? this->file(dirtyCommentPresetIndex_)
+                                   : fs::path());
 
     dirtyCommentPresetIndex_ = -1;
 
@@ -963,15 +989,7 @@ void PresetBrowser::buttonClicked(juce::Button *const pButton)
 
     if (pButton == &delete_)
     {
-        fs::path const target(selectedFile());
-        if (!target.empty())
-        {
-            std::error_code ignored;
-            std::filesystem::remove(target, ignored);
-            refresh();
-            delete_.setEnabled(false);
-            deselectAllRows();
-        }
+        deletePressed();
     }
     else if (pButton == &upFolder_)
     {
