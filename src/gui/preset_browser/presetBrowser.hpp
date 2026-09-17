@@ -313,6 +313,11 @@ class PresetBrowser final : public PanelBackground,
 
     Item const &item(unsigned int index) const;
     Item const &selectedItem() const;
+
+    /// \brief \p item's file, empty when it has none. \see the definition for
+    /// why it takes the Item and not the row.
+    fs::path fileFor(Item const &item) const;
+
     fs::path file(unsigned int index) const;
     fs::path selectedFile() const;
 
@@ -329,11 +334,13 @@ class PresetBrowser final : public PanelBackground,
     /// loop to deliver it.
     void commentChanged();
 
-    /// \name What the Save mark does, plain and with the modifier held.
+    /// \name What the Save mark does, plain and with the modifier held, and what
+    /// the Delete mark does.
     /// \note Public for the same reason: juce::Button::triggerClick() posts.
     ///@{
     void savePressed();
     void saveAsPressed();
+    void deletePressed();
     ///@}
 
     /// \brief Whether the filename box is up waiting to be told what to call a
