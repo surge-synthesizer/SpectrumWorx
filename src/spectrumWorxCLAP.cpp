@@ -1033,6 +1033,18 @@ bool SpectrumWorxCLAP::handleEvent(clap_event_header const *const header)
     auto const effectBefore(isSlotSelector ? moduleChain().getParameterForIndex(slot).getValue()
                                            : noModule);
 
+    // a sync type, read before the write: only a sync type that actually moved
+    // can have moved the period. \see the rescan below
+    bool const isSyncType((parameterID.type() == ParameterID::LFOParameter) &&
+                          (parameterID.value._.lfo.lfoParameterIndex ==
+                           LE::Parameters::IndexOf<LFO::Parameters, LFO::SyncTypes>::value));
+    auto const syncTypesOf([&]() -> int {
+        auto const pModule(moduleChain().moduleAs<Module>(parameterID.value._.lfo.moduleIndex));
+        return pModule ? pModule->lfo(parameterID.value._.lfo.moduleParameterIndex).syncTypes()
+                       : -1;
+    });
+    auto const syncTypesBefore(isSyncType ? syncTypesOf() : -1);
+
     auto const value(CLAPEdge::fromHost(parameterID, ranges, event->value));
     auto const applied(setParameter(parameterID, value));
 
@@ -1065,9 +1077,12 @@ bool SpectrumWorxCLAP::handleEvent(clap_event_header const *const header)
     // a sync type decides which divisions of the bar a period may take, so
     // writing one moves the period onto the new grid; the host wrote neither
     // and has to be told to read again \see issue #192
-    if ((parameterID.type() == ParameterID::LFOParameter) &&
-        (parameterID.value._.lfo.lfoParameterIndex ==
-         LE::Parameters::IndexOf<LFO::Parameters, LFO::SyncTypes>::value))
+    //
+    // and only when the sync type actually moved. Ardour answers a value rescan
+    // by writing every parameter back -- every sync type included, unchanged --
+    // so an unconditional rescan here asks again, forever, and Ardour drops a
+    // process cycle whenever handling one overlaps the audio thread
+    if (isSyncType && (syncTypesOf() != syncTypesBefore))
         requestRescan(CLAP_PARAM_RESCAN_VALUES);
 
     return isSlotSelector && (effectBefore != effectAfter);

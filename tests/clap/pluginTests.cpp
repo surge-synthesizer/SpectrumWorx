@@ -1187,6 +1187,39 @@ TEST_CASE("Filling a slot makes the host re-read the descriptions", "[clap]")
     CHECK(named > 0);
 }
 
+/// \note Ardour answers a value rescan by writing every parameter back, sync
+/// types included and unchanged. A rescan asked for on *any* sync write is
+/// answered with another write, which asks again -- a loop at the host's
+/// callback rate, and Ardour drops a process cycle whenever handling one
+/// overlaps the audio thread: a click a few times a second.
+TEST_CASE("Writing back the sync type an LFO already has asks for no rescan", "[clap]")
+{
+    Entry const entry;
+    TestHost host{{.params = true}};
+    ActivePlugin plugin(48000, 512, host);
+
+    OneParameterEvent const fillSlotOne(parameterID(moduleChainType, 0), 0);
+    plugin.flush(&*fillSlotOne);
+    plugin.pumpMainThread();
+
+    auto const sync(lfoParameterID(0, 0, lfoSyncTypes));
+
+    // a change still asks, which is issue #192 -- to Triplet, a new LFO being
+    // Note already
+    host.rescanCalls = 0;
+    OneParameterEvent const toTriplet(sync, 2);
+    plugin.flush(&*toTriplet);
+    plugin.pumpMainThread();
+    CHECK(host.rescanCalls == 1);
+
+    // the host's echo of the same value does not
+    host.rescanCalls = 0;
+    OneParameterEvent const sameAgain(sync, 2);
+    plugin.flush(&*sameAgain);
+    plugin.pumpMainThread();
+    CHECK(host.rescanCalls == 0);
+}
+
 TEST_CASE("A host with state and no thread check survives a parameter write", "[clap]")
 {
     // `clap.thread-check` is optional; `clap.state` is what makes
