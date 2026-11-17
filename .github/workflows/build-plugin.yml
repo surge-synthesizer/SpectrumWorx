@@ -502,6 +502,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           submodules: recursive
+          fetch-depth: 0  # deb versions count commits and read release tags
 
       - name: Prepare for JUCE
         uses: surge-synthesizer/sst-githubactions/prepare-for-juce@main
@@ -623,6 +624,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           submodules: recursive
+          fetch-depth: 0  # deb versions count commits and read release tags
 
       # The point of the old image is its glibc: a binary linked against
       # Ubuntu 20's runs on the distributions people actually have, and one
