@@ -490,6 +490,13 @@ jobs:
             target: spectrumworx-installer
             upload: false
 
+          # arm linux has no docker leg, so it ships from here
+          - os: ubuntu-24.04-arm
+            name: linux-aarch64
+            cmake_args: -GNinja -DSW_EXTRA_ZIP_NAME=-aarch64
+            target: spectrumworx-installer
+            upload: true
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -551,6 +558,12 @@ jobs:
       - name: Show Installer Directory
         if: github.event_name != 'pull_request' && matrix.target == 'spectrumworx-installer'
         run: ls -l build/installer
+
+      - name: Show Linux deb
+        if: github.event_name != 'pull_request' && runner.os == 'Linux'
+        run: |
+          dpkg-deb -I build/installer/*.deb
+          dpkg-deb -c build/installer/*.deb
 
       - name: Upload artifact
         if: github.event_name != 'pull_request' && matrix.upload
@@ -626,7 +639,10 @@ jobs:
 
       - name: Show Installer Directory
         if: github.event_name != 'pull_request'
-        run: ls -l ./build/installer
+        run: |
+          ls -l ./build/installer
+          dpkg-deb -I ./build/installer/*.deb
+          dpkg-deb -c ./build/installer/*.deb
 
       - name: Upload artifact
         if: github.event_name != 'pull_request'

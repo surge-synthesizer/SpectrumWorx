@@ -161,10 +161,12 @@ endif()
 # what a release is cut with; it is not part of `all`.
 if (SW_BUILD_PLUGIN_BUNDLES AND NOT SW_BUILD_CLAP_ONLY)
     include(basic_installer_clapfirst)
+    set(SW_EXTRA_ZIP_NAME "" CACHE STRING "Appended to the installer names, e.g. -aarch64")
     add_clapfirst_installer(
             INSTALLER_TARGET spectrumworx-installer
             ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/sw_assets
             INSTALLER_PREFIX "spectrumworx"
+            EXTRA_ZIP_NAME "${SW_EXTRA_ZIP_NAME}"
             PRODUCT_NAME "${PRODUCT_NAME}"
             TARGETS
                 spectrumworx_clapfirst_clap
