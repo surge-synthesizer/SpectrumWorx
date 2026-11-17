@@ -9,7 +9,7 @@
 #            sst-plugininfra's scripts/installer_mac/make_installer.sh
 #   Windows  a .zip of the raw bundles, plus an Inno Setup .exe if the compiler
 #            is on PATH -- the .iss itself is sst-cmake's
-#   Linux    a .zip, because there is no one answer and a zip is the honest one
+#   Linux    a .zip, and a .deb beside it wherever dpkg-deb is found
 #
 # **Signing is by environment variable, and its absence is not an error.** The
 # mac script signs when MAC_SIGNING_CERT is set and quietly does not when it is
@@ -25,6 +25,7 @@ function(add_clapfirst_installer)
             ASSET_OUTPUT_DIRECTORY
             PRODUCT_NAME
             INSTALLER_PREFIX
+            EXTRA_ZIP_NAME # appended after the system name, e.g. "-aarch64"
     )
     set(multiValueArgs
             TARGETS # the per-format targets, e.g. sw_clap sw_vst3 sw_auv2
@@ -57,7 +58,7 @@ function(add_clapfirst_installer)
     # not say which commit it came from cannot be reported against.
     string(TIMESTAMP INST_DATE "%Y-%m-%d")
     set(INST_VERSION "${INST_DATE}-${GIT_COMMIT_HASH}")
-    set(INST_ZIP ${CIN_INSTALLER_PREFIX}-${CMAKE_SYSTEM_NAME}-${INST_VERSION}.zip)
+    set(INST_ZIP ${CIN_INSTALLER_PREFIX}-${CMAKE_SYSTEM_NAME}${CIN_EXTRA_ZIP_NAME}-${INST_VERSION}.zip)
 
     set(SW_PACKAGING "${CMAKE_SOURCE_DIR}/assets/installer")
     set(SW_LICENSE "${SW_PACKAGING}/License.txt")
@@ -179,5 +180,28 @@ function(add_clapfirst_installer)
                 COMMAND ${CMAKE_COMMAND} -E copy "${SW_LICENSE}" ${CIN_ASSET_OUTPUT_DIRECTORY}
                 COMMAND ${CMAKE_COMMAND} -E tar cvf installer/${INST_ZIP} --format=zip ${CIN_ASSET_OUTPUT_DIRECTORY}/
                 COMMAND ${CMAKE_COMMAND} -E echo "Installer in: installer/${INST_ZIP}")
+
+        # non-debian hosts still get the zip
+        find_program(INST_DPKG_DEB dpkg-deb)
+        if (INST_DPKG_DEB)
+            set(INST_DEB ${CIN_INSTALLER_PREFIX}-${CMAKE_SYSTEM_NAME}${CIN_EXTRA_ZIP_NAME}-${INST_VERSION}.deb)
+            if ("${GIT_IMPLIED_DISPLAY_VERSION}" MATCHES "^v([0-9].*)$")
+                set(INST_DEB_VERSION "${CMAKE_MATCH_1}")
+            else ()
+                set(INST_DEB_VERSION "NIGHTLY-${INST_VERSION}")
+            endif ()
+            message(STATUS "Installer: installer/${INST_DEB}, version ${INST_DEB_VERSION}")
+
+            add_custom_command(
+                    TARGET ${TGT}
+                    POST_BUILD
+                    USES_TERMINAL
+                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    COMMAND ${CMAKE_SOURCE_DIR}/scripts/installer_linux/make_deb.sh
+                        ${CIN_ASSET_OUTPUT_DIRECTORY} ${CMAKE_SOURCE_DIR}
+                        ${CMAKE_BINARY_DIR}/installer/${INST_DEB} "${INST_DEB_VERSION}"
+                    COMMAND ${CMAKE_COMMAND} -E echo "Deb in: installer/${INST_DEB}"
+            )
+        endif ()
     endif ()
 endfunction()
