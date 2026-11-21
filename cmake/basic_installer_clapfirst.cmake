@@ -53,11 +53,16 @@ function(add_clapfirst_installer)
         endif ()
     endforeach ()
 
-    # Date and commit rather than a version number, because these are nightlies
-    # far more often than they are releases, and a nightly whose file name does
-    # not say which commit it came from cannot be reported against.
+    # A v-tag build is named for its release. Anything else is a nightly of the
+    # next one, and keeps the date and commit, because a nightly whose file name
+    # does not say which commit it came from cannot be reported against.
     string(TIMESTAMP INST_DATE "%Y-%m-%d")
-    set(INST_VERSION "${INST_DATE}-${GIT_COMMIT_HASH}")
+    set(INST_STAMP "${INST_DATE}-${GIT_COMMIT_HASH}")
+    if ("${GIT_IMPLIED_DISPLAY_VERSION}" MATCHES "^v([0-9].*)$")
+        set(INST_VERSION "${CMAKE_MATCH_1}")
+    else ()
+        set(INST_VERSION "${CMAKE_PROJECT_VERSION}-nightly-${INST_STAMP}")
+    endif ()
     set(INST_ZIP ${CIN_INSTALLER_PREFIX}-${CMAKE_SYSTEM_NAME}${CIN_EXTRA_ZIP_NAME}-${INST_VERSION}.zip)
 
     set(SW_PACKAGING "${CMAKE_SOURCE_DIR}/assets/installer")
@@ -99,7 +104,8 @@ function(add_clapfirst_installer)
         )
     elseif (WIN32)
         message(STATUS "Installer: installer/${INST_ZIP}, and an exe beside it")
-        cmake_path(REMOVE_EXTENSION INST_ZIP OUTPUT_VARIABLE WIN_INSTALLER)
+        # the version has dots, so only drop the .zip
+        cmake_path(REMOVE_EXTENSION INST_ZIP LAST_ONLY OUTPUT_VARIABLE WIN_INSTALLER)
 
         # The bundles land in per-format subdirectories; Inno and the zip both
         # want them flat, in one place.
@@ -188,7 +194,8 @@ function(add_clapfirst_installer)
             if ("${GIT_IMPLIED_DISPLAY_VERSION}" MATCHES "^v([0-9].*)$")
                 set(INST_DEB_VERSION "${CMAKE_MATCH_1}")
             else ()
-                set(INST_DEB_VERSION "NIGHTLY-${INST_VERSION}")
+                # the date-stamped nightly version is what apt orders against releases
+                set(INST_DEB_VERSION "NIGHTLY-${INST_STAMP}")
             endif ()
             message(STATUS "Installer: installer/${INST_DEB}, version ${INST_DEB_VERSION}")
 
