@@ -715,9 +715,10 @@ jobs:
 
       ##########################################################################
       # \note **Read off the assets rather than recomputed.** The installer
-      # names its files `<date>-${GIT_COMMIT_HASH}` and that hash is a plain
-      # `git rev-parse --short`, whose length git chooses: the live Nightly says
-      # `cd87910` and a local configure of the same tree has said `86a575f3`.
+      # names nightlies `<version>-nightly-<date>-${GIT_COMMIT_HASH}` and that
+      # hash is a plain `git rev-parse --short`, whose length git chooses: the
+      # live Nightly says `cd87910` and a local configure of the same tree has
+      # said `86a575f3`.
       # Recomputing it here would therefore be a coin toss that spends its
       # losses on 404 download links, which nothing in CI would notice -- the
       # notification succeeds either way and the breakage is on a web page.
