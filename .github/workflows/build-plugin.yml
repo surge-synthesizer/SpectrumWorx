@@ -490,12 +490,12 @@ jobs:
             target: spectrumworx-installer
             upload: false
 
-          # arm linux has no docker leg, so it ships from here
+          # the same for arm, which ships from the docker job's arm64 leg
           - os: ubuntu-24.04-arm
             name: linux-aarch64
             cmake_args: -GNinja -DSW_EXTRA_ZIP_NAME=-aarch64
             target: spectrumworx-installer
-            upload: true
+            upload: false
 
     steps:
       - name: Checkout code
@@ -616,8 +616,21 @@ jobs:
             --target spectrumworx_clapfirst_all --parallel 4
 
   build_plugin_docker:
-    name: Build - Docker Ubuntu 20
-    runs-on: ubuntu-latest
+    name: Build - Docker Ubuntu 22 ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            os: ubuntu-latest
+            image: ghcr.io/surge-synthesizer/sst-dockerimages/ubuntu22_gcc12:main
+            cmake_args: ""
+
+          - arch: arm64
+            os: ubuntu-24.04-arm
+            image: ghcr.io/surge-synthesizer/sst-dockerimages/ubuntu22_gcc12_arm64:main
+            cmake_args: -DSW_EXTRA_ZIP_NAME=-aarch64
 
     steps:
       - name: Checkout code
@@ -626,16 +639,16 @@ jobs:
           submodules: recursive
           fetch-depth: 0  # deb versions count commits and read release tags
 
-      # The point of the old image is its glibc: a binary linked against
-      # Ubuntu 20's runs on the distributions people actually have, and one
-      # linked against the runner's does not.
+      # The point of the image is its glibc: a binary linked against Ubuntu
+      # 22's runs on the distributions people actually have, and one linked
+      # against the runner's does not. Check glibc below holds it to that.
       - name: Build in Docker
         uses: surge-synthesizer/sst-githubactions/cmake-in-docker@main
         with:
-          image: ghcr.io/surge-synthesizer/sst-dockerimages/ubuntu20_gcc11:main
+          image: ${{ matrix.image }}
           username: ${{ github.actor }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          cmakeArgs: -DCMAKE_BUILD_TYPE=Release -GNinja -DSW_BUILD_TESTS=OFF -DSW_BUILD_TOOLS=OFF -DSW_WERROR=ON -DGITHUB_ACTIONS_BUILD=TRUE
+          cmakeArgs: -DCMAKE_BUILD_TYPE=Release -GNinja -DSW_BUILD_TESTS=OFF -DSW_BUILD_TOOLS=OFF -DSW_WERROR=ON -DGITHUB_ACTIONS_BUILD=TRUE ${{ matrix.cmake_args }}
           # No installer off a pull request, the same as every other leg.
           target: ${{ github.event_name == 'pull_request' && 'spectrumworx_clapfirst_all' || 'spectrumworx-installer' }}
 
@@ -646,12 +659,20 @@ jobs:
           dpkg-deb -I ./build/installer/*.deb
           dpkg-deb -c ./build/installer/*.deb
 
+      # sw_assets holds the built bundles with or without the installer
+      - name: Check glibc
+        uses: surge-synthesizer/sst-githubactions/check-glibc@main
+        with:
+          path: ./build/sw_assets
+          maxGlibc: "2.35"
+          maxGlibcxx: "3.4.30"
+
       - name: Upload artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           path: build/installer
-          name: build-docker-linux
+          name: build-docker-linux-${{ matrix.arch }}
 
   publish-plugin-nightly:
     name: Publish Nightly
