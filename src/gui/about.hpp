@@ -39,10 +39,14 @@ namespace LE::SW::GUI
 class AboutPage final : public PanelBackground
 {
   public:
-    AboutPage();
+    /// \p busLayout is asked at each copy, the host's width being free to move
+    /// under an open page.
+    explicit AboutPage(std::function<juce::String()> busLayout);
     ~AboutPage() override;
 
-    static juce::String information();
+    /// what Copy Info puts on the clipboard, \p busLayout being its last line
+    static juce::String information(juce::String const &busLayout);
+    juce::String copiedInformation() const { return information(busLayout_()); }
     static std::vector<juce::String> originalAuthors();
 
   private: // juce::Component overrides
@@ -82,6 +86,8 @@ class AboutPage final : public PanelBackground
     void copyInformation();
 
   private:
+    std::function<juce::String()> busLayout_;
+
     /// \note Pointers because Link is defined in the .cpp -- the whole point of
     /// this file is that the content and its layout are editable in one place,
     /// and a widget declared here would drag half of it back into a header.

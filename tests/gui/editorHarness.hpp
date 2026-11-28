@@ -215,10 +215,10 @@ class Instance final : public GUI::EditorHost
     /// \brief The side chain's source, held and handed back.
     ///
     /// \note No sample loader under this harness, so `File` is reachable only
-    /// through nameSample() -- what the editor cases are about is that the selector *shows*
-    /// the source and that picking one reaches the host. \see
-    /// tests/external_audio/sampleFeedTests.cpp for what each source does to the
-    /// audio.
+    /// through nameSample(), which setNewSample() also goes through -- what the
+    /// editor cases are about is that the selector *shows* the source and that
+    /// picking one reaches the host. \see tests/external_audio/sampleFeedTests.cpp
+    /// for what each source does to the audio.
     ///
     ////////////////////////////////////////////////////////////////////////////
     SideChainSource sideChainSource() const override { return sideChainSource_; }
@@ -330,7 +330,11 @@ class Instance final : public GUI::EditorHost
     bool grantResizes{true};
 
     fs::path currentSampleFile() const override { return sampleFile_; }
-    char const *setNewSample(fs::path const &) override { return nullptr; }
+    char const *setNewSample(fs::path const &file) override
+    {
+        nameSample(file, true);
+        return nullptr;
+    }
     bool sampleNotLoaded() const override { return sampleNotLoaded_; }
 
     // no decoder here, so a case says what a load would have left

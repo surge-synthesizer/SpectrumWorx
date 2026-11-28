@@ -96,9 +96,40 @@ class PresetBrowser final : public PanelBackground,
     /// up a level, then says where the list now is
     void goToParentFromKeyboard();
 
+    /// \brief The mouse's forward button: into the folder under the pointer, or
+    /// failing that the selected one -- which after going up is the one left.
+    void goForward();
+
     /// left and right, which juce::ListBox leaves alone
     class ListKeys;
     std::unique_ptr<ListKeys> listKeys_;
+
+    /// the mouse's back and forward buttons, over the list only
+    ///
+    /// \note Not the whole panel: juce::Button acts on any button, so a back
+    /// press on Up or Save would do that button's job as well as this one's.
+    class NavigationButtons;
+    std::unique_ptr<NavigationButtons> navigationButtons_;
+
+    /// \brief Whether the list, rather than this browser, just selected a row
+    /// for a back or forward press. \see selectedRowsChanged().
+    bool listSelectedForNavigationButton() const;
+
+    /// what selectedRowsChanged() last let stand, for undoing a selection made by
+    /// the back or forward button
+    int selectedRow_{-1};
+
+    /// \brief From a back or forward press to its release.
+    ///
+    /// \note Needed as well as the buttons JUCE says are down, which on Windows
+    /// no longer include the one let go by the time its release is handled --
+    /// and the release is when a row pressed while already selected selects
+    /// itself, over a listing that has since been replaced.
+    bool navigationGesture_{false};
+
+    /// set while a back or forward press moves the browser, whose own
+    /// selections are not the list's
+    bool navigating_{false};
 
     /// the pointer over a row or the comment, neither of which draws a hover of its own
     class PointerWatch;
@@ -168,9 +199,13 @@ class PresetBrowser final : public PanelBackground,
     void showLoadedPreset();
 
   private:
-    /// \brief Up one level, wherever "up" is from here. Does nothing at the top
-    /// of either tree, which is also where the up button is disabled.
+    /// \brief Up one level, wherever "up" is from here, with the folder it came
+    /// out of selected. Does nothing at the top of either tree, which is also
+    /// where the up button is disabled.
     void goToParent();
+
+    /// \brief Selects the folder row called \p name, if the listing has one.
+    void selectFolder(juce::String const &name);
 
     /// \brief Whether this is the top of the tree it is in -- the bank list, or
     /// the user's own preset folder.
@@ -350,6 +385,12 @@ class PresetBrowser final : public PanelBackground,
     /// \brief Whether the filename box is up waiting to be told what to call a
     /// new preset -- which is how far a Save As gets before the user answers.
     bool isNamingANewPreset() const { return newPresetPending_; }
+
+    /// \brief The mouse's back button goes up a level, its forward button into
+    /// a folder, on the press as the arrow keys do. Public, with its release,
+    /// because a headless run cannot route a press through a mouse listener.
+    void navigationButtonPressed(juce::ModifierKeys const &buttons);
+    void navigationButtonReleased() { navigationGesture_ = false; }
 
   private:
   private: // friend class Detail::BackgroundWithCurrentFolder;

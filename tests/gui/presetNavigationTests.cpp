@@ -460,3 +460,108 @@ TEST_CASE("The jog steps between the presets in a bank", "[gui][presets]")
     click(*row[JogPrevious]);
     CHECK(list.getLastRowSelected() == 0);
 }
+
+namespace
+{
+/// The selected row as a screen reader names it, a folder's ending " folder".
+juce::String selectedRowName(juce::ListBox &list)
+{
+    return list.getListBoxModel()->getNameForRow(list.getLastRowSelected());
+}
+
+/// \brief Holds a mouse button down as far as the rest of JUCE can tell, which
+/// is what PresetBrowser::navigationButtonIsDown() reads.
+struct ButtonHeld
+{
+    explicit ButtonHeld(juce::ModifierKeys::Flags const button)
+        : previous(juce::ModifierKeys::currentModifiers)
+    {
+        juce::ModifierKeys::currentModifiers = previous.withFlags(button);
+    }
+    ~ButtonHeld() { juce::ModifierKeys::currentModifiers = previous; }
+
+    juce::ModifierKeys const previous;
+};
+} // anonymous namespace
+
+TEST_CASE("Up selects the folder it came out of", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance(false /*an engine that was never set up*/);
+    auto &editor(browserEditor(instance));
+
+    editor.showFactoryBank("Echoes");
+    click(*navigationRow(editor)[Up]);
+
+    CHECK(selectedRowName(listOf(editor)) == "Echoes folder");
+}
+
+TEST_CASE("The mouse's back and forward buttons go up and back in", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance(false /*an engine that was never set up*/);
+    auto &editor(browserEditor(instance));
+    auto &browser(*editor.presetBrowser());
+
+    auto const presetsInEchoes(static_cast<int>(FactoryPresets::presets("Echoes").size()));
+    REQUIRE(presetsInEchoes > 0);
+
+    // held as JUCE would hold it, so the browser's own selection on the way up
+    // is not mistaken for the list's
+    auto const press([&browser](juce::ModifierKeys::Flags const button) {
+        ButtonHeld const held(button);
+        browser.navigationButtonPressed(juce::ModifierKeys(button));
+    });
+
+    editor.showFactoryBank("Echoes");
+    press(juce::ModifierKeys::backButtonModifier);
+    CHECK(rowCount(editor) == topLevelBankCount());
+    CHECK(selectedRowName(listOf(editor)) == "Echoes folder");
+
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// \note The release, where a row that was already selected when pressed
+    /// selects itself -- over the new listing, and with JUCE on Windows no longer
+    /// reporting the button down. Undone until the release is over.
+    ///
+    ////////////////////////////////////////////////////////////////////////////
+    auto &list(listOf(editor));
+    auto const folderLeft(list.getLastRowSelected());
+    list.selectRow(folderLeft == 0 ? 1 : 0);
+    CHECK(list.getLastRowSelected() == folderLeft);
+    browser.navigationButtonReleased();
+
+    // with the pointer over no row, into the one selected -- the one just left
+    press(juce::ModifierKeys::forwardButtonModifier);
+    browser.navigationButtonReleased();
+    CHECK(rowCount(editor) == presetsInEchoes);
+}
+
+/// \note juce::ListBox selects the row under a press of any button, and a
+/// selected preset is a loaded one.
+TEST_CASE("The back and forward buttons do not select the row under them", "[gui][presets]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance(false /*an engine that was never set up*/);
+    auto &editor(browserEditor(instance));
+
+    editor.showFactoryBank("Echoes");
+    auto &list(listOf(editor));
+    REQUIRE(rowCount(editor) >= 2);
+
+    list.selectRow(0);
+    auto const loaded(instance.loadedPreset().name);
+    REQUIRE(loaded.isNotEmpty());
+
+    for (auto const button :
+         {juce::ModifierKeys::backButtonModifier, juce::ModifierKeys::forwardButtonModifier})
+    {
+        ButtonHeld const held(button);
+        list.selectRow(1);
+        CHECK(list.getLastRowSelected() == 0);
+        CHECK(instance.loadedPreset().name == loaded);
+    }
+
+    list.selectRow(1);
+    CHECK(list.getLastRowSelected() == 1);
+}
