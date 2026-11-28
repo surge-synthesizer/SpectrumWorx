@@ -103,6 +103,20 @@ function(add_clapfirst_installer)
                     "${INST_VERSION}"
         )
     elseif (WIN32)
+        # an arm64 cross-compile still reports CMAKE_SYSTEM_PROCESSOR as AMD64
+        set(SW_WIN_ARCH "${CMAKE_GENERATOR_PLATFORM}")
+        if ("${SW_WIN_ARCH}" STREQUAL "")
+            set(SW_WIN_ARCH "${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}")
+        endif ()
+        string(TOLOWER "${SW_WIN_ARCH}" SW_WIN_ARCH)
+
+        # arm64ec only runs on arm64 windows
+        if (SW_WIN_ARCH MATCHES "^arm64")
+            set(SW_INNO_ARCH "arm64")
+        else ()
+            set(SW_INNO_ARCH "$<TARGET_PROPERTY:innosetup::compiler,ARCH_ID>")
+        endif ()
+
         message(STATUS "Installer: installer/${INST_ZIP}, and an exe beside it")
         # the version has dots, so only drop the .zip
         cmake_path(REMOVE_EXTENSION INST_ZIP LAST_ONLY OUTPUT_VARIABLE WIN_INSTALLER)
@@ -166,9 +180,7 @@ function(add_clapfirst_installer)
                         /DCLAP /DVST3 /DVST3_IS_SINGLE_FILE /DSA
                         /DIcon="${SW_PACKAGING}/SpectrumWorxIcon.ico"
                         /DBanner="${SW_PACKAGING}/SpectrumWorxBanner.png"
-                        # Asked of the compiler rather than hardcoded, so that
-                        # an arm64 runner produces an arm64 installer.
-                        /DArch="$<TARGET_PROPERTY:innosetup::compiler,ARCH_ID>"
+                        /DArch="${SW_INNO_ARCH}"
                         /DLicense="${SW_LICENSE}"
                         /DStagedAssets="${WINCOL}"
                         "$<TARGET_PROPERTY:innosetup::compiler,INSTALL_SCRIPT>"

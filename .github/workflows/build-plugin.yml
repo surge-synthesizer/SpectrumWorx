@@ -22,7 +22,8 @@
 #                      job: Linux Debug again under GCC 15, which is also the
 #                      one leg built with a hardened standard library.
 #   build_plugin       the four bundles, and on anything but a pull request the
-#                      installer as well.
+#                      installer as well. Windows ships three: x64 under
+#                      clang-cl, and arm64 and arm64ec under MSVC.
 #   build_plugin_msvc  a pull request only, and a compile check only. It builds
 #                      the Windows bundles with MSVC, runs nothing and uploads
 #                      nothing.
@@ -473,6 +474,21 @@ jobs:
           - os: windows-latest
             name: windows-x64
             cmake_args: -Ax64 -TClangCL
+            target: spectrumworx-installer
+            upload: true
+
+          # MSVC, cross-compiled on the x64 runner, as surge and shortcircuit
+          # ship theirs. Built only: nothing here runs arm64 code.
+          - os: windows-latest
+            name: windows-arm64
+            cmake_args: -Aarm64 -DCMAKE_SYSTEM_VERSION=10 -DSW_EXTRA_ZIP_NAME=-arm64
+            target: spectrumworx-installer
+            upload: true
+
+          # x64 hosts on arm64 Windows load this one
+          - os: windows-latest
+            name: windows-arm64ec
+            cmake_args: -Aarm64ec -DCMAKE_SYSTEM_VERSION=10 -DSW_EXTRA_ZIP_NAME=-arm64ec
             target: spectrumworx-installer
             upload: true
 
