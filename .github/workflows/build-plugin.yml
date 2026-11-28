@@ -631,6 +631,34 @@ jobs:
           cmake --build ./build --config Debug \
             --target spectrumworx_clapfirst_all --parallel 4
 
+  # temporary: C4723 only shows in an optimised MSVC build
+  build_plugin_msvc_release:
+    name: Build - windows-arm64-msvc Release
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Prepare for JUCE
+        uses: surge-synthesizer/sst-githubactions/prepare-for-juce@main
+        with:
+          os: ${{ runner.os }}
+
+      - name: Build pull request version
+        run: |
+          cmake -S . -B ./build -Aarm64 -DCMAKE_SYSTEM_VERSION=10 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSW_BUILD_TESTS=OFF \
+            -DSW_BUILD_TOOLS=OFF \
+            -DSW_WERROR=ON \
+            -DGITHUB_ACTIONS_BUILD=TRUE
+          cmake --build ./build --config Release \
+            --target spectrumworx_clapfirst_all --parallel 4
+
   build_plugin_docker:
     name: Build - Docker Ubuntu 22 ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
