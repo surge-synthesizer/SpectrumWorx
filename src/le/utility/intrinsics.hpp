@@ -19,7 +19,7 @@
 #if defined(_XBOX)
 #include "ppcintrinsics.h"
 #include "vectorintrinsics.h"
-#elif defined(__ARM_NEON__) || defined(__aarch64__)
+#elif defined(__ARM_NEON__) || defined(__aarch64__) || defined(_M_ARM64)
 #include "arm_neon.h"
 #else
 #include "platformSpecifics.hpp"
@@ -39,7 +39,7 @@ namespace LE::Utility
 
 #if defined(_XBOX)
 typedef __vector4 SIMDVector;
-#elif defined(__ARM_NEON__)
+#elif defined(__ARM_NEON__) || defined(_M_ARM64)
 typedef float32x4_t SIMDVector;
 #elif defined(LE_HAS_SSE1)
 typedef __m128 SIMDVector;
@@ -47,9 +47,9 @@ typedef __m128 SIMDVector;
 typedef float SIMDVector __attribute__((vector_size(16)));
 #else
 /// \note This arm used to be `typedef LE_ALIGN(16) float SIMDVector[4]`, and it
-/// is unreachable: MSVC defines LE_HAS_SSE1 for _M_X64 and for _M_IX86 with
-/// /arch:SSE, Clang and GCC answer __GNUC__, and abi.hpp #errors on anything
-/// that is neither. It cannot be written in standard C++ either -- alignas may
+/// is unreachable: MSVC defines LE_HAS_SSE1 for _M_X64 (ARM64EC included) and
+/// for _M_IX86 with /arch:SSE, and takes the NEON arm on _M_ARM64; Clang and GCC
+/// answer __GNUC__, and abi.hpp #errors on anything that is neither. It cannot be written in standard C++ either -- alignas may
 /// not be applied to a typedef -- which is what makes an #error the honest arm
 /// rather than a fallback nothing has ever compiled.
 #error SpectrumWorx has no SIMDVector for this compiler
