@@ -803,12 +803,39 @@ bool ComboBox::keyPressed(juce::KeyPress const &key)
 /// 0.2 per detent and a trackpad a great many smaller deltas, so this is one
 /// row per detent and a readable gesture on a trackpad.
 ///
+////////////////////////////////////////////////////////////////////////////////
+
+int WheelSteps::rowsFor(juce::MouseWheelDetails const &wheel)
+{
+    constexpr float notchesPerRow{5};
+
+    auto const travel(wheel.deltaY * (wheel.isReversed ? -1.0f : +1.0f) * notchesPerRow);
+
+    // a reversal starts again rather than paying off what the other direction
+    // left behind: otherwise one notch down and one notch up leaves the box a
+    // row from where it started
+    if ((travel * travel_) < 0)
+        travel_ = 0;
+
+    travel_ += travel;
+
+    int rows{0};
+    while (travel_ > 1.0f)
+    {
+        travel_ -= 1.0f;
+        ++rows;
+    }
+    while (travel_ < -1.0f)
+    {
+        travel_ += 1.0f;
+        --rows;
+    }
+    return rows;
+}
+
 /// \note Not while the menu is down. The menu scrolls itself, the box under it
 /// is not what the pointer is over, and changing the selection from beneath an
 /// open list is how a user ends up with a value nobody picked.
-///
-////////////////////////////////////////////////////////////////////////////////
-
 void ComboBox::mouseWheelMove(juce::MouseEvent const &event, juce::MouseWheelDetails const &wheel)
 {
     if (!isEnabled() || menuActive() || !hasValidSelection() || (numberOfItems() < 2) ||
@@ -818,30 +845,8 @@ void ComboBox::mouseWheelMove(juce::MouseEvent const &event, juce::MouseWheelDet
         return;
     }
 
-    constexpr float notchesPerRow{5};
-
-    auto const travel(wheel.deltaY * (wheel.isReversed ? -1.0f : +1.0f) * notchesPerRow);
-
-    // a reversal starts again rather than paying off what the other direction
-    // left behind: otherwise one notch down and one notch up leaves the box a
-    // row from where it started
-    if ((travel * wheelTravel_) < 0)
-        wheelTravel_ = 0;
-
-    wheelTravel_ += travel;
-
-    int rows{0};
-    while (wheelTravel_ > 1.0f)
-    {
-        wheelTravel_ -= 1.0f;
-        ++rows; // away from the user is down the list
-    }
-    while (wheelTravel_ < -1.0f)
-    {
-        wheelTravel_ += 1.0f;
-        --rows;
-    }
-
+    // away from the user is down the list
+    auto const rows(wheelSteps_.rowsFor(wheel));
     if (rows == 0)
         return;
 

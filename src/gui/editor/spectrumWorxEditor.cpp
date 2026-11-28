@@ -39,6 +39,7 @@
 #include "le/utility/intrusivePtr.hpp"
 #include "le/utility/ignoreUnused.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <span>
@@ -4220,17 +4221,65 @@ bool SpectrumWorxEditor::SampleArea::keyPressed(juce::KeyPress const &key)
 
 void SpectrumWorxEditor::SampleArea::mouseUp(juce::MouseEvent const &event)
 {
-    SpectrumWorxEditor &editor(this->editor());
-    juce::ModifierKeys const mouseButtons(event.mods);
-    // the right button selects the main input, which is what clearing the file
-    // always meant
-    if (mouseButtons.isRightButtonDown())
+    if (event.mods.isLeftButtonDown() || event.mods.isRightButtonDown())
+        showSourceMenu();
+}
+
+void SpectrumWorxEditor::SampleArea::mouseWheelMove(juce::MouseEvent const &event,
+                                                    juce::MouseWheelDetails const &wheel)
+{
+    if (!isEnabled() || menu_.menuActive() || event.mods.isAnyMouseButtonDown())
     {
-        editor.sideChainSourceSelected(SideChainSource::Main);
+        juce::Component::mouseWheelMove(event, wheel);
         return;
     }
-    if (mouseButtons.isLeftButtonDown())
-        showSourceMenu();
+
+    auto const rows(wheelSteps_.rowsFor(wheel));
+    if (rows != 0)
+        stepSource(rows);
+}
+
+void SpectrumWorxEditor::SampleArea::stepSource(int const rows)
+{
+    SpectrumWorxEditor &editor(this->editor());
+    EditorHost &host(editor.editorHost());
+    auto const factorySamples(Sample::factorySamples());
+
+    constexpr int mainRow{0};
+    constexpr int hostRow{1};
+    constexpr int firstSampleRow{2};
+    auto const lastRow(firstSampleRow + static_cast<int>(factorySamples.size()) - 1);
+
+    std::optional<int> current;
+    switch (host.sideChainSource())
+    {
+    case SideChainSource::Main:
+        current = mainRow;
+        break;
+    case SideChainSource::Host:
+        current = hostRow;
+        break;
+    case SideChainSource::File:
+    {
+        auto const sample(std::ranges::find(factorySamples, host.currentSampleFile()));
+        if (sample != factorySamples.end())
+            current = firstSampleRow + static_cast<int>(sample - factorySamples.begin());
+        break;
+    }
+    }
+
+    auto const from(current ? *current : (rows > 0 ? hostRow : firstSampleRow));
+    auto const row(std::clamp(from + rows, mainRow, std::max(lastRow, hostRow)));
+    if (row == current)
+        return;
+
+    if (row == mainRow)
+        editor.sideChainSourceSelected(SideChainSource::Main);
+    else if (row == hostRow)
+        editor.sideChainSourceSelected(SideChainSource::Host);
+    else
+        editor.newSampleFileSelected(
+            factorySamples[static_cast<std::size_t>(row - firstSampleRow)]);
 }
 
 void SpectrumWorxEditor::SampleArea::showSourceMenu()
@@ -4257,10 +4306,12 @@ void SpectrumWorxEditor::SampleArea::showSourceMenu()
     // command, and greying out the current one hides what it says
     auto const width(editor.editorHost().channelWidth());
     menu_.clear();
+    menu_.addSectionHeader("Audio Input");
     menu_.addItem(mainAsSideChain, SpectrumWorxEditor::hostPortName(SideChainSource::Main, width));
     menu_.addItem(hostSideChain, SpectrumWorxEditor::hostPortName(SideChainSource::Host, width));
     menu_.addSectionHeader("Audio File");
-    menu_.addItem(browse, "Load file...");
+    menu_.addItem(browse, "Load...");
+    menu_.addSectionHeader("Factory Samples");
     for (std::size_t sample(0); sample < factorySamples.size(); ++sample)
         menu_.addItem(static_cast<PopupMenu::ItemID>(firstFactorySample + sample),
                       LE::IO::pathToUTF8(factorySamples[sample].stem()).c_str());
@@ -4323,6 +4374,7 @@ SpectrumWorxEditor &SpectrumWorxEditor::SampleArea::editor()
 
 SpectrumWorxEditor::Settings::Settings() /// \throws std::bad_alloc Out of memory
     : juce::TabbedComponent(juce::TabbedButtonBar::TabsAtTop),
+      aboutPage_([this] { return enginePage_.busLayout(); }),
 
       fftSize_(enginePage_, xMargin, yMargin + yStep * 0 + yOffset, (Engine ::FFTSize *)(0)),
       overlapFactor_(enginePage_, xMargin, yMargin + yStep * 1 + yOffset,
@@ -4472,11 +4524,11 @@ bool SpectrumWorxEditor::Settings::updateEngineInformation()
 
 SpectrumWorxEditor::Settings::EnginePage::EnginePage() : PanelBackground(SettingsPage)
 {
-    std::array<juce::String const *, 5> const texts{&engineQuality_, &frequencyResolution_,
-                                                    &timeResolution_, &latency_, &busLayout_};
+    std::array<juce::String const *, 4> const texts{&engineQuality_, &frequencyResolution_,
+                                                    &timeResolution_, &latency_};
 
     // where paint() writes them
-    auto const infoTextY(yMargin + yStep * 5 + 67);
+    auto const infoTextY(yMargin + yStep * 5 + 75);
     auto const lineHeight(21);
     for (std::size_t line(0); line < texts.size(); ++line)
     {
@@ -4505,7 +4557,6 @@ bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setu
     auto const previousResolution(frequencyResolution_);
     auto const previousStep(timeResolution_);
     auto const previousLatency(latency_);
-    auto const previousBusLayout(busLayout_);
 
     float const qualityFactor(setup.wolaRippleFactor());
     // Implementation note:
@@ -4549,11 +4600,12 @@ bool SpectrumWorxEditor::Settings::EnginePage::setEngineInformation(Engine::Setu
     // output port carrying it. The port counts do not move with the layout --
     // mono halves the side chain rather than removing it -- so they are written
     // here rather than asked for. \see doc/tech/how-mono-ports-work.md
+    //
+    // left out of the answer below, being nothing paint() draws
     busLayout_ = (channelWidth == 1) ? "Mono: 2x1->1x1" : "Stereo: 2x2->1x2";
 
     return (engineQuality_ != previousQuality) || (frequencyResolution_ != previousResolution) ||
-           (timeResolution_ != previousStep) || (latency_ != previousLatency) ||
-           (busLayout_ != previousBusLayout);
+           (timeResolution_ != previousStep) || (latency_ != previousLatency);
 }
 
 void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
@@ -4567,14 +4619,13 @@ void SpectrumWorxEditor::Settings::EnginePage::paint(juce::Graphics &g)
                          juce::Justification::centredLeft, 1);
     });
 
-    const auto infoTextY = yMargin + yStep * 5 + 67;
+    const auto infoTextY = yMargin + yStep * 5 + 75;
     const auto lineHeight = 21;
 
     line(engineQuality_, infoTextY + (lineHeight * 0));
     line(frequencyResolution_, infoTextY + (lineHeight * 1));
     line(timeResolution_, infoTextY + (lineHeight * 2));
     line(latency_, infoTextY + (lineHeight * 3));
-    line(busLayout_, infoTextY + (lineHeight * 4));
 }
 
 namespace

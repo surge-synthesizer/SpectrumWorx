@@ -1198,15 +1198,21 @@ class SpectrumWorxEditor final : private SkinLifetime,
       private: // JUCE Component overrides.
         void paint(juce::Graphics &) override;
         void mouseUp(juce::MouseEvent const &) override;
+        void mouseWheelMove(juce::MouseEvent const &, juce::MouseWheelDetails const &) override;
         bool keyPressed(juce::KeyPress const &) override;
 
       private:
         SpectrumWorxEditor &editor();
 
-        /// what a left press opens
+        /// what a press of either button opens
         void showSourceMenu();
 
+        /// \brief Moves \p rows down the menu's sources, skipping "Load...".
+        void stepSource(int rows);
+
         void browseForFile();
+
+        WheelSteps wheelSteps_;
 
         /// \note Outlives the async file dialog it launches.
         std::unique_ptr<juce::FileChooser> fileChooser_;
@@ -1695,14 +1701,19 @@ class SpectrumWorxEditor final : private SkinLifetime,
           public:
             EnginePage();
 
-            /// \brief Rebuilds the five lines under the combo boxes.
-            /// \returns whether any of them changed, which is what says whether
-            /// the page needs repainting. \see Settings::updateEngineInformation().
+            /// \brief Rebuilds the four lines under the combo boxes, and the bus
+            /// layout, which is not drawn but goes out with the About page's
+            /// Copy Info.
+            /// \returns whether any of the drawn lines changed, which is what
+            /// says whether the page needs repainting.
+            /// \see Settings::updateEngineInformation().
             ///
             /// \note \p channelWidth comes from the host rather than from \p setup:
             /// the setup carries what the *engine* is running, which is nothing at
             /// all before the first activate(). \see EditorHost::channelWidth().
             bool setEngineInformation(Engine::Setup const &setup, std::uint8_t channelWidth);
+
+            juce::String const &busLayout() const { return busLayout_; }
 
           private: // JUCE component overrides.
             void paint(juce::Graphics &) override;
@@ -1714,8 +1725,8 @@ class SpectrumWorxEditor final : private SkinLifetime,
             juce::String latency_;
             juce::String busLayout_;
 
-            /// the five lines, read out
-            std::array<std::unique_ptr<Accessibility::AccessibleLabel>, 5> lines_;
+            /// the four lines, read out
+            std::array<std::unique_ptr<Accessibility::AccessibleLabel>, 4> lines_;
         }; // class EnginePage
 
         class InterfacePage : public PanelBackground

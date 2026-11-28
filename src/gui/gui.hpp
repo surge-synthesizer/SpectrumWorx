@@ -654,6 +654,28 @@ FrameStyle constexpr settingsComboFrame{
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
+/// \class WheelSteps
+///
+/// \brief Turns wheel deltas into whole rows, positive being away from the
+/// user, for anything that steps through a list on the wheel.
+///
+/// \note Accumulated because a trackpad sends a great many small deltas where a
+/// wheel sends one large one, and a row per delta would make the first
+/// unusable. juce::ComboBox carries the same member for the same reason.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+class WheelSteps
+{
+  public:
+    int rowsFor(juce::MouseWheelDetails const &);
+
+  private:
+    float travel_{0};
+}; // class WheelSteps
+
+////////////////////////////////////////////////////////////////////////////////
+///
 /// \class ComboBox
 ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -755,11 +777,7 @@ class ComboBox : public WidgetBase<>, public PopupMenuWithSelection
     FrameStyle const &frame_;
     int const boxHeight_;
 
-    /// \note Accumulated because a trackpad sends a great many small deltas
-    /// where a wheel sends one large one, and a row per delta would make the
-    /// first unusable. juce::ComboBox carries the same member for the same
-    /// reason.
-    float wheelTravel_{0};
+    WheelSteps wheelSteps_;
 }; // class ComboBox
 
 ////////////////////////////////////////////////////////////////////////////////

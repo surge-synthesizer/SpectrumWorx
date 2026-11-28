@@ -109,6 +109,23 @@ class PresetBrowser::PointerWatch final : public juce::MouseListener
     PresetBrowser &browser_;
 }; // class PresetBrowser::PointerWatch
 
+/// \note A listener hears a press and a release after the row they happened on,
+/// so the release here is the end of everything the list does with the gesture.
+class PresetBrowser::NavigationButtons final : public juce::MouseListener
+{
+  public:
+    explicit NavigationButtons(PresetBrowser &browser) : browser_(browser) {}
+
+  private:
+    void mouseDown(juce::MouseEvent const &event) override
+    {
+        browser_.navigationButtonPressed(event.mods);
+    }
+    void mouseUp(juce::MouseEvent const &) override { browser_.navigationButtonReleased(); }
+
+    PresetBrowser &browser_;
+}; // class PresetBrowser::NavigationButtons
+
 PresetBrowser::PresetBrowser()
     : PanelBackground(Browser), browseArrow_(*this, ArrowStyle::stepWidth, ArrowStyle::stepHeight,
                                              false, ColourMap::MouseOverGlow),
@@ -234,6 +251,9 @@ PresetBrowser::PresetBrowser()
     pointerWatch_ = std::make_unique<PointerWatch>(*this);
     listBox_.addMouseListener(pointerWatch_.get(), true);
     comment().addMouseListener(pointerWatch_.get(), true);
+
+    navigationButtons_ = std::make_unique<NavigationButtons>(*this);
+    listBox_.addMouseListener(navigationButtons_.get(), true);
 }
 
 void PresetBrowser::focusList()
@@ -269,6 +289,36 @@ void PresetBrowser::openFolder(int const row)
 
     juce::AccessibilityHandler::postAnnouncement(
         locationLabel(), juce::AccessibilityHandler::AnnouncementPriority::medium);
+}
+
+void PresetBrowser::navigationButtonPressed(juce::ModifierKeys const &buttons)
+{
+    if (!buttons.isBackButtonDown() && !buttons.isForwardButtonDown())
+        return;
+
+    navigationGesture_ = true;
+    juce::ScopedValueSetter<bool> const moving(navigating_, true);
+    if (buttons.isBackButtonDown())
+        goToParent();
+    else
+        goForward();
+}
+
+void PresetBrowser::goForward()
+{
+    bool const overFolder((hoveredRow_ >= 0) && (hoveredRow_ < files_.size()) &&
+                          item(static_cast<unsigned>(hoveredRow_)).isDirectory());
+    openFolder(overFolder ? hoveredRow_ : listBox_.getLastRowSelected());
+}
+
+/// \note The buttons JUCE says are down cover the press, which reaches the row
+/// before this browser hears of it; the gesture flag covers the release.
+bool PresetBrowser::listSelectedForNavigationButton() const
+{
+    if (ignoreSelectionChange_ || navigating_)
+        return false;
+    auto const buttons(juce::ModifierKeys::currentModifiers);
+    return navigationGesture_ || buttons.isBackButtonDown() || buttons.isForwardButtonDown();
 }
 
 void PresetBrowser::goToParentFromKeyboard()
@@ -355,6 +405,7 @@ PresetBrowser::~PresetBrowser()
 {
     listBox_.removeMouseListener(pointerWatch_.get());
     comment().removeMouseListener(pointerWatch_.get());
+    listBox_.removeMouseListener(navigationButtons_.get());
 
     //...mrmlj...fade out does not work for 'on desktop components'
     //this->fadeOutComponent( 600, 0, 0, 0.2f );
@@ -595,8 +646,13 @@ PresetBrowser::Item const *PresetBrowser::findPreset(juce::String const &presetN
                         [&](Item const &item) { return presetName == item.name; });
 }
 
-void PresetBrowser::listBoxItemDoubleClicked(int const row, juce::MouseEvent const &)
+void PresetBrowser::listBoxItemDoubleClicked(int const row, juce::MouseEvent const &event)
 {
+    // two quick back presses are a double click too, on whatever row the first
+    // one put under the pointer
+    if (event.mods.isBackButtonDown() || event.mods.isForwardButtonDown())
+        return;
+
     Item const &item(this->item(row));
     switch (item.kind)
     {
@@ -1182,18 +1238,45 @@ void PresetBrowser::goToParent()
     if (atTopOfTree())
         return;
 
+    juce::String left;
     switch (location_)
     {
     case Location::Factory:
     {
         auto const separator(factoryBank_.lastIndexOfChar('/'));
-        return setFactoryBank(separator < 0 ? juce::String()
-                                            : factoryBank_.substring(0, separator));
+        left = factoryBank_.substring(separator + 1);
+        setFactoryBank(separator < 0 ? juce::String() : factoryBank_.substring(0, separator));
+        break;
     }
 
     case Location::User:
-        return setNewFolder(currentDirectory_.parent_path());
+        left = LE::IO::pathToJuceString(currentDirectory_.filename());
+        setNewFolder(currentDirectory_.parent_path());
+        break;
     }
+
+    selectFolder(left);
+}
+
+/// \note Over the loaded preset's highlight when the two share a listing, which
+/// refresh() has just put up: going up asks where the user was, and the loaded
+/// preset stays loaded whichever row is lit.
+void PresetBrowser::selectFolder(juce::String const &name)
+{
+    auto const pFolder(std::find_if(files_.begin(), files_.end(), [&](Item const &item) {
+        return item.isDirectory() && (item.name == name);
+    }));
+    if (pFolder == files_.end())
+        return;
+
+    auto const row(static_cast<int>(pFolder - files_.begin()));
+
+    ignoreSelectionChange_ = true;
+    listBox_.selectRow(row);
+    ignoreSelectionChange_ = false;
+
+    listBox_.scrollToEnsureRowIsOnscreen(row);
+    delete_.setEnabled(false);
 }
 
 /// \note The second `User` test is for the browse arrow, which can put
@@ -1277,6 +1360,21 @@ SpectrumWorxEditor const &PresetBrowser::editor() const
 
 void PresetBrowser::selectedRowsChanged(int const lastRowSelected)
 {
+    // juce::ListBox selects the row under any press, so back or forward over a
+    // preset would load it. Undone rather than prevented, the list having
+    // already moved by the time it says so
+    if (listSelectedForNavigationButton())
+    {
+        ignoreSelectionChange_ = true;
+        if (selectedRow_ < 0)
+            listBox_.deselectAllRows();
+        else
+            listBox_.selectRow(selectedRow_);
+        ignoreSelectionChange_ = false;
+        return;
+    }
+    selectedRow_ = lastRowSelected;
+
     saveDirtyComment();
 
     // before the two early exits below: what the jog can do depends on the

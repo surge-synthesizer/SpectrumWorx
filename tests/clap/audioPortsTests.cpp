@@ -447,7 +447,7 @@ TEST_CASE("Reconfiguring renames the ports in an open editor", "[clap][audio-por
     REQUIRE(plugin.reconfigure(1));
     editor.updateEngineInformationIfChanged();
 
-    // both the box under the LFO panel and the Engine page's fifth line
+    // the box under the LFO panel names its port by width
     CHECK(differing(stereo, render()) > 0);
 
     REQUIRE(plugin.reconfigure(2));

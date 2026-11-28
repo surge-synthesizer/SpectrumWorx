@@ -34,6 +34,7 @@
 /// node to it, and this is the header with the complete type.
 #include "core/modules/moduleDSPAndGUI.hpp"
 
+#include "external_audio/sample.hpp"
 #include "le/spectrumworx/sideChainSource.hpp"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -70,6 +71,36 @@ std::size_t differingPixels(juce::Image const &left, juce::Image const &right)
         for (int x(0); x < left.getWidth(); ++x)
             different += (leftPixels.getPixelColour(x, y) != rightPixels.getPixelColour(x, y));
     return different;
+}
+
+juce::Component *findSampleArea(Editor &editor)
+{
+    for (auto *const pChild : editor.mainArea().getChildren())
+        if (dynamic_cast<Editor::SampleArea *>(pChild))
+            return pChild;
+    return nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \brief One wheel row over \p component: +1 away from the user, -1 toward.
+///
+/// \note Just over a fifth rather than discreteParameterTests' 0.3, because the
+/// wheel keeps what a notch leaves over: at 0.3 every other notch would be two
+/// rows, and these cases walk the list a row at a time.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+void scroll(juce::Component &component, int const direction)
+{
+    juce::MouseWheelDetails wheel{};
+    wheel.deltaY = static_cast<float>(direction) * 0.2001f;
+
+    auto const centre(component.getLocalBounds().getCentre().toFloat());
+    juce::MouseEvent const event(juce::Desktop::getInstance().getMainMouseSource(), centre,
+                                 juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, &component,
+                                 &component, juce::Time(), centre, juce::Time(), 1, false);
+    component.mouseWheelMove(event, wheel);
 }
 
 //------------------------------------------------------------------------------
@@ -188,4 +219,78 @@ TEST_CASE("The side chain box follows the port width", "[gui][side-chain][audio-
     instance.setChannelWidth(2);
     editor.updateSampleName();
     CHECK(differingPixels(rendered(editor), stereo) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///
+/// \note The menu's order with "Load..." left out: the wheel goes from the
+/// host's port straight to the first factory sample and back, and never opens a
+/// file dialog. It stops at the ends rather than wrapping, as a ComboBox does.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("The wheel steps the side chain box through its sources", "[gui][side-chain][wheel]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    instance.openEditor(Editor::PanelPlacement::overlay);
+    auto &editor(instance.editor());
+
+    auto const samples(Sample::factorySamples());
+    REQUIRE(samples.size() >= 2);
+
+    auto *const pArea(findSampleArea(editor));
+    REQUIRE(pArea != nullptr);
+    auto &area(*pArea);
+
+    editor.sideChainSourceSelected(SideChainSource::Main);
+
+    scroll(area, -1);
+    CHECK(instance.sideChainSource() == SideChainSource::Main);
+
+    scroll(area, +1);
+    CHECK(instance.sideChainSource() == SideChainSource::Host);
+
+    scroll(area, +1);
+    CHECK(instance.sideChainSource() == SideChainSource::File);
+    CHECK(instance.currentSampleFile() == samples.front());
+
+    scroll(area, +1);
+    CHECK(instance.currentSampleFile() == samples[1]);
+
+    for (std::size_t notch(0); notch < samples.size() + 2; ++notch)
+        scroll(area, +1);
+    CHECK(instance.sideChainSource() == SideChainSource::File);
+    CHECK(instance.currentSampleFile() == samples.back());
+
+    for (std::size_t notch(0); notch < samples.size() - 1; ++notch)
+        scroll(area, -1);
+    CHECK(instance.currentSampleFile() == samples.front());
+
+    scroll(area, -1);
+    CHECK(instance.sideChainSource() == SideChainSource::Host);
+}
+
+/// \note A file of the user's own stands where "Load..." does, so one notch
+/// either way leaves it for its neighbours.
+TEST_CASE("The wheel leaves a user's file for its neighbours", "[gui][side-chain][wheel]")
+{
+    SWTest::HostSideJuce const juce;
+    SWTest::Instance instance;
+    instance.openEditor(Editor::PanelPlacement::overlay);
+    auto &editor(instance.editor());
+
+    auto const samples(Sample::factorySamples());
+    REQUIRE(!samples.empty());
+
+    auto *const pArea(findSampleArea(editor));
+    REQUIRE(pArea != nullptr);
+
+    instance.nameSample("Mine.wav", true /*loaded*/);
+    scroll(*pArea, +1);
+    CHECK(instance.currentSampleFile() == samples.front());
+
+    instance.nameSample("Mine.wav", true /*loaded*/);
+    scroll(*pArea, -1);
+    CHECK(instance.sideChainSource() == SideChainSource::Host);
 }

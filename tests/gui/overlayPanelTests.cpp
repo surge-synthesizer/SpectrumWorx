@@ -38,6 +38,7 @@
 /// node to it, and this is the header with the complete type.
 #include "core/modules/moduleDSPAndGUI.hpp"
 
+#include "gui/about.hpp"
 #include "gui/modules/moduleUI.hpp"
 #include "le/spectrumworx/factoryPresets.hpp"
 
@@ -493,39 +494,55 @@ TEST_CASE("The engine information follows the engine, and says when it moved",
     CHECK(differenceOver(before, rendered(editor), overlayRectangle()) > 0);
 }
 
+namespace
+{
+GUI::AboutPage const *findAboutPage(juce::Component const &component)
+{
+    if (auto const *const pPage = dynamic_cast<GUI::AboutPage const *>(&component))
+        return pPage;
+    for (auto const *const pChild : component.getChildren())
+        if (auto const *const pPage = findAboutPage(*pChild))
+            return pPage;
+    return nullptr;
+}
+} // anonymous namespace
+
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// \note The fifth line, which is the only one that is not derived from the FFT
-/// setup: how many ports there are and how wide they are, which is the host's
+/// \note How many ports there are and how wide they are, which is the host's
 /// answer rather than the engine's. \see doc/tech/how-mono-ports-work.md
 ///
-/// \note It goes through the same "did anything move" boolean as the other four,
-/// so a width that changed under an open editor repaints once rather than never
-/// or thirty times a second.
+/// \note Not on the Engine page, which has no room for it, but the last line of
+/// the About page's Copy Info -- what a bug report wants and a user reading the
+/// page does not. So a width change moves the copied text and no pixel.
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("The engine page names the bus layout", "[gui][overlay][settings][audio-ports]")
+TEST_CASE("Copy Info names the bus layout", "[gui][overlay][settings][audio-ports]")
 {
     SWTest::HostSideJuce const juce;
     SWTest::Instance instance;
     auto &editor(overlayEditor(instance));
 
+    // found while it is showing -- a tab is a child only then -- and held after,
+    // being a member of the settings panel rather than of the tab bar
+    editor.showSettings(Editor::aboutPageIndex);
+    auto const *const pAbout(findAboutPage(editor));
+    REQUIRE(pAbout != nullptr);
+
     editor.showSettings(Editor::enginePageIndex);
     auto const stereo(rendered(editor));
-    CHECK_FALSE(editor.updateEngineInformationIfChanged());
+    CHECK(pAbout->copiedInformation().endsWith("\nStereo: 2x2->1x2\n"));
 
     instance.setChannelWidth(1);
-    CHECK(editor.updateEngineInformationIfChanged());
     CHECK_FALSE(editor.updateEngineInformationIfChanged());
-
-    auto const mono(rendered(editor));
-    CHECK(differenceOver(stereo, mono, overlayRectangle()) > 0);
+    CHECK(pAbout->copiedInformation().endsWith("\nMono: 2x1->1x1\n"));
+    CHECK(differenceOver(stereo, rendered(editor), overlayRectangle()) == 0);
 
     // and back, so neither string is the one it happens to start on
     instance.setChannelWidth(2);
-    CHECK(editor.updateEngineInformationIfChanged());
-    CHECK(differenceOver(stereo, rendered(editor), overlayRectangle()) == 0);
+    CHECK_FALSE(editor.updateEngineInformationIfChanged());
+    CHECK(pAbout->copiedInformation().endsWith("\nStereo: 2x2->1x2\n"));
 }
 
 TEST_CASE("The settings tab survives the editor window closing", "[gui][overlay]")

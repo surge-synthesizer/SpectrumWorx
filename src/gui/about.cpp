@@ -362,7 +362,8 @@ void AboutPage::IconLink::paintButton(juce::Graphics &graphics, bool const isMou
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-AboutPage::AboutPage() : PanelBackground(SettingsPage)
+AboutPage::AboutPage(std::function<juce::String()> busLayout)
+    : PanelBackground(SettingsPage), busLayout_(std::move(busLayout))
 {
     setName("About");
 
@@ -457,11 +458,11 @@ std::vector<juce::String> AboutPage::originalAuthors()
 
 void AboutPage::copyInformation()
 {
-    juce::SystemClipboard::copyTextToClipboard(information());
+    juce::SystemClipboard::copyTextToClipboard(copiedInformation());
     links_[copyInfoLink]->flash();
 }
 
-juce::String AboutPage::information()
+juce::String AboutPage::information(juce::String const &busLayout)
 {
     using sst::plugininfra::VersionInformation;
 
@@ -479,6 +480,7 @@ juce::String AboutPage::information()
                 << VersionInformation::build_time << " UTC\n";
     information << "Compiler: " << VersionInformation::cmake_compiler << "\n";
     information << "System:   " << VersionInformation::cmake_system_name << "\n";
+    information << busLayout << "\n";
     return information;
 }
 
