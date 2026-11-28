@@ -22,12 +22,13 @@ template <typename Source, int sourceRangeOffset, unsigned int sourceRangeSize,
           unsigned int sourceRangeScaleFactor, class Parameter, typename Target>
 Target convertLinearValueToParameterValue(Source const sourceValue, DynamicRangeParameterTag)
 {
-    if (sourceRangeSize == 0) //...mrmlj...au/non-normalised automation parameters...
+    // non-normalised automation; a zero range must not instantiate the divide
+    if constexpr (sourceRangeSize == 0)
         return Math::convert<Target>(sourceValue);
-
-    return Math::convertLinearRange<Target, Source, sourceRangeOffset, sourceRangeSize,
-                                    sourceRangeScaleFactor>(sourceValue, Parameter::minimum(),
-                                                            Parameter::maximum());
+    else
+        return Math::convertLinearRange<Target, Source, sourceRangeOffset, sourceRangeSize,
+                                        sourceRangeScaleFactor>(sourceValue, Parameter::minimum(),
+                                                                Parameter::maximum());
 }
 
 template <typename Target, int targetRangeOffset, unsigned int targetRangeSize,
@@ -35,12 +36,12 @@ template <typename Target, int targetRangeOffset, unsigned int targetRangeSize,
 Target convertParameterValueToLinearValue(typename Parameter::value_type const sourceValue,
                                           DynamicRangeParameterTag)
 {
-    if (targetRangeSize == 0) //...mrmlj...au/non-normalised automation parameters...
+    if constexpr (targetRangeSize == 0)
         return Math::convert<Target>(sourceValue);
-
-    return Math::convertLinearRange<Target, targetRangeOffset, targetRangeSize,
-                                    targetRangeScaleFactor>(sourceValue, Parameter::minimum(),
-                                                            Parameter::maximum());
+    else
+        return Math::convertLinearRange<Target, targetRangeOffset, targetRangeSize,
+                                        targetRangeScaleFactor>(sourceValue, Parameter::minimum(),
+                                                                Parameter::maximum());
 }
 
 } // namespace LE::Parameters::Detail
